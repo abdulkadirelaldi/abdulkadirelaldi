@@ -30,18 +30,26 @@
   /* Kenarlar */
   --border: #262640;
   --border-hover: #3a3a5c;
+  /* WCAG 1.4.11 — form denetimlerinin sınırı 3:1 olmalı. Dekoratif kart kenarı
+     (--border) bu eşiği karşılamaz ve karşılaması da gerekmez; input/textarea
+     gibi ETKİLEŞİMLİ denetimler bunu kullanır. T-002b. */
+  --border-strong: #64649d;
 
   /* Metin */
   --text-primary: #ececf5;
   --text-body: #b4b4cc;
-  --text-muted: #7a7a99;
+  /* T-002b: #7a7a99 idi — bg-elevated üzerinde 4.12:1 ile AA'yı kaçırıyordu. */
+  --text-muted: #8383a0;
 
-  /* Vurgu — §3.1: aydınlık temada da AYNI kalır */
-  --accent: #7c5cff;
+  /* Vurgu — §3.1: aydınlık temada --accent, --accent-hover, --accent-blue AYNI kalır.
+     --accent-soft (vurgu METNİ) aydınlıkta koyulaşır; beyaz üzerinde okunmuyordu. */
+  /* T-002b: #7c5cff idi — gradient buton üzerindeki beyaz metin 4.35:1'de kalıyordu. */
+  --accent: #7756ff;
   --accent-hover: #6b49f5;
   --accent-soft: #a78bfa;
-  --accent-blue: #4f8cff;
-  --accent-glow: rgba(124, 92, 255, 0.28);
+  /* T-002b: #4f8cff idi — beyaz metinle 3.22:1, gradientin en zayıf noktasıydı. */
+  --accent-blue: #1c6aff;
+  --accent-glow: rgba(119, 86, 255, 0.28);
 
   /* Durum */
   --success: #34d399;
@@ -61,20 +69,32 @@
   color-scheme: dark;
 }
 
-/* (a) Kullanıcı açıkça aydınlık seçti */
+/* (a) Kullanıcı açıkça aydınlık seçti.
+   NOT: bu blok ile aşağıdaki medya sorgusu bloğu BİREBİR aynı olmalı. */
 .light {
   --bg-base: #f8f8fc;
   --bg-surface: #ffffff;
   --bg-elevated: #ffffff;
 
   --border: #e4e4f0;
-  /* §3.1'in aydınlık listesinde --border-hover verilmemiş; kenar rengiyle aynı
-     ailede, hover'da fark edilir bir ton seçildi (bkz. rapor / Kararlar K5). */
   --border-hover: #cfcfe4;
+  --border-strong: #8a8abc;
 
   --text-primary: #14142b;
   --text-body: #4a4a66;
-  --text-muted: #8a8aa3;
+  /* T-002b: #8a8aa3 idi — beyaz üzerinde 3.36:1, en riskli token buydu. */
+  --text-muted: #686885;
+
+  /* T-002b: koyu temanın #a78bfa'sı beyaz üzerinde 2.72:1 veriyordu — okunmuyordu.
+     Aydınlıkta vurgu metni koyulaşır; --accent/--accent-blue AYNI kalır (§3.1). */
+  --accent-soft: #6b3bf7;
+
+  /* T-002b: §3.1 aydınlık tema için durum rengi tanımlamıyordu; koyu temanın
+     parlak değerleri beyaz üzerinde 1.57–2.77:1 ile tamamen okunmazdı. */
+  --success: #197352;
+  --warning: #845f02;
+  --danger: #c60a0a;
+  --info: #0760cf;
 
   color-scheme: light;
 }
@@ -89,10 +109,18 @@
 
     --border: #e4e4f0;
     --border-hover: #cfcfe4;
+    --border-strong: #8a8abc;
 
     --text-primary: #14142b;
     --text-body: #4a4a66;
-    --text-muted: #8a8aa3;
+    --text-muted: #686885;
+
+    --accent-soft: #6b3bf7;
+
+    --success: #197352;
+    --warning: #845f02;
+    --danger: #c60a0a;
+    --info: #0760cf;
 
     color-scheme: light;
   }
@@ -116,6 +144,7 @@
 
   --color-line: var(--border);
   --color-line-hover: var(--border-hover);
+  --color-line-strong: var(--border-strong);
 
   --color-primary: var(--text-primary);
   --color-body: var(--text-body);
@@ -192,6 +221,20 @@
   }
 }
 
+/* Satır içi bağlantı — `<p>` DIŞINDA kalan gövde metinlerinde (liste maddesi,
+   tablo hücresi, açıklama bloğu) kullanılır. `<p>` içinde gerekmez, taban
+   katmanı zaten alt çizgiyi veriyor. K5 / WCAG 1.4.1. */
+@utility link {
+  color: var(--accent-soft);
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+
+  &:hover {
+    text-decoration-thickness: 2px;
+  }
+}
+
 /* §3.1 — gradient metin (isim vurgusu). Yalnızca display başlıklarda. */
 @utility text-gradient {
   background-image: var(--gradient-accent);
@@ -250,6 +293,24 @@
     line-height: 1.15;
     color: var(--text-primary);
     text-wrap: balance;
+  }
+
+  /* K5 / WCAG 1.4.1 "Renk Kullanımı" — gövde metni içindeki bağlantı renk DIŞINDA
+     bir işaretle de ayırt edilmeli. Renk körü bir kullanıcı mor metni gövde
+     metninden ayıramaz; alt çizgi bunu renkten bağımsız çözer.
+
+     Kapsam bilinçli olarak `p` ile SINIRLI. Navigasyon, alt bilgi menüsü ve
+     kart bağlantıları `ul > li` içinde yaşar — bunlar blok bağlamdadır, konumu
+     ve çevresi zaten bağlantı olduklarını söyler, alt çizgi almazlar.
+     `<p>` dışında kalan satır içi bağlantılar için `link` yardımcısı var. */
+  p a {
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.2em;
+  }
+
+  p a:hover {
+    text-decoration-thickness: 2px;
   }
 
   ::selection {

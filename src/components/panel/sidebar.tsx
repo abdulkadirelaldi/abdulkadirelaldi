@@ -96,6 +96,7 @@ export function Sidebar() {
                     <li key={item.href}>
                       <Link
                         href={item.href}
+                        prefetch={false}
                         aria-current={active ? 'page' : undefined}
                         className={cn(
                           'focus-ring ease-brand duration-micro rounded-btn flex items-center gap-2.5 px-2 py-2 text-sm transition-colors',

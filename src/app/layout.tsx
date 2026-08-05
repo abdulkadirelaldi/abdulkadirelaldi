@@ -1,4 +1,4 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import { Inter, JetBrains_Mono, Space_Grotesk } from 'next/font/google';
 import { cookies } from 'next/headers';
 import type { ReactNode } from 'react';
@@ -42,6 +42,21 @@ export const metadata: Metadata = {
     template: `%s · ${SITE_NAME}`,
   },
   description: 'Web uygulamaları ve dijital ürünler tasarlıyor, uçtan uca geliştiriyorum.',
+};
+
+/**
+ * §3.1 hex yasağının TEK istisnası: `themeColor` çerçeve tarafından dayatılan bir
+ * metadata alanı, ham renk değeri istiyor ve CSS değişkeni kabul etmiyor.
+ *
+ * Aşağıdaki iki değer `--bg-base` token'ının iki temadaki karşılığıdır ve
+ * `globals.css` ile BİRLİKTE güncellenmelidir — projede bu token'ın ikinci ve
+ * son kopyası burasıdır.
+ */
+export const viewport: Viewport = {
+  themeColor: [
+    { media: '(prefers-color-scheme: dark)', color: '#0A0A12' }, // --bg-base (koyu)
+    { media: '(prefers-color-scheme: light)', color: '#F8F8FC' }, // --bg-base (aydınlık)
+  ],
 };
 
 /**
