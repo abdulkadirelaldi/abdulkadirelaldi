@@ -65,7 +65,7 @@ açığın ayrıntısı artık saldırgana bir şey kazandırmaz.
 | ----- | ----- | ------ | ----- |
 | 2026-08-04 | T-004 | Test altyapısı, `src/middleware.ts`, §8.12–8.14 başlıkları, §8.7 | 2 bulgu açıldı (BULGU-001 Düşük, BULGU-002 Yüksek) |
 | 2026-08-05 | T-005 | CI kapısı, §8.18 gizli bilgi taraması, §8.24 bağımlılık denetimi, §9 Lighthouse, ADR-008 sürüm sabitlemesi | **BULGU-002 kapandı.** BULGU-003 açıldı (Orta, Frontend). §8.18 ve §8.24 ilk kez fiilen uygulandı. |
-| 2026-08-05 | T-006b | İlk gerçek CI koşusunun artıkları: eylem sürümleri, Lighthouse artifact yolu ve portu, koyu tema kapsamı, R21 açıklama kuralı | **BULGU-003 kapandı** (T-002b düzeltti — iki temada da A11y 100). **BULGU-004 açıldı ve aynı görevde kapandı.** R21 kuralı yazıldı. |
+| 2026-08-05 | T-006b | İlk gerçek CI koşusunun artıkları: eylem sürümleri, Lighthouse artifact yolu ve portu, koyu tema kapsamı, R21 açıklama kuralı | **BULGU-003 kapandı** (T-002b düzeltti — iki temada da A11y 100). **BULGU-004 açıldı ve aynı görevde kapandı.** R21 kuralı yazıldı. Doğrulama: CI `31011121588` (PR #1) — üç iş yeşil, Node 20 uyarısı 0, artifact 2.18 MB. |
 
 ---
 
@@ -306,6 +306,40 @@ edilmezdi.
 2. Artifact yolu `lighthouse-raporu/`; iki temanın raporu tek artifact'ta.
 3. `if-no-files-found: error` — rapor üretilmezse adım artık **kırmızı**, sessiz uyarı değil.
 4. `.gitignore`'a `/lighthouse-raporu` eklendi.
+
+**Doğrulama — gerçek CI koşusu `31011121588`** (PR #1, `pull_request`):
+üç iş de yeşil, `lighthouse-raporu` artifact'ı **2.18 MB** olarak yüklendi ve
+her iki temanın 3'er raporunu içeriyor. Node 20 uyarı sayısı: **0** (önceki
+koşuda üç işin üçünde de vardı).
+
+---
+
+## Ölçüm — Lighthouse, iki tema (CI `31011121588`)
+
+Artifact'tan okunan ham skorlar (3 koşu, LHCI medyan üzerinden değerlendirir):
+
+| Tema | `extraHeaders` | Performance | A11y | Best Practices | SEO |
+| ---- | -------------- | ----------- | ---- | -------------- | --- |
+| Aydınlık | `null` | 69 · 90 · 94 | **100 · 100 · 100** | 100 · 100 · 100 | 60 · 60 · 60 |
+| Koyu | `{"Cookie":"ae-theme=dark"}` | 94 · 91 · 94 | **100 · 100 · 100** | 100 · 100 · 100 | 60 · 60 · 60 |
+
+`extraHeaders` sütunu koyu tema koşusunun gerçekten koyu temayı ölçtüğünün
+kanıtıdır — Lighthouse kendi ayarını rapora yazar. Ayrıca sunucunun cookie'yi
+onurlandırdığı doğrudan görüldü: `Cookie: ae-theme=dark` ile
+`<html … class="… dark">`, cookie'siz sınıf yok.
+
+### ⚠️ İzlenmesi gereken: performans koşu değişkenliği
+
+Aydınlık temada üç koşu **69 / 90 / 94** çıktı. Medyan 90 olduğu için eşik
+(≥0.90) **kıl payı** geçti ve uyarı üretmedi. Ama 69'luk bir aykırı değer,
+GitHub koşucusunun paylaşımlı CPU'sunda ölçümün ne kadar oynadığını gösteriyor.
+
+**T-029 için risk:** eşikler `error`'a çevrildiğinde talihsiz bir koşu hattı
+kırmızıya çevirebilir — üstelik kodda hiçbir şey değişmeden. O görevde şu
+seçeneklerden biri kararlaştırılmalı: `numberOfRuns` artırmak, medyan yerine
+`aggregationMethod: "optimistic"` kullanmak, ya da performans eşiğini ayrı bir
+"bilgilendirici" işe taşıyıp merge kapısından çıkarmak. Erişilebilirlik, en iyi
+uygulamalar ve SEO değişkenlik göstermiyor; sorun yalnızca performans.
 
 ---
 
