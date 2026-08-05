@@ -1,0 +1,33 @@
+// PROGRAM.md §2 (PostgreSQL 16 + Prisma), §4.3
+//
+// DİKKAT — Prisma 7 (risk R8):
+//   1. `datasource` bloğunda `url` ARTIK YASAK. Bağlantı dizesi `prisma.config.ts`
+//      içinde yaşar (migrate/introspect için), çalışma zamanında ise PrismaClient'a
+//      bir sürücü adaptörü ile verilir. `url = env("DATABASE_URL")` yazarsanız
+//      şema P1012 ile doğrulamadan geçmez.
+//   2. Generator `prisma-client` (v6'daki `prisma-client-js` DEĞİL). Çıktı yolu
+//      açıkça verilmek zorunda ve üretilen kod TypeScript kaynağıdır.
+//
+// Bu dosyada ŞU AN yalnızca bağlantıyı doğrulayan tek model var.
+// §6'nın tam veri modeli T-010'da yazılacak.
+
+datasource db {
+  provider = "postgresql"
+}
+
+generator client {
+  provider = "prisma-client"
+  // Yol schema.prisma'ya GÖRELİDİR. `src/server/` altında tutuluyor çünkü
+  // §7.4 gereği DB erişimi yalnızca sunucu katmanında olmalı.
+  output   = "../src/server/generated/prisma"
+}
+
+/// T-003 doğrulama modeli — bağlantının ve migration zincirinin çalıştığını
+/// kanıtlar. Sağlık kontrolü ucu (§13.6) bu tabloya dokunmaz, yalnızca
+/// bağlantıyı test eder. T-010'da §6 modelleri eklenirken bu model KALDIRILACAK.
+model HealthCheck {
+  id        String   @id @default(cuid())
+  checkedAt DateTime @default(now())
+
+  @@map("health_check")
+}

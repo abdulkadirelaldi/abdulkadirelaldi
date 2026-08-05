@@ -1,0 +1,39 @@
+# Yerel geliştirme veritabanı — PROGRAM.md §2 (PostgreSQL 16), §13.2
+#
+# GÜVENLİK: port ifadesi "127.0.0.1:5432:5432" biçimindedir. Baştaki 127.0.0.1
+# ZORUNLUDUR — "5432:5432" yazılırsa Docker portu 0.0.0.0'a bağlar ve veritabanı
+# yerel ağdaki herkese açılır (§13.2: "sadece iç ağa açık, port dışarı kapalı").
+# Bu satırı değiştirmeyin.
+#
+# Üretim ortamı bu dosyayı KULLANMAZ; Coolify kendi Postgres servisini yönetir (§13.2).
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: aelaldi-db-dev
+    restart: unless-stopped
+    ports:
+      # Host portu bilerek 5433 — geliştirme makinesinde sistem geneli kurulmuş bir
+      # PostgreSQL 5432'yi tutuyor olabilir (bu makinede Homebrew postgresql@16 tutuyordu).
+      # Çakışma sessizdir: container "healthy" görünür ama bağlantılar host'taki
+      # diğer sunucuya gider ve "role does not exist" gibi yanıltıcı hata alırsınız.
+      # Container içi port 5432 olarak kalır; değişen yalnızca host tarafı.
+      - '127.0.0.1:5433:5432'
+    environment:
+      POSTGRES_USER: aelaldi
+      POSTGRES_PASSWORD: aelaldi_dev_only
+      POSTGRES_DB: aelaldi
+      # Türkçe sıralama/karşılaştırma tutarlılığı için
+      POSTGRES_INITDB_ARGS: '--encoding=UTF8 --locale=C'
+    volumes:
+      - aelaldi_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U aelaldi -d aelaldi']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+volumes:
+  aelaldi_pgdata:
+    name: aelaldi_pgdata

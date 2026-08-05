@@ -1,0 +1,237 @@
+name: CI
+
+# PROGRAM.md §10.5 / §10.6 — "Bir görev şunların hepsi sağlanmadan tamamlandı
+# sayılmaz". Bu dosya o cümleyi otomatik bir kapıya çevirir: `kapi` işi
+# düşerse merge yok.
+#
+# İlgili ADR: ADR-003 (pnpm), ADR-006 (postinstall), ADR-008 (Node 22),
+# ADR-009 (GitHub Actions).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# En az yetki: hat yalnızca kodu okur. Hiçbir iş yazma izni istemiyor.
+permissions:
+  contents: read
+
+# Aynı dal için yeni push gelirse eskisini iptal et — koşucu boşa yanmasın.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CI: 'true'
+  # Derleme ve kullanım verisi Vercel'e gitmesin (§8 gizlilik duruşu).
+  NEXT_TELEMETRY_DISABLED: '1'
+  # F0'da kapsam eşiği RAPORLANIR, zorlanmaz. F1 sonunda '1' yapılacak —
+  # tek satır, tek yer. Ayrıntı: vitest.config.ts.
+  COVERAGE_ENFORCE: '0'
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # ANA KAPI — §10.6. Adımlar sıralıdır ve ilki düşerse sonrakiler koşmaz.
+  # ---------------------------------------------------------------------------
+  kapi:
+    name: 'Kapı: lint → typecheck → test → build → e2e'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Depoyu al
+        uses: actions/checkout@v4
+
+      # pnpm sürümü `package.json` → `packageManager` alanından okunur (ADR-003).
+      # Ayrı bir yere sürüm yazmıyoruz ki sapma ihtimali olmasın.
+      - name: pnpm kur
+        uses: pnpm/action-setup@v4
+
+      # ADR-008 TEK KAYNAĞI: `.nvmrc`. Sürüm burada elle yazılmaz.
+      - name: Node kur (.nvmrc)
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      # ADR-008'in üç ayağının fiilen aynı olduğunu doğrular. Bu adım olmasaydı
+      # `.nvmrc` ile `engines` sessizce ayrışabilir ve "yerelde çalışıyor, CI'da
+      # çalışmıyor" sınıfı hatalar geri gelirdi.
+      - name: Sürüm senkronu (.nvmrc ↔ engines ↔ çalışan Node)
+        run: |
+          node <<'BETIK'
+          const { readFileSync } = require('node:fs');
+
+          const nvmrc = readFileSync('.nvmrc', 'utf8').trim();
+          const engines = require('./package.json').engines.node;
+          const calisan = process.versions.node;
+
+          const nvmrcAna = Number.parseInt(nvmrc.replace(/^v/, ''), 10);
+          const enginesAna = Number.parseInt(engines.replace(/^[^\d]*/, ''), 10);
+          const calisanAna = Number.parseInt(calisan, 10);
+
+          console.log(`.nvmrc=${nvmrc} engines="${engines}" calisan=v${calisan}`);
+
+          const hatalar = [];
+          if (nvmrcAna !== enginesAna) {
+            hatalar.push(`.nvmrc (${nvmrcAna}) ile engines (${enginesAna}) ana sürümü farklı`);
+          }
+          if (calisanAna !== nvmrcAna) {
+            hatalar.push(`Çalışan Node (${calisanAna}) .nvmrc (${nvmrcAna}) ile uyuşmuyor`);
+          }
+          if (hatalar.length > 0) {
+            console.error('ADR-008 ihlali:\n- ' + hatalar.join('\n- '));
+            process.exit(1);
+          }
+          console.log('ADR-008: üç kaynak da uyumlu.');
+          BETIK
+
+      # ADR-006: `postinstall` → `prisma generate` burada kendiliğinden koşar.
+      # Ayrıca `prisma generate` çağırmaya GEREK YOK.
+      #
+      # `.env` YOK ve Postgres servisi YOK — T-003c'den beri zincirin tamamı
+      # bu koşulda geçiyor. Gerçek DATABASE_URL secret'ı BİLEREK verilmiyor:
+      # derlemenin veritabanına ihtiyacı yok (BULGU-002).
+      - name: Bağımlılıkları kur
+        run: pnpm install --frozen-lockfile
+
+      - name: 1/5 · Lint
+        run: pnpm lint
+
+      - name: 2/5 · Typecheck
+        run: pnpm typecheck
+
+      # Kapsam raporu burada üretilir. Eşik (%70) yapılandırılmıştır ancak
+      # COVERAGE_ENFORCE=0 olduğu için şimdilik yalnızca raporlanır.
+      # §8.18'in `.env.example` ve `process.env` katmanları da bu adımda koşar.
+      - name: 3/5 · Birim + bileşen testleri (kapsam)
+        run: pnpm test
+
+      - name: 4/5 · Üretim derlemesi
+        run: pnpm build
+
+      # §8.18'in ÜÇÜNCÜ katmanı: derleme çıktısında sır var mı?
+      # Aynı test dosyası `test` adımında derleme yokken ilgili blokları
+      # atlamıştı; `.next/` artık var olduğu için burada gerçekten tarar.
+      - name: 5/5 · §8.18 — derleme çıktısında gizli bilgi taraması
+        run: pnpm exec vitest run tests/unit/public-env.test.ts
+
+      - name: Playwright tarayıcı önbelleği
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+
+      - name: Playwright tarayıcılarını kur
+        run: pnpm exec playwright install --with-deps chromium
+
+      # `playwright.config.ts` CI'da yeniden derlemez; yukarıdaki derleme
+      # adımının çıktısını kullanır. Yani `build` düşerse E2E hiç koşmaz.
+      - name: E2E (masaüstü + mobil)
+        run: pnpm test:e2e
+
+      - name: Kapsam raporunu sakla
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: kapsam-raporu
+          path: coverage/
+          retention-days: 14
+
+      - name: Playwright raporunu sakla
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-raporu
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 14
+
+  # ---------------------------------------------------------------------------
+  # §8.24 — "npm audit yüksek/kritik açıkla merge yok".
+  # Ayrı iş: kapıdan bağımsız ve hızlı geri bildirim verir, ama düşerse
+  # yine merge engellenir (dal koruması her iki işi de zorunlu sayar).
+  # ---------------------------------------------------------------------------
+  bagimlilik-denetimi:
+    name: §8.24 · Bağımlılık denetimi
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Bağımlılıkları kur
+        run: pnpm install --frozen-lockfile
+
+      # ADR-003 gereği `npm audit` değil `pnpm audit`. `--audit-level high`
+      # yüksek VE kritik seviyeyi kapsar; bulgu varsa çıkış kodu sıfır değildir.
+      - name: pnpm audit (yüksek + kritik)
+        run: pnpm audit --audit-level high
+
+      # Kilit dosyası ile package.json ayrışmışsa `--frozen-lockfile` zaten
+      # düşer; bu adım niyeti açık kılar ve ADR-003'ün diğer paket
+      # yöneticilerini yasaklamasını uygular.
+      - name: Yabancı kilit dosyası yok (ADR-003)
+        run: |
+          for dosya in package-lock.json yarn.lock npm-shrinkwrap.json; do
+            if [ -f "$dosya" ]; then
+              echo "ADR-003 ihlali: $dosya depoda bulunmamalı."
+              exit 1
+            fi
+          done
+          echo "Yalnızca pnpm-lock.yaml var."
+
+  # ---------------------------------------------------------------------------
+  # §9 — Lighthouse eşikleri.
+  #
+  # F0'da UYARI modunda (`lighthouserc.json` → level "warn"): public sayfalar
+  # henüz yazılmadı, `/` şu an T-002'nin geçici doğrulama sayfası. Gerçek
+  # eşikleri bugün zorlamak, ölçülen şey ile hedeflenen şey farklı olduğu için
+  # anlamsız bir kırmızı üretirdi.
+  #
+  # F2 sonunda (T-029) "warn" → "error" çevrilecek; o noktada ölçülen sayfa
+  # gerçek ana sayfa olacak.
+  # ---------------------------------------------------------------------------
+  lighthouse:
+    name: §9 · Lighthouse (F0'da uyarı modunda)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: kapi
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: '.nvmrc'
+          cache: 'pnpm'
+
+      - name: Bağımlılıkları kur
+        run: pnpm install --frozen-lockfile
+
+      - name: Üretim derlemesi
+        run: pnpm build
+
+      # `@lhci/cli` BİLEREK package.json'a eklenmedi: yalnızca CI'da kullanılan
+      # bir araç, uygulamanın bağımlılığı değil. Sürüm sabitlenmiştir —
+      # `latest` kullanmak her koşuda denetlenmemiş kod indirmek olurdu (§8.25).
+      - name: Lighthouse CI
+        env:
+          PORT: '3100'
+        run: pnpm dlx @lhci/cli@0.15.1 autorun
+
+      - name: Lighthouse raporunu sakla
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-raporu
+          path: .lighthouseci/
+          retention-days: 14
