@@ -4,6 +4,53 @@
 > Bulgular başka ajanların dosyalarında olsa bile buraya yazılır; **düzeltmeyi
 > Güvenlik ajanı yapmaz** — Orkestra Şefi ilgili ajana görev açar (§10.1 sınır kuralı).
 
+---
+
+## ⚠️ R21 — AÇIKLAMA KURALI (repo PUBLIC)
+
+**Depo herkese açık:** `github.com/abdulkadirelaldi/abdulkadirelaldi`
+
+`docs/**` klasörünün tamamı — STATUS, ADR'ler, görev kartları ve **bu dosya** —
+internetteki herkes tarafından okunabilir. Bu, bulgu yazımını doğrudan değiştirir:
+**henüz düzeltilmemiş bir açığın istismar ayrıntısı, saldırgana yazılmış hazır
+tarif demektir.** Bulgunun kendisi düzeltmeden önce görünür olduğu sürece,
+ayrıntısı da görünürdür.
+
+### Düzeltilmemiş bulgu (AÇIK) — yazılabilecekler
+
+| Yazılır | Yazılmaz |
+| ------- | -------- |
+| Başlık | Somut istismar senaryosu |
+| Önem derecesi | Yeniden üretme adımları (PoC) |
+| PROGRAM.md maddesi | Kesin dosya/satır numarası |
+| Etkilenen alan (kabaca: "panel oturum katmanı") | Yük (payload), örnek istek, atlatma tekniği |
+| Sorumlu ajan | Sızan değerin kendisi |
+| Durum ve hedef görev no | Açığın hangi koşulda tetiklendiği |
+
+Açık bir bulguda "Ne oluyor" bölümü **tek cümlelik ve soyut** tutulur:
+> *"Panel oturum doğrulamasında bir atlatma yolu var. Ayrıntı düzeltmeden sonra
+> eklenecek (bkz. R21)."*
+
+### Düzeltilmiş bulgu (KAPALI) — tam ayrıntı yazılır
+
+Düzeltme merge edildikten **sonra** istismar senaryosu, dosya/satır ve kök neden
+eklenir. Amaç kurumsal hafıza: aynı hata ikinci kez yapılmasın. Kapanmış bir
+açığın ayrıntısı artık saldırgana bir şey kazandırmaz.
+
+### Bu kural neyi değiştirmez
+
+- İç iletişim kısıtlanmaz: ayrıntı **rapor metninde** Orkestra Şefi'ne tam olarak
+  iletilir; kısıtlama yalnızca **depoya yazılan** metin içindir.
+- Bulgunun varlığı gizlenmez. Açık bir güvenlik borcunu STATUS'ta saklamak,
+  ayrıntısını yazmaktan daha tehlikelidir.
+- Geçmiş bulgular (BULGU-001…004) bu kuraldan **etkilenmez**: hepsi kapalı ya da
+  istismar edilebilir bir açık değil. Aşağıdaki ayrıntılar bilinçli olarak duruyor.
+
+> **Ek uyarı — git geçmişi geri alınamaz.** Bir ayrıntı bir kez commit edilirse
+> sonradan silmek yetmez; geçmişte kalır. Kural yazarken uygulanır, sonradan değil.
+
+---
+
 ## Bu klasör ne içerir
 
 | Yol | İçerik | Durum |
@@ -18,6 +65,7 @@
 | ----- | ----- | ------ | ----- |
 | 2026-08-04 | T-004 | Test altyapısı, `src/middleware.ts`, §8.12–8.14 başlıkları, §8.7 | 2 bulgu açıldı (BULGU-001 Düşük, BULGU-002 Yüksek) |
 | 2026-08-05 | T-005 | CI kapısı, §8.18 gizli bilgi taraması, §8.24 bağımlılık denetimi, §9 Lighthouse, ADR-008 sürüm sabitlemesi | **BULGU-002 kapandı.** BULGU-003 açıldı (Orta, Frontend). §8.18 ve §8.24 ilk kez fiilen uygulandı. |
+| 2026-08-05 | T-006b | İlk gerçek CI koşusunun artıkları: eylem sürümleri, Lighthouse artifact yolu ve portu, koyu tema kapsamı, R21 açıklama kuralı | **BULGU-003 kapandı** (T-002b düzeltti — iki temada da A11y 100). **BULGU-004 açıldı ve aynı görevde kapandı.** R21 kuralı yazıldı. |
 
 ---
 
@@ -156,7 +204,25 @@ kaldırmaz, sadece erteler.
 
 ## BULGU-003 — Kontrast oranı WCAG AA'yı geçmiyor; K5 kabul kriteri şu an sağlanmıyor
 
-**Önem:** Orta
+> ## ✅ KAPANDI — 2026-08-05 (T-002b, Frontend)
+>
+> Frontend token kontrastlarını ve metin içi bağlantı ayrımını düzeltti.
+> **T-006b'de bağımsız ölçüldü** (LHCI, 3 koşu × 2 tema):
+>
+> | Tema | A11y | Perf | Best Practices | SEO |
+> | ---- | ---- | ---- | -------------- | --- |
+> | Aydınlık | **100** (92 idi) | 91 | **100** (96 idi) | 60 ¹ |
+> | Koyu | **100** | 91 | **100** | 60 ¹ |
+>
+> ¹ SEO 60 bir bulgu değil: T-002 yer tutucu sayfası `robots: { index: false }`
+> taşıyor. T-021 gerçek ana sayfayı yazınca düzelir.
+>
+> `color-contrast`, `link-in-text-block` ve `errors-in-console` denetimlerinin
+> üçü de artık geçiyor. **Gerileme koruması:** koyu tema T-006b'den itibaren
+> CI'da ayrı bir Lighthouse koşusu olarak ölçülüyor — düzeltme iki yönde de
+> korunuyor.
+
+**Önem:** Orta (kapandı)
 **PROGRAM.md maddesi:** §1.1 K5 (WCAG 2.1 AA), §3.1 (renk token'ları), §5.2/7 (efekt okunabilirliğin önüne geçmez)
 **Dosya/satır:** `src/app/globals.css` (token değerleri) ve/veya `src/app/(public)/page.tsx`
 **Sorumlu ajan:** **Frontend**
@@ -199,9 +265,53 @@ kadar düzeltilmezse hat kırmızı olur ve F2 kapanamaz.
 
 ---
 
+## BULGU-004 — Lighthouse raporu hiçbir yere kaydedilmiyordu; kapı sessizce boş çalışıyordu
+
+> ## ✅ KAPANDI — 2026-08-05 (T-006b, aynı görevde)
+
+**Önem:** Düşük (güvenlik açığı değil — **denetim kaybı**)
+**PROGRAM.md maddesi:** §9, §10.6
+**Dosya/satır:** `.github/workflows/ci.yml` (Lighthouse artifact adımı), `lighthouserc.json` (`upload.outputDir`)
+**Sorumlu ajan:** Güvenlik & Test (kendi dosyam)
+
+**Ne oluyordu:**
+İlk gerçek CI koşusunda (`31002868890`) Lighthouse işi **yeşil** göründü ama şu
+uyarıyı bıraktı:
+
+```
+##[warning]No files were found with the provided path: .lighthouseci/.
+No artifacts will be uploaded.
+```
+
+Kök neden: `actions/upload-artifact`, **nokta ile başlayan dosya ve dizinleri
+varsayılan olarak atlar** (`include-hidden-files: false`). LHCI raporları
+gerçekten `.lighthouseci/rapor` altına yazmıştı — dosyalar vardı, ama artifact
+adımı onları "gizli" sayıp görmezden geldi. Üstelik varsayılan
+`if-no-files-found: warn` olduğu için adım **başarılı** sayıldı.
+
+**Neden riskli:**
+Bir istismar yolu değil, ama denetim mekanizmasının sessizce boşa çalışması.
+Skorlar yalnızca koşu loglarında kalıyordu; loglar dönüşümlü olarak silinir.
+T-029'da Lighthouse `error` moduna çevrildiğinde bir eşik düşerse, **neden
+düştüğünü gösterecek rapor elde olmayacaktı** — yalnızca "skor 0.87" satırı.
+Ayrıca T-005/K3'te raporları herkese açık depolama yerine artifact'ta tutma
+kararı alınmıştı; o karar fiilen uygulanmıyordu.
+
+Genel ders: **"yeşil" ≠ "çalıştı".** Uyarı üreten bir adım, iş yeşil olsa bile
+okunmalı — ilk gerçek koşunun loglarını satır satır okumasaydım bu fark
+edilmezdi.
+
+**Uygulanan çözüm:**
+1. `lighthouserc.json` → `upload.outputDir`: `.lighthouseci/rapor` → **`lighthouse-raporu/aydinlik`** (noktasız).
+2. Artifact yolu `lighthouse-raporu/`; iki temanın raporu tek artifact'ta.
+3. `if-no-files-found: error` — rapor üretilmezse adım artık **kırmızı**, sessiz uyarı değil.
+4. `.gitignore`'a `/lighthouse-raporu` eklendi.
+
+---
+
 ## §8 Güvenlik Gereksinimleri — Durum Tablosu
 
-**Ölçüm tarihi:** 2026-08-05 · **Faz:** F0 · **Son görev:** T-005
+**Ölçüm tarihi:** 2026-08-05 · **Faz:** F0 · **Son görev:** T-006b
 
 Durum kodları: ✅ sağlandı · ⚠️ kısmi · ❌ eksik · ⏳ henüz uygulanmadı (fazı gelmedi)
 
@@ -231,7 +341,7 @@ Durum kodları: ✅ sağlandı · ⚠️ kısmi · ❌ eksik · ⏳ henüz uygul
 | 22 | `restore.md` + en az bir prova | ⏳ | T-066 |
 | 23 | Yedek checksum doğrulaması | ⏳ | T-066 |
 | 24 | `npm audit` merge kapısı | ✅ | **Kuruldu** (T-005): `.github/workflows/ci.yml` → `bagimlilik-denetimi` işi, `pnpm audit --audit-level high` (ADR-003 gereği `npm` değil `pnpm`). Yüksek **ve** kritik kapsanır. Depo şu an temiz (her seviyede 0 açık). Kapının kırmızıya döndüğü ayrı bir izole projede kanıtlandı: `lodash@4.17.11` + `minimist@1.2.0` → 9 açık (2 kritik, 3 yüksek) → **EXIT 1**. Ayrıca yabancı kilit dosyası kontrolü de aynı işte. |
-| 25 | Yeni bağımlılık onay + DECISIONS kaydı | ✅ | T-004'ün 9 paketi görev kartında adı adına onaylı. **T-005 `package.json`'a hiçbir paket eklemedi** — `@lhci/cli` bilinçli olarak `pnpm dlx @lhci/cli@0.15.1` ile ephemeral çağrılıyor (yalnızca CI aracı, uygulama bağımlılığı değil; sürüm sabit, `latest` kullanılmıyor). |
+| 25 | Yeni bağımlılık onay + DECISIONS kaydı | ✅ | T-004'ün 9 paketi görev kartında adı adına onaylı. **T-005 ve T-006b `package.json`'a hiçbir paket eklemedi** — `@lhci/cli` bilinçli olarak `pnpm dlx @lhci/cli@0.15.1` ile ephemeral çağrılıyor (yalnızca CI aracı, uygulama bağımlılığı değil; sürüm sabit, `latest` kullanılmıyor). **T-006b:** tüm GitHub eylemleri Node 24 hedefleyen güncel kararlı majora taşındı — `checkout@v7`, `setup-node@v7`, `cache@v6`, `upload-artifact@v7`, `pnpm/action-setup@v6`. Yamasız çalışma zamanı bırakmama gerekçesi ADR-008 ile aynı hat. |
 
 **Özet:** ✅ 6 · ⚠️ 4 · ❌ 0 · ⏳ 15
 
