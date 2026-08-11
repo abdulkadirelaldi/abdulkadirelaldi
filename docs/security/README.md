@@ -698,11 +698,41 @@ adımlarına veriliyor. Böylece "üretim derlemesi" adımı `DATABASE_URL` olma
 koşmaya devam ediyor ve **BULGU-002'nin canlı gerileme nöbeti** olarak kalıyor:
 biri derlemeyi yeniden veritabanına bağımlı yaparsa CI kırmızı olur.
 
+**Kapının tuttuğu MERGE KAPISINDA ölçüldü** — geçici bir dal ve PR ile:
+
+| Koşum | Ne ölçüldü | Sonuç |
+| ----- | ---------- | ----- |
+| `31493832776` | Auth paketi CI'da koşuyor mu | ✅ `geçen=53 atlanan=0` |
+| `31494544593` | (1. deneme — geçersiz) | 🔴 ama kırmızıyı **lint** verdi |
+| `31494718996` | `extends CredentialsSignin` bozuk | 🔴 **kırmızıyı E2E verdi** |
+
+**İlk denemenin neden geçersiz sayıldığı:** `extends CredentialsSignin`
+kaldırılınca import kullanılmaz hâle geldi ve iş `lint` adımında düştü — yani
+ölçmek istediğim şey ölçülmedi. İkinci denemede T-013b'nin anlattığı **gerçek**
+hata kuruldu (sınıf `Error`'ı genişletiyor, `name` elle atanıyor). O hâlde
+`lint`, `typecheck`, birim testleri ve `build` **hepsi yeşil** geçti; kırmızıyı
+yalnızca E2E verdi. T-016'nın "bu gerileme yalnızca E2E ile yakalanır" iddiası
+böylece merge kapısında doğrulanmış oldu.
+
+Kanıt dalı ve PR #3 ölçüm sonrası kapatılıp silindi; `src/server/auth.ts`
+birebir geri yüklendi (md5 `bc7661e532fb8a81fbce20048020dfcd`).
+
+### Bilinen sınırlılık — §8.18 derleme çıktısı taraması hâlâ kısmen boşta
+
+Sunucu tarafı sırların pakete sızıp sızmadığını arayan katman, yalnızca
+**derleme sırasında tanımlı olan** değişkenlerin değerlerini arayabiliyor.
+`AUTH_SECRET` ve `TOTP_ENCRYPTION_KEY` artık iş düzeyinde tanımlı olduğu için
+derleme onları görüyor ve tarama onlar açısından anlamlı. Ancak `DATABASE_URL`
+bilerek derleme adımında tanımsız (yukarıdaki BULGU-002 nöbeti), dolayısıyla
+o değer için tarama boşta çalışıyor. İki gereksinim burada birbiriyle çelişiyor
+ve BULGU-002 nöbeti daha değerli görüldü. F6/T-062 denetiminde yeniden
+değerlendirilmeli.
+
 ---
 
 ## §8 Güvenlik Gereksinimleri — Durum Tablosu
 
-**Ölçüm tarihi:** 2026-08-11 · **Faz:** F1 · **Son görev:** T-019
+**Ölçüm tarihi:** 2026-08-11 · **Faz:** F1 (kapandı) · **Son görev:** T-005b
 
 Durum kodları: ✅ sağlandı · ⚠️ kısmi · ❌ eksik · ⏳ henüz uygulanmadı (fazı gelmedi)
 
