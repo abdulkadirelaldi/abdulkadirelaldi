@@ -1,4 +1,4 @@
-import NextAuth, { CredentialsSignin } from 'next-auth';
+import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 
 import { loginSchema } from '@/lib/schemas';
@@ -176,6 +176,7 @@ class CredentialsError extends Error {
 
   constructor(code: string) {
     super(code);
+    this.name = 'CredentialsSignin';
     this.code = code;
   }
 }
