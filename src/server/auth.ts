@@ -171,8 +171,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
  * ulaşmadığı için ikinci adım hiç açılmıyor ve 2FA'lı kullanıcı giriş
  * yapamıyordu. Sınıf kimliği burada davranışın kendisidir.
  */
-class CredentialsError extends CredentialsSignin {
-  override code: string;
+class CredentialsError extends Error {
+  code: string;
 
   constructor(code: string) {
     super(code);
