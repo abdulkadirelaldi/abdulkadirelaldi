@@ -66,6 +66,10 @@ açığın ayrıntısı artık saldırgana bir şey kazandırmaz.
 | 2026-08-04 | T-004 | Test altyapısı, `src/middleware.ts`, §8.12–8.14 başlıkları, §8.7 | 2 bulgu açıldı (BULGU-001 Düşük, BULGU-002 Yüksek) |
 | 2026-08-05 | T-005 | CI kapısı, §8.18 gizli bilgi taraması, §8.24 bağımlılık denetimi, §9 Lighthouse, ADR-008 sürüm sabitlemesi | **BULGU-002 kapandı.** BULGU-003 açıldı (Orta, Frontend). §8.18 ve §8.24 ilk kez fiilen uygulandı. |
 | 2026-08-05 | T-006b | İlk gerçek CI koşusunun artıkları: eylem sürümleri, Lighthouse artifact yolu ve portu, koyu tema kapsamı, R21 açıklama kuralı | **BULGU-003 kapandı** (T-002b düzeltti — iki temada da A11y 100). **BULGU-004 açıldı ve aynı görevde kapandı.** R21 kuralı yazıldı. Doğrulama: CI `31011121588` (PR #1) — üç iş yeşil, Node 20 uyarısı 0, artifact 2.18 MB. |
+| 2026-08-05 | T-014 | Panel koruması (§8.5), §8.4 kilitleme politikası, kilit denetim kaydı (ADR-022) | **§8.5 ✅ oldu — `/panel` artık oturumsuz erişime kapalı.** §8.4 politikası yazıldı ve test edildi ama giriş akışına **bağlanmadı** → BULGU-005. BULGU-006 (CI kapısı) açıldı. |
+| 2026-08-10 | T-016 | §9/3 auth E2E, `code` regresyon kilidi, `LockoutClient` tipi, E2E yardımcıları | **§8.4 ✅ oldu** (BULGU-005 kapandı, E2E ile kanıtlandı). **BULGU-006 yanlış pozitif olarak geri çekildi** (ADR-023). **BULGU-007 açıldı** (`pg` havuzu kapanmıyor). §8.1 ve §8.19 ⏳→⚠️. |
+| 2026-08-11 | T-019 | §8.1 zorunlu 2FA kurulumu kapısı (`src/middleware.ts`, `src/lib/security/two-factor.ts`) | Kapı kuruldu ve **devre dışı bırakılarak tuttuğu kanıtlandı** (12 birim + E2E kırılıyor). **BULGU-008 açıldı**: jetondaki `tfa` alanını giriş akışı henüz koymuyor, kapı üretimde tetiklenmiyor → §8.1 ⚠️ kalıyor. |
+| 2026-08-11 | T-019b | Geçiş penceresinin kapatılması; Backend beslemesinin doğrulanması | **BULGU-008 kapandı**, **§8.1 ⚠️→✅**. `null` artık kuruluma yönlendiriyor (kapalı yönde başarısız). E2E'de gevşek `/\/panel/` desenleri sıkılaştırıldı — kurulum ekranı da o desene uyduğu için üç test vakum hâlinde yeşil kalıyordu. |
 
 ---
 
@@ -343,19 +347,320 @@ uygulamalar ve SEO değişkenlik göstermiyor; sorun yalnızca performans.
 
 ---
 
+## BULGU-005 — §8.4 kilitleme politikası giriş akışına bağlanmadı
+
+> ## ✅ KAPANDI — 2026-08-10 (T-013c bağladı, T-016 uçtan uca doğruladı)
+>
+> Backend `authenticateUser` içindeki `fail()` yardımcısına `applyLockoutPolicy`
+> çağrısını ekledi ve `AuthClient.user.update` tipini `lockedUntil` kabul edecek
+> şekilde genişletti — önerilen çözümün aynısı.
+>
+> **T-016'da GERÇEK TARAYICIYLA doğrulandı** (`tests/e2e/auth.spec.ts`):
+>
+> | Ölçüm | Sonuç |
+> | ----- | ----- |
+> | Beş yanlış şifre → `User.lockedUntil` yazılıyor mu | ✅ `isAccountLocked()` true |
+> | Kilitliyken DOĞRU şifre reddediliyor mu | ✅ `ACCOUNT_LOCKED` mesajı |
+> | Dört yanlış deneme kilitlemiyor mu (eşik sınırı) | ✅ giriş başarılı |
+>
+> Politika artık yalnız birim testinde değil, üretim kod yolunda da çalışıyor:
+> E2E kilit senaryosu, `applyLockoutPolicy` hiç çağrılmasaydı kırılırdı.
+>
+> **R21 notu:** Bulgu kapandığı için ayrıntı serbestçe yazılabilir hâle geldi;
+> açıkken bilinçli olarak kısıtlı tutulmuştu.
+
+**Önem:** Yüksek (kapandı)
+**PROGRAM.md maddesi:** §8.4
+**Etkilenen alan:** Giriş akışı — kimlik doğrulama katmanı
+**Sorumlu ajan:** **Backend** (`src/server/auth/**` — Güvenlik ajanının yazma izni yok)
+**Durum:** AÇIK · **Hedef görev:** Orkestra Şefi tarafından açılacak
+
+> **R21 gereği ayrıntı kısıtlı.** Bu bulgu henüz düzeltilmedi ve depo herkese
+> açık; somut istismar senaryosu, tetikleme koşulları ve saldırı hızı bilinçli
+> olarak YAZILMAMIŞTIR. Düzeltme merge edildikten sonra tam gerekçe eklenecek.
+
+**Ne oluyor (özet):**
+§8.4'ün gerektirdiği kilitleme politikası T-014'te yazıldı ve 20 birim testiyle
+doğrulandı (`src/lib/security/rate-limit.ts`). Ancak politikayı **çağıran bir
+üretim kodu yok**: giriş akışı (`src/server/auth/credentials.ts`) Backend'in
+mülkiyetindedir ve Güvenlik ajanı orayı düzenleyemez (§10.1). Dolayısıyla
+§8.4'ün "log" yarısı çalışıyor (`LoginAttempt` yazılıyor), **"kilit" yarısı
+henüz devrede değil.**
+
+Bu bir gerileme değil, tamamlanmamış bir bağlantıdır: kilit daha önce de hiç
+uygulanmıyordu. T-014 eksik parçayı üretti ve yerine takılmasını bekliyor.
+
+**Gereken değişiklik (Backend, iki kalem):**
+
+1. `AuthClient.user.update` girdi tipi `lockedUntil?: Date` kabul edecek şekilde
+   genişletilir — bugün yalnızca `lastLoginAt`, `passwordHash`, `totpBackupCodes`
+   yazılabiliyor, yani kilit tip düzeyinde yazılamaz durumda.
+2. `authenticateUser` içindeki `fail()` yardımcısı, `recordLoginAttempt`
+   çağrısından **sonra** `applyLockoutPolicy` çağırır:
+
+```ts
+import { applyLockoutPolicy } from '@/lib/security/rate-limit';
+
+const fail = async (reason: AuthFailureReason): Promise<AuthenticateResult> => {
+  await recordLoginAttempt({ ip: input.ip, emailHash, success: false }, client);
+
+  // SIRA ÖNEMLİ: tetikleyen denemenin kendisi sayıma girmeli.
+  await applyLockoutPolicy(
+    { ip: input.ip, emailHash, userId: user?.id ?? null },
+    { countRecentFailures: (f, since) => countRecentFailures(f, since, client), client },
+    now,
+  );
+
+  return { ok: false, reason };
+};
+```
+
+`applyLockoutPolicy` **asla fırlatmaz**; giriş akışının hata yolunu
+değiştirmez. Kilit yazılamazsa `applied: false` döner ve loga yazar.
+
+Kilidin **okunması** zaten hazır: `credentials.ts` `lockedUntil > now` ise
+`ACCOUNT_LOCKED` dönüyor (T-013b). Bağlanması gereken tek şey yazma tarafı.
+
+---
+
+## NOT — `next build` sırasındaki Edge Runtime uyarısı (yanlış pozitif, doğrulandı)
+
+T-014'ten itibaren her temiz derlemede şu uyarı çıkıyor:
+
+```
+A Node.js API is used (DecompressionStream at line: 26) which is not supported
+in the Edge Runtime.
+  jose/dist/webapi/lib/deflate.js → jwe_decrypt.js → @auth/core/jwt.js
+  → next-auth/jwt.js → ./src/lib/security/session.ts
+```
+
+**Derlemeyi DÜŞÜRMEZ ve çalışma zamanında sorun çıkarmaz.** Bunu varsaymadık,
+ölçtük — `pnpm start` altında gerçek isteklerle:
+
+| İstek | Sonuç |
+| ----- | ----- |
+| `/panel` (oturumsuz) | `307 → /giris?callbackUrl=%2Fpanel` |
+| `/panel` (uydurma JWE çerezi) | `307` — çözme yolu koştu, güvenli başarısız oldu |
+| `/api/v1/panel/x` | `401` |
+| `/giris`, `/api/auth/csrf`, `/api/v1/health`, `/` | `200` |
+| Sunucu logunda `DecompressionStream`/`TypeError` | **0** |
+
+**Neden yanlış pozitif:** `DecompressionStream` yalnızca JWE başlığında `zip`
+alanı bulunan **sıkıştırılmış** jetonlarda çağrılır. Auth.js sıkıştırılmış jeton
+üretmez, ayrıca sıkıştırma açma adımına **ancak çözme başarılı olduktan sonra**
+gelinir — yani anahtarı bilmeyen biri o kod yoluna hiç ulaşamaz. Next'in
+paketleyicisi çağrıyı statik olarak görüyor, çalışma zamanı ona hiç girmiyor.
+
+Uyarıyı susturmak için `session.ts`'i elle `jose` çağrılarıyla yeniden yazmak
+mümkündü; **yapılmadı** — kendi kriptografi kodumuzu yazmak, kozmetik bir
+derleme uyarısından çok daha büyük bir risktir.
+
+---
+
+## BULGU-006 — `prisma/seed.ts` CI kapısını düşürüyor
+
+> ## ❌ YANLIŞ POZİTİF — 2026-08-10, geri çekildi
+>
+> **Böyle bir sorun yok ve hiç olmadı.** Ölçüm bayat bir çalışma ağacı
+> üzerinde yapılmıştı: Backend `console.log` çağrılarını kendi turunda
+> `process.stdout.write` ile değiştirmişti (T-012/K6), ama ölçüm o
+> değişiklikten önceki dosya içeriğiyle yapıldı.
+>
+> T-016'da tekrar ölçüldü: `pnpm lint` → **EXIT 0**, `prisma/seed.ts` kaynaklı
+> uyarı **0**.
+>
+> **Bedeli:** Backend'e var olmayan bir iş için görev açılabilirdi. Bu, bulgu
+> türleri içinde en pahalı olanı — gerçek bir ajanın gerçek zamanını harcatır
+> ve raporun güvenilirliğini düşürür.
+>
+> **Kural hâline geldi (ADR-023 / madde 4):** başka bir ajanın alanındaki bir
+> kusur raporlanmadan önce ölçüm, o anki dosya içeriğiyle **tekrarlanır**.
+> Bu bulgu o kuralın doğduğu olaydır.
+>
+> Aşağıdaki özgün metin, kaydın dürüstlüğü için silinmeden bırakıldı.
+
+---
+
+### (Geri çekilen özgün bulgu metni)
+
+**Önem:** Düşük (güvenlik açığı değil — §10.6 kapısı)
+**PROGRAM.md maddesi:** §10.6
+**Dosya:** `prisma/seed.ts` (henüz commit edilmemiş, T-012)
+**Sorumlu ajan:** **Backend**
+
+**Ne oluyor:**
+Çalışma ağacındaki `prisma/seed.ts` **22 adet `no-console` uyarısı** üretiyor.
+`pnpm lint` `--max-warnings=0` ile koştuğu için çıkış kodu **1**; yani bu dosya
+commit edildiğinde CI'ın `kapi` işi ilk adımda kırmızıya döner.
+
+Ölçüldü (T-014, Node 22):
+
+| Kapsam | Sonuç |
+| ------ | ----- |
+| Depo geneli | ❌ EXIT 1 — 22 uyarı, hepsi `prisma/seed.ts` |
+| `prisma/seed.ts` hariç | ✅ EXIT 0 |
+| T-014'ün kendi dosyaları | ✅ EXIT 0 |
+
+**Önerilen çözüm:** Seed betiği kullanıcıya ilerleme yazdırmak zorunda; doğru
+çözüm `console.log`'ları kaldırmak değil, dosyaya sınırlı bir ESLint istisnası
+tanımlamak. `eslint.config.mjs` **ortak dosyadır** — değişiklik Orkestra Şefi
+onayı gerektirir. Alternatif olarak seed betiği çıktı için `console.info`
+yerine `process.stdout.write` kullanabilir; bu, ortak dosyaya hiç dokunmadan
+çözer ve tercih edilen yol budur.
+
+---
+
+## BULGU-007 — `db.$disconnect()` `pg` havuzunu kapatmıyor; kısa ömürlü her betik 30 sn asılı kalıyor
+
+**Önem:** Orta (işletim/dağıtım — güvenlik açığı değil)
+**PROGRAM.md maddesi:** §13.5 (gece cron'ları), §8.21 (yedekleme)
+**Dosya:** `src/server/db.ts`
+**Sorumlu ajan:** **Backend**
+
+**Ne oluyor:**
+T-016'da E2E veritabanı yardımcısı yazılırken ölçüldü: `await db.$disconnect()`
+çağrıldıktan sonra bile Node süreci **tam 30 saniye** daha yaşıyor ve ancak
+sonra çıkıyor.
+
+| Ölçüm | Süre |
+| ----- | ---- |
+| `db-task.ts admin` (yalnız `$disconnect()` ile) | **30.28 sn** |
+| Aynı iş, sonunda `process.exit(0)` ile | **0.48 sn** |
+
+Üç ayrı komutta da sonuç 30.2–30.3 sn — tesadüf değil.
+
+**Kök neden:** Prisma 7 sürücü adaptörü (ADR-005) kullanıldığında alttaki `pg`
+havuzunu Prisma değil, `src/server/db.ts` içindeki `getPool()` oluşturuyor.
+`$disconnect()` Prisma'nın kendi kaynaklarını bırakıyor ama **bu havuzu
+kapatmıyor**; havuz `idleTimeoutMillis: 30_000` boyunca olay döngüsünü ayakta
+tutuyor. Süre birebir o ayara eşit.
+
+**Neden önemli:**
+Uygulama sunucusu uzun ömürlü olduğu için üretimde görünmüyor. Ama §13.5'teki
+**gece cron'ları kısa ömürlüdür**: `pg_dump` yedeği (§8.21), `LoginAttempt`
+90 gün temizliği (ADR-013), `AuditLog` temizliği. Her biri işini bitirdikten
+sonra 30 sn boşuna çalışacak. Tek başına küçük; ama cron'lar zamanlanmış
+işlerdir ve "bitti sanılıp bitmemiş" süreçler, üst üste binen koşumlara ve
+yanlış zaman aşımı alarmlarına yol açar. `pnpm db:seed` de aynı gecikmeyi
+yaşıyor olmalı.
+
+**Önerilen çözüm:** `src/server/db.ts` havuzu dışa açan bir kapatıcı ihraç
+etsin — örneğin `export async function closeDatabase() { await getPool().end(); }`
+— ve `$disconnect()` ile birlikte çağrılsın. Cron betikleri ve seed onu
+kullanır.
+
+**T-016'daki geçici çözüm:** `tests/e2e/_helpers/db-task.ts` işini bitirince
+`process.exit(0)` çağırıyor. Kısa ömürlü bir CLI için doğru davranış, ama
+cron betikleri için kalıcı çözüm yukarıdaki olmalı.
+
+---
+
+## BULGU-008 — §8.1 kapısı jetonda `tfa` alanı olmadan tam kapanmıyor
+
+> ## ✅ KAPANDI — 2026-08-11 (T-013e bağladı, T-019b pencereyi kapattı)
+>
+> Backend alanı iki yolda birden yazdı: girişte `applyLoginClaims`, kurulum
+> sonrası `refreshTwoFactorClaim`. Jetonun nihai şekli
+> `{ sub, email, name, tfa, iat, exp, jti }` (`jti` Auth.js'in kendi alanı).
+>
+> **Bağımsız doğrulandı (T-019b):**
+>
+> | Kontrol | Sonuç |
+> | ------- | ----- |
+> | `applyLoginClaims` alanı yazıyor mu | ✅ `token[TWO_FACTOR_CLAIM] = user.tfa` |
+> | Tazeleme değeri **veritabanından** mı okuyor | ✅ enjekte edilen okuyucu; `update()` gövdesi dikkate alınmıyor |
+> | `TWO_FACTOR_CLAIM` sabiti tüketiliyor mu (dize elle yazılmamış) | ✅ `credentials.ts:2` |
+> | `src/lib/security/two-factor.ts` değişmiş mi | ✅ değişmemiş — md5 `3079189a97571083f7af0cd4021fb82e` |
+>
+> Tazelemenin değeri istemciden değil DB'den okuması kritikti: `update()`
+> çağrısına gövde iliştirilebiliyor ve o gövde istemcinin denetiminde. Oradan
+> okunsaydı kullanıcı `{ tfa: true }` göndererek kendi kapısını açardı.
+>
+> **T-019b'de geçiş penceresi kapatıldı:** `requiresTwoFactorSetup` artık
+> yalnızca `tfa === true` olduğunda geçiriyor; alan yoksa (`null`) da kuruluma
+> yönlendiriyor. Gerekçe: kontrolün, beslendiği verinin yokluğunda AÇILMASI
+> değil KAPANMASI gerekir.
+
+**Önem:** Orta (kapandı)
+**PROGRAM.md maddesi:** §8.1
+**Etkilenen alan:** Giriş akışı — JWT üretimi
+**Sorumlu ajan:** **Backend** (`src/server/auth.ts` — Güvenlik ajanının yazma izni yok)
+**Durum:** AÇIK · **Talep:** T-019 raporu / T1
+
+**Ne oluyor:**
+T-019 §8.1'in kapısını `src/middleware.ts` içinde kurdu: `tfa === false` olan bir
+oturum panelin hiçbir bölümüne giremez, kurulum ekranına yönlendirilir. Kapı
+birim ve E2E testleriyle iki yönde de doğrulandı.
+
+Ancak `tfa` alanını jetona **giriş akışı henüz koymuyor**. T-013b'nin yayınladığı
+JWT şekli `{ sub, email, name, iat, exp }` ve `jwt` geri çağrısı yalnızca bu üç
+alanı yazıyor. Alan gelene kadar gerçek girişten doğan jetonlar `tfa` taşımıyor
+ve kapı **fiilen tetiklenmiyor**.
+
+**Neden `null` şu an geçiriliyor (geçiş penceresi):**
+`tfa` yokluğunu "kurulu değil" saysaydık, 2FA'sı **zaten kurulu** olan bir
+kullanıcı da kurulum ekranına kilitlenirdi — jetonu alanı hiçbir zaman
+kazanmayacağı için kalıcı olarak. Bu bir atlatma yolu **değildir**: alanı
+taşımayan bir jeton yalnızca `AUTH_SECRET`'i bilen tarafça, yani bizim
+tarafımızdan üretilebilir. Saldırgan alanı "düşürerek" kontrolü atlayamaz,
+çünkü jetonu hiç üretemez. Pencere en fazla oturum ömrü kadardır (§8.3 — 7 gün).
+
+**Gereken değişiklik (Backend, iki küçük kalem):**
+
+1. `authorize` dönen nesneye 2FA durumu eklensin (`authenticateUser` sonucu
+   `User.totpConfirmedAt`'i zaten okuyor):
+
+```ts
+return { id: result.user.id, email: result.user.email, name: result.user.name,
+         tfa: result.user.twoFactorEnabled };
+```
+
+2. `jwt` geri çağrısı alanı jetona taşısın:
+
+```ts
+jwt({ token, user }) {
+  if (user) {
+    token.sub = user.id;
+    token.email = user.email ?? undefined;
+    token.name = user.name ?? undefined;
+    token.tfa = user.tfa;          // ← §8.1 kapısının okuduğu alan
+  }
+  return token;
+}
+```
+
+**§8.20 değerlendirmesi:** `tfa` **hassas değildir** — yalnızca "bu hesapta 2FA
+kurulu mu" bilgisini taşır ve zaten oturumu elinde tutan tarafa görünür. Secret,
+kurtarma kodu veya sayıları JWT'ye girmez.
+
+**Kurulum tamamlandıktan sonra tazeleme (aynı talebin ikinci yarısı):**
+Jeton girişte üretiliyor ve 7 gün yaşıyor. Kullanıcı 2FA kurulumunu
+tamamladığında jetonu hâlâ `tfa: false` der ve kurulum ekranından çıkamaz.
+Çözüm: `confirmTotpSetup` başarılı olduğunda istemci `useSession().update()`
+çağırsın ve `jwt` geri çağrısı `trigger === 'update'` dalında alanı tazelesin.
+Bu yapılmazsa kullanıcı çıkıp yeniden girerek de kurtulur (yeni giriş yeni jeton
+üretir) — kilitlenme yok, ama akış kötü.
+
+**Kapatıldığında yapılacak (Güvenlik):** `src/lib/security/two-factor.ts` →
+`requiresTwoFactorSetup` içindeki `null` dalı kaldırılacak, `null` "kurulu değil"
+sayılacak; `tests/unit/two-factor.test.ts` ve `middleware.test.ts` içindeki
+"geçiş penceresi" beklentileri **tersine çevrilecek**.
+
+---
+
 ## §8 Güvenlik Gereksinimleri — Durum Tablosu
 
-**Ölçüm tarihi:** 2026-08-05 · **Faz:** F0 · **Son görev:** T-006b
+**Ölçüm tarihi:** 2026-08-11 · **Faz:** F1 · **Son görev:** T-019
 
 Durum kodları: ✅ sağlandı · ⚠️ kısmi · ❌ eksik · ⏳ henüz uygulanmadı (fazı gelmedi)
 
 | # | Madde | Durum | Kanıt / Not |
 | - | ----- | ----- | ----------- |
-| 1 | Credentials + TOTP 2FA zorunlu | ⏳ | F1 / T-013 |
+| 1 | Credentials + TOTP 2FA; kurulum ilk girişte zorunlu | ✅ | **Mekanizma** (T-016): doğru TOTP → panel, yanlış kod reddediliyor, kurtarma kodu çalışıyor ve tüketiliyor. **Zorunluluk kapısı** (T-019): `tfa !== true` olan oturum panelin hiçbir bölümüne giremiyor, `/panel/ayarlar/guvenlik`'e yönleniyor; kurulum ekranı muaf (döngü yok), panel API'si `403 FORBIDDEN`, çıkış yolu açık, ara katman DB'ye bakmıyor. **Besleme** (T-013e): jeton `tfa` taşıyor — girişte ve kurulum sonrası tazelemede yazılıyor, değer **veritabanından** okunuyor. **Geçiş penceresi kapatıldı** (T-019b): alan yoksa da kuruluma yönlendiriliyor. Uçtan uca ölçüldü: 2FA'sız gerçek giriş → kurulum ekranı; 2FA'lı gerçek giriş → panel. Kapı devre dışı bırakılınca **18 birim testi kırılıyor**. |
 | 2 | argon2id ≥19MB / ≥2 iterasyon | ⏳ | F1 / T-013 · `argon2@0.45.1` kurulu |
 | 3 | Çerez `httpOnly`/`secure`/`sameSite:lax`/7 gün | ⏳ | F1 / T-013 |
-| 4 | Giriş 5/15dk/IP + 15dk kilit + log | ⏳ | F1 / T-014 |
-| 5 | `middleware.ts` `/panel/*` + `/api/v1/panel/*` korur | ⚠️ | **Matcher yerinde ve test edildi**, ancak koruma şu an YALNIZCA yol tabanlı — kimlik doğrulaması YOK (Auth.js F1'de). `/panel` hâlâ herkese açık. Yetki kontrolü T-014. |
+| 4 | Giriş 5/15dk/IP + 15dk kilit + log | ✅ | **Uçtan uca çalışıyor.** "log" → `LoginAttempt` her denemeyi yazıyor (T-013b). "kilit" → politika `src/lib/security/rate-limit.ts` (eşikler tek sabitte: 5 deneme / 15 dk pencere / 15 dk kilit, 20 birim testi), giriş akışına T-013c'de bağlandı, **T-016'da gerçek tarayıcıyla doğrulandı**: 5. yanlış şifrede `lockedUntil` yazılıyor, kilitliyken doğru şifre bile reddediliyor, 4 denemede kilitlenmiyor. BULGU-005 kapandı. |
+| 5 | `middleware.ts` `/panel/*` + `/api/v1/panel/*` korur | ✅ | **T-014 ile gerçek koruma kuruldu.** `/panel/*` oturumsuzken `/giris`'e yönlenir (307), `/api/v1/panel/*` §7.2 zarfıyla **401 JSON** döner. Oturum `getToken` ile **kriptografik olarak doğrulanır** (çerez varlığı yeterli değil), Edge'de çalışır. `AUTH_SECRET` yoksa **kapalı yönde başarısız olur**. 32 test. §8.6 uyarısı için aşağıya bakın. |
 | 6 | Her Server Action ayrıca `auth()` | ⏳ | F1 / T-015 · Henüz Server Action yok |
 | 7 | Panel `X-Robots-Tag: noindex, nofollow` + robots.txt disallow | ⚠️ | **Başlık ✅** — birim + E2E ile doğrulandı, gerçek sunucu yanıtında ölçüldü. **`robots.txt` ❌** — henüz yok, T-028 (Backend) kapsamında; `/panel` için `Disallow` içermeli. |
 | 8 | Her girdi Zod ile (Server Action parametreleri dahil) | ⏳ | F1 / T-011 · `zod@4.4.3` kurulu |
@@ -369,7 +674,7 @@ Durum kodları: ✅ sağlandı · ⚠️ kısmi · ❌ eksik · ⏳ henüz uygul
 | 16 | Yükleme uçları 10/dk | ⏳ | F3 / T-037 |
 | 17 | `.env` repoya girmez, `.env.example` tam | ✅ | `.gitignore:22-24` — `.env` ve `.env.*` yasaklı, `.env.example` istisna. `.env.example` §12'nin anahtarlarını değersiz listeliyor (T-001 doğrulaması). |
 | 18 | `NEXT_PUBLIC_` içinde sır yok, CI'da taranır | ✅ | **Otomatik tarama kuruldu** (T-005): `tests/unit/public-env.test.ts` — üç katman: (a) `.env.example`, (b) çalışma ortamı `process.env`, (c) `.next/` derleme çıktısı. `pnpm test` içinde koştuğu için hem yerelde hem CI'da otomatik. **Dedektör kendini kanıtlıyor**: 10 ekili sahte sır (GitHub/AWS/Stripe/JWT/argon2/PEM/bağlantı dizesi) yakalanıyor, meşru URL'ler yanlış pozitif vermiyor. Fiilen doğrulandı: `.env.example`'a `NEXT_PUBLIC_GITHUB_TOKEN=ghp_…` ekildi → hat **KIRMIZI**, geri alındı → **YEŞİL**. |
-| 19 | Panel mutasyonları `AuditLog`'a | ⏳ | F1 / T-015 |
+| 19 | Panel mutasyonları `AuditLog`'a | ⚠️ | **Merkezî yardımcı geldi** (T-015): `src/server/services/_shared/audit.ts` → `writeAuditLog`, `diff` üzerinde otomatik redaksiyonla (§8.20). Kullananlar: 2FA eylemleri (`actions/totp.ts`) ve hesap kilidi (ADR-022 — denemeler `LoginAttempt`'e, sonuçlar `AuditLog`'a). Kilit kaydı T-016'da üretim yolunda **fiilen tetiklendi**. ⚠️ kalma sebebi: içerik/muhasebe mutasyonları henüz yazılmadı (F3–F5), yani "tüm mutasyonlar" ölçülemiyor. |
 | 20 | Loglarda şifre/token/TOTP/tam e-posta yok | ⚠️ | Sağlık ucu §8.20'ye uyuyor (T-003b'de tarandı: altyapı izi 0 eşleşme). Merkezî bir redaksiyon yardımcısı **henüz yok** — F1'de `src/lib/security/` altına yazılacak. |
 | 21 | Gece 03:00 şifreli `pg_dump` → R2, 30 gün | ⏳ | T-066 / T-073 · **Uyarı:** yol haritası F6/F7 diyor; gerçek muhasebe verisi F4'te girilmeye başlıyor. Yedeksiz geçen her F4 günü, başka kopyası olmayan mali veri riski. |
 | 22 | `restore.md` + en az bir prova | ⏳ | T-066 |
@@ -377,12 +682,55 @@ Durum kodları: ✅ sağlandı · ⚠️ kısmi · ❌ eksik · ⏳ henüz uygul
 | 24 | `npm audit` merge kapısı | ✅ | **Kuruldu** (T-005): `.github/workflows/ci.yml` → `bagimlilik-denetimi` işi, `pnpm audit --audit-level high` (ADR-003 gereği `npm` değil `pnpm`). Yüksek **ve** kritik kapsanır. Depo şu an temiz (her seviyede 0 açık). Kapının kırmızıya döndüğü ayrı bir izole projede kanıtlandı: `lodash@4.17.11` + `minimist@1.2.0` → 9 açık (2 kritik, 3 yüksek) → **EXIT 1**. Ayrıca yabancı kilit dosyası kontrolü de aynı işte. |
 | 25 | Yeni bağımlılık onay + DECISIONS kaydı | ✅ | T-004'ün 9 paketi görev kartında adı adına onaylı. **T-005 ve T-006b `package.json`'a hiçbir paket eklemedi** — `@lhci/cli` bilinçli olarak `pnpm dlx @lhci/cli@0.15.1` ile ephemeral çağrılıyor (yalnızca CI aracı, uygulama bağımlılığı değil; sürüm sabit, `latest` kullanılmıyor). **T-006b:** tüm GitHub eylemleri Node 24 hedefleyen güncel kararlı majora taşındı — `checkout@v7`, `setup-node@v7`, `cache@v6`, `upload-artifact@v7`, `pnpm/action-setup@v6`. Yamasız çalışma zamanı bırakmama gerekçesi ADR-008 ile aynı hat. |
 
-**Özet:** ✅ 6 · ⚠️ 4 · ❌ 0 · ⏳ 15
+**Özet:** ✅ 9 · ⚠️ 4 · ❌ 0 · ⏳ 12
 
-✅ = 10, 14, 17, 18, 24, 25 · ⚠️ = 5, 7, 12, 20 · geri kalan 15 madde ⏳
+✅ = 1, 4, 5, 10, 14, 17, 18, 24, 25 · ⚠️ = 7, 12, 19, 20 · geri kalan 12 madde ⏳
 
-*T-004'e göre değişim (o zaman ✅ 4 · ⚠️ 5 · ⏳ 16 idi):*
-*§8.18 ⚠️→✅ (tarama kuruldu ve kanıtlandı), §8.24 ⏳→✅ (audit kapısı kuruldu).*
+*T-019'a göre değişim: **§8.1 ⚠️→✅** — BULGU-008 kapandı, kapı üretimde tetikleniyor.*
+
+### §8.1 — zincirin tamamı kapalı
+
+PROGRAM.md §8.1, T-016/T2 önerisi kabul edilerek düzeltildi: zorunluluk
+gevşetilmedi, **kurulum anına taşındı**. Zincirin üç halkası da yerinde:
+
+| Halka | Nerede | Durum |
+| ----- | ------ | ----- |
+| `tfa !== true` → panelin hiçbir bölümü kullanılamaz | `src/middleware.ts` | ✅ |
+| Kurulum ekranı muaf — döngü yok | `two-factor.ts` | ✅ |
+| `/api/v1/panel/*` → `403 FORBIDDEN` (yönlendirme değil) | `src/middleware.ts` | ✅ |
+| Çıkış yolu açık — kurulum zorunlu ama hapis değil | matcher dışı `/api/auth/*` | ✅ |
+| Ara katman DB'ye bakmıyor (Edge — T-014/K1) | `session.ts` | ✅ |
+| Jeton `tfa` taşıyor (giriş + tazeleme, değer DB'den) | `src/server/auth/**` (T-013e) | ✅ |
+| Alan yoksa kapı KAPANIR (geçiş penceresi kapalı) | `two-factor.ts` (T-019b) | ✅ |
+
+**Neden ✅ hak edildi:** Her halka ayrı ayrı ölçüldü, yalnız "kod yazıldı" diye
+işaretlenmedi. Kapı devre dışı bırakılınca **18 birim testi** kırılıyor; gerçek
+tarayıcıda 2FA'sız giriş kurulum ekranına, 2FA'lı giriş panoya varıyor.
+E2E'deki gevşek `/\/panel/` desenleri de sıkılaştırıldı — kurulum ekranı da
+`/panel/...` altında olduğu için o desen iki varış noktasına birden uyuyor ve
+testler yanlış yere varsa bile yeşil kalırdı.
+
+### §8.6 — ara katmanın NE GARANTİ ETMEDİĞİ
+
+§8.5'in ✅ olması §8.6'yı karşılamaz; ikisi ayrı maddedir ve **§8.6 hâlâ ⏳**.
+
+`src/middleware.ts` bir **kolaylık katmanıdır**, yetkilendirme sınırı değil.
+Söylediği tek şey: istekte `AUTH_SECRET` ile çözülebilen bir oturum jetonu var.
+
+**Söylemedikleri:**
+
+| Soru | Ara katman bilir mi? |
+| ---- | -------------------- |
+| Kullanıcı hâlâ var mı? | ❌ JWT bağımsızdır, kullanıcı silinse de 7 gün geçerli (ADR-013) |
+| Hesap kilitli mi (`lockedUntil`)? | ❌ DB'ye bakmaz |
+| 2FA tamamlanmış mı? | ✅ **Biliyor** — jetondaki `tfa` alanından (T-019 + T-013e). Bu, listedeki tek istisna: değer girişte ve tazelemede DB'den yazıldığı için ara katman DB'ye bakmadan karar verebiliyor. |
+| Bu kayda erişim hakkı var mı? | ❌ Kayıt bazlı yetki hiç sorulmaz |
+
+Ayrıca **Server Action'lar matcher'dan geçmez** — kendi başlarına birer HTTP
+ucudur ve ara katman onları hiç görmez. Bu yüzden §8.6 değişmeden yürürlüktedir:
+**her Server Action ve her Server Component kendi `auth()` kontrolünü ayrıca
+yapar.** Bir Server Action'da `auth()` çağrısını "middleware zaten koruyor"
+gerekçesiyle atlamak, korumasız bir uç bırakır.
 
 ### `jsdom` sürüm notu — ADR-008 sonrası güncel karar
 

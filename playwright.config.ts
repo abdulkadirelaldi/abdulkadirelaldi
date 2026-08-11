@@ -1,23 +1,36 @@
+import process from 'node:process';
+
 import { defineConfig, devices } from '@playwright/test';
 
 /**
  * Playwright yapılandırması — PROGRAM.md §9 (E2E senaryoları).
  *
- * F0 KAPSAMI: yalnızca altyapı + duman testi. §9'daki 7 senaryo ilgili
- * fazlarda yazılır (senaryo 3–4 → T-016, senaryo 2/6 → T-039, senaryo 5 →
- * T-047, senaryo 1/7 → T-029). Bu dosya o senaryoların üzerine kurulacağı
- * zemindir.
- *
  * SUNUCU SEÇİMİ: `next dev` değil `next build && next start`.
  * Ara katman (`src/middleware.ts`) ve güvenlik başlıkları geliştirme ve üretim
  * derlemelerinde farklı davranabilir; başlıkları doğrulayan bir test paketinin
- * üretime benzeyen çıktı üzerinde koşması şart. Ayrıca `dev` sunucusunda ilk
- * istek derleme beklediği için ölçümler gürültülü olurdu.
+ * üretime benzeyen çıktı üzerinde koşması şart.
  *
- * VERİTABANI GEREKTİRMEZ: test edilen rotalar (`/`, `/panel`) statik.
- * `/api/v1/health` yalnızca BAŞLIKLARI için yoklanır — durum kodu bilinçli
- * olarak doğrulanmaz, çünkü DB kapalıyken 503 döner ve bu doğru davranıştır.
+ * VERİTABANI: `smoke` ve `security-headers` DB GEREKTİRMEZ. `auth.spec.ts`
+ * (T-016, §9 senaryo 3) gerektirir — giriş akışı gerçek kullanıcı kaydına
+ * bakar. Ayrıntı: `tests/e2e/_helpers/db.ts`.
  */
+
+/**
+ * `.env` bu SÜRECE de yüklenir.
+ *
+ * Next kendi `.env`'ini kendisi okur, ama test süreci okumaz: `AUTH_SECRET`
+ * (oturum çerezi üretimi), `TOTP_ENCRYPTION_KEY` (2FA kurulumu) ve
+ * `ADMIN_EMAIL`/`ADMIN_PASSWORD` (giriş) yardımcılarda gerekli. Node 20.12+
+ * yerleşiği kullanılıyor — `dotenv` eklemek yeni bağımlılık olurdu (§8.25).
+ *
+ * Dosya yoksa sessizce geçilir: CI'da `.env` YOKTUR (§8.17) ve DB gerektirmeyen
+ * paketler orada da koşmalı.
+ */
+try {
+  process.loadEnvFile();
+} catch {
+  // `.env` yok — CI'da beklenen durum.
+}
 
 /** 3000 değil: geliştiricinin açık `pnpm dev` sunucusuyla çakışmasın. */
 const PORT = Number(process.env.E2E_PORT ?? 3100);
@@ -28,6 +41,17 @@ const isCI = Boolean(process.env.CI);
 export default defineConfig({
   testDir: './tests/e2e',
   testMatch: '**/*.spec.ts',
+
+  /**
+   * `@/...` içe aktarmalarının çözülebilmesi için — gerekçe dosyanın içinde.
+   * Bu olmadan `tests/e2e/**` uygulamanın hiçbir modülünü yükleyemiyor.
+   */
+  tsconfig: './tsconfig.e2e.json',
+
+  // Veritabanı hazırlığı ve — asıl önemlisi — koşum sonrası seed durumuna
+  // dönüş. Ayrıntı: `_helpers/global-teardown.ts`.
+  globalSetup: './tests/e2e/_helpers/global-setup.ts',
+  globalTeardown: './tests/e2e/_helpers/global-teardown.ts',
 
   fullyParallel: true,
 
@@ -65,6 +89,26 @@ export default defineConfig({
        */
       name: 'mobile-chrome',
       use: { ...devices['Pixel 5'] },
+
+      /**
+       * `auth.spec.ts` MOBİLDE KOŞMAZ — bilinçli.
+       *
+       * O paket TEK bir veritabanı satırını (seed'in tek yönetici hesabı)
+       * değiştirerek çalışıyor: 2FA'yı açıyor, kilitliyor, sıfırlıyor. İki
+       * proje paralel koşunca ikisi aynı satırı çekiştiriyor — birinin
+       * `resetAuthState()` çağrısı ötekinin az önce açtığı 2FA'yı kapatıyor
+       * ve öteki test 2FA adımını hiç göremiyor.
+       *
+       * ÖLÇÜLDÜ: tam koşumda `mobile-chrome › yanlış TOTP kodu reddedilir`
+       * bu yüzden düştü. Yeniden deneme (retry) ile örtmek YANLIŞ olurdu —
+       * sorun kararsızlık değil, paylaşılan durum.
+       *
+       * Giriş akışı görünüme bağlı değil; mobil kapsama §9/7'nin işi (T-029)
+       * ve orada ölçülecek şey düzen/kullanılabilirlik, paylaşılan auth durumu
+       * değil. Diğer paketler (smoke, security-headers) iki projede de koşmaya
+       * devam ediyor — onlar durum değiştirmiyor.
+       */
+      testIgnore: /auth\.spec\.ts$/,
     },
   ],
 

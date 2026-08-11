@@ -60,28 +60,24 @@ function createPool(): Pool {
 }
 
 function createPrismaClient(pool: Pool): PrismaClient {
-  const adapter = new PrismaPg(
-    pool,
-    {
-      /**
-       * Boştaki bir bağlantı hata alırsa `pg` havuzu 'error' olayı yayar.
-       * Dinlenmezse Node süreci yakalanmamış istisnayla ÇÖKER. Yalnızca logla —
-       * havuz kendi kendini toparlar.
-       */
-      onPoolError: (error) => {
-        console.error('[db] pg havuz hatası:', error.message);
-      },
-      onConnectionError: (error) => {
-        console.error('[db] pg bağlantı hatası:', error.message);
-      },
+  const adapter = new PrismaPg(pool, {
+    /**
+     * Boştaki bir bağlantı hata alırsa `pg` havuzu 'error' olayı yayar.
+     * Dinlenmezse Node süreci yakalanmamış istisnayla ÇÖKER. Yalnızca logla —
+     * havuz kendi kendini toparlar.
+     */
+    onPoolError: (error) => {
+      console.error('[db] pg havuz hatası:', error.message);
     },
-  );
+    onConnectionError: (error) => {
+      console.error('[db] pg bağlantı hatası:', error.message);
+    },
+  });
 
   return new PrismaClient({
     adapter,
     // Üretimde gürültü yapmasın; geliştirmede yavaş sorguyu görebilelim.
-    log:
-      process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
+    log: process.env.NODE_ENV === 'development' ? ['warn', 'error'] : ['error'],
   });
 }
 
@@ -111,22 +107,35 @@ const globalForDb = globalThis as unknown as {
  * geç — ilk sorguda veya ilk `pingDatabase()` çağrısında. Derleme zamanı
  * bağlantı gerektirmez; çalışma zamanı gerektirir.
  */
-function getPool(): Pool {
-  const existing = globalForDb.pgPool;
-  if (existing) return existing;
+/**
+ * Üretimde `globalThis` KULLANILMAZ (hot reload yok), ama havuz yine de
+ * önbelleklenmek ZORUNDA.
+ *
+ * İlk sürümde üretim dalı hiçbir yere yazmıyordu: `getPool()` her çağrıda YENİ
+ * bir havuz kuruyordu. `pingDatabase()` bunu her sağlık kontrolünde çağırdığı
+ * için (§13.6, Coolify + Uptime Kuma saniyeler arayla yokluyor) her yoklama bir
+ * havuz sızdırıyordu.
+ *
+ * ÖLÇÜLDÜ (T-003d): `NODE_ENV=production` altında 5 `pingDatabase()` çağrısı
+ * → 6 aktif bağlantı. Aynı iş `development`'ta → 2. Havuzlar `idleTimeoutMillis`
+ * boyunca yaşadığı için üretimde bağlantılar birikir ve Postgres
+ * `max_connections` sınırına dayanır; o noktada uygulama hiç bağlanamaz hâle gelir.
+ */
+let productionPool: Pool | undefined;
 
-  const created = createPool();
-  if (process.env.NODE_ENV !== 'production') globalForDb.pgPool = created;
-  return created;
+function getPool(): Pool {
+  if (process.env.NODE_ENV === 'production') {
+    productionPool ??= createPool();
+    return productionPool;
+  }
+
+  globalForDb.pgPool ??= createPool();
+  return globalForDb.pgPool;
 }
 
 function getClient(): PrismaClient {
-  const existing = globalForDb.prisma;
-  if (existing) return existing;
-
-  const created = createPrismaClient(getPool());
-  if (process.env.NODE_ENV !== 'production') globalForDb.prisma = created;
-  return created;
+  globalForDb.prisma ??= createPrismaClient(getPool());
+  return globalForDb.prisma;
 }
 
 /**
@@ -185,4 +194,66 @@ export async function pingDatabase(): Promise<void> {
   // ve sağlık ucu §7.2 zarfıyla 503 döner (yutulmaz).
   const client = await getPool().connect();
   client.release();
+}
+
+/**
+ * Veritabanı kaynaklarını kapatır — BULGU-007.
+ *
+ * KİMİN İÇİN: kısa ömürlü süreçler. §13.5'in gece cron'ları (`pg_dump` yedeği,
+ * `LoginAttempt` 90 gün temizliği, `AuditLog` temizliği), `prisma/seed.ts` ve
+ * E2E yardımcıları. **Uzun ömürlü uygulama sunucusu BUNU ÇAĞIRMAZ.**
+ *
+ * NEDEN GEREKLİ: `db.$disconnect()` Prisma'nın kendi kaynaklarını bırakır ama
+ * alttaki `pg` havuzunu KAPATMAZ — o havuzu Prisma değil bu modül kuruyor
+ * (ADR-005 sürücü adaptörü). Havuz `idleTimeoutMillis` (30 sn) boyunca olay
+ * döngüsünü ayakta tutar ve süreç işini bitirdikten sonra tam 30 sn daha yaşar.
+ *
+ * `process.exit()` ile ÖRTÜLMEZ: `exit()` semptomu gizler, kaynağı bırakmaz ve
+ * uçuşta olan yazma işlemlerini de keser. Havuz gerçekten kapatılır, süreç
+ * kendiliğinden çıkar.
+ *
+ * TEMBELLİK KORUNUR: havuz hiç kurulmadıysa fonksiyon hiçbir şey yapmaz ve
+ * bağlantı kurmayı DENEMEZ — `.env` bulunmayan bir ortamda çağrılsa bile
+ * patlamaz (T-003c kazanımı). Bu yüzden `db` proxy'sine DOKUNULMAZ: `$disconnect()`
+ * proxy üzerinden çağrılsaydı, olmayan bir istemciyi kurar ve tembelliği bozardı.
+ *
+ * İKİ KEZ ÇAĞRILABİLİR: referanslar önce temizlendiği için ikinci çağrı no-op'tur.
+ */
+export async function closeDatabase(): Promise<void> {
+  const pool = productionPool ?? globalForDb.pgPool;
+  const client = productionClient ?? globalForDb.prisma;
+
+  // Önce referansları bırak: ikinci çağrı hiçbir şey bulmasın, ayrıca
+  // kapatma sırasında bir hata çıkarsa bile modül yeniden kurulabilir durumda kalsın.
+  productionPool = undefined;
+  productionClient = undefined;
+  globalForDb.pgPool = undefined;
+  globalForDb.prisma = undefined;
+
+  // Hiç kurulmadıysa yapılacak bir şey yok.
+  if (!client && !pool) return;
+
+  if (client) {
+    try {
+      await client.$disconnect();
+    } catch (error) {
+      console.error(
+        '[db] Prisma bağlantısı kapatılamadı:',
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }
+
+  if (pool) {
+    try {
+      await pool.end();
+    } catch (error) {
+      // `pool.end()` ikinci kez çağrılırsa `pg` fırlatır; referans temizlendiği
+      // için buraya normalde düşülmez ama kapanış yolu hata yutmalı.
+      console.error(
+        '[db] pg havuzu kapatılamadı:',
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }
 }

@@ -21,9 +21,11 @@ const BASELINE = {
 } as const;
 
 test.describe('§8.14 — taban güvenlik başlıkları', () => {
-  for (const path of ['/', '/panel']) {
+  // `/panel` artık korumalı ve yönlendiriyor (T-014); `maxRedirects: 0` ile
+  // YÖNLENDİRME YANITININ KENDİSİ denetlenir — ara yanıt başlıksız kalmamalı.
+  for (const path of ['/', '/giris', '/panel']) {
     test(`${path} taban başlıkları taşır`, async ({ request }) => {
-      const headers = (await request.get(path)).headers();
+      const headers = (await request.get(path, { maxRedirects: 0 })).headers();
 
       for (const [name, value] of Object.entries(BASELINE)) {
         expect(headers[name], `${path} → ${name}`).toBe(value);
@@ -44,9 +46,36 @@ test.describe('§8.14 — taban güvenlik başlıkları', () => {
 
 test.describe('§8.7 — panel arama motorlarına kapalı', () => {
   test('/panel yanıtı X-Robots-Tag: noindex, nofollow taşır', async ({ request }) => {
-    const headers = (await request.get('/panel')).headers();
+    // Yönlendirme İZLENMEZ: aksi hâlde `/giris`'in başlıkları ölçülürdü ve
+    // panelin kendi yanıtı hiç denetlenmemiş olurdu.
+    const headers = (await request.get('/panel', { maxRedirects: 0 })).headers();
 
     expect(headers['x-robots-tag']).toBe('noindex, nofollow');
+  });
+
+  /** §8.5 — T-014. Panel oturumsuzken içerik SIZDIRMADAN yönlendirmeli. */
+  test("/panel oturumsuzken /giris'e yönlendirir", async ({ request }) => {
+    const response = await request.get('/panel', { maxRedirects: 0 });
+
+    expect(response.status()).toBe(307);
+    expect(response.headers()['location']).toContain('/giris');
+  });
+
+  test('/api/v1/panel/* oturumsuzken 401 JSON döner (§7.2)', async ({ request }) => {
+    const response = await request.get('/api/v1/panel/islem', { maxRedirects: 0 });
+
+    expect(response.status()).toBe(401);
+    expect(await response.json()).toMatchObject({
+      ok: false,
+      error: { code: 'UNAUTHORIZED' },
+    });
+  });
+
+  /** Giriş sayfası public — indekslenebilir kalmalı, noindex almamalı. */
+  test('/giris X-Robots-Tag TAŞIMAZ', async ({ request }) => {
+    const headers = (await request.get('/giris')).headers();
+
+    expect(headers['x-robots-tag']).toBeUndefined();
   });
 
   /**
@@ -103,8 +132,8 @@ test.describe('matcher sınırı — /api/v1/health dışarıda', () => {
  */
 test.describe('§8.12 — HSTS', () => {
   test('düz HTTP isteğine HSTS eklenmez', async ({ request }) => {
-    for (const path of ['/', '/panel']) {
-      const headers = (await request.get(path)).headers();
+    for (const path of ['/', '/giris', '/panel']) {
+      const headers = (await request.get(path, { maxRedirects: 0 })).headers();
       expect(headers['strict-transport-security'], path).toBeUndefined();
     }
   });

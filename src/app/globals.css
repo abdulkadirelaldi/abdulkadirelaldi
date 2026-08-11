@@ -57,6 +57,13 @@
   --danger: #f87171;
   --info: #60a5fa;
 
+  /* T-036 — QR kodu modülleri.
+     Bilerek tema DIŞIDIR ve iki temada da aynıdır: QR okuyucular koyu/açık
+     kontrastına bakar, marka rengine değil. Vurgu moruna boyamak ya da koyu
+     temada ters çevirmek okuma başarısını düşürür. */
+  --qr-dark: #000000;
+  --qr-light: #ffffff;
+
   /* §3.1 — gradient yalnızca birincil buton, aktif nav göstergesi ve isim vurgusunda */
   --gradient-accent: linear-gradient(135deg, var(--accent) 0%, var(--accent-blue) 100%);
 

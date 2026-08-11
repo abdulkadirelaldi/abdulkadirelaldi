@@ -22,13 +22,20 @@ type NavItem = {
   href: string;
   label: string;
   icon: ComponentType<{ className?: string }>;
+  /**
+   * Rota gerçekten var mı. Yalnızca var olanlar önden çekilir; olmayan bir
+   * rotayı `next/link` önden çekince 404 döner ve tarayıcı bunu konsola HATA
+   * olarak yazar (T-002b'de Lighthouse `errors-in-console` bu yüzden sıfır
+   * almıştı). Sayfa açıldıkça buraya `hazir: true` eklenir.
+   */
+  hazir?: boolean;
 };
 
 /** §4.2 — panel rotaları. Alt rotalar ilgili bölüm sayfasından açılır. */
 const NAV_GROUPS: ReadonlyArray<{ title: string; items: readonly NavItem[] }> = [
   {
     title: 'Genel',
-    items: [{ href: '/panel', label: 'Panel', icon: LayoutDashboard }],
+    items: [{ href: '/panel', label: 'Panel', icon: LayoutDashboard, hazir: true }],
   },
   {
     title: 'İş',
@@ -51,7 +58,7 @@ const NAV_GROUPS: ReadonlyArray<{ title: string; items: readonly NavItem[] }> = 
     title: 'Site',
     items: [
       { href: '/panel/icerik/projeler', label: 'İçerik', icon: FileText },
-      { href: '/panel/ayarlar', label: 'Ayarlar', icon: Settings },
+      { href: '/panel/ayarlar', label: 'Ayarlar', icon: Settings, hazir: true },
     ],
   },
 ] as const;
@@ -96,7 +103,7 @@ export function Sidebar() {
                     <li key={item.href}>
                       <Link
                         href={item.href}
-                        prefetch={false}
+                        prefetch={item.hazir ?? false}
                         aria-current={active ? 'page' : undefined}
                         className={cn(
                           'focus-ring ease-brand duration-micro rounded-btn flex items-center gap-2.5 px-2 py-2 text-sm transition-colors',

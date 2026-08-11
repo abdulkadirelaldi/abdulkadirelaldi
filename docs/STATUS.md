@@ -4,8 +4,8 @@
 > Kaynak: `PROGRAM.md` §11 Yol Haritası.
 
 **Son güncelleme:** 2026-08-05
-**Aktif faz:** F0 — Temel
-**Genel ilerleme:** 0 / 8 faz tamamlandı
+**Aktif faz:** F1 — Veri & Auth · F2/T-020 paralel (ADR-012)
+**Genel ilerleme:** 1 / 8 faz tamamlandı
 
 ---
 
@@ -13,8 +13,8 @@
 
 | Faz | İçerik                                    | Ana ajan(lar)                 | Durum       |
 | --- | ----------------------------------------- | ----------------------------- | ----------- |
-| F0  | Temel — kurulum, token, tema, iskelet, CI | Backend + Frontend + Güvenlik | 🔵 Aktif    |
-| F1  | Veri & Auth                               | Backend                       | ⚪ Bekliyor |
+| F0  | Temel — kurulum, token, tema, iskelet, CI | Backend + Frontend + Güvenlik | 🟢 **Tamam** |
+| F1  | Veri & Auth                               | Backend                       | 🟢 **Tamam** |
 | F2  | Public İskelet                            | Frontend                      | ⚪ Bekliyor |
 | F3  | Panel Çekirdek                            | Backend + Frontend            | ⚪ Bekliyor |
 | F4  | İş & Muhasebe                             | Backend + Frontend            | ⚪ Bekliyor |
@@ -28,7 +28,7 @@ Durum kodları: ⚪ Bekliyor · 🔵 Aktif · 🟡 Kısmen · 🟢 Tamamlandı �
 
 ## 2. Faz Kırılımı ve Bağımlılık Sırası
 
-### F0 — Temel 🔵
+### F0 — Temel 🟢 **KAPANDI**
 
 | #     | Görev                                                                                              | Ajan            | Bağımlılık          | Durum     |
 | ----- | -------------------------------------------------------------------------------------------------- | --------------- | ------------------- | --------- |
@@ -39,8 +39,9 @@ Durum kodları: ⚪ Bekliyor · 🔵 Aktif · 🟡 Kısmen · 🟢 Tamamlandı �
 | T-004 | Vitest + Playwright iskeleti, `src/middleware.ts`, güvenlik başlıkları                             | Güvenlik & Test | T-003b              | 🟢 Tamam  |
 | T-003c | **BULGU-002** düzeltmesi — `pg` havuzunu tembel kur (`.env`'siz build)                            | Backend         | T-004 bulgusu       | 🟢 Tamam  |
 | T-005 | GitHub Actions CI + Lighthouse CI + Node 22 sabitlemesi                                            | Güvenlik & Test | T-003c              | 🟢 Tamam  |
-| T-002b | **BULGU-003** — erişilebilirlik eşiği (kontrast + bağlantı ayırt edilebilirliği)                  | Frontend        | T-005 bulgusu       | 🔵 Aktif  |
-| T-006 | Depoyu GitHub'a taşı, ilk gerçek CI koşusunu izle, `main` dal koruması                            | Kullanıcı + Güvenlik | T-005          | 🔴 Kullanıcı eylemi |
+| T-002b | **BULGU-003** — erişilebilirlik eşiği (kontrast + bağlantı ayırt edilebilirliği)                  | Frontend        | T-005 bulgusu       | 🟢 Tamam  |
+| T-006 | Depo GitHub'a taşındı, ilk CI koşusu yeşil, `main` koruması aktif                                  | Orkestra Şefi   | T-005               | 🟢 Tamam  |
+| T-006b | CI takip düzeltmeleri: `actions/*@v5`, Lighthouse artifact yolu                                   | Güvenlik & Test | T-006               | ⚪ Sırada |
 
 **Fiilen yürüyen sıra:** T-001 → (T-002 ∥ T-003) → T-003b → T-004 → T-003c → T-005 → (T-002b ∥ T-006)
 
@@ -52,31 +53,60 @@ Durum kodları: ⚪ Bekliyor · 🔵 Aktif · 🟡 Kısmen · 🟢 Tamamlandı �
 | `pnpm test:e2e` — 24/24 | ✅ masaüstü + mobil |
 | Koyu/aydınlık tema, FOUC yok | ✅ sunucuda basılıyor, 4 senaryo test edildi (ADR-010) |
 | `/api/v1/health` DB'ye bağlanıyor | ✅ 200/503 ölçüldü |
-| CI yeşil | ⚠️ **yerelde yeşil, GitHub'da hiç koşmadı** → T-006 |
-| §1.1 K5 — WCAG AA | ❌ **A11y 0.92, hedef ≥0.95** → T-002b |
+| CI yeşil | ✅ GitHub'da gerçek koşu `31002868890` — üç iş de yeşil |
+| §1.1 K5 — WCAG AA | ✅ **A11y 1.00**, iki temada (T-002b) |
+| `main` dal koruması | ✅ ruleset `20455952` — Kapı + §8.24 zorunlu |
 
-**F0 iki maddeyle kapanıyor: T-002b (erişilebilirlik) ve T-006 (ilk gerçek CI koşusu).**
+**F0 KAPANDI (2026-08-05).** Artık kalan tek F0 kalemi T-006b — CI takip düzeltmeleri, engelleyici değil.
 
 ---
 
-### F1 — Veri & Auth ⚪
+### F1 — Veri & Auth 🟢 **KAPANDI (2026-08-10)**
 
 | #     | Görev                                                                                     | Ajan     | Bağımlılık   |
 | ----- | ----------------------------------------------------------------------------------------- | -------- | ------------ |
-| T-010 | Tam Prisma şeması (§6 tüm varlıklar) + ilk migration                                      | Backend  | T-003        |
-| T-011 | Zod şema kütüphanesi — `src/lib/schemas/**` tüm varlıklar                                 | Backend  | T-010        |
-| T-012 | `seed.ts` — admin kullanıcı, kategoriler, örnek içerik                                    | Backend  | T-010, T-011 |
-| T-013 | Auth.js v5 Credentials + argon2id + TOTP 2FA                                              | Backend  | T-010        |
-| T-014 | `middleware.ts` panel koruması + `X-Robots-Tag` + giriş hız sınırı                        | Güvenlik | T-013        |
-| T-015 | Servis katmanı temeli: `services/` konvansiyonu, `AuditLog` yardımcısı, hata zarfı (§7.2) | Backend  | T-011, T-013 |
-| T-016 | Auth birim + E2E testleri (§9 senaryo 3, 4)                                               | Güvenlik | T-013, T-014 |
+| T-010 | Tam Prisma şeması (§6 + **§6.1**) + migration + `next-themes` kaldırma — 🟢 **Tamam**    | Backend  | T-003b, ADR-013…021 |
+| T-011 | Zod şema kütüphanesi — 25 varlık, 251 test — 🟢 **Tamam**                                  | Backend  | T-010        |
+| T-012 | `seed.ts` — 21 varlık, idempotent, hepsi Zod'dan geçiyor — 🟢 **Tamam**                   | Backend  | T-010, T-011, T-013a |
+| T-013a | Kripto primitifleri — 51 test, kapsam %100 satır — 🟢 **Tamam**                            | Backend  | T-011        |
+| T-013b | Auth.js v5 bağlantısı — 36 test, 7 senaryo — 🟢 **Tamam**                                  | Backend  | T-013a       |
+| T-014 | Panel koruması + kilitleme politikası + `AuditLog` kilit kaydı — 🟢 **Tamam** (§8.5 ✅)   | Güvenlik | T-013b   |
+| T-015 | Servis katmanı temeli — 8 yardımcı, 149 test, kapsam %90.08 — 🟢 **Tamam**                | Backend  | T-011, T-013c |
+| T-016 | Auth E2E — 12 senaryo, `code` regresyonu kilitlendi — 🟢 **Tamam**                        | Güvenlik | T-013c, T-018b |
+| T-005b | Auth E2E'yi CI'ya bağla — Postgres servisi + migrate + seed (T-016/T3)                    | Güvenlik | T-016        |
+| T-003d | BULGU-007 + **üretim havuz sızıntısı** — 🟢 **Tamam** (30.63 sn → 0.18 sn)                | Backend  | T-016        |
+| T-017 | `/giris` sayfası — iki adımlı akış — 🟢 **Tamam** (akış T-013c ile çalışır hâle gelecek)  | Frontend | T-013b       |
+| T-013c | P0 blokerler — üçü de kapandı, 404 test — 🟢 **Tamam**                                     | Backend | T-014, T-017 |
+| T-036 | 2FA kurulum ekranı — 🟢 **Tamam** (T-018b ile bağlandı)                                    | Frontend | T-013c       |
+| T-015b | TOTP Server Action'ları — 49 test, kapsam %94.44 — 🟢 **Tamam**                            | Backend | T-015        |
+| T-018b | `guvenlik/page.tsx` bağlandı — akış uçtan uca çalışıyor — 🟢 **Tamam**                     | Frontend | T-015b       |
+| T-018 | `/panel/ayarlar` + QR kalıcı doğrulama testi — 🟢 **Tamam** (ADR-024 şartı karşılandı)     | Frontend | T-036        |
+| T-019 | §8.1 kapısı — kuruldu ve kanıtlandı — 🟢 **Tamam**                                         | Güvenlik | T-018b       |
+| T-013e | BULGU-008 — JWT `tfa` alanı + oturum tazeleme — 🟢 **Tamam**                               | Backend  | T-019        |
+| T-019b | Geçiş penceresi kapatıldı — **§8.1 ✅** — 🟢 **Tamam**                                     | Güvenlik | T-013e       |
+| T-036c | `confirmTotpSetup` sonrası `await update()` (T-013e/T2)                                    | Frontend | T-013e       |
 
-**Sıra:** T-010 → T-011 → T-013 → (T-012 ∥ T-014) → T-015 → T-016
-**Kabul kapısı:** Yanlış şifre reddediliyor, 2FA zorunlu, `/panel` girişsiz erişilemiyor, her mutasyon `AuditLog`'a yazıyor.
+**Sıra:** T-010 ✅ → T-011 ✅ → T-013a ✅ → T-013b ✅ → (T-012 ✅ ∥ T-014 ✅ ∥ T-017 ✅) → T-013c ✅ → (**T-015 ∥ T-036 ∥ T-016**) → F1 kapanış
+**F1 KABUL KONTROLÜ — Orkestra Şefi, 2026-08-10**
+
+| Şart | Durum | Kanıt |
+| ---- | ----- | ----- |
+| Yanlış şifre reddediliyor | ✅ | T-016 E2E; kullanıcı numaralandırma koruması ayrıca ölçüldü (mesaj **ve** süre) |
+| 2FA zorunlu | ✅ | Zincirin üç halkası ayrı ayrı ölçüldü: kapı (18 test, devre dışı bırakılınca kırılıyor) · besleme (T-013e, jeton gerçek istekle çözüldü) · pencere (T-019b, `null` reddediliyor) |
+| `/panel` girişsiz erişilemiyor | ✅ | T-014; oturum kriptografik doğrulanıyor, uydurma JWE geçmiyor |
+| Her mutasyon `AuditLog`'a yazıyor | ✅ *(F1 kapsamında)* | `writeAuditLog` + redaksiyon; F1'de yazılan **tüm** mutasyonlar (2FA eylemleri, hesap kilidi) yazıyor. "Tüm panel mutasyonları" F3–F5'te **her görevde denetlenecek süreklilik maddesi** — F1 borcu değil |
+
+**Ölçülen:** 687 birim + 53 E2E · kapsam %94.06 · `lint`/`typecheck`/`build` EXIT 0 ·
+`.env`'siz build EXIT 0 · §8: ✅ 9 · ⚠️ 4 · ⏳ 12
+
+**F1'den devreden iki borç (F2'ye girmeden kapatılacak):**
+1. **T-005b** — auth E2E CI'da koşmuyor. §8.1 kapısı ve dört `code` regresyon kilidi
+   **merge kapısında tutmuyor**, yalnızca yerelde. *Yerel bir kilit, kilit değildir.*
+2. **BULGU-007'nin cron tarafı** — `closeDatabase()` hazır, cron'lara bağlanması F7 öncesi.
 
 ---
 
-### F2 — Public İskelet ⚪
+### F2 — Public İskelet ⚪ (T-020 paralel — ADR-012)
 
 | #     | Görev                                                                      | Ajan     | Bağımlılık   |
 | ----- | -------------------------------------------------------------------------- | -------- | ------------ |
@@ -180,6 +210,478 @@ Durum kodları: ⚪ Bekliyor · 🔵 Aktif · 🟡 Kısmen · 🟢 Tamamlandı �
 
 ## 3. Açık Görevler
 
+### T-013e / T-019b kabul doğrulaması (Orkestra Şefi, 2026-08-10) — **F1 KAPANDI**
+
+**687 test · kapı temiz.** `requiresTwoFactorSetup` son hâli ve `two-factor.ts` md5
+(`fc0afebfaf6b9affcb9ed3ed0430ffab`) depoda doğrulandı.
+
+**T-019b/K3 bu projenin en değerli bulgularından biri.** Üç E2E testi **vakum hâlinde
+yeşildi**: `toHaveURL(/\/panel/)` deseni kurulum ekranına (`/panel/ayarlar/guvenlik`) de
+uyuyor. Kapı devreye girince "doğru şifre → `/panel`" adlı test aslında **kurulum ekranına
+varıp yeşil kalmaya devam etti** — adı yalan söyleyen bir test. Ajan "19 passed" gördüğü
+hâlde durup baktığı için çıktı.
+
+> **"Yeşil bir paket, doğru şeyi ölçtüğünün kanıtı değil."**
+
+Bu cümle F2'den itibaren her test görevinin kartına referans olarak girecek.
+
+**K1'in gerekçesi de kayda değer:** `null`'ın artık kapıyı **kapatması**, yalnızca "alan
+artık var" diye değil — *"bir kontrolün, beslendiği verinin yokluğunda açılması değil
+kapanması gerekir."* Alanı yazan kod bir gün sessizce bozulursa kapı da sessizce açılırdı.
+T-019'daki geçici davranış o gün doğruydu (2FA'sı kurulu kullanıcıyı kilitlememek için),
+bugün değil — bağlam değişince kararı gözden geçirmek doğru refleks.
+
+**K5:** Backend'in beslemesini **kabul etmeden önce doğrulaması** — özellikle
+`refreshTwoFactorClaim`'in değeri DB'den okuduğu. `update()` gövdesi istemcinin denetiminde;
+oradan okunsaydı kullanıcı `{ tfa: true }` göndererek kendi kapısını açardı. İki ajanın
+birbirinin çıktısını körlemesine kabul etmemesi, bu yapının asıl faydası.
+
+**T-013e kararları:** K1 (jeton mantığı `credentials.ts`'e — `auth.ts` test edilemiyor),
+**K2 (`update` dalı değeri DB'den okuyor)**, K3, **K4 (`as any` yerine tip artırması; alan
+**opsiyonel** — zorunlu yapmak geçiş penceresinde var olmayan bir garantiyi tipte varmış
+gibi gösterirdi)**, K5, K6 (`TWO_FACTOR_CLAIM` sabiti tüketildi, `'tfa'` elle yazılmadı).
+
+**Açılan/kalan:** T1 (`src/server/db.ts` biçimlendirme) → T-036c ile birlikte Backend'e
+iletilecek küçük iş · T2 → BULGU-007 cron tarafı F7 · **T3 → T-005b, F2 öncesi zorunlu**.
+
+### T-003d kabul doğrulaması (Orkestra Şefi, 2026-08-10) — **ikinci bulgu daha ciddiydi**
+
+**671 test · kapı temiz.** `getPool()` düzeltmesi depoda doğrulandı.
+
+BULGU-007 (kısa ömürlü betikler 30 sn fazladan yaşıyor) kapandı: **30.63 sn → 0.18 sn**.
+Ama asıl bulgu, onu ararken çıkan ikinciydi:
+
+> **Üretimde her sağlık kontrolü bir havuz sızdırıyordu.** `getPool()`'un üretim dalı
+> havuzu **hiçbir yere yazmıyordu** — `if (process.env.NODE_ENV !== 'production')` koşulu
+> yalnızca `globalThis`'e yazmayı atlıyor sanılmıştı, oysa üretimde **hiç önbellekleme
+> yoktu.** `pingDatabase()` her sağlık kontrolünde çağrılıyor ve Coolify + Uptime Kuma
+> (§13.6–13.7) saniyeler arayla yokluyor. Ölçüldü: 5 çağrı → **6 bağlantı** (üretim),
+> düzeltmeden sonra **2**. Havuzlar `idleTimeoutMillis` boyunca yaşadığı için üretimde
+> birikir ve `max_connections` (100) sınırına dayanırdı — o noktada uygulama **hiç
+> bağlanamaz** hâle gelirdi.
+
+BULGU-007 kısa ömürlü betikleri etkiliyordu; bu, **uzun ömürlü üretim sunucusunu** etkiliyordu
+ve yalnızca üretimde görünürdü. Backend bunu kendi T-003c hatası olarak açıkça sahiplendi:
+"o zaman yalnızca hot reload'ı ölçmüştüm, üretim dalını ölçmemiştim."
+
+**BULGU-007'nin bir varsayımı da düzeltildi:** "seed de aynı gecikmeyi yaşıyor olmalı"
+denmişti; seed kendi havuzunu kurup `pool.end()` çağırdığı için zaten hızlıydı. Backend
+ölçtü, varsaymadı (ADR-023). Yine de ortak havuza geçirdi — seed'in havuzu **ayarsızdı**
+(`max`, `idleTimeoutMillis`, `connectionTimeoutMillis` uygulanmıyordu).
+
+**Kabul edilen kararlar:** K1 (`process.exit()` kullanılmadı — semptomu gizler, uçuştaki
+yazmaları keser), K2 (`closeDatabase()` proxy'ye dokunmuyor — dokunsaydı olmayan bir
+istemciyi kurar ve "hiç kurulmadıysa no-op" garantisini bozardı), K3, K4, K5, K6.
+
+### T-019 kabul doğrulaması — 🟡 Kısmen (dürüst değerlendirme)
+
+**662 birim + 53 E2E.** Kapı kuruldu, döngü koruması, `403`, çıkış yolu, DB'siz çalışma —
+hepsi var ve **devre dışı bırakılarak kanıtlandı** (12 birim + E2E bloğu kırıldı, `md5`
+ile geri yüklendi).
+
+**§8.1'i ✅ yapmaması doğru karardı.** Görev kartım "⚠️→✅ olmalı" diyordu; ajan uymadı ve
+haklı: kapı `tfa` alanını okuyor ama giriş akışı alanı jetona koymuyor, yani **bugün gerçek
+bir kullanıcı 2FA'sız panele girebiliyor.** "✅ demek, çalışmayan bir korumayı çalışıyor
+göstermek olurdu." Kabul kriterimi kriterin amacına tercih etti — doğru olan buydu.
+
+**Kabul edilen kararlar:** **K1 (`null` ile `false` ayrı durumlar — `null`'ı "kurulu değil"
+saysaydı, 2FA'sı zaten kurulu bir kullanıcı kurulum ekranına **kalıcı olarak kilitlenirdi**,
+çünkü jetonu alanı hiçbir zaman kazanmayacaktı; R3'ten daha kötü bir sonuç)**, **K2 (geçiş
+penceresi güvenlik gevşetmesi değil — alanı taşımayan jeton yalnızca `AUTH_SECRET`'i bilen
+tarafça üretilebilir, saldırgan alanı "düşürerek" kapıyı atlayamaz)**, K3 (karar mantığı
+saf modülde), **K4 (muafiyet segment sınırında — `/panel/ayarlar/guvenlik-yedek` yanlışlıkla
+muaf olsaydı oraya konacak her sayfa kapıyı sessizce atlardı)**, K5 (`403` vs `401` —
+"yeniden giriş" ile "kurulumu tamamla" farklı şeyler), K6.
+
+**JWT seçim gerekçesi ikna edici:** ayrı çerez istemci tarafından `tfa=1` yazılarak
+atlatılabilirdi — yetkilendirme kararını istemci kontrolündeki bir girdiye bağlamak kabul
+edilemez. Middleware'de DB sorgusu Edge'de mümkün değil (T-014/K1) ve her isteğe gidiş-dönüş
+eklerdi.
+
+**Açılan görevler:** BULGU-008 → **T-013e** (Backend) · T2 → **T-019b** (geçiş penceresinin
+kaldırılması; **rapor notu değil görev olarak** açıldı — unutulursa pencere kalıcılaşır) ·
+T3 → çıkış düğmesi, T-036'nın devamı olarak Frontend'e.
+
+### T-016 kabul doğrulaması (Orkestra Şefi, 2026-08-10)
+
+**641 birim + 46 E2E testi · kapsam %93.75 · kapı temiz.** `src/server/auth.ts`'in birebir
+geri yüklendiği depoda doğrulandı (`extends CredentialsSignin` yerinde), `LockoutClient`
+düzeltmesi uygulanmış.
+
+**Regresyon kilidi gerçekten tutuyor — ölçülerek kanıtlandı.** `extends Error`'a geri
+döndürülüp **dört kodun dördü de ayrı ayrı kırdırıldı**, sonra md5 ile geri yüklendiği
+gösterildi. T-018'in QR hatalarını geri koyup ölçmesiyle aynı disiplin.
+
+**Kabul edilen kararlar:** **K1 (TOTP hesaplayıcısı `otplib` kullanmıyor — aynı kütüphaneyle
+hem üretip hem doğrulasaydı, kütüphane yanlış davransa bile test yeşil kalırdı; RFC'nin
+resmî vektörleri "doğrulayanı kim doğruluyor" sorusunu cevaplıyor)**, K2 (`tsconfig.e2e.json`
+— E2E'ye özgü bir sorunun bedelini tüm derlemeye ödetmemek), **K3 (DB işleri ayrı süreçte —
+alternatifi kriptografiyi test tarafında ikinci kez yazmaktı; biçim değişince sessizce
+yanlış veri üretirdi)**, **K4 (`auth.spec.ts` mobilde koşmuyor — paylaşılan tek DB satırında
+iki proje paralel koşunca biri ötekinin 2FA'sını kapatıyor; "retry ile örtmek yanlış olurdu,
+sorun kararsızlık değil paylaşılan durum")**, K5, K6, K7 (T-015/T3 taşıması yapılmadı —
+`src/lib/security/**` → `src/server/services/**` bağımlılığı kurardı; kabul edildi).
+
+**`LockoutClient` düzeltmesinin yan faydası:** `diff`'e artık `Date` veya sınıf örneği
+konulamıyor — sessizce `{}` olarak serileşip denetim kaydını boşaltırdı. Tip daraltması
+bir hatayı da kapatmış.
+
+**T4 — şeffaflık takdir edildi.** Backend'in dosyasını geçici değiştirmek regresyon kanıtı
+için zorunluydu; md5 ile geri yüklendiğini göstermek doğru davranış.
+
+### §8.1 karara bağlandı (T-016/T2) — PROGRAM.md güncellendi
+
+Özgün metin "2FA v1'de **zorunlu olarak açık gelir**" diyordu. Seed'in 2FA'yı açık üretmesi
+teknik olarak mümkün ama **secret'ı kimse bilmediği için kilitlenme üretirdi** (R3).
+Zorunluluk **kurulum anına taşındı, gevşetilmedi**: `totpConfirmedAt` boşken panel her
+istekte kurulum ekranına yönlendirir, kurulum tamamlanmadan panel kullanılamaz. → **T-019**
+
+**T3 → T-005b açıldı.** Auth E2E CI'da koşmuyor; yani bu görevin kapattığı regresyon kilidi
+**merge kapısında henüz tutmuyor.** Yerel bir kilit, kilit değildir.
+
+**T1 → T-003d açıldı** (BULGU-007, `closeDatabase()`). §13.5'in gece cron'ları kısa ömürlü —
+her biri 30 sn fazladan yaşarsa yedek penceresi kayar.
+
+### T-015b / T-018 / T-018b kabul doğrulaması (Orkestra Şefi, 2026-08-10)
+
+**627 test geçiyor · lint / typecheck / build EXIT 0 · `.env`'siz build de EXIT 0.**
+`guvenlik/page.tsx` bağlı olduğu depoda doğrulandı. **E1 kapandı** — Backend'in
+çalıştıramadığı build'i Orkestra Şefi koşturdu, iki senaryoda da EXIT 0.
+
+**T-015b kararları:** **K1 (hız sınırı sayacı `AuditLog`'da, `LoginAttempt`'te değil —
+kurulum sırasında kodu yanlış giren dürüst bir kullanıcı, 2FA'yı henüz kuramamışken kendi
+hesabını kilitlemiş olurdu; eşik yine Güvenlik'in sabitinden, ikinci sihirli sayı yok)**,
+**K4 (`enabled` ölçütü `totpConfirmedAt` — iki yerde farklı ölçüt "ekranda açık, girişte
+kapalı" tutarsızlığı üretirdi)**, K5, K6 (yanlış kodda secret korunuyor), K7, K8.
+
+**K2 karara bağlandı — ayrı `AuditAction` değeri eklenmiyor.** `LOGIN_FAILED` +
+`diff.context` yeterli; migration maliyeti gerekçelendirilemez. Hoş bir kapanış oldu:
+ADR-022 `LOGIN_FAILED`'i kullanılmayan enum değeri olarak bırakmış ve bunu "küçük bir koku"
+diye kabul etmiştim — artık gerçek bir kullanımı var.
+
+**T-018 → ADR-024 GEÇERLİ.** K1 şartı gerçekten karşıladı: altın vektörler **referans
+uygulamadan** üretildi, kendi çıktısından değil. Kendi çıktısını mühürleseydi test yalnızca
+"bugün ne üretiyorsan onu üretmeye devam et" der ve **mevcut bir hatayı sonsuza kadar doğru
+sayardı.** İki hatayı geri koyup **17 testin kırıldığını ölçmesi** kanıtın kendisi.
+K3 de doğru: kodlayıcının yerleştirme mantığını testte ikinci kez yazmak, aynı yanlış
+anlamayı iki yere kopyalama riski taşırdı.
+
+**T-018b — zincirin her halkası farklı uygulama.** QR bağımsız çözücüyle (jsQR) okundu →
+`otpauth://` ayrıştırıldı → **sıfırdan yazılmış** RFC 6238 uygulamasıyla kod üretildi
+(projenin `otplib`'i kullanılmadı) → sunucu kabul etti. O uygulama önce **RFC 6238'in
+resmî test vektörleriyle** doğrulandı. Bu, ADR-024'ün pratikteki sınavı.
+
+**K4 (test sonrası 2FA sıfırlandı) doğru ve önemliydi:** koşum bitince kullanıcıda 2FA açık,
+secret'ı yalnızca test harness'ı biliyor, kurtarma kodları hiçbir yere kaydedilmemişti.
+Bu hâlde bırakmak **site sahibini kendi panelinden kilitlerdi.** "Sahte bir açık durum
+güvenlik değil, kilitlenme üretir" — doğru muhakeme.
+
+**ENGEL-3 kabul edildi:** fiziksel cihaz sınavı yapılmadı ve bu dürüstçe raporlandı.
+Site sahibinin ilk kurulumu kendi telefonuyla yapması bunu doğal olarak kapatır.
+
+### T-015 kabul doğrulaması (Orkestra Şefi, 2026-08-10)
+
+**149 yeni test · toplam 553 · `src/server` kapsamı %90.08** (kriter ≥%85) ·
+`_shared` %99.41. Kapı temiz, `.env`'siz de.
+
+**Yakalanan hata ADR-016'nın tam hedefindeydi:** `appDayToDate('2026-02-30')` sessizce
+**2026-03-02** üretiyordu. `new Date('2026-02-30T00:00:00Z')` fırlatmıyor, **taşırıyor** —
+ve regex biçimi doğruladığı için geçiyordu. Yani takvimde olmayan bir gün geçerli ama
+yanlış bir tarihe dönüşüp kayıt başka güne yazılabilirdi. Gidiş-dönüş karşılaştırmasıyla
+kapatıldı.
+
+**Kabul edilen kararlar:** K1 (konum → ADR-016 revize edildi, aşağı bak), **K2
+(`Intl.DateTimeFormat` — elle UTC+3 eklenmedi; sabit ofset 2016 öncesi tarihlerde yanlış
+olurdu ve yaz saati geçişlerini kaçırırdı)**, K3, K4 (yarım-yukarı yuvarlama — tek
+kullanıcılı bir defterde okul yuvarlaması beklenen davranış), K5 (`DecimalLike` yapısal
+arayüz — modül üretilen istemciden bağımsız), **K6 (redaksiyonda döngüsel referans koruması
+— kendine referans veren bir `diff` denetim kaydını değil **sunucuyu** düşürürdü)**,
+**K7 (PR hesabı DAİMA sıfırdan — "daha ağırsa güncelle" mantığı düzeltme ve silmeyi kaçırır;
+ADR-021'in kapatmak istediği sessiz hata tam olarak buydu)**, K8, **K9 (barrel sözleşme
+testi — barrel'in çalıştırılabilir satırı yok, yani kapsam onu göstermez; bir yardımcı
+yeniden adlandırılırsa hata F3/F4/F5'e kadar görünmez kalırdı)**.
+
+**Konvansiyonun en değerli maddesi:** `AuditLog` ve `revalidatePath` **serviste değil,
+Server Action'da.** Servis yeniden kullanılabilir kalmalı — cron ve seed de çağıracak,
+onların denetim ve önbellek ihtiyacı farklı. Bu ayrım F3–F5'te onlarca dosyayı etkileyecek.
+
+**T1 → ADR-016 revize edildi.** Yardımcı `services/_shared/app-date.ts`'te kalıyor.
+**Bağlayıcı ek kural:** Frontend kendi gün yardımcısını **yazmaz**; ihtiyaç doğarsa
+yardımcı ortak konuma taşınır ve iki taraf oradan içe aktarır. İki ayrı uygulama, ADR-016'nın
+önlemek için var olduğu hatanın ta kendisi olurdu.
+
+**T3 → T-016'ya opsiyonel madde olarak eklendi** (kilit kaydının `writeAuditLog`'a taşınması;
+bugün doğru çalışıyor, zorunlu değil).
+
+### T-036 kabul doğrulaması (Orkestra Şefi, 2026-08-10) — 🟡 Kısmen
+
+Ekran tamamlandı, 37 kontrol geçti, sızıntı denetimleri temiz. **553 test geçiyor**, kapı
+temiz. `src/server/actions/` **boş** olduğu depoda doğrulandı — ENGEL-1 gerçek ve F1
+kapısını tutan tek engel.
+
+**QR kodlayıcı → ADR-024.** Bağımlılık yerine kendi kodlayıcısını yazması ADR-004'e göre
+onay gerektirirdi; onay turu F1'i bloke edeceği için beklemeden yazmış. **İstisna olarak
+kabul edildi, kural değil.** Kodlayıcı kalıyor: kapsam dar (bayt kipi, EC-M, v1–14),
+girdi öngörülebilir, ve **düz metin secret yedeği zaten var** — QR okunmazsa kullanıcı
+anahtarı elle girebiliyor, yani blast radius küçük.
+
+**Doğrulama sırasında bulduğu iki hata, kütüphane kullansa hiç öğrenilemezdi:**
+format bilgisinin birinci kopyasının satır yerine **sütun 8**'e yazılması gerektiği, ve
+Reed–Solomon üreteç polinomunun **katsayı sırasının ters** olması. İkincisi özellikle
+sinsi: çıktı "geçerli bir QR" gibi görünüyor ama hiçbir okuyucu çözemiyor.
+
+**ADR-024'ün şartı:** o 1080 matrislik karşılaştırma **geçici bir sayfayla** yapıldı ve
+sayfa silindi — yani doğrulama **tekrarlanabilir değil.** Kalıcı teste dönüştürülmesi
+şart koşuldu (T-018). Doğrulanamayan kod, doğrulanmamış koddur.
+
+**Kabul edilen kararlar:** K2 (kurulum doğrulaması yalnızca TOTP kabul eder — kurtarma
+kodu o anda henüz üretilmemiştir), K3 (QR renkleri bilerek tema dışı; okuyucular kontrasta
+bakar, marka moruna boyamak okuma başarısını düşürürdü — değerler `globals.css`'te token,
+bileşende hex yok), K4 (tek `<path>` — 53×53'te ~2800 DOM düğümü yerine),
+**K5 (sahte veriyle çalışan önizleme KONULMADI — "güvenlik ekranının açık görünüp aslında
+hiçbir şey yapmaması, hiç olmamasından kötüdür"; doğru içgüdü)**, K6 (eylemler prop olarak).
+
+**ENGEL-4 → ADR-023 revize edildi.** Ölçüt artık mekanik: **`pnpm build` veya `pnpm start`
+çalıştırmayı gerektiren her görev ölçüm görevidir.** T-036'yı "ölçüm değil" diye
+işaretlemiştim çünkü E2E/Lighthouse istemiyordu — ama tarayıcıda doğrulama gerektiriyordu,
+yani aynı yarışa girdi. Sınıflandırma benim takdirime bırakılmayacak.
+
+**Açılan görevler:** ENGEL-1 → **T-015b** (Backend) · ENGEL-2 → **T-019** (Güvenlik) ·
+ENGEL-3 + ADR-024 şartı → **T-018** (Frontend) · ENGEL-5 → `regenerateBackupCodes`
+**opsiyonel değil, zorunlu** (T-015b kapsamında; kodlar bitince kullanıcı yalnızca TOTP'ye
+bağımlı kalmamalı).
+
+### T-013c kabul doğrulaması (Orkestra Şefi, 2026-08-10)
+
+**404 test geçiyor** (önce 344) · `lint` / `typecheck` / `build` EXIT 0. Depoda doğrulandı:
+`class CredentialsError extends CredentialsSignin`, `loginCodeSchema` yayınlanmış,
+boş dize `z.preprocess` ile ele alınmış.
+
+**Dördüncü hata, ilk üçü düzeltilmeseydi hiç görünmezdi.** ENGEL-1 ve ENGEL-2 kapandıktan
+sonra izole deney hâlâ `INVALID_CREDENTIALS` veriyordu: HTML formu ilk adımda alan ekranda
+görünmese bile `totpCode=""` gönderiyor, boş dize ne 6 hane regex'ini ne kurtarma kodu
+uzunluğunu geçiyordu. **Bu düzeltilmeseydi kabul kriterleri "geçmiş" görünürken Frontend'in
+gerçek formu hâlâ çalışmayacaktı** — kriterleri sağlamak ile işi çalıştırmak arasındaki farkı
+gören bir tespit.
+
+**Kanıt izole deneyle üretildi, varsayılmadı.** Üretim derlemesine gerçek POST, `Location`
+başlığından okunan `code` değerleri — altı senaryonun tamamı. Kurtarma kodu girişi uçtan uca:
+`/panel`'e yönlendi, oturum çerezi oluştu, **kurtarma kodu 3 → 2 tüketildi**. Kilit yazımı
+DB'den okundu: `lockedUntil` +15 dk, `AuditLog` kaydı `reason: LOGIN_RATE_LIMIT` ile düştü.
+
+**Kabul edilen kararlar:** K1, **K2 (boş dize `z.preprocess` ile, `loginCodeSchema`'ya
+`.or(z.literal(''))` eklenmedi — birleşim geçerli kod biçimlerini tanımlar, "boş = yok" ise
+forma özgü bir kural; karıştırılsaydı T-036'daki doğrulama formu boş dizeyi geçerli sayardı)**,
+**K3 (`fail()` kullanıcı aramasından sonra tanımlandı — var olmayan e-postada `userId: null`,
+politika sayar ama yazacak kayıt bulamaz, numaralandırma sızıntısı oluşmaz)**, **K4 (adaptör
+— Güvenlik'in tipini değiştirmek yerine; ayrıca `user`/`loginAttempt` **getter** olarak
+tanımlandı, doğrudan yazılsaydı modül yüklenirken Prisma çözülür ve T-003c'nin `.env`'siz
+derleme kazanımı kaybolurdu)**, K5, K6 (deney ortamı geri alındı).
+
+**T1 → yeni bulgu, Güvenlik ajanına iletildi:** `LockoutClient` gerçek `PrismaClient` ile
+uyumsuz (`TS2322`); kök neden `auditLog.create`'in XOR birleşimi + `InputJsonValue`.
+Bugün açık yaratmıyor (adaptörle çözüldü) ama `rate-limit.ts`'i doğrudan `db` ile çağıracak
+sonraki kod aynı duvara çarpar. **Politika yalnızca sahte istemcilerle test edildiği için
+T-014'te görünemezdi** — bağlamaya çalışmadan fark edilemeyecek bir sınıf.
+
+**T2 kabul edildi:** `code` ulaşımının regresyonu **E2E'ye ait**; `src/server/auth.ts`
+birim testiyle sabitlenemiyor (T-013b/T3). T-016 bunu kalıcı hâle getirmeli — aksi hâlde
+biri sınıfı tekrar `Error`'a çevirirse yalnızca üretimde anlaşılır.
+
+### Q7 karara bağlandı — T-036 F1'e alındı
+
+Frontend haklıydı: **kurtarma kodları kullanıcıya hiç gösterilmediği sürece ADR-013'ün
+kurtarma yolu pratikte kullanılamaz.** Daha temeli: §8.1 "2FA v1'de zorunlu olarak açık
+gelir" diyor, ama 2FA'yı **açacak ekran yok** — seed `totpConfirmedAt`'i boş bırakıyor ve
+sistem şu an 2FA'sız çalışıyor. **F1'in kabul kapısı bu hâliyle dürüstçe kapanamaz.**
+T-036 F3'ten F1'e alındı.
+
+### T-012 / T-014 / T-017 kabul doğrulaması (Orkestra Şefi, 2026-08-05)
+
+Üçü de kabul edildi. Depo durumu: **389 test geçiyor** · `lint` **EXIT 0** · `build` **EXIT 0**.
+
+**T-012** — 21 varlık, idempotenslik üç çalıştırmayla doğrulanmış, **hepsi
+`createXSchema`'dan geçiyor** (görevin varlık sebebi buydu). T-011 sözleşmesinde boşluk
+çıkmadı — 21/21 ilk denemede geçti. `baseAmount = amount × fxRate` SQL ile ölçülmüş;
+`Job → Transaction` türetmesi çalışıyor. K3 (Attachment üretilmedi — sahte `key` imzalı URL
+istendiğinde çözülemeyen, `Restrict` yüzünden temizlenemeyen kayıt bırakırdı) doğru karar.
+K4 (`computeBaseAmount` BigInt ile — kayan nokta kuruş sapması aylık toplamlarda birikir)
+da öyle. T1 (`prisma.config.ts` + iki `.mjs`) onaylandı: ADR-007 zaten Backend'e veriyor ve
+Prisma 7'de `prisma.seed` **okunmuyor** — eski yere yazılsaydı `migrate reset` seed'i sessizce
+atlardı.
+
+**T-014** — §8.5 **kapandı**; `/panel` F0'dan beri açıktı, artık kriptografik olarak korunuyor
+(çerezin varlığı yeterli değil, `getToken` `AUTH_SECRET` ile çözüyor). 58 birim + 34 E2E testi.
+
+> **Kabul kriterimden bilinçli sapması DOĞRUYDU ve benim kriterim yanlıştı.** `/giris`'i
+> matcher **dışında** bırakmasını istemiştim; gerekçem döngü riskiydi. Koruma matcher'a değil
+> `isProtectedPath()`'e bağlı olduğu için döngü zaten oluşamıyor — ve matcher dışına atılsaydı
+> **sitedeki en hassas public sayfa `X-Frame-Options` ve `Referrer-Policy` olmadan servis
+> edilirdi.** Kriterin amacı korunmuş, mekanizma daha güvenli.
+
+K1 (`getToken` — Edge'de Prisma zinciri yüklenemez), **K2 (kapalı yönde başarısız —
+`AUTH_SECRET` yoksa erişim reddedilir; ters tasarım yapılandırma hatasını sessiz yetki
+atlatmasına çevirirdi; yerelde fiilen gözlendi)**, **K3 (çerez adı sapması teste bağlandı —
+T-013a dersinin uygulanması: `session.ts` ile `auth.ts` ayrışırsa hiçbir hata çıkmaz)**,
+**K4 (`/api/v1/panel/*` yönlendirilmiyor, `401` JSON dönüyor — `fetch` yönlendirmeyi sessizce
+izler, çağıran HTML'i veri sanar; benim kriterim burada da gevşekti)**, K5, K6, K7 kabul edildi.
+
+**T-017** — 27 kontrol Playwright ile geçti, Lighthouse A11y 100. Kendi kodunda **iki gerçek
+güvenlik kusuru** bulup düzeltti:
+- **K5:** Hidrasyon tamamlanmadan Enter'a basılınca tarayıcı yerel GET yapıyor ve **şifre
+  `?password=...` olarak adres çubuğuna, geçmişe ve sunucu erişim kayıtlarına düşüyordu.**
+  `<form method="post">` bu pencereyi kapattı.
+- **K6:** Açık yönlendirme kontrolü `/\evil.com` ile atlatılıyordu — WHATWG URL ayrıştırıcısı
+  ters bölüyü eğik çizgi sayıyor. Playwright'ta siteden gerçekten çıkıldığı görüldü; dize
+  karşılaştırması URL ayrıştırmaya çevrildi.
+
+K3 (`result.error`'ın boşluğuna bakılıyor, `result.ok`'a değil — Auth.js `ok`'u HTTP
+durumundan türetiyor ve kimlik doğrulama başarısızken de `200` dönüyor) kaynak kodda
+doğrulanmış. K7 (kurtarma kodu anahtarı) kabul edildi: iOS sayısal tuş takımında harf yok,
+o anahtar olmadan telefonunu kaybetmiş kullanıcı mobilde kurtarma kodunu **fiziksel olarak
+giremiyordu**; alan/form/gönderim tek kaldığı için ADR-013'ün "ayrı form yapma" kuralı korunuyor.
+
+### Kapanan ve açılan kalemler
+
+- **BULGU-006 — yanlış pozitif, kapatıldı.** `pnpm lint` **EXIT 0** olarak ölçüldü. Backend
+  aynı sorunu kendi turunda K6 (`process.stdout.write`) ile zaten çözmüştü; Güvenlik ajanı
+  **bayat bir ağaç durumunu** ölçmüş. → ADR-023
+- **ENGEL-3 / T3 — Orkestra Şefi çözdü.** Yerel `.env`'e `AUTH_SECRET`, `TOTP_ENCRYPTION_KEY`,
+  `AUTH_URL`, `TOTP_ISSUER` üretildi (`openssl rand -base64 32`). `.env` gitignore'da.
+- **ENGEL-1, ENGEL-2, BULGU-005 → T-013c açıldı.** Üçü de depoda doğrulandı.
+- **ENGEL-4 / T5 → ADR-023.** Ölçüm görevleri artık tek başına koşar.
+- **ENGEL-5 — teyit edildi**, işlem gerekmiyor (T-014/K1'in bilinçli sapması).
+
+### T-013b kabul doğrulaması (Orkestra Şefi, 2026-08-05)
+
+**36 yeni test · toplam 344 · `src/server/auth/` kapsamı %100 satır.** Çerez bayrakları
+depoda doğrulandı: `httpOnly` · `sameSite: lax` · `secure` (üretimde) · `maxAge` açık (§8.3).
+`lint` / `typecheck` / `build` EXIT 0.
+
+**Auth.js'in bilinmeyen anahtarı tip düzeyinde reddettiğini test etmesi** doğru refleks:
+T-013a'da otplib'in sessizce yuttuğu hata sınıfının burada **imkânsız olduğunu kanıtladı**,
+"muhtemelen sorun yok" demedi.
+
+**Kabul edilen kararlar:** K1 (akış `credentials.ts`'e ayrıldı — `authorize` içine gömülseydi
+test edilemezdi), **K2 (kilit kontrolü şifreden SONRA — öncesinde bakılsaydı saldırgan bir
+e-postayı kilitleyip yanıta bakarak hesabın varlığını öğrenirdi)**, K3 (sabit
+`DUMMY_PASSWORD_HASH` — var olmayan kullanıcıda da argon2 maliyeti ödeniyor), K4 (kurtarma
+kodu TOTP ile aynı alandan), **K5 (kurtarma kodu tüketimi yazılamazsa giriş reddedilir;
+`lastLoginAt`/rehash yazılamazsa engellenmez — güvenlik sınırı ile konfor ayrımı)**,
+K6 (çerez bayrakları açık — §8.3 kütüphane sürüm notlarına bağlanamaz), K7 (`trustHost`
+— Coolify ters vekili, §13.3), K8 (logger daraltıldı — Auth.js'in kendi logları e-posta
+içerebilir), K9 (`pages.signIn: '/giris'` → T-017).
+
+**T1 ve T3 onaylandı.** `credentials.ts` kapsam dışıydı ama gerekçesi sağlam; `auth.ts`'in
+birim testi olamaması kabul edilebilir — dosya neredeyse saf yapılandırma, tek gerçek mantık
+test edilebilir modüle taşınmış. Kalan doğrulama T-016 E2E'ye ait.
+
+**T5 → ADR-022.** Sınır: **denemeler `LoginAttempt`'e, sonuçlar `AuditLog`'a.** Giriş
+denemeleri `AuditLog`'a yazılmıyor (aynı olay iki yerde tutulmaz, §6); ama kilitlenme,
+şifre değişikliği, 2FA açma/kapatma ve kurtarma kodu yenileme yazılıyor — `User` kaydını
+değiştiriyorlar ve `LoginAttempt`'in 90 günlük temizliğinden etkilenmemeleri gerekiyor.
+
+**T2 → T-017 açıldı** (Frontend, `/giris`). **T4 → T-014 kartına işlendi.**
+
+### T-013a kabul doğrulaması (Orkestra Şefi, 2026-08-05)
+
+**51 birim testi · `src/server/auth` kapsamı %100 satır** (kriter ≥%90). Toplam paket
+**302 test**. Bağımsız denetim: `src/server/auth/` içinde `console.*` **yok**, `any` **yok**,
+`@ts-ignore` **yok** — §8.20 ve §2 yasakları temiz. `lint` / `build` EXIT 0.
+
+**Üç bulgunun ikisi aynı sınıftan: "uygulanmış görünen ama uygulanmayan yapılandırma."**
+
+1. **`{ plugins: { crypto, base32 } }` sessizce yok sayılıyordu.** otplib 13'ün seçenek
+   tipinde `plugins` yok; nesne atılıp kütüphane kendi varsayılanına düşüyordu. Kod kripto
+   sağlayıcısını **açıkça seçiyor gibi durup seçmiyordu** ve testler geçiyordu. TypeScript
+   yakaladı, çalışma zamanı yakalamadı.
+2. **`epochTolerance` adım değil saniye.** `1` yazılsaydı ±1 **saniye** tolerans olurdu,
+   ±1 adım değil — kullanıcıların çoğu periyot sınırında reddedilirdi.
+3. **`Buffer.from(x, 'base64')` bozuk girdide fırlatmıyor.** Anahtar çözümündeki `try/catch`
+   **ölü koddu ve yanlış bir doğrulama güvencesi veriyordu**; `'!!!not-base64!!!'` → 7 baytlık
+   tampon. Gerçek doğrulama uzunluk kontrolüne çevrildi.
+
+**Kabul edilen kararlar:** K1, K2 (`delta` sızdırılmıyor — kullanıcının saat kaymasını
+söyler, yanıta taşımak gereksiz bilgi verir), **K3 (`consumeBackupCode` erken çıkmıyor —
+tüm hash'ler doğrulanıp sonra eşleşme seçiliyor; erken çıkılsaydı "1. kodda eşleşti" ile
+"hiç eşleşmedi" arasında ölçülebilir süre farkı olurdu; ~300 ms maliyet nadir akış için
+kabul edildi)**, **K4 (`decryptSecret` fırlatır, `verifyPassword`/`verifyTotpToken` fırlatmaz
+— bozuk şifre normal bir olay, bozuk şifreli metin kurcalama sinyali; sessizce yutulsa
+saldırganın seçtiği secret kabul edilmiş olurdu)**, K5, **K6 (`needsRehash` — kriterlerde
+yoktu; parametre yükseltmesi ancak doğru girişte mümkün, bu kanca olmadan yükseltme yolu
+kapalı kalırdı)**, K7 (testler kendi argon2 parametresini veriyor, üretim sabiti korunuyor),
+K8 (kod alfabesinden `0/O`, `1/I/L`, `2/Z`, `5/S`, `8/B` çıkarıldı — ~46 bit entropi korunuyor).
+
+**T1 onaylandı** — README'ye `openssl rand -base64 32` bloğu eklenmesi doğru; sözleşme
+maddesi zaten bunu istiyordu.
+
+**Ölçülen:** `hashPassword` ~31,5 ms · `verifyPassword` ~30 ms · `consumeBackupCode` ~300 ms.
+Normal giriş gecikmesi fark edilmez.
+
+**T4 — Güvenlik ajanına iletilecek ders:** bir kütüphane bilinmeyen seçenek anahtarını
+**sessizce yok sayabiliyor**. Denetimde "yapılandırma gerçekten uygulandı mı" sorusunun
+tip düzeyinde doğrulanması T-014 ve T-062'ye not edildi.
+
+### T-011 kabul doğrulaması (Orkestra Şefi, 2026-08-05)
+
+**27 şema dosyası · 251 test geçiyor · `src/lib/schemas` kapsamı %100 satır** (genel %94.21).
+Bağımsız koşturuldu. §1.1 K6 hedefi (%70) fazlasıyla aşıldı.
+
+**Yakalanan hata sınıfı — ciddi:** `.partial()` Zod'da varsayılanları **kaldırmıyor**.
+`updateProjectSchema.parse({ id, title })` çıktısı `status:'DRAFT'`, `tags:[]`, `featured:false`
+enjekte ediyordu. Bu nesne Prisma `update`'ine verilseydi **yalnızca başlığı düzenlemek
+yayındaki projeyi taslağa düşürür, etiketlerini siler, sırasını sıfırlardı.** 20 dosyanın
+tamamı etkileniyordu ve hiçbir test bunu yakalamazdı — çünkü şema "geçerli" bir nesne
+üretiyordu. `partialWithoutDefaults()` ile tek noktada çözülmüş, regresyon testi yazılmış.
+
+İkinci hata da gerçek: `z.email()` `.transform()`'tan **önce** çalıştığı için kopyala-yapıştırla
+gelen boşluklu e-posta reddediliyordu. Sıra düzeltildi; küçük harfe indirme ayrıca
+`Client.email @unique` için de gerekli (ADR-017) — `A@b.com` ile `a@b.com` iki müşteri açmamalı.
+
+**Kabul edilen kararlar:** K1 (enum'lar `@/types` üzerinden — şemalar `generated/**`'a uzanmıyor,
+§7.4 korunuyor), K2 (`partialWithoutDefaults` tek yardımcı), K3/K4 (para `string`, negatif yok —
+yön `TransactionType`'ta; iki yerde yön taşımak toplamları bozar), K5 (`socialsSchema.strict()` —
+`githbu` yazım hatası sessizce düşmesin), K6 (honeypot şemanın parçası), **K7 (`emailHashSchema`
+64 hex zorunlu — §8.20 ihlali kod incelemesine değil doğrulamaya bağlandı)**, K8 (`slugify()`
+paylaşılan; `ı` bir aksan bileşimi değil, `normalize('NFD')` onu çözemez — sessiz hata kaynağıydı),
+K9 (`z.unknown()` iki yerde gerekçeli, `any` yok), K10, K11.
+
+**T1 — test dosyası gruplaması onaylandı.** 25 yerine 9 dosya, alan bazında. "Her varlık için
+bir geçerli + bir geçersiz" kriteri karşılanıyor; 25 ayrı dosya test değeri eklemeden dosya
+sayısını üçe katlardı. Bölmeye gerek yok.
+
+### T-010 kabul doğrulaması (Orkestra Şefi, 2026-08-05)
+
+Depoda bağımsız denetlendi — **25 model · 14 enum · 2 migration**:
+
+| Kontrol | Sonuç |
+| ------- | ----- |
+| `Session` / `VerificationToken` / `Account` / `HealthCheck` | ✅ hiçbiri yok (ADR-013) |
+| `fxRate` + `baseAmount` (Transaction, Job) | ✅ `Decimal(18,8)` / `Decimal(12,2)` |
+| `RecurringTransaction` + `@@unique([sourceRecurringId, periodKey])` | ✅ |
+| `@db.Date` | ✅ 14 alan |
+| `Attachment`: `url` yok, `key @unique` + `checksum` + `width`/`height` | ✅ (ADR-018) |
+| `locale String @default("tr")` — 6 içerik modeli | ✅ |
+| `HabitLog.count` + `Habit.targetPerDay` | ✅ (ADR-021) |
+| `lockedUntil` · `totpBackupCodes` · `emailHash` · `actorEmailHash` | ✅ |
+| `next-themes` izi | ✅ `package.json` 0 · `pnpm-lock.yaml` 0 |
+| `migrate status` · `.env`'li ve `.env`'siz kapı | ✅ hepsi EXIT 0 |
+
+**K4 ONAYLANDI — `AuditLog.entity` `String` kalıyor, tek enum istisnası.** Gerekçe sağlam:
+denetim kaydı model olmayan olayları da taşıyor (`LOGIN`, `EXPORT`) ve her yeni model bir
+migration gerektirirdi. `Attachment.entity`'nin enum olması ise doğru — orada küme kapalı.
+
+**T3 — 14 enumun tamamı incelendi ve onaylandı.** İtiraz yok; değerler §6 ve panel
+rotalarıyla tutarlı, hepsinde `OTHER` kaçış değeri var. **Enum sözleşmesi bu andan
+itibaren dondurulmuştur** — değişiklik ADR + migration + Frontend kırılması demek.
+
+**T1 — `corepack enable` notu onaylandı.** Node sürümü değişince `pnpm` bulunamıyor ve hata
+mesajı nedenini söylemiyor; nvm kullananlar için gerçek bir tuzak. README Backend'in dosyası,
+T-011 kapsamında eklenmesi yetkilendirildi.
+
+**Bu turun işlem kararı doğruydu:** şema yeniden yazılmadı. Aynı içerik için ikinci migration
+üretmek zinciri kirletir ve görevin "tek migration" şartını ihlal ederdi.
+
 | Görev | Ajan     | Durum             | Not                                                    |
 | ----- | -------- | ----------------- | ------------------------------------------------------ |
 | T-001 | Backend  | 🟢 Tamamlandı     | 2026-08-04 · Orkestra Şefi doğruladı (aşağıya bak)     |
@@ -190,8 +692,95 @@ Durum kodları: ⚪ Bekliyor · 🔵 Aktif · 🟡 Kısmen · 🟢 Tamamlandı �
 | T-003c | Backend | 🟢 Tamamlandı     | 2026-08-05 · `.env`'siz build EXIT 0 doğrulandı        |
 | T-005 | Güvenlik | 🟢 Tamamlandı     | CI kuruldu; **GitHub'da hiç koşmadı** (E1) → T-006     |
 | T-002 | Frontend | 🟢 Tamamlandı     | ADR-010 + ADR-011 ile 2 sapma karara bağlandı           |
-| T-002b | Frontend | ⚪ Prompt verildi | BULGU-003 — A11y 0.92, hedef ≥0.95                     |
-| T-006 | Kullanıcı | 🔴 Bekliyor      | `git init` + GitHub + ilk CI koşusu                    |
+| T-002b | Frontend | 🟢 Tamamlandı  | **A11y 0.92 → 1.00**, BP 96 → 100, Perf 91 → 92         |
+
+### T-002b kabul doğrulaması (Orkestra Şefi, 2026-08-05) — **BULGU-003 KAPANDI**
+
+| Kategori | Öncesi | Sonrası |
+| -------- | ------ | ------- |
+| Accessibility | 0.92 | **1.00** (hedef ≥0.95) |
+| Best Practices | 96 | **100** |
+| Performance | 91 | **92** (düşmedi) |
+| `color-contrast` · `link-in-text-block` · `errors-in-console` | 0 · 0 · 0 | 1 · 1 · 1 |
+
+Yerel kapı Node 22 altında yeniden koşturuldu: lint / typecheck / test / build → **hepsi EXIT 0**.
+Token değerleri `globals.css`'te doğrulandı.
+
+**İki gerçek teşhis:**
+- **K1** — Konsol hatası favicon değil, `next/link` **prefetch**'iymiş. Tahmin etmek yerine
+  Playwright ile yakalanmış: Navbar henüz var olmayan 5 rotayı önden çekiyor, beşi de 404.
+- **K2** — İlk düzeltmeden sonra denetim hâlâ sıfırdı; ağ kaydından `/favicon.ico` 404'ü
+  bulunmuş. `src/app/icon.svg` eklendi — Best Practices'i de 96 → 100 çıkardı.
+
+**K3 — asıl suçlu gradientin mavi ucuydu, moru değil.** `--accent-blue` beyaz metinle
+3.22:1 veriyordu. `--accent` gözle ayırt edilemeyecek kadar (#7C5CFF → #7756FF), mavi ise
+belirgin koyulaştı. Yan kazanç: `text-gradient` başlığı aydınlıkta 3.04:1 → 4.35:1.
+
+**K4 — sessiz bir boşluk kapatıldı.** §3.1 aydınlık tema için durum rengi hiç tanımlamamıştı;
+koyu temanın parlak değerleri miras alınıyor ve beyaz üzerinde **1.57–2.77:1** veriyordu —
+yani pratikte okunmuyorlardı. Dördü de tanımlandı.
+
+**K5 — kapsam genişletmesi kabul edildi.** Form denetimi kenarları 1.26–1.35:1'di; WCAG
+**1.4.11** etkileşimli denetimler için 3:1 istiyor — §1.1 K5 bu kalemde de sağlanmıyordu.
+Yeni `--border-strong` yalnızca Input/Textarea'ya uygulandı; dekoratif kart kenarı bilinçli
+olarak değiştirilmedi (1.4.11 kapsamında değil, §3.3'ün yumuşak kenar yönünü bozardı).
+
+**K6 — alt çizgi kuralı `p a` seçicisine bağlandı, sınıfa değil.** Bileşen yazarının
+hatırlamasına bırakılan bir kural F2'de kaçınılmaz olarak unutulur; navigasyon `ul > li`
+içinde olduğu için doğal olarak kapsam dışında kalıyor.
+
+**Yöntem notu (kayda değer):** Rozet zeminleri (`bg-<renk>/12`) saf beyaz değil, bileşik
+zemin. İlk turda beyaza göre hesaplanmış, Lighthouse gerçek bileşik zemini gösterince
+değerler yeniden çözülmüş. Bu ayrım PROGRAM.md §3.1'e kural olarak yazıldı.
+
+**PROGRAM.md §3.1 güncellendi:** 11 token değeri, `--border-strong`, aydınlık tema durum
+renkleri bloğu, kontrast ölçüm kuralı, kenar token'ları ayrımı, bağlantı kuralı.
+| T-006 | Orkestra Şefi | 🟢 Tamamlandı | Push ✅ · CI yeşil ✅ · repo public ✅ · koruma aktif ✅ |
+| T-006b | Güvenlik | ⚪ Sırada         | İki küçük CI düzeltmesi (aşağıda)                      |
+
+### T-006 — Depo yayına alındı (Orkestra Şefi, 2026-08-05)
+
+**Depo:** `github.com/abdulkadirelaldi/abdulkadirelaldi` (**private**)
+**İlk commit:** `dbcd345` · 80 dosya
+
+**Sızıntı denetimi (push öncesi):** `.env` yok, üretilen Prisma istemcisi yok, `node_modules`
+yok, `.next` yok. `.env.example` içinde **değer taşıyan tek anahtar yok**. Sır imzası
+taramasında çıkanların tamamı meşru: `aelaldi_dev_only` (adı gibi yalnızca yerel dev şifresi;
+üretim Coolify'ın kendi kimlik bilgisini kullanacak) ve Güvenlik ajanının §8.18 testine
+**bilerek ektiği** sahte sırlar.
+
+**İlk CI koşusu (`31002868890`) — üç iş de YEŞİL:**
+
+| İş | Süre |
+| -- | ---- |
+| Kapı: lint → typecheck → test → build → e2e | 1m54s |
+| §8.24 · Bağımlılık denetimi | 36s |
+| §9 · Lighthouse (uyarı modu) | 2m10s |
+
+**R19 kapandı.** T-005'te doğrulanamayan `uses:` adımları (checkout, pnpm/action-setup,
+setup-node, cache, upload-artifact) ilk koşuda sorunsuz çalıştı; öngörülen önbellek sırası
+sorunu çıkmadı. E2E CI'da 24/24, 6.1 sn.
+
+**İki uyarı → T-006b:**
+1. `actions/checkout@v4`, `setup-node@v4`, `cache@v4`, `upload-artifact@v4`,
+   `pnpm/action-setup@v4` Node 20 hedefliyor; runner bunları Node 24'e zorluyor.
+   `@v5`'e yükseltilmeli — ADR-008'in "yamalı çalışma zamanı" gerekçesiyle aynı hat.
+2. `No files were found with the provided path: .lighthouseci/` — Lighthouse artifact'i
+   **yüklenmiyor**. T-005/K3, raporları `temporary-public-storage` yerine artifact olarak
+   saklamayı seçmişti; karar doğru ama yol tutmuyor, yani rapor hiçbir yerde kalmıyor.
+
+**Dal koruması:** private repo'da ruleset GitHub Pro istedi (`403`). **Q5 kullanıcıya soruldu
+→ repo public yapıldı** (portföy projesi; §1.A'nın "yetkinliği kanıtla" amacına da hizmet ediyor,
+ve sızıntı denetimi zaten temizdi).
+
+`main` üzerinde aktif ruleset (`20455952`): `deletion` · `non_fast_forward` ·
+`required_status_checks` → **Kapı** ve **§8.24 Bağımlılık denetimi** zorunlu.
+`bypass_actors` boş, `current_user_can_bypass: never` — sahibi dahil kimse atlayamaz.
+`lighthouse` bilerek zorunlu değil (F0'da uyarı modunda; T-029'da `error`'a çevrilecek).
+
+**Not:** §10.5 "main dalına doğrudan push yok, her görev kendi dalında" diyor. Şu anki
+ruleset durum kontrollerini zorunlu kılıyor ama **PR açmayı zorunlu kılmıyor**. `pull_request`
+kuralı eklenmesi kullanıcı onayına bırakıldı — tek kişilik akışta günlük sürtünme yaratır.
 
 ### T-003c kabul doğrulaması (Orkestra Şefi, 2026-08-05)
 
@@ -383,13 +972,16 @@ derleseydi `build → test:e2e` sıralaması anlamını yitirirdi), `.gitignore`
 | R7  | **Zod 4** kuruldu; §7.3'ün varsaydığı Zod 3 API'si farklı (`errorMap` → `error`, `z.string().email()` → `z.email()`, `.default()` çıkarım davranışı) | Orta   | T-011'de şema kütüphanesi Zod 4 API'siyle yazılacak; Frontend `zodResolver` tarafında `@hookform/resolvers@5` uyumlu — T-002'de doğrulanacak |
 | R8  | **Prisma 7** kırıcı değişiklikleri — sekiz kalem (T-003 raporu). En ağırı: sürücü adaptörü zorunlu | ~~Yüksek~~ → Kapandı | ✅ T-003'te tamamı haritalandı ve doğrulandı; ADR-005/006/007 ile karara bağlandı. Kalan uygulama T-003b'de |
 | R10 | `postinstall` olmadan taze klonda `pnpm install && pnpm typecheck` kırılır — CI hattını düşürür | ~~Yüksek~~ → Kapandı | ✅ T-003b'de çözüldü; `prisma.config.ts` datasource'u koşullu hâle getirildi. Orkestra Şefi `.env`'siz `prisma generate` ile bağımsız doğruladı (EXIT 0) |
-| R11 | T-010'a girmeden kapatılması gereken altı veri modeli kararı: A1 (Auth.js session stratejisi), A4 (kur snapshot alanları), B7 (`Job.status` ↔ kanban), C2 (etiket normalizasyonu), C6 (PR formülü) | Yüksek | Bunlar ajanların ilk değerlendirmelerinden geliyor; **Orkestra Şefi'ne henüz iletilmedi**. Tek ADR turunda kapatılacak, sonra T-010 açılacak |
+| R11 | ~~T-010 öncesi kapatılması gereken veri modeli kararları~~ | ~~Yüksek~~ → **Kapandı** | ✅ 2026-08-05: Backend'in T-000 değerlendirmesi geldi, **30 kalem** tek turda karara bağlandı → **ADR-013…021**. Dördü kullanıcıya soruldu (para birimi, kanban, KDV, PR formülü). PROGRAM.md §6.1 bağlayıcı düzeltme tablosu eklendi. **T-010 açıldı** |
 | R13 | ~~BULGU-002 — `.env` olmadan `pnpm build` düşüyor~~ | ~~Yüksek~~ → Kapandı | ✅ T-003c'de tembel havuzla çözüldü; Orkestra Şefi `.env`'siz build ile bağımsız doğruladı (EXIT 0). CI'ya gerçek `DATABASE_URL` secret'ı verme refleksi bertaraf edildi |
 | R16 | ~~Tüm rotalar dinamik render'a düştü~~ | ~~Yüksek~~ → Karara bağlandı | ✅ **ADR-011**: dinamik kabul edildi. Gerekçe ölçüm: Lighthouse **Performance 91** (§9 eşiği ≥90) — dinamik render altında zaten sağlıyor. Karşılığında F2'de veri erişimi açık önbelleklemeyle (`unstable_cache` + `revalidateTag`) yazılacak; T-029'da yeniden ölçülecek |
 | R16-eski | ~~(ayrıntı)~~ **Tüm rotalar dinamik render'a düştü.** T-002'de kök layout `cookies()` çağırıyor (tema FOUC'unu önlemek için) → build çıktısında `/` artık `○` (static) değil `ƒ` (dynamic). T-001'de statikti | Yüksek | **K1 (LCP < 2.0s) ve SEO doğrudan etkileniyor.** Public sayfaların statik/ISR olması F2'nin performans varsayımıydı. Üç yol var: (a) tema sınıfını nonce'lu inline script ile bas — §8.13 CSP nonce'a izin veriyor, (b) tema cookie'sini yalnızca `(panel)` layout'unda oku, public tarafı sistem temasına + CSS'e bırak, (c) dinamiği kabul et ve önbelleği başka katmanda çöz. **T-002 raporu gelince karara bağlanacak; F2 açılmadan çözülmeli** |
 | R14 | ~~Node 20 EOL — yamasız çalışma zamanı~~ | ~~Yüksek~~ → Kapandı | ✅ ADR-008 uygulandı. Yerel makine **Node 22.23.2**'ye alındı (`nvm alias default 22`), tüm kapı Node 22 altında yeniden koşturuldu ve yeşil. `.nvmrc` + `engines` + CI senkronu T-005'te sabitlenecek |
 | R18 | **BULGU-003** — Lighthouse A11y **0.92** (hedef ≥0.95): `color-contrast` ve `link-in-text-block` sıfır. Bağlantılar yalnızca renkle ayırt ediliyor | Orta | **Token düzeyinde** — düzeltilmezse F2'de yazılacak her sayfaya kopyalanır. §1.1 K5 (WCAG AA) şu an sağlanmıyor. T-002b açıldı; F2 başlamadan kapatılmalı |
-| R19 | **CI GitHub'da hiç koşmadı.** Dizin git deposu bile değil; `uses:` adımları (checkout, pnpm/action-setup, setup-node, cache, upload-artifact) doğrulanamadı | Orta | Ajan bunu bilerek raporladı — `run:` adımlarının tamamı yerelde koşturuldu, yalnızca hazır eylemler açıkta. En olası düzeltme noktası `pnpm/action-setup` ↔ `setup-node` önbellek sırası. T-006 |
+| R19 | ~~CI GitHub'da hiç koşmadı~~ | ~~Orta~~ → Kapandı | ✅ T-006'da depo push edildi, ilk koşuda **üç iş de yeşil**. `uses:` adımları doğrulandı |
+| R20 | ~~`main` dal koruması yok~~ | ~~Orta~~ → Kapandı | ✅ Repo public yapıldı, ruleset `20455952` aktif: Kapı + §8.24 zorunlu, silme ve force-push kapalı, bypass yok |
+| R21 | **Repo artık public** — `PROGRAM.md`, `AJAN_PROMPTLARI.md` ve `docs/**` (STATUS, ADR'ler, güvenlik bulguları) herkese görünür | Düşük | Bilinçli karar (Q5). İçlerinde sır yok. Bundan sonra `docs/security/findings/` içine **açık bir güvenlik açığının istismar ayrıntısı yazılmamalı** — düzeltilene kadar bulgu özeti yeterli, ayrıntı düzeltmeyle birlikte eklenir |
+| R19-eski | ~~(ayrıntı)~~ **CI GitHub'da hiç koşmadı.** Dizin git deposu bile değil; `uses:` adımları (checkout, pnpm/action-setup, setup-node, cache, upload-artifact) doğrulanamadı | Orta | Ajan bunu bilerek raporladı — `run:` adımlarının tamamı yerelde koşturuldu, yalnızca hazır eylemler açıkta. En olası düzeltme noktası `pnpm/action-setup` ↔ `setup-node` önbellek sırası. T-006 |
 | R17 | **Geliştirme makinesinde disk %5'in altında.** `/api/v1/health` bu yüzden yerelde `503` dönüyor (`disk: critical`) — E2E logunda görünüyor | Orta | Uç doğru çalışıyor, kod sorunu değil. **Kullanıcı eylemi: makinede yer açılmalı.** Aksi hâlde yerel sağlık kontrolü kalıcı kırmızı kalır ve gerçek bir DB arızasını maskeler |
 | R15 | `next start` + `output: 'standalone'` uyarı veriyor; üretim gerçekte `node .next/standalone/server.js` ile koşacak — E2E farklı sunucuyu test ediyor | Düşük | T-070'te E2E'nin standalone çıktıya karşı koşturulması değerlendirilecek (T-004 notu T5) |
 | R12 | Yerel geliştirme portu 5433 (§12 metni 5432 diyor) — makinede sistem geneli Postgres varsa çakışma sessiz ve yanıltıcı | Düşük | `docker-compose.dev.yml` içinde gerekçesiyle yazılı; `.env.example` T-003b'de güncelleniyor; F0 sonu PROGRAM.md §12 notu eklenecek |
@@ -401,5 +993,10 @@ derleseydi `build → test:e2e` sıralaması anlamını yitirirdi), `.gitignore`
 | --- | ----------------------------------------------------------------------------- | -------------------------------------- |
 | Q1  | Panel adresi `panel.abdulkadirelaldi.com` (subdomain) mı, `/panel` (path) mi? | F7'den önce; F0'da `/panel` varsayıldı. HSTS `preload` da buna bağlı |
 | Q2  | Mail sağlayıcı: Resend mi kendi SMTP mi?                                      | T-027                                  |
+| ~~Q5~~ | ~~Dal koruması?~~ → **repo public yapıldı**, ruleset aktif                | ✅ Kapandı 2026-08-05                  |
+| Q6  | §10.5 "main'e doğrudan push yok" — `pull_request` kuralı da eklensin mi? | İstediğin zaman; şu an yalnızca durum kontrolleri zorunlu |
+| ~~Q7~~ | ~~T-036 F1'e mi alınsın?~~ → **alındı ve tamamlandı**  | ✅ Kapandı |
+| Q8  | Şifre değiştirme F1'e mi F3'e mi? → **F3'ün ilk kalemi** (iki ajan da F1 önerdi; kapı kriterinde yok, `.env` üzerinden rotasyon yolu var) | Karar verildi |
+| Q7-eski | ~~T-036 F1'e mi alınsın?~~ Kurtarma kodları kullanıcıya hiç gösterilmediği sürece ADR-013'ün kurtarma yolu pratikte kullanılamaz | T-013c sonrası |
 | ~~Q3~~ | ~~Repo GitHub'da mı?~~ → **GitHub + Actions** (ADR-009)                    | ✅ Kapandı 2026-08-05                  |
 | ~~Q4~~ | ~~Node sürümü?~~ → **Node 22 LTS** (ADR-008)                               | ✅ Kapandı 2026-08-05                  |

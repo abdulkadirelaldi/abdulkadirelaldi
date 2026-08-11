@@ -17,6 +17,19 @@
 | ADR-009 | Repo GitHub'da, CI GitHub Actions ile | 2026-08-05 | Kabul edildi |
 | ADR-010 | Kendi cookie tabanlı tema sağlayıcısı — `next-themes` kullanılmaz | 2026-08-05 | Kabul edildi |
 | ADR-011 | Dinamik render kabul edilir; önbellek veri katmanında çözülür | 2026-08-05 | Kabul edildi |
+| ADR-012 | Veri bağımsız F2 hazırlığı F1 ile paralel yürüyebilir | 2026-08-05 | Kabul edildi |
+| ADR-013 | Auth: JWT session, TOTP kurtarma kodu, `LoginAttempt` tablosu | 2026-08-05 | Kabul edildi |
+| ADR-014 | Para birimi: kur snapshot'ı; KDV/stopaj v1 kapsamı dışı; `Decimal` → `string` DTO | 2026-08-05 | Kabul edildi |
+| ADR-015 | Tekrarlayan işlem ayrı model + idempotent üretim | 2026-08-05 | Kabul edildi |
+| ADR-016 | Gün semantiği `@db.Date`, tek zaman dilimi yardımcısı | 2026-08-05 | Kabul edildi |
+| ADR-017 | İlişki ve bütünlük düzeltmeleri; `Job.status` ↔ kanban eşlemesi | 2026-08-05 | Kabul edildi |
+| ADR-018 | Dosya yönetimi: URL saklanmaz, `Attachment` tek mekanizma | 2026-08-05 | Kabul edildi |
+| ADR-019 | İçerik modeli: `locale`, yayın durumu, `viewCount`, etiketler | 2026-08-05 | Kabul edildi |
+| ADR-020 | Enum sözleşmesi ve `AuditLog` redaksiyonu | 2026-08-05 | Kabul edildi |
+| ADR-021 | Spor & hayat: PR tekrar bazında, `Habit` sayaç tabanlı | 2026-08-05 | Kabul edildi |
+| ADR-022 | `LoginAttempt` denemeleri, `AuditLog` sonuçları kaydeder | 2026-08-05 | Kabul edildi |
+| ADR-023 | Ölçüm görevleri tek başına koşar — paralel derleme yasağı | 2026-08-05 · **rev. 2026-08-10** | Kabul edildi |
+| ADR-024 | Kendi QR kodlayıcımız — dar kapsam, kalıcı doğrulama şartıyla | 2026-08-10 | Kabul edildi |
 
 ---
 
@@ -437,3 +450,630 @@ koşacak. Performance < 90'a düşerse bu ADR yeniden açılır.
 - **Tema sınıfını nonce'lu inline script ile basmak** — Statik üretim geri gelir, FOUC yine olmaz; **reddedildi** çünkü §8.13'e bir nonce borcu yaratır ve ADR-010'un tam olarak kaçındığı yere geri döner. Ölçülen Performance 91 iken bu takası yapmanın karşılığı yok.
 - **Cookie'yi yalnızca `(panel)` layout'unda okumak** — Public taraf statik kalırdı; **reddedildi** çünkü açıkça tema seçmiş bir ziyaretçi public sayfada ilk boyamada yanlış temayı görürdü — yani FOUC'u kaldırmayıp yalnızca yerini değiştirirdi.
 - **Cookie'yi kaldırıp yalnızca `prefers-color-scheme`** — §3'ün kullanıcı tercihi gereğini karşılamaz (ADR-010'da da reddedilmişti).
+
+---
+
+## ADR-012 — Veri Bağımsız F2 Hazırlığı F1 ile Paralel Yürüyebilir
+
+**Durum:** Kabul edildi · 2026-08-05
+**Tetikleyen:** T-002b sonrası Frontend'in boşta kalması · **İlgili risk:** R11
+
+### Bağlam
+PROGRAM.md §11 net: *"Bir faz bitmeden sonraki faza geçilmez."* Kural, kararsız bir temelin
+üstüne inşa etmeyi engellemek için var ve F0 boyunca değerini kanıtladı.
+
+Ancak F0 kapanırken şu tablo oluştu: F1'in ilk görevi T-010 (tam §6 Prisma şeması) **R11
+yüzünden açılamıyor** — beş veri modeli kararı (A1, A4, B7, C2, C6) kullanıcıdan gelmedi.
+Bu arada Frontend'in sıradaki işi T-020 (React Bits kurulumu ve token uyumlaması) veri
+katmanına **hiç dokunmuyor**: bileşenleri `src/components/reactbits/` altına alıp sabit
+renklerini token'larla değiştirmek, `next/dynamic` ile sarmak ve bundle etkisini ölçmek.
+Kuralı harfiyen uygularsak Frontend, hiçbir teknik bağımlılığı olmayan bir beklemeye girer.
+
+### Karar
+§11'in faz sırası kuralı **korunur**, dar bir istisnayla: bir sonraki fazın görevlerinden
+**mevcut fazın çıktılarına sıfır bağımlılığı olanlar** paralel yürütülebilir. Koşullar:
+
+1. Görev, açık fazın hiçbir çıktısını (şema, tip, servis, endpoint) tüketmez.
+2. Görev, açık fazın ajanlarıyla **dosya kesişimi** yaratmaz (§10.1).
+3. Paralel yürütme kararını Orkestra Şefi verir ve görev kartında **açıkça** belirtir.
+4. **Faz kabul kapısı değişmez:** F1, kendi kabul kriterleri sağlanmadan kapanmaz;
+   paralel yürüyen F2 görevi F1'i "kapanmış" saydırmaz.
+
+İlk uygulama: **T-020**, F1/T-010 ile paralel.
+
+### Sonuçlar
+- **Olumlu:** Bir ajanın, kendisini ilgilendirmeyen bir karar beklerken boşta kalması önlenir. T-020'nin erken yapılması F2'nin en büyük bilinmeyenini (React Bits bundle maliyeti, §5.2.6'nın 40KB eşiği) öne çeker — geç öğrenilmesi pahalı bir bilgi.
+- **Olumsuz / kabul edilen maliyet:** "Faz" kavramı bir miktar bulanıklaşır; STATUS.md'de hangi görevin hangi faza ait olduğu ve neden paralel koştuğu açıkça yazılmazsa takip zorlaşır. Bu yüzden 3. koşul (görev kartında açık beyan) zorunlu tutuldu.
+- Kural **kötüye kullanılmaya açıktır**: "bu da bağımsız sayılır" diyerek fazlar iç içe geçebilir. 1. ve 2. koşul bunu sınırlıyor; şüphe varında paralel yürütülmez.
+
+### Alternatifler ve neden reddedildi
+- **§11'i harfiyen uygulayıp Frontend'i bekletmek** — En temiz disiplin; **reddedildi** çünkü beklemenin teknik bir gerekçesi yok; gerekçe yalnızca kuralın lafzı. Kuralın amacı (kararsız temel üstüne inşa etmemek) T-020'de zaten ihlal edilmiyor.
+- **§11'i tamamen kaldırıp serbest paralellik** — **reddedildi** çünkü faz kapıları F0'da işe yaradı: her fazın sonunda yapılan kabul kontrolü BULGU-002 ve BULGU-003 gibi kalemleri yakaladı. Kapıyı kaldırmak bu mekanizmayı da kaldırır.
+- **F1'i R11 olmadan başlatmak** — **reddedildi** çünkü T-010 tam şemayı yazacak; beş karar sonradan gelirse şema ve migration ikinci kez yazılır. Backend bunu dört raporda üst üste uyardı.
+
+---
+
+## ADR-013 — Auth: JWT Session, TOTP Kurtarma Kodu, `LoginAttempt` Tablosu
+
+**Durum:** Kabul edildi · 2026-08-05 · **Kapsar:** A1, A2, A3 · **İlgili risk:** R3
+
+### Bağlam
+Backend'in T-000 değerlendirmesi üç kalemde şemanın kendi içinde tutarsız olduğunu gösterdi:
+
+- **A1:** §2 "Credentials + TOTP" diyor, §6 ise "`Session`, `VerificationToken` — Auth.js standardı".
+  Auth.js v5'te Credentials provider **yalnızca JWT** session stratejisiyle çalışır; PrismaAdapter'ın
+  DB session'ı Credentials ile kullanılamaz. Adapter ayrıca `Account`, `User.emailVerified`,
+  `User.image` alanlarını zorunlu kılar — §6'da yoklar. Yani §6 çalışmayacak bir şema tarif ediyor.
+- **A2:** §8.1 2FA'yı zorunlu açık getiriyor, ama kurtarma kodu yok. Tek kullanıcılı sistemde
+  telefon kaybı = panele tam kilitlenme; tek çıkış DB'ye elle müdahale. R3 bunu F0'da zaten
+  risk olarak kaydetmişti. Ayrıca `totpSecret` düz metin saklanırsa DB yedeği (§8.21) sızdığında
+  ikinci faktör tamamen değersizleşir.
+- **A3:** §8.4 "IP başına 15 dakikada 5 deneme, aşımda 15 dk kilit + **log**" istiyor ama
+  karşılığı bir model yok. Bellek içi sayaç Docker yeniden başlatmada sıfırlanır — gereksinim
+  sağlanmış görünür, sağlanmaz.
+
+### Karar
+**A1 — JWT stratejisi.** `session: { strategy: 'jwt' }`. `Session` ve `VerificationToken`
+modelleri şemadan **çıkarılır**; `Account` eklenmez. PrismaAdapter kullanılmaz — tek kullanıcılı
+Credentials akışında hiçbir şey kazandırmıyor. Oturum çerezi §8.3'teki bayrakları taşır
+(`httpOnly`, `secure`, `sameSite: lax`, 7 gün).
+
+**A2 — Kurtarma kodları ve şifreli secret.** `User` şu alanları kazanır:
+`totpBackupCodes String[]` (her biri **argon2id ile hash'li** — düz saklanmaz),
+`totpConfirmedAt DateTime?` (kurulum tamamlanmadan 2FA zorunlu sayılmaz),
+`totpSecret` **uygulama seviyesinde şifreli** saklanır (yeni env anahtarı: `TOTP_ENCRYPTION_KEY`).
+Kod bir kez kullanılır ve tüketilir. Kurtarma prosedürü `docs/security/restore.md`'ye yazılır (§8.22).
+
+**A3 — `LoginAttempt` tablosu + sınır.** Model **Backend'in** (`prisma/**`):
+`ip`, `emailHash` (ham e-posta değil — §8.20), `success`, `createdAt`, `@@index([ip, createdAt])`.
+Sayma ve kilitleme **mantığı** Güvenlik ajanının (`src/lib/security/**`); okuma/yazma
+Backend'in yazdığı bir servis üzerinden yapılır. Yani: **tablo ve servis Backend, politika Güvenlik.**
+Kilit durumu ayrıca `User.lockedUntil DateTime?` ile taşınır.
+
+### Sonuçlar
+- §6'nın çalışmayan kısmı düzeltildi; F1 baştan yazılmaktan kurtuldu.
+- Şema küçüldü: iki model eksildi, adapter bağımlılığı kalktı.
+- **Yeni env anahtarı** `TOTP_ENCRYPTION_KEY` — §12'ye eklenecek. Kaybolursa 2FA secret'ları açılamaz; `BACKUP_ENCRYPTION_KEY` ile aynı ciddiyette saklanmalı.
+- JWT ile "oturumu sunucudan sonlandırma" doğrudan mümkün değil. Tek kullanıcı için kabul edilebilir; gerekirse token `iat` + `User.sessionsValidFrom` karşılaştırmasıyla toplu geçersizleştirme eklenir (v1'de yok).
+- `LoginAttempt` büyür: 90 günden eski kayıtlar gece işiyle temizlenir (§8 KVKK yönü, C10 ile birlikte).
+
+### Alternatifler ve neden reddedildi
+- **PrismaAdapter + DB session** — §6'nın lafzına uyardı; **reddedildi** çünkü Auth.js v5'te Credentials ile teknik olarak çalışmıyor. Lafza uymak için çalışmayan kod yazılmaz.
+- **Kurtarma kodu yerine "e-posta ile sıfırlama"** — **reddedildi** çünkü e-posta hesabı ele geçirilirse 2FA tamamen atlanır; ikinci faktörün amacını ortadan kaldırır.
+- **Hız sınırlamayı bellekte tutmak** — Basit ve hızlı; **reddedildi** çünkü §8.4 açıkça **log** istiyor ve yeniden başlatmada sıfırlanan bir sayaç denetlenebilir değil.
+
+---
+
+## ADR-014 — Para Birimi: Kur Snapshot'ı; KDV/Stopaj v1 Kapsamı Dışı; `Decimal` → `string` DTO
+
+**Durum:** Kabul edildi · 2026-08-05 · **Kapsar:** A4, B8, D · **İlgili risk:** R4
+
+### Bağlam
+**A4:** `Transaction.amount Decimal(12,2)` + `currency` var, kur alanı yok. USD bir tahsilat
+girildiğinde "aylık gelir toplamı" — §9'un **test edilmesini istediği** hesaplama — matematiksel
+olarak üretilemiyor. Kritik olan şu: kur **işlem anına** aittir; sonradan eklenirse geçmiş
+kayıtlara doğru kur atanamaz, yani veri kurtarılamaz hale gelir.
+
+**B8:** `agreedAmount` var ama kısmi ödeme, kalan bakiye, KDV, stopaj yok.
+
+**D:** Prisma `Decimal`, JS tarafında `Decimal.js` nesnesi döner ve Server Component →
+Client Component sınırında **serialize edilemez** — frontend çalışma zamanı hatası alır.
+R4 bunu F0'da risk olarak kaydetmişti.
+
+### Karar
+**A4 — Kur snapshot'ı (kullanıcı onayı ile).** `Transaction` ve `Job` şu alanları kazanır:
+`fxRate Decimal(18,8)` (işlem anındaki kur, TRY bazlı) ve `baseAmount Decimal(12,2)` (TRY karşılığı).
+**Tüm toplama, raporlama ve grafik `baseAmount` üzerinden yapılır**; `amount` + `currency`
+yalnızca kaydın kendi gerçeğini gösterir. TRY işlemlerde `fxRate = 1.0`, `baseAmount = amount`.
+
+**B8 — KDV ve stopaj v1 kapsamı dışı (kullanıcı onayı ile).** §1.2 zaten e-fatura
+entegrasyonunu kapsam dışı bırakıyor. `agreedAmount` brüt tutardır. **Tahsil edilen ve kalan
+bakiye ayrı sütun olarak tutulmaz** — bağlı `Transaction` toplamından türetilir. Tek doğruluk
+kaynağı korunur; iki yerde tutulup birbirini tutmayan tutar sorunu doğmaz.
+
+**D — DTO sınırında `string`.** Servis katmanı dışarıya `Decimal` **döndürmez**; para alanları
+DTO sınırında `string`'e çevrilir (`amount: string`). Bu, Backend'in Frontend'e verdiği
+sözleşmenin parçasıdır ve T-015'te dönüştürme yardımcısı olarak yazılır. Formatlama
+(binlik ayracı, para simgesi) Frontend'in işidir ve `src/lib/utils` içindeki ortak
+formatlayıcıdan geçer.
+
+### Sonuçlar
+- Çok para birimli toplamlar ilk günden doğru; geçmiş veri kurtarılabilir kalıyor.
+- Kur kaynağı v1'de **elle girilir** (otomatik kur servisi entegrasyonu yok — §1.2 ruhuna uygun). Panelde işlem eklenirken kur alanı görünür ve zorunludur; TRY seçiliyse 1.0 ile gizlenir.
+- `baseAmount` türetilmiş bir alandır ama **saklanır** — hesaplanarak tutulsaydı geçmiş kurları yeniden bulmak gerekirdi.
+- KDV kararı geri dönülebilir: `vatRate` sonradan nullable eklenebilir, geçmiş veriyi bozmaz. Bu yüzden v1'de dışarıda bırakmak ucuz.
+- R4 kapanır; `Decimal` sızıntısı yapısal olarak engellenir.
+
+### Alternatifler ve neden reddedildi
+- **Yalnızca TRY, `currency` alanını kaldır** — En basit; **reddedildi** çünkü kullanıcı yabancı para birimiyle iş aldığını belirtti ve sonradan eklemek geçmiş veriye kur atama sorunu doğurur.
+- **Kuru işlem anında saklamak yerine sorgu anında hesaplamak** — **reddedildi** çünkü geçmiş kurları güvenilir biçimde geri getirmek dış servis ve tarih bazlı sorgu gerektirir; üstelik rapor her koşuda farklı sonuç verirdi.
+- **`Job` üzerinde `paidAmount` / `remainingAmount` sütunları** — Sorguyu basitleştirirdi; **reddedildi** çünkü aynı bilgi iki yerde tutulur ve er geç birbirini tutmaz. §6'nın "aynı veri iki yere girilmez" ilkesiyle çelişir.
+- **`Decimal` yerine tamsayı kuruş** — Serileştirme sorununu da çözerdi; **reddedildi** çünkü §6 açıkça `Decimal(12,2)` diyor ve tamsayı kuruş her okuma/yazmada dönüştürme hatası riski taşır.
+
+---
+
+## ADR-015 — Tekrarlayan İşlem Ayrı Model + Idempotent Üretim
+
+**Durum:** Kabul edildi · 2026-08-05 · **Kapsar:** A5
+
+### Bağlam
+§6'da `Transaction.isRecurring` + `recurrenceRule` var; ama `nextRunAt`, `lastGeneratedAt`
+ve üretilen kayıtta kaynağa referans yok. §13.5 gece cron'u tanımlıyor. Cron iki kez
+çalışırsa (yeniden deneme, dağıtım sırasında çakışma, elle tetikleme) **çift kayıt** oluşur
+ve muhasebe sessizce bozulur. Sessiz bozulma, gürültülü hatadan çok daha pahalıdır — çünkü
+aylar sonra fark edilir ve hangi kaydın fazladan olduğu belli olmaz.
+
+Ayrıca şablon ile üretilen kaydı aynı tabloda tutmak kavramsal olarak yanlış: şablon bir
+**kural**, üretilen ise bir **olay**. Aynı tabloda durunca her sorguya `isRecurring = false`
+filtresi eklemek gerekir ve bu filtre er geç unutulur.
+
+### Karar
+Şablon ayrı bir modele taşınır: **`RecurringTransaction`** — `type`, `amount`, `currency`,
+`categoryId`, `description`, `method`, `recurrenceRule`, `nextRunAt`, `lastGeneratedAt`,
+`isActive`, `startDate`, `endDate?`.
+
+Üretilen `Transaction` kaydı `sourceRecurringId String?` taşır ve idempotanslık
+**veritabanı düzeyinde** garanti edilir:
+
+```
+@@unique([sourceRecurringId, periodKey])
+```
+
+`periodKey` üretim dönemini temsil eden deterministik bir dize (örn. `2026-08`).
+Cron ikinci kez çalışırsa ikinci ekleme **unique ihlaliyle reddedilir** — uygulama mantığına
+güvenilmez. `Transaction.isRecurring` ve `recurrenceRule` alanları kaldırılır.
+
+### Sonuçlar
+- Çift kayıt uygulama hatasıyla değil, veritabanı kısıtıyla engellenir. Cron'un "en az bir kez" garantisi yeterli hale gelir; "tam bir kez" garantisi aranmaz.
+- Şablon düzenlemek geçmiş kayıtları etkilemez — doğru davranış: geçen ayın kirası değişmez.
+- `periodKey` üretim kuralı servis katmanında tek bir yardımcıda toplanır ve birim testi yazılır (§9 "hesaplama içeren her fonksiyon test edilir").
+- Bir dönem bilerek atlanmak istenirse `lastGeneratedAt` ileri alınır; ek alan gerekmez.
+
+### Alternatifler ve neden reddedildi
+- **Aynı tabloda `isRecurring` bayrağıyla devam** — §6'nın önerdiği yol; **reddedildi** çünkü şablonu olaydan ayırmıyor, her sorguya filtre borcu yüklüyor ve idempotanslık için doğal bir anahtar bırakmıyor.
+- **Idempotanslığı uygulama katmanında kontrol etmek** (`önce sorgula, yoksa ekle`) — **reddedildi** çünkü eşzamanlı iki çalıştırmada yarış koşuluna açık; veritabanı kısıtı bu sınıf hatayı tamamen kapatır.
+- **Tekrarlayan işlemleri hiç üretmemek, sorgu anında hesaplamak** — **reddedildi** çünkü gerçekleşmemiş bir ödeme ile gerçekleşmiş bir ödeme muhasebede aynı şey değildir; kayıt üretmek doğru modeldir.
+
+---
+
+## ADR-016 — Gün Semantiği `@db.Date`, Tek Zaman Dilimi Yardımcısı
+
+**Durum:** Kabul edildi · 2026-08-05 · **Kapsar:** A6
+
+### Bağlam
+`HealthLog.date`, `HabitLog.date`, `Transaction.date`, `Workout.date`, `JournalEntry.date`
+"gün" semantiği taşıyor — saat bilgisi anlamsız. `DateTime` olarak tutulursa Europe/Istanbul
+(UTC+3) altında **00:00–03:00 arasında girilen kayıtlar bir önceki güne düşer**.
+
+Somut sonuçları: `HealthLog.date` unique kısıtı beklenmedik biçimde çakışır ya da çakışmaz;
+gece 01:00'de girilen bir alışkanlık kaydı önceki güne yazılır ve streak hesabı bozulur;
+§9'un test edilmesini istediği "aylık toplam" ay sınırında yanlış sonuç verir. Bu hatalar
+gündüz test edildiğinde **hiç görünmez** — en kötü hata sınıfı.
+
+### Karar
+Gün semantiği taşıyan tüm alanlar **`@db.Date`** olur (saat bileşeni yok).
+Gerçek bir zaman damgası gereken alanlar (`createdAt`, `paidAt`, `deliveredAt`, `lastLoginAt`,
+`publishedAt`) `DateTime` kalır — bunlar an bildirir, gün değil.
+
+Gün bazlı tüm hesaplamalar (ay başı/sonu, hafta başlangıcı, streak, "bugün") **tek bir
+zaman dilimi yardımcısından** geçer, sabit `Europe/Istanbul`.
+
+> **Konum revizyonu (2026-08-10, T-015/K1):** Yardımcı `src/server/services/_shared/app-date.ts`
+> içinde uygulandı — `src/lib/utils/date.ts` değil. Gerekçe: gün hesabı bugün yalnızca sunucu
+> tarafında kullanılıyor ve `src/lib/utils/` Frontend'in dizini. İçerik ve davranış bu ADR'ye
+> birebir uyuyor.
+> **Bağlayıcı kural:** Frontend **kendi gün yardımcısını yazmaz.** Tarih seçici veya "bugün"
+> gibi bir ihtiyaç doğarsa yardımcı ortak bir konuma (`src/lib/utils/date.ts`) taşınır ve iki
+> taraf da oradan içe aktarır. İki ayrı uygulama, bu ADR'nin önlemek için var olduğu hatanın
+> ta kendisidir.
+Servislerde doğrudan `new Date()` ile gün hesabı yapılmaz. Bu yardımcı birim testi yazılan
+ilk fonksiyonlardan biridir ve testler **ay sınırı, yıl sınırı ve 00:00–03:00 aralığını**
+açıkça kapsar.
+
+### Sonuçlar
+- Sınıf olarak bir hata ailesi kapanır; üstelik F1'de, veri birikmeden.
+- `HealthLog.date` üzerindeki unique kısıt artık gerçekten "günde bir kayıt" anlamına gelir.
+- Yardımcı tek nokta olduğu için yaz saati veya zaman dilimi değişikliği tek yerden ele alınır.
+- Maliyet: her gün bazlı sorguda yardımcıyı kullanma disiplini. Kod incelemesinde ve §9 testlerinde denetlenir.
+
+### Alternatifler ve neden reddedildi
+- **`DateTime` bırakıp saati 00:00'a normalize etmek** — **reddedildi** çünkü normalizasyonu **hangi** zaman diliminde yaptığın sorusu duruyor; veritabanı tipiyle garanti edilen bir şeyi uygulama disiplinine bırakmak, unutulmaya açık.
+- **Her şeyi UTC'de tutup görüntülemede çevirmek** — Yaygın bir yaklaşım; **reddedildi** çünkü "gün" burada bir an değil, kullanıcının yaşadığı takvim günü. UTC'ye çevirmek sorunun kendisini üretiyor.
+- **Zaman dilimini kullanıcı ayarı yapmak** — **reddedildi**: tek kullanıcılı sistem, sabit tek zaman dilimi (§1.2 çoklu kullanıcıyı kapsam dışı bırakıyor).
+
+---
+
+## ADR-017 — İlişki ve Bütünlük Düzeltmeleri; `Job.status` ↔ Kanban Eşlemesi
+
+**Durum:** Kabul edildi · 2026-08-05 · **Kapsar:** B1, B2, B6, B7, C5, C8
+
+### Bağlam
+Backend altı ayrı bütünlük açığı buldu. Ortak noktaları: hepsi veri birikmeden düzeltilirse
+bedava, biriktikten sonra veri temizliği gerektirir.
+
+### Karar
+
+**B1 — Çift yönlü FK tek yöne indirilir.** `ContactMessage.convertedJobId` **kaldırılır**;
+yalnızca `Job.contactMessageId String? @unique` kalır. İki nullable FK, birbirini
+göstermeyen iki kayıt üretebilir ve hangisinin doğru olduğu belirsizleşir. Ters yön ilişki
+üzerinden okunur.
+
+**B2 — `Client.email String? @unique`.** §6 "mesajdan müşteri kaydı otomatik açılır" diyor;
+dedupe olmadan aynı kişi üç kez yazarsa üç müşteri oluşur ve müşteri bazlı muhasebe bozulur.
+Otomatik açma akışı **upsert** ile çalışır.
+
+**B6 — Referans verilerde silme yasak, arşivleme var.** `TransactionCategory`, `Exercise`,
+`Client`, `Habit` şu alanı kazanır: `isArchived Boolean @default(false)`. Bağlı FK'ler
+`onDelete: Restrict`. **Muhasebe kayıtlarında hard delete hiçbir koşulda yapılmaz.**
+Panelde "sil" eylemi arşivler; arşivlenmiş kayıt yeni seçim listelerinde görünmez, geçmiş
+kayıtlarda görünmeye devam eder.
+
+**B7 — Beş kolonlu kanban (kullanıcı onayı ile).** `Job.status` enum'u §6'daki gibi kalır:
+`LEAD` · `PROPOSAL` · `ACTIVE` · `DELIVERED` · `CANCELLED`. Panoda **beşi de kolondur**:
+Aday → Teklif → Aktif → Teslim → İptal. §4.2'deki üç kolonlu tarif bu karara göre güncellenir.
+Enum ile kolon arasında eşleme katmanı **yoktur** — enum değeri kolonun kendisidir.
+Mobilde pano yatay kaydırılır.
+
+**C5 — İndeks ve unique politikası.** Asgari set T-010'da yazılır:
+`Post.slug @unique` · `Project.slug @unique` · `@@index([status, publishedAt])` ·
+`Transaction: @@index([date, type])`, `@@index([jobId])`, `@@index([categoryId])` ·
+`Attachment: @@index([entity, entityId])` · `HabitLog: @@unique([habitId, date])` ·
+`WorkoutSet: @@unique([workoutId, exerciseId, setNo])` · `LoginAttempt: @@index([ip, createdAt])`.
+`HabitLog` üzerindeki unique **eksikti** — şu hâliyle aynı güne çift kayıt mümkündü.
+
+**C8 — `Profile` tekilliği.** Sabit `id: "singleton"` + `upsert`. İki `Profile` satırı
+oluşabilmesi, public tarafın hangisini göstereceğini belirsiz bırakırdı.
+
+### Sonuçlar
+- Belirsiz durumlar veritabanı düzeyinde imkânsız hale gelir; uygulama mantığına güven azalır — istenen budur.
+- `onDelete: Restrict` panelde "silinemiyor" hatası üretebilir; bu yüzden arşivleme akışı **T-040/T-041'de UI olarak** karşılanmalı, yoksa kullanıcı çıkmaza düşer. Görev kartlarına kriter olarak yazılacak.
+- PROGRAM.md §4.2 ve §6 bu kararlara göre güncellenir.
+
+### Alternatifler ve neden reddedildi
+- **Çift yönlü FK'yi tutup uygulama katmanında senkron tutmak** — **reddedildi**: iki kaydın tutarlılığını her yazma yolunda garanti etmek gerekir; biri unutulur.
+- **Soft delete yerine hard delete + `onDelete: SetNull`** — **reddedildi** çünkü geçmiş bir işlemin kategorisinin `null`'a düşmesi muhasebe raporunu sessizce bozar.
+- **Üç kolonlu kanban (§4.2'ye sadık)** — **reddedildi** (kullanıcı kararı): `LEAD` ve `CANCELLED` için kalıcı bir eşleme katmanı gerekirdi ve iptal edilen işler gözden kaybolurdu.
+
+---
+
+## ADR-018 — Dosya Yönetimi: URL Saklanmaz, `Attachment` Tek Mekanizma
+
+**Durum:** Kabul edildi · 2026-08-05 · **Kapsar:** B3, B4, B5
+
+### Bağlam
+**B4 en ciddisi:** `Attachment.url` alanı §8.11 ile doğrudan çelişiyor. §8.11 private bucket
+ve 15 dakikalık imzalı URL istiyor. Kalıcı bir `url` sütunu ya **yanlıştır** (süresi dolmuş,
+çalışmaz) ya da **tehlikelidir** (public URL saklanmış demektir, yani bucket private değil).
+İkisi de kabul edilemez.
+
+**B3:** İki dosya mekanizması yan yana duruyor — `Attachment.entity/entityId` polimorfik ve
+`Transaction.attachmentId` gerçek FK. Ayrıca bir işleme genelde birden çok belge iliştirilir
+(fatura + dekont); tekil FK yetersiz.
+
+**B5:** `coverUrl`, `avatarUrl`, `cvUrl`, `gallery` düz string. Dosya silindiğinde kırık
+link oluşur, kullanılmayan dosya tespiti imkânsız. `Project.gallery` tipi hiç tanımlı değil.
+
+### Karar
+**URL saklanmaz.** `Attachment.url` **kaldırılır**. Saklanan: `key String @unique` (R2 nesne
+anahtarı), `mime`, `size`, `checksum` (§8.23 bütünlük doğrulaması aynı mekanizmayı kullanır),
+`width Int?` / `height Int?` (görsel için — Frontend'in `next/image` ile CLS'i önlemesi
+şart, §5.2.3), `uploadedById`, `entity`, `entityId`.
+İmzalı URL **istek anında** anahtardan üretilir, TTL 15 dk (§8.11).
+
+**Tek mekanizma:** `Transaction.attachmentId` **kaldırılır**. Tüm ekler polimorfik
+`Attachment` üzerinden bağlanır, `@@index([entity, entityId])` ile. Bir işleme birden çok
+belge iliştirilebilir. Yetim dosyalar için gece temizlik işi (§13.5 cron'una eklenir).
+
+**Kapak görselleri FK kazanır:** `Project.coverAttachmentId`, `Post.coverAttachmentId`,
+`Profile.avatarAttachmentId`, `Profile.cvAttachmentId` — hepsi `onDelete: Restrict`.
+Kullanılan bir dosya silinemez. `Project.gallery` **ilişkidir**, scalar değil: polimorfik
+`Attachment` kayıtları `entity: "Project"` ile bağlanır ve `order` alanıyla sıralanır.
+
+### Sonuçlar
+- §8.11 yapısal olarak sağlanır: saklanan hiçbir şey doğrudan erişim vermiyor.
+- Kırık link sınıfı hata kapanır (`Restrict`), yetim dosya tespiti mümkün hale gelir (`key` unique + entity indeksi).
+- `width`/`height` saklanması Frontend'in CLS borcunu ortadan kaldırır — §5.2.3 "CLS oluşturmaları yasak" kuralı için gerçek bir dayanak.
+- **Maliyet:** her görsel gösteriminde imzalı URL üretimi gerekir. Public sayfalarda bu, ADR-011'in önbellekleme katmanıyla birlikte düşünülmeli — imzalı URL'nin TTL'i önbellek süresinden kısaysa bozuk görsel çıkar. **T-037'nin kabul kriteri olarak yazılacak.**
+- Polimorfik ilişkide FK yok; bütünlük uygulama katmanında korunur. Kabul edilen takas — alternatifi her varlık için ayrı ek tablosu.
+
+### Alternatifler ve neden reddedildi
+- **`url` alanını tutup imzalı URL'yi oraya yazmak** — **reddedildi**: 15 dakikada bayatlar; saklamak anlamsız.
+- **Her varlık için ayrı ek tablosu** (`ProjectAttachment`, `TransactionAttachment`…) — Gerçek FK ve cascade verirdi; **reddedildi** çünkü §6'daki varlık sayısıyla çarpılınca şema şişer ve her yeni varlık yeni tablo gerektirir.
+- **`gallery`'yi `String[]` bırakmak** — **reddedildi**: dosya yaşam döngüsünün dışında kalır, silinen görsel sessizce kırılır.
+
+---
+
+## ADR-019 — İçerik Modeli: `locale`, Yayın Durumu, `viewCount`, Etiketler
+
+**Durum:** Kabul edildi · 2026-08-05 · **Kapsar:** C1, C2, C3, C4
+
+### Bağlam
+Dört kalem de "şimdi ucuz, sonra pahalı" sınıfında — ama biri bilinçli olarak **ertelenmeye**
+değer, bu yüzden dördü birlikte ele alınıyor.
+
+### Karar
+
+**C1 — `locale` şimdi eklenir.** §1.2 "v1 sadece TR, ama **i18n altyapısı hazır bırakılır**"
+diyor. İçerik modelleri (`Project`, `Post`, `Experience`, `Service`, `Skill`, `Profile`)
+`locale String @default("tr")` alır; slug kısıtları `@@unique([slug, locale])` olur.
+Sonradan eklemek migration + **tüm sorguların** değişmesi demek; şimdi eklemek neredeyse bedava.
+
+**C4 — Yayın durumu genişletilir.** `status` enum'u: `DRAFT` · `SCHEDULED` · `PUBLISHED` ·
+`ARCHIVED`. `SCHEDULED` ileri tarihli yayın için (`publishedAt` gelecekte), `ARCHIVED`
+yayından kaldırma için — **slug korunur ve `410 Gone` döner**, `404` değil. Sitemap ve RSS
+yalnızca `PUBLISHED` **ve** `publishedAt <= now()` olanları içerir.
+
+**C3 — `viewCount` ayrılır.** Doğrudan sütun her görüntülemede `UPDATE` demek; bu hem
+write amplification yaratır hem ADR-011'in önbellek katmanıyla çelişir (her okuma bir yazma
+tetiklerse önbelleğin anlamı kalmaz). Sayaç ayrı bir modele taşınır (`PostView` veya
+periyodik toplama); `Post.viewCount` **türetilmiş** okunur. Uygulama F3'e (T-035) bırakılır —
+v1'de sayaç olmaması kabul edilebilir, yanlış mimari kurmak değil.
+
+**C2 — Etiketler v1'de scalar kalır.** `tags String[]` §6'daki gibi durur. Gerekçe: §4.1
+yalnızca **etiket filtresi** istiyor, etiket sayfası veya etiket yönetimi istemiyor (§1.2
+kapsamı dar tutuyor). Normalize `Tag` modeli yeniden adlandırma ve sayım kazandırırdı ama
+v1'de karşılığı olmayan bir karmaşıklık. **Takas açıkça kabul edilmiştir:** etiket yeniden
+adlandırmak toplu `update` gerektirir. Etiket sayfası (`/blog/etiket/[slug]`) istenirse
+ADR yeniden açılır ve `Tag` modeline geçilir.
+
+### Sonuçlar
+- `locale` bugün hiçbir şey yapmıyor ama gelecekteki en pahalı migration'lardan birini bugünden ucuzlatıyor.
+- `ARCHIVED` + `410` SEO açısından doğru davranış: arama motoruna "bu içerik kalıcı olarak kaldırıldı" der; `404` "bulunamadı, belki geri gelir" der.
+- `SCHEDULED` yayın için gece cron'una bir iş daha eklenir (§13.5) veya sorgu anında `publishedAt <= now()` ile çözülür — **sorgu anında çözmek tercih edilir**, cron gerektirmez.
+- `viewCount`'un F3'e ertelenmesi, F2'de public blog sayfasında görüntüleme sayısı **gösterilmeyeceği** anlamına gelir. Bilinçli.
+
+### Alternatifler ve neden reddedildi
+- **`locale`'i sonraya bırakmak** — **reddedildi**: §1.2 zaten altyapının hazır bırakılmasını istiyor ve maliyeti bugün sıfıra yakın.
+- **`Tag` modelini şimdi kurmak** — Yeniden adlandırma ve sayım kazandırırdı; **reddedildi** çünkü v1'de bunları kullanacak bir ekran yok ve her yazı/proje sorgusuna bir join ekler.
+- **`viewCount`'u sütun olarak tutup periyodik yazmak** — **reddedildi**: yine de her okumada bir sayaç artırımı gerekir; asıl sorun yazma değil, okuma yolunun yazma yapması.
+
+---
+
+## ADR-020 — Enum Sözleşmesi ve `AuditLog` Redaksiyonu
+
+**Durum:** Kabul edildi · 2026-08-05 · **Kapsar:** C9, C10, C11
+
+### Bağlam
+**C9:** `Transaction.method`, `Goal.status`, `Goal.category`, `Workout.feeling`,
+`HealthLog.mood`, `Experience.type`, `Skill.category` — string mi enum mu belirsiz. §7.3
+bunların Frontend'in tükettiği sözleşme olduğunu söylüyor; sonradan değişmesi migration **ve**
+Frontend kırılması demek.
+
+**C10:** `AuditLog.diff` Json alanı `ContactMessage` mutasyonunda **ham e-postayı** taşır.
+§8.20 "loglarda tam e-posta ASLA görünmez" diyor — yani mevcut tasarım §8.20'yi ihlal ediyor.
+Ayrıca `actorId` FK'sinin silme davranışı ve IP saklama süresi (KVKK) tanımsız.
+
+**C11:** `ContactMessage`'da `repliedAt`, `archivedAt`, `honeypotHit`, `spamScore` yok —
+"mesaj kutusu" (§4.2) bunlarsız yalnızca okundu/okunmadı olur.
+
+### Karar
+
+**C9 — Hepsi enum, T-010'da tanımlanır.** Serbest metin bırakılan hiçbir kategorik alan
+kalmaz. `Transaction.method`: `CASH` · `BANK_TRANSFER` · `CREDIT_CARD` · `OTHER`.
+`Goal.status`: `ACTIVE` · `PAUSED` · `ACHIEVED` · `ABANDONED`. `Experience.type`:
+`WORK` · `EDUCATION` (§6'da zaten var). `Workout.feeling` ve `HealthLog.mood`: 1–5 **`Int`**
+kalır (ölçek, kategori değil) ama Zod şemasında `min(1).max(5)` ile bağlanır.
+`Skill.category` ve `Goal.category` enum olur; değerleri T-010'da Backend önerir, sözleşme
+olarak raporlanır. **Enum değerleri Backend mülkiyetindedir ve raporda açıkça yayınlanır** (§7.3).
+
+**C10 — Redaksiyon servis katmanında zorunlu.** `AuditLog` yazan tek bir yardımcı olur ve
+`diff` alanı **alan adı bazlı redaksiyondan** geçer: `password`, `passwordHash`, `totpSecret`,
+`totpBackupCodes`, `token`, `email` → maskelenir (`email` için yalnızca alan adı ve
+`emailHash` tutulur). `actorId` `onDelete: SetNull` + `actorEmailHash` snapshot.
+IP kayıtları **90 gün** sonra gece işiyle temizlenir; `AuditLog`'un kendisi korunur.
+Redaksiyon yardımcısı §9 gereği birim testi yazılan fonksiyonlardan biridir ve testleri
+**her maskelenecek alan adı için** ayrı assert içerir.
+
+**C11 — İş akışı alanları eklenir.** `ContactMessage`: `repliedAt DateTime?`,
+`archivedAt DateTime?`, `honeypotHit Boolean @default(false)`, `spamScore Int?`.
+`honeypotHit` §8.15'in honeypot alanının sonucunu saklar — spam olarak işaretlenen mesaj
+silinmez, ayrılır.
+
+### Sonuçlar
+- Frontend, enum değerlerini rapordan okuyarak kırılmadan entegre olur; §7.3'ün amacı korunur.
+- §8.20 ihlali F1'de, ilk `AuditLog` yazılmadan kapanır — sonradan düzeltmek geçmiş logları temizlemeyi gerektirirdi.
+- Redaksiyon tek noktada olduğu için Güvenlik ajanı denetlerken tek dosyaya bakar.
+- Maliyet: enum değişikliği migration gerektirir. Bu yüzden T-010'da değerler dikkatle seçilmeli; "diğer" değeri olan enum'lara `OTHER` eklenmiştir.
+
+### Alternatifler ve neden reddedildi
+- **Kategorik alanları `String` bırakmak** — Esnek görünür; **reddedildi** çünkü yazım hatası veri kalitesini sessizce bozar ve Frontend'in hangi değerleri bekleyeceği hiçbir zaman netleşmez.
+- **Redaksiyonu log yazarken değil, okurken yapmak** — **reddedildi**: hassas veri diske yazılmış olur; yedeğe (§8.21) de girer.
+- **Spam mesajları silmek** — **reddedildi**: yanlış pozitif durumunda gerçek bir müşteri kaybedilir; ayırmak yeterli.
+
+---
+
+## ADR-021 — Spor & Hayat: PR Tekrar Bazında, `Habit` Sayaç Tabanlı
+
+**Durum:** Kabul edildi · 2026-08-05 · **Kapsar:** C6, C7
+
+### Bağlam
+**C6:** `PersonalRecord` türetilmiş bir veri ama kaynağı yok — `workoutSetId` referansı
+olmadığı için antrenman silinince veya düzeltilince PR tutarsız kalır. Daha temel sorun:
+**PR tanımı yok.** 100kg×1 mi 80kg×10 mu daha iyi? §9 bu hesabın test edilmesini istiyor
+ama test edilecek kural tanımlı değil.
+
+**C7:** `Habit.targetPerWeek` haftalık, `HabitLog.done` günlük **Boolean**. Günde birden çok
+kez yapılan alışkanlıklar (su içmek, kitap okumak) modellenemiyor.
+
+### Karar
+
+**C6 — Tekrar bazında ayrı PR (kullanıcı onayı ile).** Her tekrar sayısı için ayrı rekor
+tutulur: `@@unique([exerciseId, reps])`. Yani 1RM, 3RM, 5RM, 10RM ayrı ayrı izlenir.
+Tahmini 1RM formülü (Epley/Brzycki) **kullanılmaz** — karşılaştırma tahmine değil gerçek
+performansa dayanır.
+
+`PersonalRecord` kaynağına bağlanır: `workoutSetId String? @unique`, `onDelete: SetNull`.
+PR **türetilmiş** veridir: bir `WorkoutSet` eklendiğinde/düzeltildiğinde/silindiğinde ilgili
+`(exerciseId, reps)` için yeniden hesaplanır. Hesaplayıcı servis katmanında tek bir
+fonksiyondur ve §9 gereği birim testi yazılır — testler **silme ve düzeltme** senaryolarını
+da kapsar, yalnızca ekleme değil.
+
+**C7 — `HabitLog.count Int @default(1)`.** `done Boolean` kaldırılır; "yapıldı" artık
+`count > 0` demektir. `Habit.targetPerDay Int?` eklenir (günlük hedefi olanlar için,
+örn. 8 bardak su); `targetPerWeek` korunur (haftada kaç gün). Hafta başlangıcı ve streak
+hesabı **ADR-016'nın zaman dilimi yardımcısından** geçer — aksi hâlde gece yarısı girilen
+kayıt streak'i sessizce kırar.
+
+### Sonuçlar
+- PR karşılaştırması dürüst: "80kg×10 yaptım" bir 1RM tahminine çevrilmeden kendi kategorisinde değerlendirilir.
+- PR'ın türetilmiş olduğu açıkça kabul edildiği için kaynak veri düzeltildiğinde tutarsızlık kalmaz — F5'in en olası sessiz hatası kapanır.
+- `count` modeli hem Boolean hem sayaç ihtiyacını karşılar; Boolean'a dönmek gerekirse `count > 0` yeterli.
+- Maliyet: PR yeniden hesaplama her set mutasyonunda tetiklenir. Tek kullanıcılı sistemde ihmal edilebilir.
+
+### Alternatifler ve neden reddedildi
+- **Tahmini 1RM (Epley)** — Tek bir güç eğrisi ve güzel bir trend grafiği verirdi; **reddedildi** (kullanıcı kararı) çünkü yüksek tekrarlarda tahmin belirgin sapar ve "rekor" olması gereken şey tahmine dönüşür.
+- **İkisini birden saklamak** — En zengin veri; **reddedildi** çünkü iki hesaplayıcı, iki test seti ve iki kez bozulma ihtimali demek. Gerekirse tahmini 1RM sonradan **türetilerek** gösterilebilir, saklanması gerekmiyor.
+- **`PersonalRecord`'u hiç saklamayıp sorgu anında hesaplamak** — **reddedildi**: PR tarihi ("ne zaman kırdın") kayıt gerektirir, ayrıca her grafik için tüm set geçmişini taramak gerekirdi.
+
+---
+
+## ADR-022 — `LoginAttempt` Denemeleri, `AuditLog` Sonuçları Kaydeder
+
+**Durum:** Kabul edildi · 2026-08-05 · **Tetikleyen:** T-013b notu T5
+
+### Bağlam
+`AuditAction` enum'unda `LOGIN`, `LOGIN_FAILED`, `LOGOUT` değerleri var (T-010) ama T-013b
+giriş olaylarını `AuditLog`'a yazmadı ve haklı bir soru sordu: §8.19 "tüm panel mutasyonları
+loglanır" diyor; giriş bir panel mutasyonu mu?
+
+İki tablo arasında gerçek bir örtüşme var. Yanlış cevap iki yönde de maliyetli:
+- **İkisine de yazmak** → aynı olay iki yerde tutulur; §6'nın "aynı veri iki yere girilmez"
+  ilkesiyle çelişir ve iki kayıt er geç birbirini tutmaz.
+- **Hiçbirine yazmamak** → `LoginAttempt` 90 günde temizleniyor (ADR-013). Hesap kilitlenmesi
+  gibi güvenlik açısından kalıcı olması gereken bir olay o pencerede kaybolur.
+
+### Karar
+Sınır **olay ile durum değişikliği** arasına çizilir:
+
+| Tablo | Ne kaydeder | Saklama |
+|-------|-------------|---------|
+| `LoginAttempt` | Her giriş **denemesi** — başarılı ve başarısız. Hız sınırlamanın veri kaynağı | 90 gün, sonra temizlenir |
+| `AuditLog` | Denemenin yol açtığı **kalıcı durum değişikliği** | Süresiz |
+
+`AuditLog`'a yazılacak giriş kaynaklı olaylar: **hesap kilitlenmesi** (`lockedUntil` yazıldığında),
+**şifre değişikliği**, **2FA etkinleştirme/devre dışı bırakma**, **kurtarma kodlarının
+yeniden üretilmesi**. Bunlar `User` kaydını değiştirdiği için zaten §8.19'un kapsamındadır.
+
+Başarılı ve başarısız **denemeler** `AuditLog`'a yazılmaz. `LOGIN` ve `LOGIN_FAILED` enum
+değerleri korunur ama v1'de kullanılmaz; kaldırmak migration gerektirir ve F6 denetimi
+(T-062) aksini kararlaştırırsa yeniden eklemek gerekirdi.
+
+Kilitlenme kaydını yazmak **T-014'ün** işidir — `lockedUntil`'i yazan taraf orasıdır (ADR-013).
+
+### Sonuçlar
+- Her olay tek yerde; iki kaydın çelişmesi mümkün değil.
+- Kalıcı olması gereken güvenlik olayları 90 günlük temizlikten etkilenmiyor.
+- Kural tek cümleyle ifade edilebilir: **denemeler `LoginAttempt`'e, sonuçlar `AuditLog`'a.** Sonraki ajanların hatırlaması kolay.
+- `LOGIN`/`LOGIN_FAILED` kullanılmayan enum değerleri olarak kalıyor — küçük bir koku, kabul edildi.
+
+### Alternatifler ve neden reddedildi
+- **Her giriş denemesini `AuditLog`'a da yazmak** — En eksiksiz iz; **reddedildi** çünkü aynı olayı iki yerde tutar ve `AuditLog` tek kullanıcılı bir sistemde hızla giriş gürültüsüyle dolar; asıl amacı olan içerik ve muhasebe mutasyonlarını okunamaz hale getirir.
+- **`LoginAttempt`'i hiç temizlememek** — Tek tablo yeterdi; **reddedildi** çünkü IP kayıtlarının süresiz tutulması KVKK açısından gereksiz veri saklamaktır (ADR-020 ile aynı gerekçe).
+- **`LOGIN`/`LOGIN_FAILED` enum değerlerini kaldırmak** — Temizlik olurdu; **reddedildi** çünkü migration maliyeti var ve T-062 denetimi bu kararı gözden geçirebilir.
+
+---
+
+## ADR-023 — Ölçüm Görevleri Tek Başına Koşar (Paralel Derleme Yasağı)
+
+**Durum:** Kabul edildi · 2026-08-05
+**Tetikleyen:** T-017 → ENGEL-4, T-014 → T5, T-012 → BULGU-006'nın yanlış pozitif çıkması
+
+### Bağlam
+ADR-012 ile paralel çalışmayı açtım ve üç ajan aynı anda koştu. Dosya kesişimi olmadı —
+ama **paylaşılan çalışma ağacı** üzerinden üç ayrı sorun çıktı:
+
+1. **T-017:** Doğrulama sırasında sunucu üç kez "Could not find a production build" ile öldü;
+   `/giris` bir ara 404 verdi. Kod hatası değil, yarış durumu — başka bir ajan aynı anda
+   `pnpm build` çalıştırıp `.next`'i siliyordu. Bir Lighthouse koşusunu da düşürdü.
+2. **T-014:** `pnpm build` üç temiz derlemede bir `ENOENT .next/server/pages-manifest.json`
+   veriyor. CI'da (Linux, izole) hiç görülmedi.
+3. **T-014 → BULGU-006:** `prisma/seed.ts`'in 22 `no-console` uyarısı üretip CI'ı düşüreceği
+   bildirildi. **Doğrulandı: `pnpm lint` şu an EXIT 0.** Backend aynı sorunu kendi turunda
+   K6 ile (`process.stdout.write`) zaten çözmüştü; Güvenlik ajanı **bayat bir ağaç durumunu**
+   ölçmüştü. Yani paralellik yalnızca koşumları düşürmüyor, **var olmayan bulgu da ürettiriyor.**
+
+Üçünün ortak kökü aynı: `.next/` tek ve paylaşımlı; `pnpm build`, `pnpm start`, `test:e2e`
+ve Lighthouse hepsi onu yazıyor veya okuyor.
+
+### Karar
+Paralel çalışma **korunur** (ADR-012 geçerli), ancak **ölçüm görevleri tek başına koşar.**
+
+**Ölçüm görevi (rev. 2026-08-10):** `pnpm build` veya `pnpm start` **çalıştırmayı
+gerektiren** her görev. Ölçüt mekaniktir, Orkestra Şefi'nin takdirine bırakılmaz.
+
+> **Neden revize edildi:** T-036'yı "ölçüm görevi değil" diye işaretledim çünkü E2E veya
+> Lighthouse istemiyordu. Ama tarayıcıda doğrulama gerektiriyordu, yani `pnpm start`
+> çalıştırdı ve T-015 ile aynı yarışa girdi — sunucu iki kez bayat `.next` servis etti.
+> Frontend haklı olarak ölçütün "build/start gerektiriyor mu" olması gerektiğini söyledi.
+> **Bir görev tarayıcıda elle doğrulama istiyorsa ölçüm görevidir.**
+
+Kurallar:
+1. Orkestra Şefi aynı anda **en fazla bir** ölçüm görevi dağıtır; diğer paralel görevler
+   ölçüm gerektirmeyenlerden seçilir.
+2. Ölçüm görevi dağıtıldığında görev kartında **"ÖLÇÜM GÖREVİ — tek başına koşar"** ibaresi bulunur.
+3. Bir ajan beklenmedik bir derleme/sunucu hatası görürse **önce paralel koşum olup
+   olmadığını sorar**, sonra bulgu açar. `.next` kaynaklı `ENOENT` ve "production build
+   not found" hataları varsayılan olarak yarış durumu sayılır.
+4. **Bulgu açmadan önce ağacın güncelliği doğrulanır.** Başka bir ajanın alanındaki bir
+   kusur raporlanacaksa, ölçüm o anki dosya içeriğiyle tekrarlanır — BULGU-006 bu adım
+   atlandığı için açıldı.
+
+### Sonuçlar
+- **Olumlu:** Ölçüm sonuçları güvenilir hale gelir. Yanlış pozitif bulgular — ki en pahalı türdendir, çünkü gerçek bir ajanın gerçek zamanını harcatır — büyük ölçüde önlenir.
+- **Olumsuz / kabul edilen maliyet:** Paralellik daralır. F2'de Lighthouse ve E2E görevleri sıraya girer, bu da fazın toplam süresini uzatır. Kabul edildi: yanlış ölçüm, yavaş ölçümden pahalı.
+- macOS'a özgü `ENOENT` (T-014/T5) bu kuralla büyük ölçüde kaybolmalı; kaybolmazsa gerçek bir sorun olarak yeniden açılır — şimdi ayırt edilebilir hale geldi.
+
+### Alternatifler ve neden reddedildi
+- **Her ajana ayrı git worktree / ayrı `.next`** — Sorunu kökten çözerdi; **reddedildi** çünkü ajanlar aynı çalışma dizinini paylaşan ayrı oturumlar olarak kurgulandı (AJAN_PROMPTLARI.md) ve worktree yönetimi kullanıcıya günlük yük bindirirdi.
+- **Paralelliği tamamen kapatmak** — En basit; **reddedildi** çünkü ADR-012'nin çözdüğü sorun (bir ajanın kendisini ilgilendirmeyen bir kararı beklemesi) geri gelirdi. Sorun paralellik değil, paylaşılan `.next`.
+- **`.next` yerine ajan başına dizin (`distDir`)** — `next.config.ts` ortak dosya; her ajanın onu değiştirmesi gerekirdi ve CI ile üretim yapılandırması da ayrışırdı.
+
+---
+
+## ADR-024 — Kendi QR Kodlayıcımız (Dar Kapsam, Kalıcı Doğrulama Şartıyla)
+
+**Durum:** Kabul edildi · 2026-08-10 · **Tetikleyen:** T-036/K1
+
+### Bağlam
+2FA kurulum ekranı QR kod gerektiriyor. ADR-004 yeni bağımlılığı Orkestra Şefi onayına
+bağlıyor; görev kartı da "kütüphane gerekiyorsa **talep et**, kurma" diyordu. Frontend
+talep etmek yerine kodlayıcıyı kendisi yazdı — gerekçesi: onay turu F1'i bir ADR boyunca
+bloke ederdi ve QR bu ekranın ana gereksinimi.
+
+Kapsam bilinçle dar tutulmuş: yalnızca bayt kipi, EC seviyesi M, sürüm 1–14
+(`otpauth://` URI'leri ~90–160 bayt). Genel amaçlı bir kütüphane değil.
+
+Doğrulama ciddi yapılmış: v1–14 kapasite tabloları referansla karşılaştırılmış (14/14),
+1080 rastgele matris bit-bit kıyaslanmış, çizilen görüntü **bağımsız bir çözücüyle (jsQR)**
+okutulmuş. Bu sırada **iki gerçek kodlayıcı hatası** bulunmuş; ikisi de gözle fark edilemezdi:
+
+1. Format bilgisinin birinci kopyası satır 8 yerine sütun 8'e yazılmalıydı.
+2. Reed–Solomon üreteç polinomunun katsayı sırası tersti — EC kod sözcükleri sessizce
+   bozuluyordu. Çıktı "geçerli bir QR" gibi görünüyor ama hiçbir okuyucu çözemiyordu.
+
+### Karar
+Kendi kodlayıcımız **kalınır**, iki şartla:
+
+1. **Doğrulama kalıcı hale getirilir.** 1080 matrislik karşılaştırma geçici bir sayfayla
+   yapıldı ve o sayfa silindi — yani doğrulama **tekrarlanabilir değil**. Referans vektörler
+   `tests/unit/` altında kalıcı bir teste dönüştürülecek. Bir doğrulama tekrarlanamıyorsa
+   yarın için hiçbir şey garanti etmez.
+2. **Kapsam genişlerse karar yeniden açılır.** Kodlayıcı yalnızca `otpauth://` URI'leri
+   içindir. Başka bir yerde QR gerekirse (paylaşım linki, vCard, ödeme) bu ADR yeniden
+   değerlendirilir ve muhtemelen `qrcode` bağımlılığına geçilir.
+
+Gerekçe: bağımlılık eklememenin karşılığı burada gerçek. Blast radius küçük — kodlayıcı
+tek ekranda kullanılıyor, girdi biçimi öngörülebilir ve **düz metin secret yedeği zaten var**
+(QR okunmazsa kullanıcı anahtarı elle girebiliyor). Buna karşılık, çalışan ve doğrulanmış
+kodu söküp yerine bağımlılık koymak saf değişiklik gürültüsü olurdu.
+
+### Sonuçlar
+- Bir bağımlılık eksik; §8.24 denetim yüzeyi büyümüyor.
+- **Kodlayıcının bakımı bize ait.** Kabul edilen maliyet; dar kapsam bunu yönetilebilir kılıyor.
+- 1. şart yerine getirilmezse bu ADR geçersizdir — doğrulanamayan kod, doğrulanmamış koddur.
+- T-036'nın gösterdiği bir şey daha var: **kendi yazdığı kodu referansa karşı sınayan bir ajan, kütüphane kullansa hiç öğrenemeyeceği iki hatayı buldu.** Bu, kendi kodumuzu yazmanın yan faydası değil, doğrulamanın faydası.
+
+### Alternatifler ve neden reddedildi
+- **`qrcode` bağımlılığı eklemek** — Sıfır bakım, olgun kod; **reddedildi** çünkü çalışan ve bit düzeyinde doğrulanmış bir uygulama zaten var ve sökmek karşılığı olmayan bir değişiklik olurdu. Kapsam genişlerse yeniden değerlendirilecek.
+- **Frontend'i durdurup ADR turu yapmak** — Sürece uygun olurdu; **reddedildi** çünkü F1'in tek kalan ekranı bir onay turu boyunca beklerdi ve sonuç muhtemelen aynı olurdu. Ancak bu bir **istisna**, kural değil: bağımlılık kararları normalde Orkestra Şefi'ne gelir.
+- **Sunucuda QR üretip görsel olarak göndermek** — Bağımlılığı sunucuya taşırdı; **reddedildi** çünkü secret'ı bir görsel URL'sine taşımak §8.11 ve §8.20 açısından daha kötü.
