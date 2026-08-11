@@ -70,6 +70,7 @@ açığın ayrıntısı artık saldırgana bir şey kazandırmaz.
 | 2026-08-10 | T-016 | §9/3 auth E2E, `code` regresyon kilidi, `LockoutClient` tipi, E2E yardımcıları | **§8.4 ✅ oldu** (BULGU-005 kapandı, E2E ile kanıtlandı). **BULGU-006 yanlış pozitif olarak geri çekildi** (ADR-023). **BULGU-007 açıldı** (`pg` havuzu kapanmıyor). §8.1 ve §8.19 ⏳→⚠️. |
 | 2026-08-11 | T-019 | §8.1 zorunlu 2FA kurulumu kapısı (`src/middleware.ts`, `src/lib/security/two-factor.ts`) | Kapı kuruldu ve **devre dışı bırakılarak tuttuğu kanıtlandı** (12 birim + E2E kırılıyor). **BULGU-008 açıldı**: jetondaki `tfa` alanını giriş akışı henüz koymuyor, kapı üretimde tetiklenmiyor → §8.1 ⚠️ kalıyor. |
 | 2026-08-11 | T-019b | Geçiş penceresinin kapatılması; Backend beslemesinin doğrulanması | **BULGU-008 kapandı**, **§8.1 ⚠️→✅**. `null` artık kuruluma yönlendiriyor (kapalı yönde başarısız). E2E'de gevşek `/\/panel/` desenleri sıkılaştırıldı — kurulum ekranı da o desene uyduğu için üç test vakum hâlinde yeşil kalıyordu. |
+| 2026-08-11 | T-005b | Auth E2E'nin CI'ya alınması: Postgres servisi, migrate + seed, "atlanan test yok" nöbeti | **BULGU-009 açıldı ve aynı görevde kapandı**: auth paketi CI'da hiç koşmuyordu ("19 skipped" ile yeşil). §8.1 kapısı ve dört `code` kilidi artık merge kapısında tutuyor. |
 
 ---
 
@@ -645,6 +646,57 @@ Bu yapılmazsa kullanıcı çıkıp yeniden girerek de kurtulur (yeni giriş yen
 `requiresTwoFactorSetup` içindeki `null` dalı kaldırılacak, `null` "kurulu değil"
 sayılacak; `tests/unit/two-factor.test.ts` ve `middleware.test.ts` içindeki
 "geçiş penceresi" beklentileri **tersine çevrilecek**.
+
+---
+
+## BULGU-009 — Auth E2E CI'da hiç koşmuyordu; kilitler merge kapısında tutmuyordu
+
+> ## ✅ KAPANDI — 2026-08-11 (T-005b)
+
+**Önem:** Yüksek
+**PROGRAM.md maddesi:** §9, §10.6
+**Dosya:** `.github/workflows/ci.yml`
+**Sorumlu ajan:** Güvenlik & Test (kendi dosyam)
+
+**Ne oluyordu:**
+`tests/e2e/auth.spec.ts` veritabanı yoksa kendini atlıyor (T-016'da bilinçli
+tasarım — DB gerektirmeyen paketler CI'da koşabilsin diye). CI'da Postgres
+servisi yoktu, dolayısıyla paket **hiç koşmuyordu**. F1 PR'ının (#2) çıktısı:
+
+```
+34 passed
+19 skipped        ← auth paketinin tamamı
+```
+
+Koşum **yeşildi**. Yani şunların hiçbiri merge kapısında tutmuyordu:
+- Dört `code` regresyon kilidi (`INVALID_CREDENTIALS`, `TOTP_REQUIRED`,
+  `ACCOUNT_LOCKED`, `INVALID_TOTP`) — T-016'nın varlık sebebi
+- §8.1 zorunlu 2FA kurulumu kapısı — T-019/T-019b
+- §8.4 hesap kilidi uçtan uca doğrulaması
+
+**Neden bu kadar önemli:** Bu kilitlerin tamamı, "biri şu satırı değiştirirse
+sessizce bozulur" sınıfı sorunlar için yazılmıştı. Yalnızca geliştirici
+makinesinde koşan bir kilit, tam da korumak istediği anda — başkasının açtığı
+bir PR'da — yok demektir. **Yerel bir kilit, kilit değildir.**
+
+**Uygulanan çözüm:**
+1. `kapi` işine **Postgres 16 servisi** eklendi (sağlık kontrolüyle).
+2. `prisma migrate deploy` + `pnpm db:seed` adımları eklendi.
+3. Kimlik değerleri **CI-yerel ve atılabilir**; gerçek `DATABASE_URL` secret'ı
+   kullanılmadı (ADR-009, BULGU-002).
+4. **"Atlanan test yok" nöbeti** eklendi — aşağıya bakın.
+
+**Nöbetçi adım neden gerekli:** Playwright atlanan testler için sıfır olmayan
+çıkış kodu **vermez**. Veritabanı bir gün sessizce erişilemez hâle gelirse
+paket yine kendini atlar ve koşum yine yeşil olur — yani bu bulgunun aynısı
+geri gelir, üstelik kimse fark etmeden. Yeni adım JSON raporundaki `skipped`
+sayısını okuyup sıfır değilse işi düşürüyor. **Bulgunun kendisini kapatmak
+yetmez; geri gelme yolunu da kapatmak gerekir.**
+
+**`DATABASE_URL` bilerek iş düzeyinde DEĞİL:** yalnızca migrate/seed/e2e
+adımlarına veriliyor. Böylece "üretim derlemesi" adımı `DATABASE_URL` olmadan
+koşmaya devam ediyor ve **BULGU-002'nin canlı gerileme nöbeti** olarak kalıyor:
+biri derlemeyi yeniden veritabanına bağımlı yaparsa CI kırmızı olur.
 
 ---
 

@@ -61,8 +61,16 @@ export default defineConfig({
   retries: isCI ? 2 : 0,
   workers: isCI ? 1 : undefined,
 
+  /**
+   * CI'da JSON raporu da üretilir.
+   *
+   * Playwright ATLANAN testler için sıfır olmayan çıkış kodu vermez; "19
+   * skipped" ile geçen bir koşum yeşil görünür (T-005b'nin çözdüğü sorun).
+   * `ci.yml` → "Atlanan test yok" adımı bu dosyayı okuyup atlama sayısını
+   * kontrol ediyor, yani sessiz gerileme gürültülü hataya dönüşüyor.
+   */
   reporter: isCI
-    ? [['github'], ['html', { open: 'never' }]]
+    ? [['github'], ['html', { open: 'never' }], ['json', { outputFile: 'playwright-sonuc.json' }]]
     : [['list'], ['html', { open: 'never' }]],
 
   use: {

@@ -39,6 +39,48 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
 
+    # §9 senaryo 3 ve §8.1 kapısı GERÇEK bir veritabanı ister: giriş akışı
+    # kullanıcı kaydına, 2FA kurulumu `User.totpConfirmedAt`'e bakıyor.
+    #
+    # NEDEN EKLENDİ (T-016/T3 → T-005b): DB olmadan `auth.spec.ts` kendini
+    # atlıyordu ve koşum "19 skipped" ile YEŞİL geçiyordu. Yani dört `code`
+    # regresyon kilidi ve §8.1 kapısı merge kapısında HİÇ TUTMUYORDU —
+    # yalnızca geliştirici makinesinde koşuyorlardı. Yerel bir kilit,
+    # kilit değildir.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: aelaldi_ci
+        ports:
+          - 5432:5432
+        # Koşucu, sağlık kontrolü geçene kadar adımları başlatmaz.
+        options: >-
+          --health-cmd "pg_isready -U ci -d aelaldi_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    # CI-YEREL, ATILABİLİR DEĞERLER — hiçbiri gerçek sır değildir.
+    #
+    # ADR-009 ve BULGU-002: derlemenin veritabanına ihtiyacı yok ve GERÇEK
+    # `DATABASE_URL` asla CI secret'ı yapılmaz. Buradaki veritabanı koşumla
+    # birlikte doğup ölen bir servis container'ı; `AUTH_SECRET` ve
+    # `TOTP_ENCRYPTION_KEY` ise yalnızca bu koşumda üretilen jetonları
+    # imzalamak için. Değerler bilerek "ci-test" ibaresi taşıyor ki ileride
+    # biri bunları gerçek bir sır sanmasın.
+    #
+    # `DATABASE_URL` BİLEREK BURADA DEĞİL, yalnızca ihtiyacı olan adımlarda.
+    # Gerekçe "Üretim derlemesi" adımının başında.
+    env:
+      AUTH_SECRET: ci-test-only-auth-secret-not-a-real-value
+      TOTP_ENCRYPTION_KEY: Y2ktdGVzdC1vbmx5LW5vdC1hLXJlYWwta2V5LTAwMDA=
+      ADMIN_EMAIL: ci@ornek.test
+      # §8.2 — `passwordSchema` en az 12 karakter istiyor.
+      ADMIN_PASSWORD: ci-test-parolasi-1234
+
     steps:
       - name: Depoyu al
         uses: actions/checkout@v7
@@ -108,7 +150,17 @@ jobs:
       - name: 3/5 · Birim + bileşen testleri (kapsam)
         run: pnpm test
 
-      - name: 4/5 · Üretim derlemesi
+      # DİKKAT — bu adımda `DATABASE_URL` BİLEREK TANIMSIZ.
+      #
+      # BULGU-002 tam olarak buydu: derleme veritabanı bağlantısı istiyordu ve
+      # `.env` bulunmayan her ortamda (CI, Docker build katmanı, taze klon)
+      # çöküyordu. T-003c havuzu tembel kuruluma çevirerek düzeltti.
+      #
+      # T-005b veritabanını CI'ya soktu ama `DATABASE_URL`'i İŞ DÜZEYİNE
+      # KOYMADI; yalnızca migrate/seed/e2e adımlarına verdi. Böylece bu adım
+      # o düzeltmenin canlı gerileme testi olmayı SÜRDÜRÜYOR: biri derlemeyi
+      # yeniden DB'ye bağımlı hâle getirirse burası kırmızı olur.
+      - name: 4/5 · Üretim derlemesi (DATABASE_URL OLMADAN — BULGU-002 nöbeti)
         run: pnpm build
 
       # §8.18'in ÜÇÜNCÜ katmanı: derleme çıktısında sır var mı?
@@ -116,6 +168,27 @@ jobs:
       # atlamıştı; `.next/` artık var olduğu için burada gerçekten tarar.
       - name: 5/5 · §8.18 — derleme çıktısında gizli bilgi taraması
         run: pnpm exec vitest run tests/unit/public-env.test.ts
+
+      # --- Veritabanı hazırlığı — buradan sonrası DATABASE_URL ister ---------
+      #
+      # `prisma migrate dev` DEĞİL `deploy`: `dev` etkileşimlidir, eksik
+      # migration üretmeye kalkar ve gerektiğinde veritabanını SIFIRLAR.
+      # CI'da istenen, var olan migration zincirini olduğu gibi uygulamaktır.
+      # `pnpm db:migrate` script'i `dev` çalıştırdığı için bilerek
+      # kullanılmadı — `package.json` bu görevin kapsamı dışında ve yeni
+      # script talep etmeye değmiyor.
+      - name: DB şeması (prisma migrate deploy)
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/aelaldi_ci
+        run: pnpm exec prisma migrate deploy
+
+      # Seed yönetici hesabını açar; `auth.spec.ts` onunla giriş yapıyor.
+      # 2FA'yı KAPALI bırakır (T-013b, bilinçli) — §8.1 kapısının test ettiği
+      # başlangıç durumu tam olarak budur.
+      - name: Seed (yönetici hesabı)
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/aelaldi_ci
+        run: pnpm db:seed
 
       - name: Playwright tarayıcı önbelleği
         uses: actions/cache@v6
@@ -129,8 +202,40 @@ jobs:
 
       # `playwright.config.ts` CI'da yeniden derlemez; yukarıdaki derleme
       # adımının çıktısını kullanır. Yani `build` düşerse E2E hiç koşmaz.
-      - name: E2E (masaüstü + mobil)
+      #
+      # `DATABASE_URL` burada ŞART: hem `globalSetup` (test verisi hazırlığı)
+      # hem de `pnpm start` ile ayağa kalkan uygulama ona bakıyor.
+      - name: E2E (masaüstü + mobil, auth paketi dahil)
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/aelaldi_ci
         run: pnpm test:e2e
+
+      # Auth paketinin GERÇEKTEN koştuğunu doğrular.
+      #
+      # NEDEN AYRI BİR ADIM: Playwright, atlanan testler için sıfır olmayan bir
+      # çıkış kodu ÜRETMEZ. Veritabanı bir gün sessizce erişilemez hâle gelirse
+      # `auth.spec.ts` kendini atlar, koşum yine YEŞİL olur ve §8.1 kapısıyla
+      # dört `code` kilidi farkında olmadan devre dışı kalır — T-005b'nin
+      # çözdüğü sorunun aynısı geri gelir. Bu adım o sessiz gerilemeyi
+      # gürültülü bir hataya çevirir.
+      - name: Atlanan test yok (auth paketi koştu mu?)
+        run: |
+          node <<'BETIK'
+          const { readFileSync } = require('node:fs');
+          const rapor = JSON.parse(readFileSync('playwright-sonuc.json', 'utf8'));
+
+          const atlanan = rapor.stats?.skipped ?? 0;
+          const gecen = rapor.stats?.expected ?? 0;
+          console.log(`geçen=${gecen} atlanan=${atlanan}`);
+
+          if (atlanan > 0) {
+            console.error(
+              `${atlanan} test ATLANDI. Auth paketi veritabanı yoksa kendini atlar; ` +
+                'bu koşum §8.1 kapısını ve `code` regresyon kilitlerini DOĞRULAMAMIŞTIR.',
+            );
+            process.exit(1);
+          }
+          BETIK
 
       - name: Kapsam raporunu sakla
         if: always()
