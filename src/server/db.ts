@@ -250,10 +250,7 @@ export async function closeDatabase(): Promise<void> {
     } catch (error) {
       // `pool.end()` ikinci kez çağrılırsa `pg` fırlatır; referans temizlendiği
       // için buraya normalde düşülmez ama kapanış yolu hata yutmalı.
-      console.error(
-        '[db] pg havuzu kapatılamadı:',
-        error instanceof Error ? error.message : error,
-      );
+      console.error('[db] pg havuzu kapatılamadı:', error instanceof Error ? error.message : error);
     }
   }
 }

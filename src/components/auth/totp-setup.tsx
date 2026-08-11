@@ -1,6 +1,8 @@
 'use client';
 
 import { KeyRound, Loader2, ShieldAlert, ShieldCheck, TriangleAlert } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
 import { QrCode } from '@/components/auth/qr-code';
@@ -38,6 +40,9 @@ export type TotpSetupProps = {
 };
 
 export function TotpSetup({ status, actions, accountLabel }: TotpSetupProps) {
+  const router = useRouter();
+  const { update } = useSession();
+
   const [step, setStep] = useState<Step>('overview');
   const [pending, setPending] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
@@ -54,6 +59,12 @@ export function TotpSetup({ status, actions, accountLabel }: TotpSetupProps) {
   const [enabled, setEnabled] = useState(status.enabled);
   /** Yenileme akışında mıyız — kod ekranındaki metin buna göre değişir. */
   const [isRegenerating, setIsRegenerating] = useState(false);
+  /**
+   * Jeton tazeleme başarısız oldu mu. `true` ise 2FA veritabanında AÇIK ama
+   * eldeki jeton hâlâ eski durumu taşıyor; kullanıcı §8.1 kapısına takılacak.
+   * Sessizce takılmasın diye ne yapması gerektiği açıkça söyleniyor.
+   */
+  const [refreshFailed, setRefreshFailed] = useState(false);
 
   const codeInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -66,6 +77,7 @@ export function TotpSetup({ status, actions, accountLabel }: TotpSetupProps) {
   async function handleStart() {
     setPending(true);
     setFormError(null);
+    setRefreshFailed(false);
 
     const result = await actions.startTotpSetup();
     setPending(false);
@@ -98,15 +110,18 @@ export function TotpSetup({ status, actions, accountLabel }: TotpSetupProps) {
     const result = isRegenerating
       ? await actions.regenerateBackupCodes!(parsed.data)
       : await actions.confirmTotpSetup(parsed.data);
-    setPending(false);
 
     if (!result.ok) {
+      setPending(false);
       setFormError(resolveTotpErrorMessage(result.error));
       setCode('');
       codeInputRef.current?.focus();
       return;
     }
 
+    // SIRA ÖNEMLİ: kurtarma kodları ÖNCE ekrana yazılır.
+    // Jeton tazeleme başarısız olsa bile kullanıcı kodlarını görmeli — kodlar
+    // sunucuda argon2id ile hash'li ve bir daha getirilemiyor.
     setBackupCodes(result.data.backupCodes);
     setRemaining(result.data.remainingBackupCodes);
     setEnabled(true);
@@ -115,6 +130,37 @@ export function TotpSetup({ status, actions, accountLabel }: TotpSetupProps) {
     setOtpauthUri(null);
     setSavedConfirmed(false);
     setStep('codes');
+
+    /**
+     * §8.1 kapısı JETONdaki `tfa` alanına bakıyor. `confirmTotpSetup` veritabanını
+     * güncelledi ama eldeki jeton hâlâ `tfa: false` diyor; tazelenmezse kullanıcı
+     * kurulumu bitirir ve panele giremez — her istek onu buraya geri atar.
+     *
+     * BOŞ NESNE ZORUNLUDUR, `update()` DEĞİL.
+     *
+     * `next-auth/react`'in kaynağında (beta.32, react.js:336):
+     *     typeof data === 'undefined' ? undefined : { body: { csrfToken, data } }
+     * Yani ARGÜMANSIZ çağrı yalnızca GET ile oturumu yeniden okur; sunucuya POST
+     * gitmez, `jwt` callback'i `trigger: 'update'` ile ÇALIŞMAZ ve `Set-Cookie`
+     * dönmez. Jeton `tfa: false` kalır, kullanıcı §8.1 kapısına takılır.
+     * ÖLÇÜLDÜ: argümansız çağrıda jeton `{tfa:false}`, `update({})` ile `{tfa:true}`.
+     *
+     * Gövdenin İÇERİĞİ önemsiz: sunucu onu yok sayıp değeri veritabanından okuyor
+     * (T-013e). Bu yüzden boş nesne gönderiliyor — istemci hiçbir şey İDDİA ETMİYOR,
+     * yalnızca "sunucudan tazele" diyor. `update({ tfa: true })` göndermek zaten
+     * kapıyı açmazdı ve yanlış bir izlenim bırakırdı.
+     *
+     * YENİLEMEDE ÇAĞRILMAZ: 2FA zaten açık, jeton zaten `tfa: true` taşıyor.
+     * Ölçüldü (T-036c raporu / Testler) — varsayılmadı.
+     */
+    if (!isRegenerating) {
+      // `loading` sırasında `undefined`, hata hâlinde `null` dönebiliyor;
+      // ikisi de "tazelenemedi" demek.
+      const refreshed = await update({}).catch(() => null);
+      setRefreshFailed(!refreshed);
+    }
+
+    setPending(false);
   }
 
   function finishCodes() {
@@ -122,8 +168,17 @@ export function TotpSetup({ status, actions, accountLabel }: TotpSetupProps) {
     // arayüz tarafındaki karşılığı budur.
     setBackupCodes(null);
     setSavedConfirmed(false);
+
+    const ilkKurulumdu = !isRegenerating;
     setIsRegenerating(false);
     setStep('overview');
+
+    // Kurulum bittiyse ve jeton tazelendiyse kullanıcının gitmek istediği yer
+    // panelin kendisiydi; §8.1 kapısı onu buraya zorlamıştı.
+    if (ilkKurulumdu && !refreshFailed) {
+      router.push('/panel');
+      router.refresh();
+    }
   }
 
   function downloadCodes(codes: string[]) {
@@ -166,6 +221,13 @@ export function TotpSetup({ status, actions, accountLabel }: TotpSetupProps) {
           </div>
 
           {formError && <FormAlert>{formError}</FormAlert>}
+
+          {refreshFailed && (
+            <FormAlert>
+              İki adımlı doğrulama açıldı ama oturumun tazelenemedi; panele girmeye çalışırsan bu
+              ekrana geri dönersin. Çıkış yapıp yeniden giriş yapman yeterli.
+            </FormAlert>
+          )}
 
           {enabled ? (
             <div className="flex flex-col gap-4">
@@ -404,8 +466,15 @@ export function TotpSetup({ status, actions, accountLabel }: TotpSetupProps) {
             <span className="text-body text-sm">Kodları güvenli bir yere kaydettim.</span>
           </label>
 
+          {refreshFailed && (
+            <FormAlert>
+              Kurulum tamamlandı ama oturumun tazelenemedi. Kodlarını kaydettikten sonra çıkış yapıp
+              yeniden giriş yap — panele o zaman girebilirsin.
+            </FormAlert>
+          )}
+
           <Button onClick={finishCodes} disabled={!savedConfirmed} className="self-start">
-            Bitir
+            {refreshFailed ? 'Kodları kaydettim' : 'Bitir'}
           </Button>
         </CardContent>
       </Card>
