@@ -84,18 +84,19 @@ Tüm renkler CSS değişkeni olarak tanımlanır. **Hiçbir bileşende hex kodu 
 --bg-base:      #0A0A12;  /* sayfa zemini */
 --bg-surface:   #12121F;  /* kart zemini */
 --bg-elevated:  #1A1A2E;  /* modal, dropdown */
---border:       #262640;  /* kart kenarı */
+--border:       #262640;  /* kart kenarı — dekoratif */
 --border-hover: #3A3A5C;
+--border-strong: #64649D; /* etkileşimli denetim kenarı — WCAG 1.4.11, 3:1 */
 
 --text-primary: #ECECF5;
 --text-body:    #B4B4CC;
---text-muted:   #7A7A99;
+--text-muted:   #8383A0;
 
---accent:       #7C5CFF;  /* ana mor */
+--accent:       #7756FF;  /* ana mor */
 --accent-hover: #6B49F5;
 --accent-soft:  #A78BFA;  /* açık mor, vurgu metni */
---accent-blue:  #4F8CFF;  /* gradient ikinci durak */
---accent-glow:  rgba(124, 92, 255, 0.28);
+--accent-blue:  #1C6AFF;  /* gradient ikinci durak */
+--accent-glow:  rgba(119, 86, 255, 0.28);
 
 --success:      #34D399;
 --warning:      #FBBF24;
@@ -107,12 +108,36 @@ Tüm renkler CSS değişkeni olarak tanımlanır. **Hiçbir bileşende hex kodu 
 --bg-surface:   #FFFFFF;
 --bg-elevated:  #FFFFFF;
 --border:       #E4E4F0;
---border-hover: #CFCFE4;  /* ADR-010 turu, T-002/K5 — koyu temada vardı, burada eksikti */
+--border-hover: #CFCFE4;
+--border-strong: #8A8ABC;
 --text-primary: #14142B;
 --text-body:    #4A4A66;
---text-muted:   #8A8AA3;
-/* accent değerleri aynı kalır */
+--text-muted:   #686885;
+
+/* Aydınlık temada DEĞİŞEN vurgu ve durum renkleri.
+   --accent, --accent-hover, --accent-blue aynı kalır; aşağıdakiler kalamaz:
+   koyu temanın parlak değerleri beyaz üzerinde 1.57–2.77:1 veriyor, yani okunmuyor. */
+--accent-soft:  #6B3BF7;  /* açık mor beyaz üzerinde okunmaz — koyulaşmak zorunda */
+--success:      #197352;
+--warning:      #845F02;
+--danger:       #C60A0A;
+--info:         #0760CF;
 ```
+
+**Kontrast, tasarım tercihi değil kabul şartıdır (§1.1 K5).** Yukarıdaki değerler
+T-002b'de her iki tema için ölçülerek çözülmüştür; normal metin ≥ 4.5:1, büyük metin
+ve etkileşimli denetim kenarları ≥ 3:1. Bir token değiştirilecekse **önce ölçülür**.
+Rozet ve yarı saydam zeminlerde (`bg-<renk>/12`) hesap **bileşik zemine** göre yapılır,
+saf beyaza/siyaha göre değil — aradaki fark AA'yı kaçırmaya yetiyor.
+
+**Kenar token'ları ayrımı:** `--border` dekoratiftir (kart, ayraç) ve §3.3'ün "çok yumuşak
+kenar" yönünü korur. `--border-strong` yalnızca **etkileşimli denetimlerde** (input,
+textarea, select) kullanılır — WCAG 1.4.11 bunlar için 3:1 ister.
+
+**Gövde metni içi bağlantılar renk dışında bir işaretle de ayrılır** (alt çizgi). Kural
+`globals.css`'te `p a` seçicisine bağlıdır — bileşen yazarının hatırlamasına bırakılmaz.
+`<p>` dışındaki satır içi bağlantılar `.link` sınıfını kullanır. Navigasyon, alt bilgi
+ve buton görünümlü bağlantılar bu kuralın dışındadır: konumları zaten bağlantı olduklarını söyler.
 
 **Hex yasağının kapsamı:** Yasak **bileşenler ve stil kodu** içindir — renk her zaman
 CSS değişkeni üzerinden gelir. Tek istisna, çerçevenin ham değer dayattığı **metadata
@@ -182,7 +207,7 @@ Panelde tüm sayısal veri (tutar, kilo, set, tarih) JetBrains Mono ile sekmeli 
 /panel/muhasebe           İşlem listesi, filtre, hızlı ekleme
 /panel/muhasebe/raporlar  Aylık/yıllık grafik, kategori dağılımı, CSV/PDF dışa aktarım
 /panel/muhasebe/kategoriler
-/panel/isler              İş kartları (kanban: teklif → aktif → teslim)
+/panel/isler              İş kartları (kanban 5 kolon: aday → teklif → aktif → teslim → iptal, ADR-017)
 /panel/isler/[id]         İş detayı + bağlı ödemeler + müşteri
 /panel/musteriler
 /panel/saglik             Kilo, uyku, su, ölçüm girişi + trend grafikleri
@@ -320,6 +345,41 @@ Prisma şeması aşağıdaki varlıkları içerir. Tüm modellerde `id` (cuid), 
 gelir tablosuna düşer. Aynı veri iki yere girilmez. `ContactMessage → Job` dönüşümü de
 tek tıkla yapılır: gelen mesajdan iş kartı oluşturulur, müşteri kaydı otomatik açılır.
 
+### 6.1 Bağlayıcı Düzeltmeler (T-000 değerlendirmesi → ADR-013…021)
+
+Yukarıdaki liste v1.0'ın ilk taslağıdır. Backend'in şema öncesi değerlendirmesi 30 kalemde
+tutarsızlık veya boşluk buldu; hepsi karara bağlandı. **Çelişki hâlinde aşağıdaki tablo
+geçerlidir.** Gerekçeler `docs/DECISIONS.md`'de.
+
+| Alan | Karar | ADR |
+|------|-------|-----|
+| `Session`, `VerificationToken` | **Kaldırıldı.** Auth.js v5 + Credentials yalnızca JWT ile çalışır; adapter kullanılmaz | 013 |
+| `User` | `totpBackupCodes` (argon2id hash'li), `totpConfirmedAt`, `lockedUntil` eklendi; `totpSecret` **şifreli** saklanır | 013 |
+| `LoginAttempt` | **Yeni model** — §8.4'ün "log" gereği bellekte karşılanamaz. Tablo Backend'in, politika Güvenlik'in | 013 |
+| `Transaction`, `Job` | `fxRate` + `baseAmount` eklendi. **Tüm toplamlar `baseAmount` üzerinden** | 014 |
+| KDV / stopaj | **v1 kapsamı dışı.** Tahsilat ve bakiye `Transaction` toplamından türetilir, sütun tutulmaz | 014 |
+| Para alanları | Servis sınırında `Decimal` değil **`string`** döner | 014 |
+| `Transaction.isRecurring`, `recurrenceRule` | **Kaldırıldı.** Yeni `RecurringTransaction` modeli + `@@unique([sourceRecurringId, periodKey])` | 015 |
+| Gün alanları | `HealthLog/HabitLog/Transaction/Workout/JournalEntry.date` → **`@db.Date`**; gün hesapları tek zaman dilimi yardımcısından geçer | 016 |
+| `ContactMessage.convertedJobId` | **Kaldırıldı.** Tek yön: `Job.contactMessageId @unique` | 017 |
+| `Client.email` | **`@unique`** — otomatik müşteri açma `upsert` ile | 017 |
+| Referans veriler | `isArchived` + `onDelete: Restrict`. **Muhasebede hard delete yok** | 017 |
+| `Job.status` ↔ kanban | Enum aynen kalır; panoda **beş kolon**: Aday → Teklif → Aktif → Teslim → İptal. §4.2'nin üç kolonlu tarifi bununla değişti | 017 |
+| `Profile` | Tekil: sabit `id: "singleton"` + `upsert` | 017 |
+| `Attachment.url` | **Kaldırıldı** — §8.11 ile çelişiyordu. `key @unique` + `checksum` + `width`/`height` + `uploadedById`; imzalı URL istek anında üretilir | 018 |
+| `Transaction.attachmentId` | **Kaldırıldı.** Tek mekanizma: polimorfik `Attachment` + `@@index([entity, entityId])` | 018 |
+| `coverUrl` / `avatarUrl` / `cvUrl` / `gallery` | `Attachment` FK'sine bağlandı (`onDelete: Restrict`); `gallery` **ilişkidir**, scalar değil | 018 |
+| İçerik modelleri | `locale String @default("tr")`, slug kısıtları `@@unique([slug, locale])` (§1.2 i18n altyapısı) | 019 |
+| `status` (içerik) | `DRAFT` · `SCHEDULED` · `PUBLISHED` · `ARCHIVED`. `ARCHIVED` slug'ı korur ve **410** döner | 019 |
+| `Post.viewCount` | Doğrudan sütun **değil** — ADR-011 önbelleğiyle çelişirdi. Ayrılıyor, uygulaması F3 | 019 |
+| `tags[]` | v1'de **scalar kalır** (bilinçli takas: yeniden adlandırma toplu update ister) | 019 |
+| Kategorik alanlar | Hepsi **enum**; değerleri T-010'da Backend yayınlar (§7.3 sözleşmesi) | 020 |
+| `AuditLog` | Alan adı bazlı **redaksiyon zorunlu** (§8.20); `actorId onDelete: SetNull` + `actorEmailHash`; IP 90 gün | 020 |
+| `ContactMessage` | `repliedAt`, `archivedAt`, `honeypotHit`, `spamScore` eklendi | 020 |
+| `PersonalRecord` | **Tekrar bazında**: `@@unique([exerciseId, reps])`. Tahmini 1RM kullanılmaz. `workoutSetId` ile kaynağa bağlı, türetilmiş veri | 021 |
+| `HabitLog.done` | **`count Int @default(1)`** oldu; `Habit.targetPerDay` eklendi | 021 |
+| İndeksler | Asgari set ADR-017'de listelendi. `HabitLog` üzerindeki `@@unique([habitId, date])` **eksikti** — çift kayıt mümkündü | 017 |
+
 ---
 
 ## 7. API & Sunucu Sözleşmesi
@@ -364,7 +424,13 @@ ham Prisma çağrısı yapmaz. Böylece test edilebilirlik ve yetki kontrolü te
 Bunlar "iyi olur" değil, **kabul şartıdır**. Güvenlik ajanı bunları maddede madde denetler.
 
 **Kimlik doğrulama**
-1. Tek kullanıcı, Credentials + TOTP 2FA (2FA v1'de zorunlu olarak açık gelir)
+1. Tek kullanıcı, Credentials + TOTP 2FA. **2FA kurulumu ilk girişte zorunludur:** seed
+   kullanıcıyı 2FA'sız açar (kurulmamış bir authenticator kullanıcıyı kendi panelinden
+   kilitler — bkz. R3), ancak `totpConfirmedAt` boşken panel her istekte kurulum ekranına
+   yönlendirir. Kurulum tamamlanmadan panelin hiçbir bölümü kullanılamaz.
+   *(Düzeltme 2026-08-10, T-016/T2: özgün metin "zorunlu olarak açık gelir" diyordu; seed'in
+   2FA'yı açık üretmesi teknik olarak mümkün ama secret'ı kimse bilmediği için kilitlenme
+   üretirdi. Zorunluluk kurulum anına taşındı, gevşetilmedi.)*
 2. argon2id ile şifre hash'i, memory ≥ 19MB, iterations ≥ 2
 3. Oturum çerezleri: `httpOnly`, `secure`, `sameSite: lax`, 7 gün
 4. Giriş denemesi: IP başına 15 dakikada 5; aşımda 15 dk kilit + log
@@ -438,7 +504,7 @@ SEO ≥ 95 (public sayfalar).
 |------|--------------------|------------|
 | **Orkestra Şefi** | `PROGRAM.md`, `docs/**` | Sadece dokümantasyon — **kod yazmaz** |
 | **Backend** | `prisma/**`, `prisma.config.ts`, `docker-compose*.yml`, `src/server/**`, `src/app/api/**`, `src/lib/schemas/**`, `src/types/**` | Kod |
-| **Frontend** | `src/app/(public)/**`, `src/app/(panel)/**`, `src/app/layout.tsx`, `src/components/**`, `src/app/globals.css`, `public/**` | Kod |
+| **Frontend** | `src/app/(public)/**`, `src/app/(panel)/**`, `src/app/(auth)/**`, `src/app/layout.tsx`, `src/components/**`, `src/app/globals.css`, `public/**` | Kod |
 | **Güvenlik & Test** | `tests/**`, `src/middleware.ts`, `src/lib/security/**`, `docs/security/**`, `.github/**`, `.nvmrc`, `vitest.config.ts`, `playwright.config.ts`, `lighthouserc.json` | Kod + rapor |
 
 **Sınır kuralı:** Bir ajan başkasının dosyasını değiştirmez. İhtiyaç varsa Orkestra
@@ -546,6 +612,9 @@ AUTH_URL=https://abdulkadirelaldi.com
 ADMIN_EMAIL=
 ADMIN_PASSWORD_HASH=
 TOTP_ISSUER=Abdulkadir Elaldı Panel
+# TOTP secret'larını uygulama seviyesinde şifreler (ADR-013). Kaybolursa 2FA
+# secret'ları açılamaz — BACKUP_ENCRYPTION_KEY ile aynı ciddiyette saklanmalı.
+TOTP_ENCRYPTION_KEY=
 
 # Depolama (Cloudflare R2)
 R2_ACCOUNT_ID=

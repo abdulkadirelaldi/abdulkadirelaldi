@@ -17,7 +17,11 @@ next-env.d.ts
 /blob-report
 /test-results
 /.playwright
+# LHCI'ın kendi çalışma dizini + artifact olarak yüklenen rapor çıktısı.
+# İkincisi bilerek noktasız: upload-artifact gizli dizinleri atlıyor (BULGU-004).
 /.lighthouseci
+/lighthouse-raporu
+/playwright-sonuc.json
 
 # ortam degiskenleri (§8.17) — .env.example HARIC hicbir .env repoya girmez
 .env

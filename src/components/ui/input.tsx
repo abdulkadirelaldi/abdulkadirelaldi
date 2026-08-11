@@ -19,8 +19,8 @@ export function Input({ className, type = 'text', ...props }: ComponentProps<'in
       type={type}
       className={cn(
         'focus-ring rounded-input h-11 w-full min-w-0 px-3 text-sm',
-        'border-line bg-elevated text-primary placeholder:text-muted border',
-        'ease-brand duration-micro hover:border-line-hover transition-colors',
+        'border-line-strong bg-elevated text-primary placeholder:text-muted border',
+        'ease-brand duration-micro hover:border-accent transition-colors',
         'disabled:cursor-not-allowed disabled:opacity-50',
         'aria-invalid:border-danger aria-invalid:focus-visible:outline-danger',
         className,
@@ -37,8 +37,8 @@ export function Textarea({ className, rows = 5, ...props }: ComponentProps<'text
       rows={rows}
       className={cn(
         'focus-ring rounded-input w-full min-w-0 resize-y px-3 py-2.5 text-sm',
-        'border-line bg-elevated text-primary placeholder:text-muted border',
-        'ease-brand duration-micro hover:border-line-hover transition-colors',
+        'border-line-strong bg-elevated text-primary placeholder:text-muted border',
+        'ease-brand duration-micro hover:border-accent transition-colors',
         'disabled:cursor-not-allowed disabled:opacity-50',
         'aria-invalid:border-danger aria-invalid:focus-visible:outline-danger',
         className,

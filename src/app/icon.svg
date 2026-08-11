@@ -1,0 +1,25 @@
+<!--
+  Site simgesi — "AE" monogramı.
+
+  T-002b: bu dosya yokken tarayıcı /favicon.ico istiyor, 404 alıyor ve bunu
+  konsola HATA olarak yazıyordu — Lighthouse `errors-in-console` denetiminin
+  ikinci (ve son) kaynağı buydu. Next, bu dosyadan <link rel="icon"> üretir.
+
+  Renkler §3.1'in --accent (#7756FF) ve --accent-blue (#1C6AFF) token'larıdır;
+  SVG bir varlık dosyası olduğu için CSS değişkeni kullanamaz. globals.css'te
+  bu iki token değişirse burası da elle güncellenmelidir.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <linearGradient id="ae" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7756FF" />
+      <stop offset="1" stop-color="#1C6AFF" />
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#ae)" />
+  <path
+    d="M14 46 L23 18 h6 l9 28 h-6.4 l-1.8-6h-8.6l-1.8 6z m9.9-11.2h5.2L26.5 25z"
+    fill="#FFFFFF"
+  />
+  <path d="M42 18h9v5.2h-9v5.6h8v5.2h-8v6.8h9V46h-9z" fill="#FFFFFF" opacity="0.85" />
+</svg>

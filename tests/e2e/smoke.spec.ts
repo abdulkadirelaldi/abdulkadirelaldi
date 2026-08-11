@@ -22,11 +22,25 @@ test.describe('duman testi', () => {
     await expect(headings.first()).not.toBeEmpty();
   });
 
-  test('panel iskeleti açılır', async ({ page }) => {
-    const response = await page.goto('/panel');
+  /**
+   * §9 senaryo 4 — "Giriş yapmadan `/panel` → login'e yönlenir".
+   *
+   * T-004'te bu test `/panel`'in 200 döndüğünü doğruluyordu; o zaman panel
+   * gerçekten herkese açıktı (§8.5 ⚠️). T-014 korumayı kurunca beklenti
+   * TERSİNE ÇEVRİLDİ — panelin hâlâ 200 dönmesi artık bir gerileme olurdu.
+   */
+  test('giriş yapmadan /panel → /giris (§9 senaryo 4)', async ({ page }) => {
+    await page.goto('/panel');
+
+    await expect(page).toHaveURL(/\/giris(\?|$)/);
+    expect(new URL(page.url()).searchParams.get('callbackUrl')).toBe('/panel');
+  });
+
+  test('giriş sayfası açılır ve form gösterir', async ({ page }) => {
+    const response = await page.goto('/giris');
 
     expect(response?.status()).toBe(200);
-    await expect(page.locator('main')).toBeVisible();
+    await expect(page.locator('main, form').first()).toBeVisible();
   });
 
   /**

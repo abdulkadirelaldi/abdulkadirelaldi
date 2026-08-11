@@ -8,7 +8,17 @@ import { useEffect, useState } from 'react';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { cn } from '@/lib/utils/cn';
 
-/** §4.1 — public rotalar. */
+/**
+ * §4.1 — public rotalar.
+ *
+ * T-002b: bu sayfaların hiçbiri henüz YOK (F2/T-021'de açılacak). `next/link`
+ * varsayılan olarak görünür bağlantıları önden çeker; olmayan rotayı çekince
+ * 404 döner ve tarayıcı bunu konsola HATA olarak yazar — Lighthouse'un
+ * `errors-in-console` denetimi bu yüzden sıfır almıştı.
+ *
+ * Sayfalar açıldığında aşağıdaki `prefetch={false}` KALDIRILMALI; ön çekme
+ * gezinmeyi belirgin biçimde hızlandırır.
+ */
 const NAV_LINKS = [
   { href: '/hakkimda', label: 'Hakkımda' },
   { href: '/projeler', label: 'Projeler' },
@@ -51,6 +61,7 @@ export function Navbar() {
             <li key={link.href}>
               <Link
                 href={link.href}
+                prefetch={false}
                 aria-current={isActive(link.href) ? 'page' : undefined}
                 className={cn(
                   'focus-ring ease-brand duration-micro rounded-btn relative px-3 py-2 text-sm transition-colors',
@@ -94,6 +105,7 @@ export function Navbar() {
               <li key={link.href}>
                 <Link
                   href={link.href}
+                  prefetch={false}
                   aria-current={isActive(link.href) ? 'page' : undefined}
                   className={cn(
                     'focus-ring rounded-btn block px-3 py-3 text-sm',

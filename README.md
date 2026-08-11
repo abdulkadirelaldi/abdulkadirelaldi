@@ -9,23 +9,61 @@ Kişisel site (public portföy/CV) ve tek kullanıcılı yönetim paneli — tek
 
 | Araç       | Sürüm                                         |
 | ---------- | --------------------------------------------- |
-| Node.js    | >= 20.11 (geliştirme: 20.20.0)                |
+| Node.js    | **22 LTS** — `.nvmrc` tek kaynak (ADR-008)    |
 | pnpm       | 9.15.0 (`packageManager` ile sabit — ADR-003) |
 | PostgreSQL | 16 (Docker)                                   |
 
 `npm` / `yarn` kullanılmaz; `package-lock.json` ve `yarn.lock` `.gitignore`'da yasaklıdır.
 
+> **nvm kullanıyorsanız:** Node sürümünü her değiştirdiğinizde `corepack enable`
+> komutunu **tekrar çalıştırın**. corepack shim'leri sürüm başına kurulur; yeni
+> sürüme geçtiğinizde `pnpm` bulunamaz ve hata mesajı (`command not found: pnpm`)
+> nedenini söylemez.
+>
+> ```bash
+> nvm use          # .nvmrc'deki sürüme geçer
+> corepack enable  # pnpm shim'ini bu sürüm için kurar
+> ```
+
 ## Kurulum
 
 ```bash
+nvm use                    # Node 22 (.nvmrc)
 corepack enable            # pnpm 9.15.0'ı packageManager alanından alır
 pnpm install               # postinstall Prisma istemcisini de üretir (ADR-006)
 cp .env.example .env       # değerleri doldur (§12)
 
+# Gizli anahtarları üret ve .env'e yaz (§12, ADR-013)
+openssl rand -base64 32    # AUTH_SECRET
+openssl rand -base64 32    # TOTP_ENCRYPTION_KEY  ← kaybolursa 2FA secret'ları açılamaz
+
 pnpm db:up                 # yerel PostgreSQL 16
 pnpm db:migrate            # şemayı uygula
+pnpm db:seed               # örnek veri + yönetici kullanıcı
 pnpm dev
 ```
+
+### Seed
+
+`pnpm db:seed` **idempotenttir** — istediğiniz kadar çalıştırabilirsiniz, kayıtlar
+çoğalmaz. Her girdi ilgili `createXSchema`'dan geçirilir; yani seed aynı zamanda
+Zod sözleşmesinin canlı doğrulamasıdır.
+
+Yönetici kullanıcı için `.env` içinde şunlar gerekir:
+
+| Anahtar               | Not                                                              |
+| --------------------- | ---------------------------------------------------------------- |
+| `ADMIN_EMAIL`         | Zorunlu                                                          |
+| `ADMIN_PASSWORD_HASH` | **Önerilen** — düz şifre hiçbir yerde bulunmaz (§12)             |
+| `ADMIN_PASSWORD`      | Alternatif; seed `hashPassword` ile hash'ler, düz hâli saklanmaz |
+
+İkisinden biri tanımlı olmalıdır. Seed çıktısı **hiçbir şifre veya secret yazdırmaz** (§8.20).
+
+Oluşan kullanıcıda **2FA kapalıdır** (`totpConfirmedAt` boş): ilk giriş doğrulama kodu
+istemez, 2FA kurulumu panelden yapılır.
+
+`pnpm exec prisma migrate reset` seed'i otomatik çalıştırır — komut Prisma 7'de
+`package.json` yerine `prisma.config.ts` içindeki `migrations.seed` alanında tanımlıdır.
 
 Sağlık kontrolü: `curl -s localhost:3000/api/v1/health | jq`
 
@@ -33,12 +71,12 @@ Sağlık kontrolü: `curl -s localhost:3000/api/v1/health | jq`
 
 `docker-compose.dev.yml` PostgreSQL 16'yı **yalnızca localhost'a** bağlar:
 
-| | |
-| --- | --- |
-| Servis / container | `db` / `aelaldi-db-dev` |
-| Host portu | **5433** (container içi 5432) |
+|                        |                                            |
+| ---------------------- | ------------------------------------------ |
+| Servis / container     | `db` / `aelaldi-db-dev`                    |
+| Host portu             | **5433** (container içi 5432)              |
 | DB / kullanıcı / şifre | `aelaldi` / `aelaldi` / `aelaldi_dev_only` |
-| Volume | `aelaldi_pgdata` |
+| Volume                 | `aelaldi_pgdata`                           |
 
 Host portu bilerek **5433**'tür: birçok makinede sistem geneli kurulu bir PostgreSQL
 5432'yi tutar. Çakışma sessizdir — container `healthy` görünür ama bağlantılar host'taki
@@ -84,6 +122,7 @@ Verisiyle birlikte silme: `... down -v`
 | `pnpm db:migrate`   | `prisma migrate dev`                               |
 | `pnpm db:generate`  | `prisma generate`                                  |
 | `pnpm db:studio`    | Prisma Studio                                      |
+| `pnpm db:seed`      | Örnek veri + yönetici kullanıcı (idempotent)       |
 
 Commit öncesi zorunlu (§10.5): `pnpm lint && pnpm typecheck && pnpm test`
 

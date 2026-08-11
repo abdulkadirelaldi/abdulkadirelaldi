@@ -53,5 +53,14 @@ export default defineConfig({
 
   migrations: {
     path: 'prisma/migrations',
+    /**
+     * `prisma migrate dev/reset` sonrası çalıştırılacak komut.
+     *
+     * PRISMA 7 FARKI: seed komutu artık `package.json` içindeki `prisma.seed`
+     * alanında DEĞİL, burada tanımlanır. Eski yere yazılsaydı sessizce yok
+     * sayılırdı — `pnpm db:seed` yine çalışırdı ama `migrate reset` seed'i
+     * atlardı ve fark ancak veritabanı boş kalınca anlaşılırdı.
+     */
+    seed: 'node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --import ./prisma/seed-register.mjs prisma/seed.ts',
   },
 });

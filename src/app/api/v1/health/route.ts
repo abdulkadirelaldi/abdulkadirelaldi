@@ -119,7 +119,10 @@ export async function GET(): Promise<NextResponse<ApiResponse<HealthData>>> {
   }
 
   if (disk === 'critical') {
-    return failure(`disk doluluk eşiği aşıldı (boş alan < %${DISK_CRITICAL_FREE_RATIO * 100})`, 'disk');
+    return failure(
+      `disk doluluk eşiği aşıldı (boş alan < %${DISK_CRITICAL_FREE_RATIO * 100})`,
+      'disk',
+    );
   }
 
   return NextResponse.json<ApiResponse<HealthData>>(

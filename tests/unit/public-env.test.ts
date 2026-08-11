@@ -51,7 +51,10 @@ const SECRET_NAME_PATTERNS = [
  * Ad masum olsa bile değerin kendisi ele verir.
  */
 const SECRET_VALUE_PATTERNS: ReadonlyArray<{ label: string; test: RegExp }> = [
-  { label: 'OpenAI/Stripe gizli anahtarı', test: /\bsk[-_](?:live|test|proj)?[-_]?[A-Za-z0-9]{16,}/ },
+  {
+    label: 'OpenAI/Stripe gizli anahtarı',
+    test: /\bsk[-_](?:live|test|proj)?[-_]?[A-Za-z0-9]{16,}/,
+  },
   { label: 'GitHub jetonu', test: /\b(?:ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{20,}/ },
   { label: 'GitHub ince ayar jetonu', test: /\bgithub_pat_[A-Za-z0-9_]{20,}/ },
   { label: 'AWS erişim anahtarı', test: /\b(?:AKIA|ASIA)[0-9A-Z]{16}\b/ },
@@ -150,7 +153,10 @@ describe('§8.18 dedektörü — ekili sırları yakalıyor mu', () => {
     ['NEXT_PUBLIC_ANALYTICS', 'ghp_AbCdEfGhIjKlMnOpQrStUvWxYz0123456789'],
     ['NEXT_PUBLIC_BUCKET', 'AKIAIOSFODNN7EXAMPLE'],
     ['NEXT_PUBLIC_MAIL', 're_AbCdEfGhIjKlMnOpQrSt'],
-    ['NEXT_PUBLIC_SESSION', 'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dBjftJeZ4CVPmB92K27u'],
+    [
+      'NEXT_PUBLIC_SESSION',
+      'eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0NTY3ODkwIn0.dBjftJeZ4CVPmB92K27u',
+    ],
     ['NEXT_PUBLIC_DB', 'postgresql://aelaldi:sup3rgizli@db.ornek.com:5432/aelaldi'],
     ['NEXT_PUBLIC_CERT', '-----BEGIN PRIVATE KEY-----\nMIIEv...'],
   ];
@@ -199,10 +205,7 @@ describe('§8.18 — .env.example', () => {
     const ciftler = envAyristir(readFileSync(ornekYolu, 'utf8'));
     const sizintilar = publicEnvTara(ciftler, '.env.example');
 
-    expect(
-      sizintilar,
-      sizintilar.map((s) => `${s.anahtar}: ${s.gerekce}`).join('\n'),
-    ).toEqual([]);
+    expect(sizintilar, sizintilar.map((s) => `${s.anahtar}: ${s.gerekce}`).join('\n')).toEqual([]);
   });
 
   it('çalışma ortamındaki NEXT_PUBLIC_ değişkenleri de temiz', () => {
@@ -212,10 +215,7 @@ describe('§8.18 — .env.example', () => {
 
     const sizintilar = publicEnvTara(ciftler, 'process.env');
 
-    expect(
-      sizintilar,
-      sizintilar.map((s) => `${s.anahtar}: ${s.gerekce}`).join('\n'),
-    ).toEqual([]);
+    expect(sizintilar, sizintilar.map((s) => `${s.anahtar}: ${s.gerekce}`).join('\n')).toEqual([]);
   });
 });
 

@@ -37,6 +37,7 @@ export function Footer() {
               <li key={link.href}>
                 <Link
                   href={link.href}
+                  prefetch={false}
                   className="focus-ring ease-brand duration-micro rounded-btn text-body hover:text-primary text-sm transition-colors"
                 >
                   {link.label}
@@ -58,7 +59,7 @@ export function Footer() {
               href={kiyiMedyaUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="focus-ring rounded-btn text-accent-soft underline-offset-4 hover:underline"
+              className="focus-ring rounded-btn text-accent-soft"
             >
               Kıyı Medya
             </a>{' '}

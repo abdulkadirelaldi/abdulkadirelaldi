@@ -1,15 +1,19 @@
-// PROGRAM.md §2 (PostgreSQL 16 + Prisma), §4.3
+// =============================================================================
+// PROGRAM.md §6 Veri Modeli + §6.1 Bağlayıcı Düzeltmeler (ADR-013…021)
 //
-// DİKKAT — Prisma 7 (risk R8):
-//   1. `datasource` bloğunda `url` ARTIK YASAK. Bağlantı dizesi `prisma.config.ts`
-//      içinde yaşar (migrate/introspect için), çalışma zamanında ise PrismaClient'a
-//      bir sürücü adaptörü ile verilir. `url = env("DATABASE_URL")` yazarsanız
-//      şema P1012 ile doğrulamadan geçmez.
-//   2. Generator `prisma-client` (v6'daki `prisma-client-js` DEĞİL). Çıktı yolu
-//      açıkça verilmek zorunda ve üretilen kod TypeScript kaynağıdır.
+// Çelişki hâlinde §6.1 geçerlidir; bu şema §6.1'e göre yazılmıştır.
 //
-// Bu dosyada ŞU AN yalnızca bağlantıyı doğrulayan tek model var.
-// §6'nın tam veri modeli T-010'da yazılacak.
+// PRISMA 7 NOTLARI (R8):
+//   - `datasource` bloğunda `url` YASAK — bağlantı dizesi `prisma.config.ts`'te.
+//   - Generator `prisma-client`; çıktı TypeScript kaynağıdır ve yolu açıkça verilir.
+//
+// GENEL KURALLAR:
+//   - Para: `Decimal(12,2)`. Kur: `Decimal(18,8)`. Toplamlar DAİMA `baseAmount`
+//     üzerinden (ADR-014). Servis sınırında `Decimal` değil `string` döner.
+//   - Gün semantiği taşıyan alanlar `@db.Date`; an bildirenler `DateTime` (ADR-016).
+//   - Kategorik alanlar enum (ADR-020). `mood`/`feeling`/`rpe` ölçektir, Int kalır.
+//   - Referans verilerde hard delete yok: `isArchived` + `onDelete: Restrict` (ADR-017).
+// =============================================================================
 
 datasource db {
   provider = "postgresql"
@@ -17,17 +21,856 @@ datasource db {
 
 generator client {
   provider = "prisma-client"
-  // Yol schema.prisma'ya GÖRELİDİR. `src/server/` altında tutuluyor çünkü
-  // §7.4 gereği DB erişimi yalnızca sunucu katmanında olmalı.
   output   = "../src/server/generated/prisma"
 }
 
-/// T-003 doğrulama modeli — bağlantının ve migration zincirinin çalıştığını
-/// kanıtlar. Sağlık kontrolü ucu (§13.6) bu tabloya dokunmaz, yalnızca
-/// bağlantıyı test eder. T-010'da §6 modelleri eklenirken bu model KALDIRILACAK.
-model HealthCheck {
-  id        String   @id @default(cuid())
-  checkedAt DateTime @default(now())
+// =============================================================================
+// ENUM'LAR — §7.3 sözleşmesi. Frontend bu değerleri kodunda kullanır.
+// Değer eklemek/çıkarmak migration gerektirir; dikkatle değiştirin.
+// =============================================================================
 
-  @@map("health_check")
+/// İçerik yayın durumu (ADR-019).
+/// ARCHIVED slug'ı korur ve public tarafta 410 Gone döner — 404 değil.
+enum ContentStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  ARCHIVED
+}
+
+enum ExperienceType {
+  WORK
+  EDUCATION
+}
+
+/// Yetenek kategorisi — Backend önerisi (ADR-020, T-010 sözleşmesi).
+enum SkillCategory {
+  FRONTEND
+  BACKEND
+  DATABASE
+  DEVOPS
+  MOBILE
+  DESIGN
+  TOOLING
+  SOFT_SKILL
+  OTHER
+}
+
+/// İş durumu. Panoda BEŞİ DE kolondur; eşleme katmanı yoktur (ADR-017).
+/// Aday → Teklif → Aktif → Teslim → İptal
+enum JobStatus {
+  LEAD
+  PROPOSAL
+  ACTIVE
+  DELIVERED
+  CANCELLED
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CREDIT_CARD
+  OTHER
+}
+
+/// Para birimi. Serbest metin bırakılmadı (ADR-020) — yazım hatası tüm
+/// raporlamayı sessizce bozardı. TRY dışındaki her işlemde `fxRate` zorunlu.
+enum Currency {
+  TRY
+  USD
+  EUR
+  GBP
+}
+
+enum WorkoutType {
+  GYM
+  CARDIO
+  KAYAK
+  OTHER
+}
+
+enum MuscleGroup {
+  CHEST
+  BACK
+  SHOULDERS
+  ARMS
+  LEGS
+  CORE
+  FULL_BODY
+  CARDIO
+  OTHER
+}
+
+enum Equipment {
+  BARBELL
+  DUMBBELL
+  MACHINE
+  CABLE
+  BODYWEIGHT
+  KETTLEBELL
+  BAND
+  OTHER
+}
+
+enum GoalStatus {
+  ACTIVE
+  PAUSED
+  ACHIEVED
+  ABANDONED
+}
+
+/// Hedef kategorisi — Backend önerisi (ADR-020, T-010 sözleşmesi).
+/// Panel modülleriyle (§1.B) hizalı seçildi.
+enum GoalCategory {
+  CAREER
+  FINANCE
+  HEALTH
+  FITNESS
+  LEARNING
+  PERSONAL
+  OTHER
+}
+
+/// Denetim kaydı eylemi (ADR-020).
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+  ARCHIVE
+  RESTORE
+  LOGIN
+  LOGIN_FAILED
+  LOGOUT
+  EXPORT
+}
+
+/// `Attachment` polimorfik bağının hedef türü (ADR-018).
+/// Enum olması, yazım hatasıyla erişilemez hale gelen dosyayı engeller.
+enum AttachmentEntity {
+  PROJECT
+  POST
+  PROFILE
+  TRANSACTION
+  JOB
+  CLIENT
+}
+
+// =============================================================================
+// KİMLİK & SİSTEM
+// =============================================================================
+
+/// Tek kullanıcı (§1.B). Auth.js v5 + Credentials, JWT session (ADR-013).
+/// `Session`, `VerificationToken`, `Account` modelleri BİLEREK YOK — Credentials
+/// provider yalnızca JWT ile çalışır, PrismaAdapter kullanılmaz.
+model User {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String
+  name         String
+  lastLoginAt  DateTime?
+
+  /// §8.4 — hız sınırı aşımında kilit. Politika Güvenlik ajanının.
+  lockedUntil DateTime?
+
+  // --- 2FA (ADR-013) ---
+  /// UYGULAMA SEVİYESİNDE ŞİFRELİ saklanır (TOTP_ENCRYPTION_KEY).
+  /// Düz metin yazılırsa DB yedeği (§8.21) sızdığında ikinci faktör değersizleşir.
+  /// Şifreleme/çözme T-013'te auth katmanında yapılır.
+  totpSecret      String?
+  totpEnabled     Boolean   @default(false)
+  /// Kurulum tamamlanmadan 2FA zorunlu sayılmaz.
+  totpConfirmedAt DateTime?
+  /// Her biri argon2id ile HASH'Lİ — düz saklanmaz. Kod bir kez kullanılır ve tüketilir.
+  totpBackupCodes String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  auditLogs   AuditLog[]
+  attachments Attachment[]
+
+  @@map("user")
+}
+
+/// §8.4 giriş denemesi kaydı (ADR-013).
+/// Tablo Backend'in, sayma/kilitleme politikası Güvenlik ajanının.
+model LoginAttempt {
+  id String @id @default(cuid())
+
+  ip String
+  /// HAM E-POSTA DEĞİL (§8.20). Hash'leme Güvenlik katmanında yapılır.
+  emailHash String
+  success   Boolean
+
+  createdAt DateTime @default(now())
+
+  /// Hız sınırı sorgusu: son 15 dk içinde bu IP'den kaç deneme.
+  @@index([ip, createdAt])
+  @@index([emailHash, createdAt])
+  /// 90 günden eski kayıtların gece temizliği için.
+  @@index([createdAt])
+  @@map("login_attempt")
+}
+
+/// §8.19 — tüm panel mutasyonları buraya yazılır.
+/// `diff` alanı ALAN ADI BAZLI REDAKSİYONDAN geçer (ADR-020): password,
+/// passwordHash, totpSecret, totpBackupCodes, token, email maskelenir.
+/// Redaksiyon yardımcısı T-015'te yazılır ve §9 gereği birim testi vardır.
+model AuditLog {
+  id String @id @default(cuid())
+
+  /// Kullanıcı silinse bile log korunur (ADR-020).
+  actorId String?
+  actor   User?   @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  /// Aktör silindiğinde kimliğin izini bırakan snapshot — ham e-posta değil.
+  actorEmailHash String?
+
+  action AuditAction
+  /// Model adı. Enum DEĞİL — bkz. rapor / Kararlar K4.
+  entity   String
+  entityId String?
+  diff     Json?
+
+  /// §8 / KVKK — 90 gün sonra gece işiyle temizlenir (kaydın kendisi kalır).
+  ip        String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([createdAt])
+  @@index([actorId])
+  @@map("audit_log")
+}
+
+/// R2 nesnesi (ADR-018).
+///
+/// `url` alanı BİLEREK YOK — §8.11 private bucket + 15 dk imzalı URL istiyor.
+/// Kalıcı URL saklamak ya yanlış (bayat) ya tehlikeli (public bucket demek) olurdu.
+/// İmzalı URL istek anında `key`den üretilir.
+///
+/// Polimorfik: gerçek FK yoktur, bütünlük uygulama katmanında korunur (kabul
+/// edilen takas — alternatifi her varlık için ayrı ek tablosu).
+model Attachment {
+  id String @id @default(cuid())
+
+  /// R2 nesne anahtarı. Yetim dosya tespitinin dayanağı.
+  key      String @unique
+  mime     String
+  size     Int
+  /// §8.23 bütünlük doğrulaması aynı mekanizmayı kullanır.
+  checksum String
+
+  /// Görseller için — Frontend'in `next/image` ile CLS'i önlemesi şart (§5.2.3).
+  width  Int?
+  height Int?
+
+  entity   AttachmentEntity
+  entityId String
+  /// Galeri sıralaması (ADR-018). Kapak görselleri FK ile bağlıdır, burada değil.
+  order    Int              @default(0)
+
+  uploadedById String?
+  uploadedBy   User?   @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Kapak/CV olarak kullanıldığı yerler — `onDelete: Restrict` bu taraflarda tanımlı.
+  coverOfProjects Project[] @relation("ProjectCover")
+  coverOfPosts    Post[]    @relation("PostCover")
+  avatarOfProfile Profile[] @relation("ProfileAvatar")
+  cvOfProfile     Profile[] @relation("ProfileCv")
+
+  /// Galeri sorgusunun taşıyıcı indeksi.
+  @@index([entity, entityId, order])
+  @@index([uploadedById])
+  @@map("attachment")
+}
+
+// =============================================================================
+// SİTE İÇERİĞİ
+// İçerik modelleri `locale` taşır (ADR-019, §1.2 i18n altyapısı).
+// =============================================================================
+
+/// Tekil profil (ADR-017). `id` sabit "singleton" ile açılır ve `upsert` edilir;
+/// `@@unique([locale])` çoklu satırı VERİTABANI DÜZEYİNDE imkânsız kılar —
+/// i18n açıldığında dil başına tek profil olur.
+model Profile {
+  id     String @id @default("singleton")
+  locale String @default("tr")
+
+  headline     String
+  subtitle     String?
+  bio          String
+  location     String?
+  availability String?
+  /// Sosyal bağlantılar. Şekli T-011'de Zod ile bağlanır.
+  socials      Json?
+
+  avatarAttachmentId String?
+  avatar             Attachment? @relation("ProfileAvatar", fields: [avatarAttachmentId], references: [id], onDelete: Restrict)
+
+  cvAttachmentId String?
+  cv             Attachment? @relation("ProfileCv", fields: [cvAttachmentId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([locale])
+  @@map("profile")
+}
+
+model Skill {
+  id     String @id @default(cuid())
+  locale String @default("tr")
+
+  name     String
+  category SkillCategory
+  /// 0–100. Zod ile `min(0).max(100)` bağlanır (T-011).
+  level    Int
+  iconKey  String?
+  order    Int           @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([name, locale])
+  @@index([category, order])
+  @@map("skill")
+}
+
+model Project {
+  id     String @id @default(cuid())
+  locale String @default("tr")
+
+  slug    String
+  title   String
+  summary String
+  /// MDX. Çıktı `rehype-sanitize` ile temizlenir (§8.9).
+  content String
+
+  coverAttachmentId String?
+  cover             Attachment? @relation("ProjectCover", fields: [coverAttachmentId], references: [id], onDelete: Restrict)
+
+  /// GALERİ: Prisma ilişki alanı DEĞİL, polimorfik sorgudur (ADR-018) —
+  /// `Attachment` where entity = PROJECT AND entityId = this.id, orderBy order.
+  /// Servis katmanı `getProjectGallery()` ile sunar. Scalar URL listesi YOK.
+
+  /// v1'de scalar (ADR-019, bilinçli takas: yeniden adlandırma toplu update ister).
+  tags  String[]
+  stack String[]
+
+  liveUrl    String?
+  repoUrl    String?
+  clientName String?
+  featured   Boolean @default(false)
+  order      Int     @default(0)
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([slug, locale])
+  @@index([status, publishedAt])
+  @@index([featured, order])
+  @@map("project")
+}
+
+model Post {
+  id     String @id @default(cuid())
+  locale String @default("tr")
+
+  slug    String
+  title   String
+  excerpt String
+  content String
+
+  coverAttachmentId String?
+  cover             Attachment? @relation("PostCover", fields: [coverAttachmentId], references: [id], onDelete: Restrict)
+
+  tags String[]
+
+  status      ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  /// Okuma süresi — §9 gereği hesaplayıcısı birim testi yazılan fonksiyonlardan.
+  readingMinutes Int @default(1)
+
+  /// `viewCount` sütunu BİLEREK YOK (ADR-019): her okumada UPDATE, ADR-011'in
+  /// önbellek katmanıyla çelişirdi. Sayaç ayrı modele taşınacak, uygulaması F3/T-035.
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([slug, locale])
+  @@index([status, publishedAt])
+  @@map("post")
+}
+
+model Experience {
+  id     String @id @default(cuid())
+  locale String @default("tr")
+
+  organization String
+  role         String
+  type         ExperienceType
+  /// Gün semantiği — ay/yıl gösterilse de takvim günüdür (ADR-016).
+  startDate    DateTime       @db.Date
+  endDate      DateTime?      @db.Date
+  current      Boolean        @default(false)
+  description  String?
+  order        Int            @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([type, startDate])
+  @@map("experience")
+}
+
+model Service {
+  id     String @id @default(cuid())
+  locale String @default("tr")
+
+  title       String
+  description String
+  iconKey     String?
+  /// §1.A — ticari niyeti Kıyı Medya'ya yönlendiren CTA (K4).
+  ctaUrl      String?
+  order       Int     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([order])
+  @@map("service")
+}
+
+/// İletişim formu mesajı. `convertedJobId` BİLEREK YOK (ADR-017) — tek yön
+/// `Job.contactMessageId @unique` üzerinden kurulur.
+model ContactMessage {
+  id String @id @default(cuid())
+
+  name       String
+  email      String
+  phone      String?
+  subject    String?
+  message    String
+  sourcePage String?
+
+  /// §8 / KVKK — 90 gün sonra temizlenir.
+  ip String?
+
+  isRead     Boolean   @default(false)
+  isSpam     Boolean   @default(false)
+  repliedAt  DateTime?
+  archivedAt DateTime?
+  /// §8.15 honeypot alanının sonucu. Spam mesaj SİLİNMEZ, ayrılır —
+  /// yanlış pozitifte gerçek müşteri kaybedilmesin.
+  honeypotHit Boolean @default(false)
+  spamScore   Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// Ters yön: bu mesajdan açılan iş (varsa).
+  convertedJob Job?
+
+  @@index([isRead, createdAt])
+  @@index([isSpam, createdAt])
+  @@map("contact_message")
+}
+
+// =============================================================================
+// İŞ & MUHASEBE
+// =============================================================================
+
+model Client {
+  id String @id @default(cuid())
+
+  name    String
+  company String?
+  /// @unique — mesajdan otomatik müşteri açma `upsert` ile çalışır (ADR-017).
+  /// Olmasaydı aynı kişi her mesajda yeniden oluşur, müşteri bazlı muhasebe bozulurdu.
+  email   String? @unique
+  phone   String?
+  notes   String?
+
+  isKiyiMedya Boolean @default(false)
+  /// Referans veri: silinmez, arşivlenir (ADR-017).
+  isArchived  Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  jobs         Job[]
+  transactions Transaction[]
+
+  @@index([isArchived, name])
+  @@map("client")
+}
+
+model Job {
+  id String @id @default(cuid())
+
+  title       String
+  description String?
+  status      JobStatus @default(LEAD)
+
+  clientId String?
+  client   Client? @relation(fields: [clientId], references: [id], onDelete: Restrict)
+
+  /// Tek yönlü bağ (ADR-017). Bir mesajdan en fazla bir iş açılır.
+  contactMessageId String?         @unique
+  contactMessage   ContactMessage? @relation(fields: [contactMessageId], references: [id], onDelete: SetNull)
+
+  /// Gün semantiği (ADR-016).
+  startDate DateTime? @db.Date
+  dueDate   DateTime? @db.Date
+  /// An bildirir — DateTime kalır.
+  deliveredAt DateTime?
+
+  /// BRÜT anlaşma tutarı. KDV/stopaj v1 kapsamı dışı (ADR-014).
+  agreedAmount Decimal? @db.Decimal(12, 2)
+  currency     Currency @default(TRY)
+  /// İşlem anındaki kur, TRY bazlı. TRY'de 1.0 (ADR-014).
+  fxRate       Decimal  @default(1.0) @db.Decimal(18, 8)
+  /// TRY karşılığı. TÜM toplama ve raporlama BU alan üzerinden yapılır.
+  baseAmount   Decimal? @db.Decimal(12, 2)
+
+  /// Tahsil edilen ve kalan bakiye SÜTUN DEĞİLDİR (ADR-014) — bağlı
+  /// `Transaction` toplamından türetilir. Tek doğruluk kaynağı korunur.
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions Transaction[]
+
+  @@index([status, dueDate])
+  @@index([clientId])
+  @@map("job")
+}
+
+model TransactionCategory {
+  id String @id @default(cuid())
+
+  name  String
+  type  TransactionType
+  color String?
+  icon  String?
+  /// Referans veri: silinmez, arşivlenir (ADR-017).
+  isArchived Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions          Transaction[]
+  recurringTransactions RecurringTransaction[]
+
+  @@unique([name, type])
+  @@index([type, isArchived])
+  @@map("transaction_category")
+}
+
+/// Gerçekleşmiş para hareketi (olay).
+/// `isRecurring` ve `recurrenceRule` BİLEREK YOK — şablon ayrı modelde (ADR-015).
+/// `attachmentId` BİLEREK YOK — ekler polimorfik `Attachment` üzerinden (ADR-018).
+model Transaction {
+  id String @id @default(cuid())
+
+  type   TransactionType
+  amount Decimal         @db.Decimal(12, 2)
+  currency Currency      @default(TRY)
+  /// İşlem anındaki kur, TRY bazlı. TRY'de 1.0 (ADR-014).
+  fxRate   Decimal       @default(1.0) @db.Decimal(18, 8)
+  /// TRY karşılığı — TÜM toplama, raporlama ve grafik BU alan üzerinden.
+  baseAmount Decimal     @db.Decimal(12, 2)
+
+  /// Gün semantiği (ADR-016). Saat bilgisi anlamsız; UTC kayması ay sınırında
+  /// toplamı bozardı.
+  date DateTime @db.Date
+
+  categoryId String
+  category   TransactionCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  jobId String?
+  job   Job?    @relation(fields: [jobId], references: [id], onDelete: Restrict)
+
+  clientId String?
+  client   Client? @relation(fields: [clientId], references: [id], onDelete: Restrict)
+
+  description String?
+  method      PaymentMethod @default(BANK_TRANSFER)
+  isPaid      Boolean       @default(true)
+  /// An bildirir — DateTime kalır.
+  paidAt      DateTime?
+  invoiceNo   String?
+
+  // --- Tekrarlayan üretim izi (ADR-015) ---
+  sourceRecurringId String?
+  sourceRecurring   RecurringTransaction? @relation(fields: [sourceRecurringId], references: [id], onDelete: SetNull)
+  /// Üretim dönemini temsil eden deterministik dize (örn. "2026-08").
+  /// Aşağıdaki unique ile birlikte cron'un çift üretimini VERİTABANI DÜZEYİNDE
+  /// engeller — uygulama mantığına güvenilmez.
+  periodKey String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([sourceRecurringId, periodKey])
+  @@index([date, type])
+  @@index([jobId])
+  @@index([categoryId])
+  @@index([clientId])
+  @@map("transaction")
+}
+
+/// Tekrarlayan işlem ŞABLONU (kural) — üretilen kayıttan ayrıdır (ADR-015).
+/// Şablonu düzenlemek geçmiş kayıtları etkilemez: geçen ayın kirası değişmez.
+model RecurringTransaction {
+  id String @id @default(cuid())
+
+  type     TransactionType
+  amount   Decimal         @db.Decimal(12, 2)
+  currency Currency        @default(TRY)
+
+  categoryId String
+  category   TransactionCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  description String?
+  method      PaymentMethod @default(BANK_TRANSFER)
+
+  /// Tekrar kuralı (RRULE benzeri dize). Yorumlanması servis katmanında.
+  recurrenceRule String
+  /// Gün semantiği (ADR-016).
+  startDate      DateTime  @db.Date
+  endDate        DateTime? @db.Date
+
+  /// Bir sonraki üretim anı. Bir dönem bilerek atlanacaksa ileri alınır.
+  nextRunAt       DateTime?
+  lastGeneratedAt DateTime?
+  isActive        Boolean   @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  generated Transaction[]
+
+  @@index([isActive, nextRunAt])
+  @@map("recurring_transaction")
+}
+
+// =============================================================================
+// SAĞLIK & SPOR
+// =============================================================================
+
+model HealthLog {
+  id String @id @default(cuid())
+
+  /// Gün semantiği + günde tek kayıt (ADR-016). `DateTime` olsaydı bu unique
+  /// gece 00:00–03:00 arasında beklenmedik davranırdı.
+  date DateTime @unique @db.Date
+
+  weightKg   Decimal? @db.Decimal(5, 2)
+  bodyFatPct Decimal? @db.Decimal(4, 1)
+  sleepHours Decimal? @db.Decimal(4, 2)
+  waterMl    Int?
+  restingHr  Int?
+  steps      Int?
+  /// 1–5 ölçek — kategori değil, enum yapılmadı (ADR-020). Zod min(1).max(5).
+  mood       Int?
+  note       String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([date])
+  @@map("health_log")
+}
+
+model Exercise {
+  id String @id @default(cuid())
+
+  name        String      @unique
+  muscleGroup MuscleGroup
+  equipment   Equipment   @default(OTHER)
+  /// Referans veri: silinmez, arşivlenir (ADR-017).
+  isArchived  Boolean     @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sets            WorkoutSet[]
+  personalRecords PersonalRecord[]
+
+  @@index([muscleGroup, isArchived])
+  @@map("exercise")
+}
+
+model Workout {
+  id String @id @default(cuid())
+
+  /// Gün semantiği (ADR-016).
+  date        DateTime    @db.Date
+  type        WorkoutType @default(GYM)
+  durationMin Int?
+  /// 1–5 ölçek — enum yapılmadı (ADR-020).
+  feeling     Int?
+  note        String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sets WorkoutSet[]
+
+  @@index([date, type])
+  @@map("workout")
+}
+
+model WorkoutSet {
+  id String @id @default(cuid())
+
+  workoutId String
+  workout   Workout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+
+  exerciseId String
+  exercise   Exercise @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
+
+  setNo    Int
+  reps     Int
+  weightKg Decimal? @db.Decimal(6, 2)
+  /// Algılanan zorluk 1–10 ölçeği.
+  rpe      Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// PR kaynağı olarak bağlandığı kayıt (ters yön).
+  personalRecord PersonalRecord?
+
+  @@unique([workoutId, exerciseId, setNo])
+  @@index([exerciseId])
+  @@map("workout_set")
+}
+
+/// Kişisel rekor — TEKRAR BAZINDA (ADR-021).
+/// 1RM, 3RM, 5RM, 10RM ayrı ayrı izlenir; tahmini 1RM formülü KULLANILMAZ.
+///
+/// TÜRETİLMİŞ veridir: bir `WorkoutSet` eklendiğinde/düzeltildiğinde/silindiğinde
+/// ilgili (exerciseId, reps) için yeniden hesaplanır. Hesaplayıcı T-015'te tek bir
+/// fonksiyondur ve §9 gereği silme/düzeltme senaryolarıyla test edilir.
+model PersonalRecord {
+  id String @id @default(cuid())
+
+  exerciseId String
+  exercise   Exercise @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
+
+  reps     Int
+  weightKg Decimal  @db.Decimal(6, 2)
+  /// Rekorun kırıldığı gün (ADR-016).
+  date     DateTime @db.Date
+
+  /// Kaynak set. Set silinirse rekor kaybolmaz, kaynağını kaybeder (ADR-021).
+  workoutSetId String?     @unique
+  workoutSet   WorkoutSet? @relation(fields: [workoutSetId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([exerciseId, reps])
+  @@index([exerciseId, date])
+  @@map("personal_record")
+}
+
+// =============================================================================
+// HAYAT
+// =============================================================================
+
+model Habit {
+  id String @id @default(cuid())
+
+  name String
+  /// Haftada kaç gün yapılması hedefleniyor.
+  targetPerWeek Int  @default(7)
+  /// Gün içinde kaç kez (örn. 8 bardak su). Yoksa "yapıldı/yapılmadı" yeterli.
+  targetPerDay  Int?
+  color         String?
+  icon          String?
+  isActive      Boolean @default(true)
+  /// Referans veri: silinmez, arşivlenir (ADR-017).
+  isArchived    Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  logs HabitLog[]
+
+  @@index([isActive, isArchived])
+  @@map("habit")
+}
+
+/// `done Boolean` YERİNE `count` (ADR-021): günde birden çok kez yapılan
+/// alışkanlıklar modellenebilsin. "Yapıldı" artık `count > 0` demektir.
+model HabitLog {
+  id String @id @default(cuid())
+
+  habitId String
+  habit   Habit  @relation(fields: [habitId], references: [id], onDelete: Cascade)
+
+  /// Gün semantiği (ADR-016). Streak hesabı zaman dilimi yardımcısından geçer.
+  date  DateTime @db.Date
+  count Int      @default(1)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// §6.1: bu kısıt ilk taslakta EKSİKTİ — aynı güne çift kayıt mümkündü.
+  @@unique([habitId, date])
+  @@index([date])
+  @@map("habit_log")
+}
+
+model Goal {
+  id String @id @default(cuid())
+
+  title       String
+  description String?
+  category    GoalCategory @default(PERSONAL)
+  /// Gün semantiği (ADR-016).
+  targetDate  DateTime?    @db.Date
+  /// 0–100. Zod ile `min(0).max(100)` bağlanır (T-011).
+  progress    Int          @default(0)
+  status      GoalStatus   @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, targetDate])
+  @@index([category])
+  @@map("goal")
+}
+
+model JournalEntry {
+  id String @id @default(cuid())
+
+  /// Gün semantiği (ADR-016).
+  date    DateTime @db.Date
+  title   String?
+  content String
+  /// 1–5 ölçek — enum yapılmadı (ADR-020).
+  mood    Int?
+  tags    String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([date])
+  @@map("journal_entry")
 }
