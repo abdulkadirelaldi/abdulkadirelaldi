@@ -7,14 +7,22 @@
       "startServerReadyPattern": "Ready in",
       "startServerReadyTimeout": 120000,
       "url": ["http://127.0.0.1:3100/"],
-      "numberOfRuns": 3,
+
+      "//numberOfRuns": "3 → 5 (T-029a). T-006b'de aydınlık profil 69/90/94 ölçmüştü: medyan 90 ile eşiği KIL PAYI geçti. 3 koşuda İKİ talihsiz koşu medyanı devirir; 5 koşuda üç tane gerekir. Eşikler T-029'da 'error' olacağı için bu fark, kodda hiçbir şey değişmeden kırmızıya dönen bir hat ile kararlı bir hat arasındaki fark demek.",
+      "numberOfRuns": 5,
+
+      "//settings": "`preset` ve `extraHeaders` BİLEREK BURADA DEĞİL — profiller `ci.yml` içinde CLI ile geçersiz kılınıyor. Eşikler tek yerde (aşağıda) kalsın diye; üç ayrı config dosyası olsaydı eşikler üç yere kopyalanırdı.",
       "settings": {
         "chromeFlags": "--no-sandbox --headless=new"
       }
     },
 
     "assert": {
-      "//": "PROGRAM.md §9. F0'da hepsi 'warn' — ölçülen sayfa henüz gerçek ana sayfa değil. T-029'da (F2 sonu) 'error'a çevrilecek; değiştirilecek tek yer bu dört satır.",
+      "//": "PROGRAM.md §9. F2 boyunca hepsi 'warn'. T-029'da (F2 sonu) 'error'a çevrilecek; değiştirilecek tek yer bu dört satır.",
+
+      "//aggregationMethod": "AÇIKÇA yazıldı. Varsayılan zaten medyan ama örtük bir varsayılana güvenmek, kütüphane sürümüyle sessizce değişebilecek bir güvenlik/kalite kapısı bırakmak demekti (aynı ders: T-013a otplib). 'optimistic' REDDEDİLDİ: en iyi koşuyu almak gerçek gerilemeleri gizler — gürültüyü susturmak için doğruyu feda etmek olurdu.",
+      "aggregationMethod": "median",
+
       "assertions": {
         "categories:performance": ["warn", { "minScore": 0.9 }],
         "categories:accessibility": ["warn", { "minScore": 0.95 }],
@@ -26,7 +34,7 @@
     "upload": {
       "//": "Nokta ile başlayan dizin KULLANILMAZ: actions/upload-artifact gizli dosyaları varsayılan olarak atlar ve `.lighthouseci/` yolu 'No files were found' ile sessizce boş artifact üretiyordu. Ayrıntı: docs/security/README.md BULGU-004.",
       "target": "filesystem",
-      "outputDir": "lighthouse-raporu/aydinlik"
+      "outputDir": "lighthouse-raporu/mobil-aydinlik"
     }
   }
 }
