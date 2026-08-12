@@ -1,4 +1,9 @@
-import type { ProfileDto, SkillDto } from '@/server/services/content-dto';
+import type {
+  ProfileDto,
+  ProjectListItemDto,
+  ServiceDto,
+  SkillDto,
+} from '@/server/services/content-dto';
 import { SkillCategory } from '@/types';
 
 /**
@@ -35,6 +40,7 @@ export const GECICI_PROFIL: ProfileDto = {
     github: 'https://github.com/',
     linkedin: 'https://www.linkedin.com/',
     x: 'https://x.com/',
+    email: 'merhaba@abdulkadirelaldi.com',
   },
   avatar: null,
   cv: null,
@@ -65,5 +71,70 @@ export const GECICI_YETENEKLER: SkillDto[] = [
   locale: 'tr',
   level: 0,
   iconKey: null,
+  ...ham,
+}));
+
+/**
+ * `cover` BİLEREK `null`: `AttachmentRefDto` URL taşımıyor (ADR-018) ve seed
+ * hiç `Attachment` üretmiyor — yani gerçek veride de bugün null. Yer tutucu
+ * yolu asıl yol; T-037 imzalı URL'leri getirince düzen değişmeden dolacak.
+ */
+export const GECICI_PROJELER: ProjectListItemDto[] = [
+  {
+    slug: 'kiyi-medya-kurumsal',
+    title: 'Kıyı Medya kurumsal site',
+    summary: 'Ajansın kendi vitrini: içerik yönetimi, blog ve teklif akışı tek panelden.',
+    tags: ['kurumsal', 'cms'],
+    stack: ['Next.js', 'TypeScript', 'Prisma', 'PostgreSQL'],
+  },
+  {
+    slug: 'rezervasyon-paneli',
+    title: 'Rezervasyon paneli',
+    summary: 'Küçük bir otel için oda, tarih ve ödeme takibini tek ekranda toplayan araç.',
+    tags: ['panel', 'saas'],
+    stack: ['React', 'Node.js', 'PostgreSQL'],
+  },
+  {
+    slug: 'e-ticaret-vitrini',
+    title: 'E-ticaret vitrini',
+    summary: 'Ürün kataloğu, sepet ve ödeme entegrasyonu; mobilde 90+ Lighthouse.',
+    tags: ['e-ticaret'],
+    stack: ['Next.js', 'Tailwind CSS', 'Stripe'],
+  },
+].map((ham, sira) => ({
+  id: `${YER_TUTUCU_ID}-proje-${sira}`,
+  locale: 'tr',
+  cover: null,
+  featured: true,
+  order: sira,
+  publishedAt: '2026-01-15T00:00:00.000Z',
+  ...ham,
+}));
+
+export const GECICI_HIZMETLER: ServiceDto[] = [
+  {
+    title: 'Kurumsal web sitesi',
+    description:
+      'Markanı doğru anlatan, hızlı açılan ve panelden kendi başına güncelleyebileceğin bir site.',
+  },
+  {
+    title: 'Web uygulaması',
+    description:
+      'İşini yürüten özel yazılım: veri girişi, raporlama ve yetkilendirme uçtan uca kurulur.',
+  },
+  {
+    title: 'E-ticaret',
+    description: 'Ürün kataloğu, ödeme ve kargo entegrasyonlarıyla satışa hazır mağaza.',
+  },
+  {
+    title: 'Bakım ve destek',
+    description: 'Yayındaki sistemin güncel, yedekli ve izlenir kalması için sürekli destek.',
+  },
+].map((ham, sira) => ({
+  id: `${YER_TUTUCU_ID}-hizmet-${sira}`,
+  locale: 'tr',
+  iconKey: null,
+  ctaUrl: null,
+  order: sira,
   ...ham,
 }));

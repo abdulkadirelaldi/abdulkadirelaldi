@@ -5,7 +5,14 @@ import { useRef, useState } from 'react';
 import { motion, useMotionValue, useSpring } from 'framer-motion';
 
 interface TiltedCardProps {
-  imageSrc: React.ComponentProps<'img'>['src'];
+  /**
+   * T-022: ARTIK OPSİYONEL. Kaynak görseli zorunlu kılıyordu; kapak görselleri
+   * `AttachmentRefDto` üzerinden geliyor ve `url` alanı YOK (ADR-018) — bugün
+   * hepsi `null`. Görsel yoksa `gorsel` düğümü render edilir.
+   */
+  imageSrc?: React.ComponentProps<'img'>['src'];
+  /** `imageSrc` verilmediğinde çizilen düğüm (yer tutucu kapak). */
+  gorsel?: React.ReactNode;
   altText?: string;
   captionText?: string;
   containerHeight?: React.CSSProperties['height'];
@@ -28,6 +35,7 @@ const springValues: SpringOptions = {
 
 export default function TiltedCard({
   imageSrc,
+  gorsel = null,
   altText = 'Tilted card image',
   captionText = '',
   containerHeight = '300px',
@@ -118,15 +126,24 @@ export default function TiltedCard({
           scale,
         }}
       >
-        <motion.img
-          src={imageSrc}
-          alt={altText}
-          className="absolute top-0 left-0 [transform:translateZ(0)] rounded-[15px] object-cover will-change-transform"
-          style={{
-            width: imageWidth,
-            height: imageHeight,
-          }}
-        />
+        {imageSrc ? (
+          <motion.img
+            src={imageSrc}
+            alt={altText}
+            className="rounded-card absolute top-0 left-0 [transform:translateZ(0)] object-cover will-change-transform"
+            style={{
+              width: imageWidth,
+              height: imageHeight,
+            }}
+          />
+        ) : (
+          <motion.div
+            className="rounded-card absolute top-0 left-0 [transform:translateZ(0)] overflow-hidden will-change-transform"
+            style={{ width: imageWidth, height: imageHeight }}
+          >
+            {gorsel}
+          </motion.div>
+        )}
 
         {displayOverlayContent && overlayContent && (
           <motion.div className="absolute top-0 left-0 z-[2] [transform:translateZ(30px)] will-change-transform">
@@ -137,7 +154,7 @@ export default function TiltedCard({
 
       {showTooltip && (
         <motion.figcaption
-          className="pointer-events-none absolute top-0 left-0 z-[3] hidden rounded-[4px] bg-white px-[10px] py-[4px] text-[10px] text-[var(--bg-elevated)] opacity-0 sm:block"
+          className="border-line bg-elevated text-primary pointer-events-none absolute top-0 left-0 z-[3] hidden rounded-[4px] border px-[10px] py-[4px] text-[10px] opacity-0 sm:block"
           style={{
             x,
             y,

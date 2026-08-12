@@ -1,10 +1,21 @@
 import type { Metadata } from 'next';
 
-import { GECICI_PROFIL, GECICI_YETENEKLER } from '@/components/public/fixture';
+import {
+  GECICI_HIZMETLER,
+  GECICI_PROFIL,
+  GECICI_PROJELER,
+  GECICI_YETENEKLER,
+} from '@/components/public/fixture';
 import { Hakkimda, type Istatistik } from '@/components/public/hakkimda';
 import { Hero } from '@/components/public/hero';
+import { Hizmetler } from '@/components/public/hizmetler';
+import { Iletisim } from '@/components/public/iletisim';
+import { Projeler } from '@/components/public/projeler';
 import { Yetenekler } from '@/components/public/yetenekler';
 import { SITE_NAME } from '@/lib/constants';
+
+/** §12 — adres koda gömülmez, ortam değişkeninden okunur. */
+const KIYI_MEDYA_URL = process.env.NEXT_PUBLIC_KIYI_MEDYA_URL ?? 'https://kiyimedya.com';
 
 /** RotatingText ifadeleri — `ProfileDto`'da çoklu ünvan alanı yok. */
 const UNVANLAR = ['Yazılım Mühendisi', 'Full Stack Developer', 'Ürün Odaklı Geliştirici'] as const;
@@ -62,6 +73,12 @@ export default function AnaSayfa() {
       <Hakkimda profil={GECICI_PROFIL} istatistikler={[...ISTATISTIKLER]} />
 
       <Yetenekler yetenekler={GECICI_YETENEKLER} />
+
+      <Projeler projeler={GECICI_PROJELER} />
+
+      <Hizmetler hizmetler={GECICI_HIZMETLER} kiyiMedyaUrl={KIYI_MEDYA_URL} />
+
+      <Iletisim profil={GECICI_PROFIL} />
     </>
   );
 }
