@@ -71,6 +71,7 @@ açığın ayrıntısı artık saldırgana bir şey kazandırmaz.
 | 2026-08-11 | T-019 | §8.1 zorunlu 2FA kurulumu kapısı (`src/middleware.ts`, `src/lib/security/two-factor.ts`) | Kapı kuruldu ve **devre dışı bırakılarak tuttuğu kanıtlandı** (12 birim + E2E kırılıyor). **BULGU-008 açıldı**: jetondaki `tfa` alanını giriş akışı henüz koymuyor, kapı üretimde tetiklenmiyor → §8.1 ⚠️ kalıyor. |
 | 2026-08-11 | T-019b | Geçiş penceresinin kapatılması; Backend beslemesinin doğrulanması | **BULGU-008 kapandı**, **§8.1 ⚠️→✅**. `null` artık kuruluma yönlendiriyor (kapalı yönde başarısız). E2E'de gevşek `/\/panel/` desenleri sıkılaştırıldı — kurulum ekranı da o desene uyduğu için üç test vakum hâlinde yeşil kalıyordu. |
 | 2026-08-11 | T-005b | Auth E2E'nin CI'ya alınması: Postgres servisi, migrate + seed, "atlanan test yok" nöbeti | **BULGU-009 açıldı ve aynı görevde kapandı**: auth paketi CI'da hiç koşmuyordu ("19 skipped" ile yeşil). §8.1 kapısı ve dört `code` kilidi artık merge kapısında tutuyor. |
+| 2026-08-12 | T-029a | Lighthouse'a masaüstü + koyu profil (WebGL yolu), üç durumlu WebGL doğrulaması, koşu değişkenliği kararı | **BULGU-010 açıldı**: WebGL yolu hiçbir CI koşusunda ölçülmüyordu. Profil kuruldu ve doğrulandı; ölçüm T-021'in hero'yu bağlamasını bekliyor (kontrol kendi kendine zorunlu hâle geliyor). Değişkenliğin **ilk koşuya** ait olduğu ölçüldü; `numberOfRuns` 5, `aggregationMethod` açıkça medyan. |
 
 ---
 
@@ -727,6 +728,104 @@ bilerek derleme adımında tanımsız (yukarıdaki BULGU-002 nöbeti), dolayıs�
 o değer için tarama boşta çalışıyor. İki gereksinim burada birbiriyle çelişiyor
 ve BULGU-002 nöbeti daha değerli görüldü. F6/T-062 denetiminde yeniden
 değerlendirilmeli.
+
+---
+
+## BULGU-010 — WebGL yolu ölçüm dışındaydı; profil hazır, ölçülecek sayfa henüz yok
+
+**Önem:** Orta (kalite kapısı — güvenlik açığı değil)
+**PROGRAM.md maddesi:** §5.2.2, §5.2.5, §9
+**Sorumlu:** Güvenlik & Test (profil) · **Frontend** (sayfaya bağlama)
+**Durum:** Profil ✅ kuruldu · Ölçüm ⏳ T-021 bekliyor
+
+**Ne oluyordu (T-020b/ENGEL-1):**
+Lighthouse'un iki profili de **mobil** emülasyonda koşuyordu (412×823). Aurora
+— tek WebGL bileşenimiz — dört koşulun hepsi sağlanmadan yüklenmiyor
+(`src/components/reactbits/lazy.tsx`): masaüstü (`min-width: 768px`),
+`prefers-reduced-motion` yok, koyu tema, hidrasyon. Mobil emülasyonda birincisi
+sağlanmadığı için `ogl` parçası **hiçbir CI koşusunda ağdan istenmedi**. Yani
+§5.2'nin en pahalı dalı denetim dışındaydı.
+
+**Yapılan:** Üçüncü profil eklendi — `preset=desktop` + `ae-theme=dark` cookie.
+Emülasyonun doğru kurulduğu ölçüldü: `1350x940`, `mobile=false`,
+`formFactor: desktop`, `extraHeaders` raporda görünüyor.
+
+**Ama WebGL yine yüklenmedi — ve sebebi profil değil:**
+Ölçülen sayfa `/`, Aurora'yı **mount etmiyor**. Aurora şu an yalnızca
+`src/components/reactbits/galeri.tsx` içinde kullanılıyor; o da React Bits
+galerisi sayfasında (`/react-bits`) ve T-021 o geçici sayfayı kaldırıp gerçek
+ana sayfayı yazıyor. §5.1'e göre hero arka planı Aurora olacak.
+
+Doğrulandı: masaüstü ve mobil profilleri **birebir aynı** JS parçalarını istedi;
+Aurora'nın parçası (`369.*.js`, shader dizesi `uColorStops` ile bulundu)
+ikisinde de yok.
+
+**Kontrol ÜÇ DURUMLU ve kendi kendine sona eriyor:**
+
+| Durum | Davranış |
+| ----- | -------- |
+| Aurora parçası derlemede yok | 🔴 hata — bileşen kaldırılmış, adım güncellenmeli |
+| Parça var, sayfa Aurora mount ETMİYOR | ⏳ beklemede — gürültülü uyarı, iş yeşil |
+| Sayfa Aurora mount EDİYOR | 🔴 masaüstü yüklemediyse hata · 🔴 mobil yüklediyse §5.2.5 ihlali |
+
+Ayırt edici mekanik: `lazy.tsx` sarmalayıcısı `aurora-katman` sınıfını WebGL
+yüklensin ya da yüklenmesin **her zaman** basıyor; CI sunucudan gelen HTML'de
+bu sınıfı arıyor. **Elle çevrilecek bir bayrak yok** — T-021 hero'yu bağladığı
+anda kontrol kendiliğinden zorunlu hâle geliyor. Bekleme hâlini "yeşil ve
+sessiz" bırakmak, T-019b/K3'teki vakum tuzağının aynısı olurdu; bu yüzden log
+gürültülü.
+
+**§5.2.5 bugün bile ölçülüyor:** "mobilde WebGL hiç yüklenmez" kuralı her
+koşumda doğrulanıyor ve geçiyor.
+
+---
+
+## Ölçüm — Lighthouse profilleri (CI `31579671925`, 5 koşu/profil, medyan)
+
+| Profil | Ekran | Cookie | Perf | A11y | BP | SEO |
+| ------ | ----- | ------ | ---- | ---- | -- | --- |
+| `mobil-aydinlik` | 412×823 | — | 91 | **100** | **100** | 60 ¹ |
+| `mobil-koyu` | 412×823 | `ae-theme=dark` | 91 | **100** | **100** | 60 ¹ |
+| `masaustu-koyu` | 1350×940 | `ae-theme=dark` | **100** | **100** | **100** | 60 ¹ |
+
+¹ SEO 60 bilinen ve beklenen: ölçülen sayfa `robots: { index: false }` taşıyan
+geçici doğrulama sayfası. T-021 gerçek ana sayfayı yazınca düzelir (T-006b/E3).
+
+### Koşu değişkenliği — T-006b'deki notun cevabı
+
+T-006b'de aydınlık profil `69 / 90 / 94` ölçmüş, medyan 90 ile eşiği kıl payı
+geçmişti ve "T-029'da `error`'a çevrilince bu değişkenlik hattı kırmızıya
+çevirebilir" diye not düşmüştüm. Bu görevde 5 koşuya çıkarıldı ve **desen
+netleşti**:
+
+| Profil | Ham değerler | Yayılım |
+| ------ | ------------ | ------- |
+| `mobil-aydinlik` | `59, 91, 91, 90, 91` | **32** |
+| `mobil-koyu` | `91, 91, 91, 91, 90` | 1 |
+| `masaustu-koyu` | `100, 100, 100, 100, 100` | 0 |
+
+**Bulgu: değişkenlik genel değil, İLK KOŞUYA ait.** Aykırı değer (59) işin ilk
+Lighthouse koşusunda çıktı; aynı işte sonradan koşan iki profil neredeyse hiç
+oynamadı (yayılım 1 ve 0). T-006b'deki 69 da ilk koşuydu. Yani sebep "CI
+gürültülü" değil, **ölçüm ısınmadan başlıyor** — sunucunun ilk isteği,
+koşucunun disk önbelleği ve JIT hepsi ilk koşuya yükleniyor.
+
+**Kararlar:**
+
+1. **`numberOfRuns: 3 → 5`.** 3 koşuda medyanı devirmek için iki talihsiz koşu
+   yeter; 5'te üç gerekir. Ölçülen aykırı değerler (59, 69) eşiğin çok altında
+   olduğu için bu fark, eşikler `error` olduğunda kırmızı ile yeşil arasındaki
+   fark demek.
+2. **`aggregationMethod: "median"` AÇIKÇA yazıldı.** Varsayılan zaten medyan,
+   ama örtük bir varsayılana güvenmek kapıyı kütüphane sürümüne bağlar — T-013a'da
+   otplib'de tam bu sınıf hata çıkmıştı.
+3. **`optimistic` REDDEDİLDİ.** En iyi koşuyu almak aykırı değeri gizler, ama
+   gerçek gerilemeleri de gizler. Gürültüyü susturmak için doğruyu feda etmek olurdu.
+4. **T-029'a öneri:** eşikler `error`'a çevrilmeden önce **ısınma isteği**
+   eklensin (ölçümden önce sayfaya bir kez gidilip atılan bir koşu). Kök nedeni
+   çözen budur; 5 koşu semptomu absorbe ediyor. Bu görevde eklenmedi çünkü
+   LHCI'da yerleşik karşılığı yok ve `startServerCommand`'a ısınma eklemek
+   yapılandırmayı bulanıklaştırırdı — kararı T-029 versin.
 
 ---
 
