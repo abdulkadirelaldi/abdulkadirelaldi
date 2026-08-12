@@ -64,6 +64,11 @@
   --qr-dark: #000000;
   --qr-light: #ffffff;
 
+  /* T-020b — statik Aurora yedeğinin şiddeti.
+     Koyu temada gradient zeminden AÇIK kalır ve kontrastı yükseltir; şiddet serbest.
+     Aydınlıkta AŞAĞI ÇEKİLİR — §5.2.7 gereği, ölçümle sabitlendi. */
+  --aurora-statik-guc: 28%;
+
   /* §3.1 — gradient yalnızca birincil buton, aktif nav göstergesi ve isim vurgusunda */
   --gradient-accent: linear-gradient(135deg, var(--accent) 0%, var(--accent-blue) 100%);
 
@@ -103,6 +108,10 @@
   --danger: #c60a0a;
   --info: #0760cf;
 
+  /* T-020b ÖLÇÜMÜ: %28'de rozet metni (--accent-soft) statik gradient üzerinde
+     3.83:1'de kalıyordu. %12'de 4.75:1 — AA'nın üstünde, pay bırakarak. */
+  --aurora-statik-guc: 12%;
+
   color-scheme: light;
 }
 
@@ -128,6 +137,10 @@
     --warning: #845f02;
     --danger: #c60a0a;
     --info: #0760cf;
+
+    /* T-020b ÖLÇÜMÜ: %28'de rozet metni (--accent-soft) statik gradient üzerinde
+       3.83:1'de kalıyordu. %12'de 4.75:1 — AA'nın üstünde, pay bırakarak. */
+    --aurora-statik-guc: 12%;
 
     color-scheme: light;
   }
@@ -329,6 +342,77 @@
   * {
     scrollbar-color: var(--border-hover) transparent;
     scrollbar-width: thin;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Aurora — hero arka planı (T-020b)
+
+   `aurora-katman`: WebGL tuvalinin ve statik yedeğin ortak kabı. Ölçü burada
+   sabitlendiği için hangi dal render olursa olsun CLS oluşmaz.
+
+   `aurora-statik`: §5.2.5'in mobil yedeği ve §5.2.4'ün hareketsiz karşılığı.
+   Aurora'nın renk rampasının (mor → mavi → mor) durağan hâli; token'lardan
+   türer, hex yazılmaz.
+   -------------------------------------------------------------------------- */
+
+@utility aurora-katman {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+@utility aurora-statik {
+  background-image:
+    radial-gradient(
+      120% 80% at 20% 0%,
+      color-mix(in oklab, var(--accent) var(--aurora-statik-guc), transparent) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      120% 80% at 80% 0%,
+      color-mix(in oklab, var(--accent-blue) var(--aurora-statik-guc), transparent) 0%,
+      transparent 60%
+    );
+}
+
+/* --------------------------------------------------------------------------
+   React Bits — bileşenlerin ihtiyaç duyduğu animasyonlar (T-020)
+
+   Bunlar React Bits kaynağının `tailwind.config.js` yorumunda tarif ettiği
+   keyframe'ler. ADR-002 gereği `tailwind.config.ts` yok; Tailwind v4'te
+   `@theme`'e `--animate-*` yazmak yeterli.
+
+   §5.2.4: `prefers-reduced-motion` kuralı bu animasyonları da kapsıyor —
+   dosyanın sonundaki global blok `animation-duration`'ı 0.01ms'e indiriyor,
+   yani hareket tercihi kapalı kullanıcıda hiçbiri oynamaz.
+   -------------------------------------------------------------------------- */
+
+@theme {
+  --animate-star-movement-bottom: star-movement-bottom linear infinite alternate;
+  --animate-star-movement-top: star-movement-top linear infinite alternate;
+}
+
+@keyframes star-movement-bottom {
+  0% {
+    transform: translate(0%, 0%);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(-100%, 0%);
+    opacity: 0;
+  }
+}
+
+@keyframes star-movement-top {
+  0% {
+    transform: translate(0%, 0%);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(100%, 0%);
+    opacity: 0;
   }
 }
 

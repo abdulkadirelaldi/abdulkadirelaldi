@@ -3,9 +3,9 @@
 > Orkestra Şefi tarafından tutulur. Her ajan raporundan sonra güncellenir.
 > Kaynak: `PROGRAM.md` §11 Yol Haritası.
 
-**Son güncelleme:** 2026-08-05
-**Aktif faz:** F1 — Veri & Auth · F2/T-020 paralel (ADR-012)
-**Genel ilerleme:** 1 / 8 faz tamamlandı
+**Son güncelleme:** 2026-08-11
+**Aktif faz:** F2 — Public İskelet · **F1 `main`'e merge edildi (`e5dec94`)**
+**Genel ilerleme:** 2 / 8 faz tamamlandı · ~31 görev bitti, ~48 kaldı
 
 ---
 
@@ -73,7 +73,7 @@ Durum kodları: ⚪ Bekliyor · 🔵 Aktif · 🟡 Kısmen · 🟢 Tamamlandı �
 | T-014 | Panel koruması + kilitleme politikası + `AuditLog` kilit kaydı — 🟢 **Tamam** (§8.5 ✅)   | Güvenlik | T-013b   |
 | T-015 | Servis katmanı temeli — 8 yardımcı, 149 test, kapsam %90.08 — 🟢 **Tamam**                | Backend  | T-011, T-013c |
 | T-016 | Auth E2E — 12 senaryo, `code` regresyonu kilitlendi — 🟢 **Tamam**                        | Güvenlik | T-013c, T-018b |
-| T-005b | Auth E2E'yi CI'ya bağla — Postgres servisi + migrate + seed (T-016/T3)                    | Güvenlik | T-016        |
+| T-005b | Auth E2E CI'da koşuyor — **atlanan 0** — 🟢 **Tamam**                                      | Güvenlik | T-016        |
 | T-003d | BULGU-007 + **üretim havuz sızıntısı** — 🟢 **Tamam** (30.63 sn → 0.18 sn)                | Backend  | T-016        |
 | T-017 | `/giris` sayfası — iki adımlı akış — 🟢 **Tamam** (akış T-013c ile çalışır hâle gelecek)  | Frontend | T-013b       |
 | T-013c | P0 blokerler — üçü de kapandı, 404 test — 🟢 **Tamam**                                     | Backend | T-014, T-017 |
@@ -84,7 +84,7 @@ Durum kodları: ⚪ Bekliyor · 🔵 Aktif · 🟡 Kısmen · 🟢 Tamamlandı �
 | T-019 | §8.1 kapısı — kuruldu ve kanıtlandı — 🟢 **Tamam**                                         | Güvenlik | T-018b       |
 | T-013e | BULGU-008 — JWT `tfa` alanı + oturum tazeleme — 🟢 **Tamam**                               | Backend  | T-019        |
 | T-019b | Geçiş penceresi kapatıldı — **§8.1 ✅** — 🟢 **Tamam**                                     | Güvenlik | T-013e       |
-| T-036c | `confirmTotpSetup` sonrası `await update()` (T-013e/T2)                                    | Frontend | T-013e       |
+| T-036c | Oturum tazeleme + çıkış düğmesi — 🟢 **Tamam** (PR #4)                                     | Frontend | T-013e       |
 
 **Sıra:** T-010 ✅ → T-011 ✅ → T-013a ✅ → T-013b ✅ → (T-012 ✅ ∥ T-014 ✅ ∥ T-017 ✅) → T-013c ✅ → (**T-015 ∥ T-036 ∥ T-016**) → F1 kapanış
 **F1 KABUL KONTROLÜ — Orkestra Şefi, 2026-08-10**
@@ -209,6 +209,49 @@ Durum kodları: ⚪ Bekliyor · 🔵 Aktif · 🟡 Kısmen · 🟢 Tamamlandı �
 ---
 
 ## 3. Açık Görevler
+
+### T-036c / T-005b kabul doğrulaması (Orkestra Şefi, 2026-08-11) — **F1 merge edildi**
+
+**`main` = `e5dec94`.** PR #2 merge edildi, PR #1 kapatıldı (içeriği F1 dalındaydı).
+T-036c ayrı dalda: **PR #4**.
+
+**T-036c — yayınladığım sözleşme yanlıştı.** T-013e'nin `await update()` örneğini
+doğrulamadan aktardım. `next-auth/react` argümansız çağrıda yalnızca GET yapıyor; POST
+gitmediği için `jwt` callback'i `trigger: 'update'` ile çalışmıyor ve **kapı açılmıyor.**
+Doğrusu `update({})` — gövdenin *içeriği* önemsiz (sunucu değeri DB'den okuyor) ama
+*varlığı* POST'u tetikleyen şey. **Belirti sessiz: hata yok, sadece kapı açılmıyor.**
+Ajan kaynağı okuyup ölçtü (`react.js:336`) ve gerekçeyi koda yorum olarak yazdı — bir
+sonraki geliştirici `{}`'yi gereksiz sanıp silmesin diye.
+
+**K2/K3 doğru sıralama kararları:** kodlar önce, tazeleme sonra (tazeleme hatası tek
+gösterimlik kurtarma kodlarını yutmamalı); yönlendirme `confirm`'de değil "Bitir"de
+(aksi hâlde kod ekranı hiç görünmez, T-036'nın "kaydettiğini onaylamadan kapanmaz"
+kuralı çiğnenirdi). **K4:** yenilemede tazeleme gerekmediği **ölçüldü**, varsayılmadı.
+**K5:** `SessionProvider` kök layout'ta değil bu sayfada — kökte olsaydı her public sayfa
+oturum istemcisini indirip `/api/auth/session`'a istek atardı (K1/LCP bedeli).
+
+**T-005b — kilit artık merge kapısında tutuyor.** CI'da auth E2E koşuyor:
+**53 passed, atlanan 0** (önce 34 + 19 skipped). Kanıt PR'ıyla ölçüldü (koşu `31494718996`):
+bozuk commit lint'ten, typecheck'ten ve **687 birim testinden geçti**, yalnızca E2E kırdı.
+T-016'nın iddiası merge kapısında birebir doğrulandı.
+
+**İlk deneme geçersizdi ve ajan bunu kayda geçirdi** (`31494544593`): `extends` kaldırılınca
+kullanılmayan import kaldı ve kırmızıyı **lint** verdi — iş kırmızıydı ama ölçülmek istenen
+şey ölçülmemişti. İkinci denemede gerçek hata kuruldu. Bu ayrımı yapmak, "kırmızı gördüm,
+tamam" demekten farklı.
+
+**Kabul edilen kararlar:** **K1 (`DATABASE_URL` iş düzeyinde değil, yalnızca üç adımda —
+iş düzeyine koymak BULGU-002'nin canlı gerileme nöbetini sessizce düşürürdü; "yeni bir
+yetenek eklerken var olan bir nöbeti düşürmemek")**, K2 (`migrate deploy`, `migrate dev`
+değil — sonuncusu CI'da veritabanını sıfırlayabilir), **K3 (atlanan test nöbeti — Playwright
+atlanan testlerde sıfır olmayan çıkış kodu vermiyor; DB bir gün sessizce düşerse paket
+kendini atlar ve koşum yeşil kalırdı. "Bulguyu kapatmak yetmez, geri gelme yolunu da
+kapatmak gerekir")**, K4 (CI kimlikleri açıkça sahte — public depoda `AUTH_SECRET=` satırı
+ileride gerçek sızıntı sanılabilir), K5.
+
+**T1 kabul edildi ve kaydedildi:** §8.18 derleme çıktısı taraması `DATABASE_URL` açısından
+boşta — iki gereksinim (tarama vs BULGU-002 nöbeti) çelişiyor ve nöbet tercih edildi.
+**F6/T-062'de yeniden değerlendirilecek.**
 
 ### T-013e / T-019b kabul doğrulaması (Orkestra Şefi, 2026-08-10) — **F1 KAPANDI**
 

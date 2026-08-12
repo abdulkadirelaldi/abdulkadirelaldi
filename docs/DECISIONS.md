@@ -30,6 +30,7 @@
 | ADR-022 | `LoginAttempt` denemeleri, `AuditLog` sonuçları kaydeder | 2026-08-05 | Kabul edildi |
 | ADR-023 | Ölçüm görevleri tek başına koşar — paralel derleme yasağı | 2026-08-05 · **rev. 2026-08-10** | Kabul edildi |
 | ADR-024 | Kendi QR kodlayıcımız — dar kapsam, kalıcı doğrulama şartıyla | 2026-08-10 | Kabul edildi |
+| ADR-025 | React Bits bağımlılıkları: `ogl` onaylandı, `gsap` reddedildi | 2026-08-11 | Kabul edildi |
 
 ---
 
@@ -1077,3 +1078,52 @@ kodu söküp yerine bağımlılık koymak saf değişiklik gürültüsü olurdu.
 - **`qrcode` bağımlılığı eklemek** — Sıfır bakım, olgun kod; **reddedildi** çünkü çalışan ve bit düzeyinde doğrulanmış bir uygulama zaten var ve sökmek karşılığı olmayan bir değişiklik olurdu. Kapsam genişlerse yeniden değerlendirilecek.
 - **Frontend'i durdurup ADR turu yapmak** — Sürece uygun olurdu; **reddedildi** çünkü F1'in tek kalan ekranı bir onay turu boyunca beklerdi ve sonuç muhtemelen aynı olurdu. Ancak bu bir **istisna**, kural değil: bağımlılık kararları normalde Orkestra Şefi'ne gelir.
 - **Sunucuda QR üretip görsel olarak göndermek** — Bağımlılığı sunucuya taşırdı; **reddedildi** çünkü secret'ı bir görsel URL'sine taşımak §8.11 ve §8.20 açısından daha kötü.
+
+---
+
+## ADR-025 — React Bits Bağımlılıkları: `ogl` Onaylandı, `gsap` Reddedildi
+
+**Durum:** Kabul edildi · 2026-08-11 · **Tetikleyen:** T-020/ENGEL-1
+
+### Bağlam
+React Bits bileşenlerinin 10'u projedeki `framer-motion` ile çalıştı; 6'sı yeni bağımlılık
+istedi. Frontend hiçbirini kurmadı (ADR-004) ve **ölçtü** — kararın rakamla verilmesi için:
+
+| Paket | Açtığı | gzip | Kurulmazsa kaybedilen |
+|-------|--------|------|----------------------|
+| `ogl` | Aurora | **12.8 KB** | Hero'nun WebGL arka planı — §5.1'in tek WebGL hakkı |
+| `gsap` + `@gsap/react` | AnimatedContent/ScrollReveal, MagicBento, SplitText, ChromaGrid | **27.4 KB** | Bölüm giriş animasyonları, İletişim bento'su |
+
+Aynı turda T-000'deki kendi uyarısını da düzeltti: "Aurora ~45–50KB, eşiği aşıyor" demişti;
+44.3 KB **minify** rakamıymış, gzip'te 12.8 KB. Ayrıca §5.2.6'nın 40KB eşiğinin **gzip**
+olarak okunması gerektiğini tespit etti — projenin ve Next'in tüm rakamları gzip.
+
+### Karar
+
+**`ogl` onaylandı (12.8 KB gzip).** Aurora, §5.1'in ana sayfaya tanıdığı **tek WebGL hakkını**
+kullanıyor ve hero'nun görsel kimliği. 12.8 KB, §5.2.6'nın eşiğinin üçte biri. Üstelik
+§5.2.5 gereği **mobilde ve `prefers-reduced-motion`'da hiç yüklenmiyor** — yani maliyeti
+yalnızca masaüstü ve hareket tercihi açık kullanıcılar ödüyor.
+
+**`gsap` reddedildi (27.4 KB gzip).** Açtığı dört bileşenden üçünün karşılığı zaten var:
+- Bölüm girişleri → `framer-motion` `whileInView` (bağımlılıksız, ~15 satır)
+- `SplitText` → `BlurText` (kuruldu)
+- `ChromaGrid` → `TiltedCard` (kuruldu)
+
+Geriye yalnızca **MagicBento** kalıyor. 27.4 KB, tek bir bölüm ızgarası için pahalı.
+**İletişim bölümü `SpotlightCard` ızgarasıyla yapılır** — bileşen zaten kurulu ve §5.1
+onu "hover'da mor spotlight" için tanımlıyor; bento hissi token'larla kurulabilir.
+
+PROGRAM.md §5.1 bu kararlara göre güncellendi: `TiltedCard`, `BlurText`, `framer-motion
+whileInView`, `SpotlightCard` ızgarası.
+
+### Sonuçlar
+- **Olumlu:** Tek yeni bağımlılık, 12.8 KB, koşullu yüklenen. Animasyon çalışma zamanı tek (`framer-motion`) — `motion@13` kurulsaydı ikinci bir çalışma zamanı gelirdi (T-020/K1).
+- **Olumsuz / kabul edilen:** MagicBento'nun tam görsel karşılığı yok; `SpotlightCard` ızgarası daha sade duracak. §5.1'den bilinçli sapma.
+- `ogl` ile birlikte Aurora'nın **en kötü kare kontrast ölçümü zorunlu hale geliyor** (§5.2.7) — arka plan hareket ettiği için ortalama değil, kare kare örnekleme. T-020b'nin kabul kriteri.
+- `gsap` kararı geri dönülebilir: MagicBento'nun görsel değeri F2'de somutlaşır ve karşılığı yetersiz görülürse ADR yeniden açılır.
+
+### Alternatifler ve neden reddedildi
+- **`ogl`'i de reddedip hero'yu statik gradientle bırakmak** — En az bağımlılık; **reddedildi** çünkü §1.A public tarafın amacını "yetkinliği kanıtlamak" olarak tanımlıyor ve hero o iddianın taşıyıcısı. 12.8 KB, üstelik mobilde hiç yüklenmiyor.
+- **`gsap`'i de onaylayıp §5.1'e harfiyen uymak** — Sapma olmazdı; **reddedildi** çünkü 27.4 KB'nin karşılığı tek bir bölüm ızgarası ve diğer üç kullanımın bedelsiz karşılığı var. §5.1 bir harita, dokunulmaz bir sözleşme değil — §5.2'nin sert kuralları (bundle, CLS, hareket tercihi) ondan önce gelir.
+- **`motion@13` kurmak** — React Bits'in importları onu istiyordu; **reddedildi** (T-020/K1): `framer-motion`'ın yeni adı, API uyumlu, kurulsa iki çalışma zamanı olurdu.
