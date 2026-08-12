@@ -380,6 +380,27 @@ jobs:
       # Kanıt ağ isteği üzerinden: Aurora'nın shader'ı `uColorStops` dizesini
       # taşıyor; o dizeyi içeren derleme parçası masaüstü koşusunda İSTENMİŞ,
       # mobil koşusunda İSTENMEMİŞ olmalı (§5.2.5).
+      # Ölçülen sayfa Aurora'yı MOUNT EDİYOR MU? Aşağıdaki üç durumlu kontrolün
+      # ayırt edicisi bu. `lazy.tsx` sarmalayıcısı, WebGL yüklensin ya da
+      # yüklenmesin `aurora-katman` sınıfını HER ZAMAN basıyor; yani sunucudan
+      # gelen HTML'de bu sınıfın varlığı "Aurora bu sayfada var" demek.
+      - name: Ölçülen sayfa Aurora içeriyor mu?
+        run: |
+          PORT=3100 pnpm start > /tmp/sunucu.log 2>&1 &
+          for i in $(seq 1 40); do
+            curl -sf -o /dev/null http://127.0.0.1:3100/ && break
+            sleep 1
+          done
+          curl -s -H 'Cookie: ae-theme=dark' http://127.0.0.1:3100/ > /tmp/anasayfa.html
+          pkill -f "next start" || true
+          if grep -q 'aurora-katman' /tmp/anasayfa.html; then
+            echo 'AURORA_SAYFADA=1' >> "$GITHUB_ENV"
+            echo 'Ölçülen sayfa Aurora içeriyor.'
+          else
+            echo 'AURORA_SAYFADA=0' >> "$GITHUB_ENV"
+            echo 'Ölçülen sayfa Aurora İÇERMİYOR.'
+          fi
+
       - name: WebGL gerçekten koştu mu? (§5.2.2 / §5.2.5)
         run: |
           node <<'BETIK'
@@ -438,12 +459,9 @@ jobs:
           console.log(`mobil    ogl indirdi mi : ${mobilYukledi}`);
 
           const hatalar = [];
-          if (!masaustuYukledi) {
-            hatalar.push(
-              '§5.2.2 — Masaüstü + koyu profilinde Aurora YÜKLENMEDİ. ' +
-                'WebGL yolu yine ölçülmemiş demektir; bu profil bir şey kanıtlamıyor.',
-            );
-          }
+
+          // §5.2.5 HER KOŞULDA geçerli: mobilde WebGL parçası hiç istenmemeli.
+          // Bu dal, Aurora sayfada olsun olmasın anlamlıdır.
           if (mobilYukledi) {
             hatalar.push(
               '§5.2.5 İHLALİ — Mobil profilinde WebGL parçası indirildi. ' +
@@ -451,11 +469,41 @@ jobs:
             );
           }
 
+          /*
+           * ÜÇ DURUM, ÜÇ DAVRANIŞ. Ortadaki durum bilerek "hata" değil:
+           * Aurora şu an yalnızca React Bits galerisinde kullanılıyor, ölçülen
+           * `/` sayfasında değil (T-021 gerçek ana sayfayı yazıyor ve §5.1'e
+           * göre hero arka planı Aurora olacak).
+           *
+           * Bu bekleme hâli KENDİ KENDİNE SONA ERER: sayfa Aurora'yı mount
+           * ettiği anda `AURORA_SAYFADA=1` olur ve kontrol ZORUNLU hâle gelir.
+           * Elle bir bayrak çevirmek gerekmiyor — unutulacak bir adım yok.
+           */
+          if (process.env.AURORA_SAYFADA === '1') {
+            if (!masaustuYukledi) {
+              hatalar.push(
+                '§5.2.2 — Sayfa Aurora içeriyor AMA masaüstü profilinde WebGL ' +
+                  'parçası indirilmedi. Dört koşuldan biri bozulmuş olmalı ' +
+                  '(masaüstü eşiği / hareket kısıtı / tema cookie\'si / hidrasyon). ' +
+                  'Bu hâlde profil "WebGL yolunu ölçüyorum" diyemez.',
+              );
+            } else {
+              console.log('§5.2.2 doğrulandı — masaüstünde WebGL yüklendi.');
+            }
+          } else {
+            console.log(
+              '⏳ BEKLEMEDE — ölçülen sayfa (/) henüz Aurora mount etmiyor, ' +
+                'bu yüzden WebGL yolu ölçülemiyor. Profil ve doğrulama HAZIR: ' +
+                'T-021 hero arka planını bağladığı anda bu kontrol kendiliğinden ' +
+                'ZORUNLU hâle gelir. Ayrıntı: docs/security/README.md BULGU-010.',
+            );
+          }
+
           if (hatalar.length > 0) {
             console.error(hatalar.join('\n'));
             process.exit(1);
           }
-          console.log('§5.2.2 ve §5.2.5 doğrulandı.');
+          console.log('§5.2.5 doğrulandı — mobilde WebGL indirilmedi.');
           BETIK
 
       # Üç profilin skorlarını tek yerde, okunabilir biçimde özetler.
