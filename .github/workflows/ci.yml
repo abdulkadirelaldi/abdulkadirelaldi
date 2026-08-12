@@ -306,7 +306,7 @@ jobs:
   # gerçek ana sayfa olacak.
   # ---------------------------------------------------------------------------
   lighthouse:
-    name: §9 · Lighthouse (F0'da uyarı modunda)
+    name: §9 · Lighthouse (uyarı modunda — T-029'da error olacak)
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: kapi
@@ -332,7 +332,7 @@ jobs:
       # `PORT` artık BURADA VERİLMİYOR — `lighthouserc.json` içindeki
       # `startServerCommand` kendi portunu taşıyor. Önceden port yalnızca bu
       # `env:` bloğunda vardı ve yapılandırma yerelde çalışmıyordu (T-002b).
-      - name: Lighthouse — aydınlık tema
+      - name: Lighthouse — mobil + aydınlık tema
         run: pnpm dlx @lhci/cli@0.15.1 autorun
 
       # Koyu tema bizim VARSAYILAN temamız (§3) ama başlıksız bir Lighthouse
@@ -343,17 +343,221 @@ jobs:
       # Cookie sunucuya gider ve kök layout `<html class="dark">` basar; yani
       # ölçülen şey gerçekten koyu temadır. Kanıt: üretilen raporda
       # `configSettings.extraHeaders` alanı bu başlığı taşır.
-      - name: Lighthouse — koyu tema (varsayılan tema)
+      - name: Lighthouse — mobil + koyu tema (varsayılan tema)
         run: |
           pnpm dlx @lhci/cli@0.15.1 autorun \
             --collect.settings.extraHeaders='{"Cookie":"ae-theme=dark"}' \
-            --upload.outputDir=lighthouse-raporu/koyu
+            --upload.outputDir=lighthouse-raporu/mobil-koyu
+
+      # ÜÇÜNCÜ PROFİL — §5.2'nin EN PAHALI DALI (T-020b/ENGEL-1).
+      #
+      # Aurora (tek WebGL bileşenimiz) DÖRT koşulun HEPSİ sağlanmadan yüklenmez
+      # (`src/components/reactbits/lazy.tsx`):
+      #   1. `matchMedia('(min-width: 768px)')`  → masaüstü
+      #   2. `prefers-reduced-motion` YOK
+      #   3. `resolvedTheme === 'dark'`          → cookie'den
+      #   4. hidrasyon (ssr: false)
+      #
+      # Yukarıdaki iki profil MOBİL emülasyonda (412×823) koşuyor, yani (1)
+      # sağlanmıyor ve `ogl` parçası ağdan HİÇ istenmiyor. Sonuç: WebGL yolu
+      # bugüne kadar HİÇBİR CI koşusunda ölçülmedi — §5.2'nin en pahalı dalı
+      # denetim dışındaydı. Bu profil o boşluğu kapatıyor.
+      - name: Lighthouse — masaüstü + koyu tema (WebGL yolu)
+        run: |
+          pnpm dlx @lhci/cli@0.15.1 autorun \
+            --collect.settings.preset=desktop \
+            --collect.settings.extraHeaders='{"Cookie":"ae-theme=dark"}' \
+            --upload.outputDir=lighthouse-raporu/masaustu-koyu
+
+      # WebGL'in GERÇEKTEN çalıştığını doğrular — skorlara bakarak anlaşılamaz.
+      #
+      # NEDEN ŞART: masaüstü profili eklenip de dört koşuldan biri sessizce
+      # bozulsaydı (örneğin cookie adı değişse, ya da `useMasaustu` eşiği
+      # kaysa), Aurora yine yüklenmez ve profil YİNE YEŞİL ölçerdi. O hâlde
+      # "WebGL yolunu ölçüyoruz" demek yanlış olurdu — tam da T-019b/K3'teki
+      # "vakum hâlinde yeşil" tuzağı.
+      #
+      # Kanıt ağ isteği üzerinden: Aurora'nın shader'ı `uColorStops` dizesini
+      # taşıyor; o dizeyi içeren derleme parçası masaüstü koşusunda İSTENMİŞ,
+      # mobil koşusunda İSTENMEMİŞ olmalı (§5.2.5).
+      # Ölçülen sayfa Aurora'yı MOUNT EDİYOR MU? Aşağıdaki üç durumlu kontrolün
+      # ayırt edicisi bu. `lazy.tsx` sarmalayıcısı, WebGL yüklensin ya da
+      # yüklenmesin `aurora-katman` sınıfını HER ZAMAN basıyor; yani sunucudan
+      # gelen HTML'de bu sınıfın varlığı "Aurora bu sayfada var" demek.
+      - name: Ölçülen sayfa Aurora içeriyor mu?
+        run: |
+          PORT=3100 pnpm start > /tmp/sunucu.log 2>&1 &
+          for i in $(seq 1 40); do
+            curl -sf -o /dev/null http://127.0.0.1:3100/ && break
+            sleep 1
+          done
+          curl -s -H 'Cookie: ae-theme=dark' http://127.0.0.1:3100/ > /tmp/anasayfa.html
+          pkill -f "next start" || true
+          if grep -q 'aurora-katman' /tmp/anasayfa.html; then
+            echo 'AURORA_SAYFADA=1' >> "$GITHUB_ENV"
+            echo 'Ölçülen sayfa Aurora içeriyor.'
+          else
+            echo 'AURORA_SAYFADA=0' >> "$GITHUB_ENV"
+            echo 'Ölçülen sayfa Aurora İÇERMİYOR.'
+          fi
+
+      - name: WebGL gerçekten koştu mu? (§5.2.2 / §5.2.5)
+        run: |
+          node <<'BETIK'
+          const { readdirSync, readFileSync, statSync } = require('node:fs');
+          const path = require('node:path');
+
+          /** `.next/static` altındaki tüm .js dosyaları. */
+          function jsDosyalari(kok) {
+            const bulunan = [];
+            const gez = (d) => {
+              for (const ad of readdirSync(d)) {
+                const tam = path.join(d, ad);
+                if (statSync(tam).isDirectory()) gez(tam);
+                else if (tam.endsWith('.js')) bulunan.push(tam);
+              }
+            };
+            gez(kok);
+            return bulunan;
+          }
+
+          // 1) Aurora shader'ını taşıyan parçayı bul (ad hash'li, içerikten buluyoruz).
+          const auroraParcalari = jsDosyalari('.next/static')
+            .filter((f) => readFileSync(f, 'utf8').includes('uColorStops'))
+            .map((f) => path.basename(f));
+
+          if (auroraParcalari.length === 0) {
+            console.error(
+              'Aurora shader parçası derleme çıktısında BULUNAMADI. ' +
+                'Bileşen kaldırıldıysa bu adım güncellenmeli; kaldırılmadıysa ' +
+                'kod bölme (code splitting) beklenmedik biçimde değişmiş.',
+            );
+            process.exit(1);
+          }
+          console.log('Aurora parçası:', auroraParcalari.join(', '));
+
+          /** Bir LHR'nin istediği tüm URL'ler. */
+          function istenenler(dizin) {
+            const dosya = readdirSync(dizin).find(
+              (f) => f.endsWith('.json') && !f.includes('manifest'),
+            );
+            const lhr = JSON.parse(readFileSync(path.join(dizin, dosya), 'utf8'));
+            const items = lhr.audits['network-requests']?.details?.items ?? [];
+            return items.map((i) => i.url ?? '');
+          }
+
+          const masaustu = istenenler('lighthouse-raporu/masaustu-koyu');
+          const mobil = istenenler('lighthouse-raporu/mobil-koyu');
+
+          const yuklendiMi = (urller) =>
+            auroraParcalari.some((p) => urller.some((u) => u.includes(p)));
+
+          const masaustuYukledi = yuklendiMi(masaustu);
+          const mobilYukledi = yuklendiMi(mobil);
+
+          console.log(`masaüstü ogl indirdi mi : ${masaustuYukledi}`);
+          console.log(`mobil    ogl indirdi mi : ${mobilYukledi}`);
+
+          const hatalar = [];
+
+          // §5.2.5 HER KOŞULDA geçerli: mobilde WebGL parçası hiç istenmemeli.
+          // Bu dal, Aurora sayfada olsun olmasın anlamlıdır.
+          if (mobilYukledi) {
+            hatalar.push(
+              '§5.2.5 İHLALİ — Mobil profilinde WebGL parçası indirildi. ' +
+                'Kural: mobilde WebGL arka planlar HİÇ yüklenmez.',
+            );
+          }
+
+          /*
+           * ÜÇ DURUM, ÜÇ DAVRANIŞ. Ortadaki durum bilerek "hata" değil:
+           * Aurora şu an yalnızca React Bits galerisinde kullanılıyor, ölçülen
+           * `/` sayfasında değil (T-021 gerçek ana sayfayı yazıyor ve §5.1'e
+           * göre hero arka planı Aurora olacak).
+           *
+           * Bu bekleme hâli KENDİ KENDİNE SONA ERER: sayfa Aurora'yı mount
+           * ettiği anda `AURORA_SAYFADA=1` olur ve kontrol ZORUNLU hâle gelir.
+           * Elle bir bayrak çevirmek gerekmiyor — unutulacak bir adım yok.
+           */
+          if (process.env.AURORA_SAYFADA === '1') {
+            if (!masaustuYukledi) {
+              hatalar.push(
+                '§5.2.2 — Sayfa Aurora içeriyor AMA masaüstü profilinde WebGL ' +
+                  'parçası indirilmedi. Dört koşuldan biri bozulmuş olmalı ' +
+                  '(masaüstü eşiği / hareket kısıtı / tema cookie\'si / hidrasyon). ' +
+                  'Bu hâlde profil "WebGL yolunu ölçüyorum" diyemez.',
+              );
+            } else {
+              console.log('§5.2.2 doğrulandı — masaüstünde WebGL yüklendi.');
+            }
+          } else {
+            console.log(
+              '⏳ BEKLEMEDE — ölçülen sayfa (/) henüz Aurora mount etmiyor, ' +
+                'bu yüzden WebGL yolu ölçülemiyor. Profil ve doğrulama HAZIR: ' +
+                'T-021 hero arka planını bağladığı anda bu kontrol kendiliğinden ' +
+                'ZORUNLU hâle gelir. Ayrıntı: docs/security/README.md BULGU-010.',
+            );
+          }
+
+          if (hatalar.length > 0) {
+            console.error(hatalar.join('\n'));
+            process.exit(1);
+          }
+          console.log('§5.2.5 doğrulandı — mobilde WebGL indirilmedi.');
+          BETIK
+
+      # Üç profilin skorlarını tek yerde, okunabilir biçimde özetler.
+      - name: Profil skorları
+        if: always()
+        run: |
+          node <<'BETIK'
+          const { existsSync, readdirSync, readFileSync } = require('node:fs');
+          const path = require('node:path');
+
+          const profiller = ['mobil-aydinlik', 'mobil-koyu', 'masaustu-koyu'];
+          const kategoriler = ['performance', 'accessibility', 'best-practices', 'seo'];
+
+          for (const profil of profiller) {
+            const dizin = path.join('lighthouse-raporu', profil);
+            if (!existsSync(dizin)) {
+              console.log(`\n### ${profil}: rapor yok`);
+              continue;
+            }
+
+            const raporlar = readdirSync(dizin).filter(
+              (f) => f.endsWith('.json') && !f.includes('manifest'),
+            );
+
+            const skor = {};
+            let cerez = null;
+            let ekran = null;
+            for (const f of raporlar) {
+              const lhr = JSON.parse(readFileSync(path.join(dizin, f), 'utf8'));
+              cerez ??= JSON.stringify(lhr.configSettings?.extraHeaders ?? null);
+              ekran ??= `${lhr.configSettings?.screenEmulation?.width ?? '?'}x${lhr.configSettings?.screenEmulation?.height ?? '?'}`;
+              for (const k of kategoriler) {
+                (skor[k] ??= []).push(Math.round((lhr.categories[k]?.score ?? 0) * 100));
+              }
+            }
+
+            const medyan = (a) => [...a].sort((x, y) => x - y)[Math.floor(a.length / 2)];
+
+            console.log(`\n### ${profil}  (${raporlar.length} koşu, ${ekran}, cookie=${cerez})`);
+            for (const k of kategoriler) {
+              const d = skor[k] ?? [];
+              console.log(
+                `  ${k.padEnd(15)} medyan=${String(medyan(d)).padStart(3)}  ` +
+                  `[${d.join(', ')}]  yayılım=${Math.max(...d) - Math.min(...d)}`,
+              );
+            }
+          }
+          BETIK
 
       # Yol NOKTA İLE BAŞLAMAMALI: `actions/upload-artifact` gizli dosya ve
       # dizinleri varsayılan olarak atlar. Eski `.lighthouseci/` yolu bu yüzden
       # "No files were found" uyarısı verip sessizce boş artifact üretiyordu —
       # rapor hiçbir yere kaydedilmiyordu (BULGU-004).
-      - name: Lighthouse raporunu sakla (iki tema)
+      - name: Lighthouse raporunu sakla (üç profil)
         if: always()
         uses: actions/upload-artifact@v7
         with:

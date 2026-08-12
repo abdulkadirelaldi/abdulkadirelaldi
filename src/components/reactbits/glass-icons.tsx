@@ -1,0 +1,78 @@
+'use client';
+
+import React from 'react';
+
+export interface GlassIconsItem {
+  icon: React.ReactElement;
+  color: string;
+  label: string;
+  customClass?: string;
+}
+
+export interface GlassIconsProps {
+  items: GlassIconsItem[];
+  className?: string;
+}
+
+const gradientMapping: Record<string, string> = {
+  accent: 'var(--gradient-accent)',
+  surface: 'linear-gradient(var(--bg-elevated), var(--bg-surface))',
+  success: 'linear-gradient(var(--success), var(--success))',
+  warning: 'linear-gradient(var(--warning), var(--warning))',
+  danger: 'linear-gradient(var(--danger), var(--danger))',
+  info: 'linear-gradient(var(--info), var(--info))',
+};
+
+const GlassIcons: React.FC<GlassIconsProps> = ({ items, className }) => {
+  const getBackgroundStyle = (color: string): React.CSSProperties => {
+    if (gradientMapping[color]) {
+      return { background: gradientMapping[color] };
+    }
+    return { background: color };
+  };
+
+  return (
+    <div
+      className={`mx-auto grid grid-cols-2 gap-[5em] overflow-visible py-[3em] md:grid-cols-3 ${className || ''}`}
+    >
+      {items.map((item, index) => (
+        <button
+          key={index}
+          type="button"
+          aria-label={item.label}
+          className={`group relative h-[4.5em] w-[4.5em] cursor-pointer border-none bg-transparent outline-none [-webkit-tap-highlight-color:transparent] [perspective:24em] [transform-style:preserve-3d] ${
+            item.customClass || ''
+          }`}
+        >
+          <span
+            className="absolute top-0 left-0 block h-full w-full origin-[100%_100%] rotate-[15deg] rounded-[1.25em] transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.83,0,0.17,1)] [will-change:transform] group-hover:[transform:rotate(25deg)_translate3d(-0.5em,-0.5em,0.5em)]"
+            style={{
+              ...getBackgroundStyle(item.color),
+              boxShadow: '0.5em -0.5em 0.75em hsla(223, 10%, 10%, 0.15)',
+            }}
+          ></span>
+
+          <span
+            className="absolute top-0 left-0 flex h-full w-full origin-[80%_50%] transform rounded-[1.25em] bg-[hsla(0,0%,100%,0.15)] backdrop-blur-[0.75em] transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.83,0,0.17,1)] [will-change:transform] [-moz-backdrop-filter:blur(0.75em)] [-webkit-backdrop-filter:blur(0.75em)] group-hover:[transform:translate3d(0,0,2em)]"
+            style={{
+              boxShadow: '0 0 0 0.1em hsla(0, 0%, 100%, 0.3) inset',
+            }}
+          >
+            <span
+              className="m-auto flex h-[1.5em] w-[1.5em] items-center justify-center"
+              aria-hidden="true"
+            >
+              {item.icon}
+            </span>
+          </span>
+
+          <span className="absolute top-full right-0 left-0 translate-y-0 text-center text-base leading-[2] whitespace-nowrap opacity-0 transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.83,0,0.17,1)] group-hover:[transform:translateY(20%)] group-hover:opacity-100">
+            {item.label}
+          </span>
+        </button>
+      ))}
+    </div>
+  );
+};
+
+export default GlassIcons;

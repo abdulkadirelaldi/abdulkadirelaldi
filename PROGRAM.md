@@ -252,11 +252,22 @@ docs/STATUS.md docs/DECISIONS.md docs/tasks/ docs/security/
 
 ## 5. React Bits Kullanım Kuralları
 
-Kurulum **daima TypeScript + Tailwind varyantı** ile yapılır:
+Kurulum **daima TypeScript + Tailwind varyantı** ile yapılır. Kayıt ucundan dosya
+içeriği alınır ve elle yerleştirilir:
 
 ```bash
-npx shadcn@latest add https://reactbits.dev/r/<BilesenAdi>-TS-TW
+curl -s https://reactbits.dev/r/<BilesenAdi>-TS-TW   # dosya içeriği JSON olarak döner
 ```
+
+> **Neden `npx shadcn add` değil (T-020/ENGEL-4):** Projede `components.json` yok;
+> `shadcn init` yapılandırma dosyası ekler ve **bağımlılıkları onay almadan
+> `package.json`'a yazar** — ADR-004'ü delerdi. Kayıt ucu aynı dosyaları düz JSON olarak
+> veriyor. Sonuç §5'in tarif ettiğiyle aynı (kod repoya kopyalanır ve bizim olur),
+> ama `package.json` denetimi ajanda kalır.
+
+**Bundle eşiği gzip olarak okunur (T-020):** §5.2.6'daki 40KB, **gzip** boyutudur.
+Next'in derleme çıktısı ve projenin tüm ölçümleri gzip; minify rakamıyla karşılaştırmak
+yanlış alarm üretir (Aurora minify 44.3 KB, gzip 12.8 KB).
 
 Kurulan dosyalar `src/components/reactbits/` altına taşınır ve tasarım token'larıyla
 uyumlu hale getirilir (hardcoded renkler `var(--accent)` vb. ile değiştirilir).
@@ -266,18 +277,18 @@ React Bits MIT + Commons Clause lisanslıdır; kod repoya kopyalanır ve bizim o
 
 | Yer | Bileşen | Ayar |
 |-----|---------|------|
-| Hero arka plan | `Aurora` (mor tonlu) | Sadece masaüstü, lazy, opacity ≤ 0.5 |
-| Hero isim | `SplitText` veya `BlurText` | Tek seferlik, sayfa yüklemede |
+| Hero arka plan | `Aurora` (mor tonlu) | Sadece masaüstü **+ koyu tema**, lazy, opacity ≤ 0.5 — ADR-025, T-020b ölçümü |
+| Hero isim | **`BlurText`** | SplitText `gsap` istiyor — ADR-025 |
 | Hero ünvan | `RotatingText` | "Full Stack Developer" / "Yazılım Mühendisi" |
 | Rozet ("Full Stack Developer") | `ShinyText` | |
 | Birincil butonlar | `StarBorder` | Gradient kenar |
 | Sosyal ikonlar | `GlassIcons` | |
 | Navigasyon | `GooeyNav` | Aktif bölüm göstergesi |
-| Bölüm girişleri | `AnimatedContent` / `ScrollReveal` | `once: true`, threshold 0.2 |
+| Bölüm girişleri | **`framer-motion` `whileInView`** | AnimatedContent `gsap` istiyor — ADR-025 |
 | Yetenek kartları | `SpotlightCard` | Hover'da mor spotlight |
-| Proje ızgarası | `ChromaGrid` veya `TiltedCard` | Biri seçilir, ikisi birden değil |
+| Proje ızgarası | **`TiltedCard`** | ChromaGrid `gsap` istiyor — ADR-025 |
 | İstatistikler ("2+ yıl") | `CountUp` | Görünür olunca tetiklenir |
-| İletişim bölümü | `MagicBento` | Bilgi kartları ızgarası |
+| İletişim bölümü | **`SpotlightCard` ızgarası** | MagicBento `gsap` istiyor — ADR-025 |
 | Kıyı Medya müşteri logoları | `LogoLoop` | Hizmetler sayfası |
 | Tıklama efekti | `ClickSpark` | Sadece masaüstü, isteğe bağlı |
 
