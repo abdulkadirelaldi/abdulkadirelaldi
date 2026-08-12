@@ -110,7 +110,9 @@ Durum kodları: ⚪ Bekliyor · 🔵 Aktif · 🟡 Kısmen · 🟢 Tamamlandı �
 
 | #     | Görev                                                                      | Ajan     | Bağımlılık   |
 | ----- | -------------------------------------------------------------------------- | -------- | ------------ |
-| T-020 | React Bits kurulum düzeni + token uyumlama (`components/reactbits/`)       | Frontend | T-002        |
+| T-020 | React Bits kurulumu + Aurora — 11 bileşen, `ogl` — 🟢 **Tamam** (PR #5)   | Frontend | T-002        |
+| T-030 | **İçerik servisleri** (`Profile`/`Project`/`Post`/`Experience`/`Skill`/`Service`) — **F3'ten öne alındı, ADR-026** | Backend | T-015 |
+| T-029a | Lighthouse'a masaüstü + koyu tema profili (T-020b/ENGEL-1)               | Güvenlik | T-020b       |
 | T-021 | Ana sayfa: Hero, Hakkımda, Yetenekler (statik veri)                        | Frontend | T-020        |
 | T-022 | Ana sayfa: Öne çıkan projeler, Hizmetler, İletişim bölümü + Kıyı Medya CTA | Frontend | T-021        |
 | T-023 | `/hakkimda`, `/cv` (print stylesheet)                                      | Frontend | T-021        |
@@ -121,7 +123,11 @@ Durum kodları: ⚪ Bekliyor · 🔵 Aktif · 🟡 Kısmen · 🟢 Tamamlandı �
 | T-028 | SEO: `sitemap.xml`, `robots.txt`, `rss.xml`, dinamik OG görseli            | Backend  | T-021        |
 | T-029 | Lighthouse + axe denetimi, §5 sert kural kontrolü                          | Güvenlik | T-021…T-026  |
 
-**Sıra:** T-020 → T-021 → T-022 → (T-023 ∥ T-024 ∥ T-025 ∥ T-026) → (T-027 ∥ T-028) → T-029
+**Sıra:** T-020 ✅ → (**T-030 ∥ T-021 ∥ T-029a**) → T-022 → (T-023 ∥ T-024 ∥ T-025 ∥ T-026) → (T-027 ∥ T-028) → T-029
+
+**F2 kabul kapısına ADR-026 ile eklenen madde:** public veri erişimi **açık önbelleklemeyle**
+(`unstable_cache` + `revalidateTag`) yazılmış olmalı — ADR-011'in dinamik render'ı kabul
+ederken karşılığında şart koştuğu koruma.
 
 ---
 

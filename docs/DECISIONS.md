@@ -31,6 +31,7 @@
 | ADR-023 | Ölçüm görevleri tek başına koşar — paralel derleme yasağı | 2026-08-05 · **rev. 2026-08-10** | Kabul edildi |
 | ADR-024 | Kendi QR kodlayıcımız — dar kapsam, kalıcı doğrulama şartıyla | 2026-08-10 | Kabul edildi |
 | ADR-025 | React Bits bağımlılıkları: `ogl` onaylandı, `gsap` reddedildi | 2026-08-11 | Kabul edildi |
+| ADR-026 | F2 public sayfaları gerçek veriden okur; içerik servisleri F3'ten öne alındı | 2026-08-11 | Kabul edildi |
 
 ---
 
@@ -1127,3 +1128,53 @@ whileInView`, `SpotlightCard` ızgarası.
 - **`ogl`'i de reddedip hero'yu statik gradientle bırakmak** — En az bağımlılık; **reddedildi** çünkü §1.A public tarafın amacını "yetkinliği kanıtlamak" olarak tanımlıyor ve hero o iddianın taşıyıcısı. 12.8 KB, üstelik mobilde hiç yüklenmiyor.
 - **`gsap`'i de onaylayıp §5.1'e harfiyen uymak** — Sapma olmazdı; **reddedildi** çünkü 27.4 KB'nin karşılığı tek bir bölüm ızgarası ve diğer üç kullanımın bedelsiz karşılığı var. §5.1 bir harita, dokunulmaz bir sözleşme değil — §5.2'nin sert kuralları (bundle, CLS, hareket tercihi) ondan önce gelir.
 - **`motion@13` kurmak** — React Bits'in importları onu istiyordu; **reddedildi** (T-020/K1): `framer-motion`'ın yeni adı, API uyumlu, kurulsa iki çalışma zamanı olurdu.
+
+---
+
+## ADR-026 — F2 Public Sayfaları Gerçek Veriden Okur; İçerik Servisleri Öne Alındı
+
+**Durum:** Kabul edildi · 2026-08-11 · **Tetikleyen:** T-021 öncesi veri kaynağı sorusu
+
+### Bağlam
+§11, F2'yi "Ana sayfa, hakkımda, projeler, blog, hizmetler, iletişim — **statik veriyle**"
+diye tanımlıyor. Gerekçesi anlaşılır: görsel düzen, performans ve React Bits kurallarını
+veri katmanı gürültüsü olmadan oturtmak.
+
+Ama iki şey değişti:
+
+1. **ADR-011 zaten aksini varsayıyor.** Dinamik render kabul edilirken karşılığında
+   *"F2'den itibaren public sayfaların veri erişimi açık önbellekleme ile yazılır"*
+   şart koşulmuştu. F2 statik veriyle giderse bu şart ölçülemez ve ADR-011'in koruması
+   F3'e ertelenir — yani en kritik anda, gerçek veri geldiğinde, hiç sınanmamış olur.
+2. **F1 beklenenden fazlasını teslim etti.** Şema, seed (21 varlık, gerçekçi içerik),
+   servis konvansiyonu ve sekiz paylaşılan yardımcı hazır. İçerik servisleri (T-030)
+   bu konvansiyonun mekanik uygulaması.
+
+Statik veriyle gitmek, F2'nin her sayfasının F3'te veri erişimi için **yeniden yazılması**
+demek. Aynı sayfayı iki kez yazmanın karşılığı yok.
+
+### Karar
+**F2 public sayfaları gerçek veriden okur.** İçerik servisleri (`Profile`, `Project`,
+`Post`, `Experience`, `Skill`, `Service` — eski T-030) **F3'ten F2'ye alınır.**
+
+Frontend'i bloke etmemek için **sözleşme-önce** kalıbı uygulanır — T-036'da bir kez
+işe yaradı ve o görevde "eylemler geldiğinde bileşende hiçbir değişiklik gerekmedi":
+
+1. Backend DTO şekillerini **önce yayınlar** (tip olarak, uygulama olmadan)
+2. Frontend sayfaları o tiplere karşı yazar; veri geçici bir **fixture**'dan gelir,
+   ama fixture **DTO ile aynı şekilde** olmak zorundadır
+3. Servisler teslim edilince fixture yerini servis çağrısına bırakır — bölüm başına bir satır
+
+**Panel CRUD ekranları F3'te kalır.** Yani F2 sonunda içerik DB'den geliyor ama henüz
+yalnızca seed ile değişiyor; K2 ("panelden yönetilebilirlik") tam olarak F3'te sağlanır.
+Değişen, **tesisatın doğru kurulması** — sayfa yeniden yazılmıyor.
+
+### Sonuçlar
+- **Olumlu:** Sayfalar bir kez yazılıyor. ADR-011'in önbellekleme şartı F2'de fiilen sınanıyor. `unstable_cache` + `revalidateTag` deseni F3'ün CRUD ekranları gelmeden önce oturuyor.
+- **Olumsuz / kabul edilen:** F2 artık Frontend'in tek başına yürüttüğü bir faz değil — Backend de içinde. §11 tablosu buna göre güncellendi. Fixture aşaması bir senkronizasyon noktası: fixture DTO'dan **saparsa** değişim mekanik olmaz. Bu yüzden fixture'ın tipi Backend'in yayınladığı tipten türetilmek zorunda, elle yazılmış bir kopya olamaz.
+- F2'nin kabul kapısına yeni madde: **public veri erişimi açık önbelleklemeyle yazılmış olmalı** (ADR-011'in karşılığı).
+
+### Alternatifler ve neden reddedildi
+- **§11'e sadık kalıp statik veriyle gitmek** — Faz sırası bozulmazdı; **reddedildi** çünkü her sayfa iki kez yazılırdı ve ADR-011'in koruması hiç sınanmadan F3'e ertelenirdi.
+- **F2'yi bekletip önce T-030'u yapmak** — Sözleşme-önce gerektirmezdi; **reddedildi** çünkü Frontend bir tur boşta kalırdı ve ADR-012'nin çözdüğü sorun geri gelirdi.
+- **Fixture'ları kalıcı tutup veri bağlamayı F3'e bırakmak** — En az koordinasyon; **reddedildi** çünkü aynı ikiye-yazma sorunu, yalnızca adı değişmiş olur.
