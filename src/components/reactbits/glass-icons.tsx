@@ -7,6 +7,16 @@ export interface GlassIconsItem {
   color: string;
   label: string;
   customClass?: string;
+  /**
+   * T-020b/T-021 EKLEMESİ — kaynakta yoktu.
+   *
+   * Kaynak her öğeyi `<button>` olarak render ediyordu; sosyal ikonlar için bu
+   * yanlış: tıklanınca hiçbir şey olmayan, ekran okuyucuya "düğme" diye
+   * duyurulan bir öğe kalıyordu. `href` verilince öğe gerçek bir `<a>` olur.
+   * React Bits kodu §5 gereği repoya kopyalanıp bizim olduğu için doğrudan
+   * düzeltildi — sarmalayıcıyla yamamak yerine.
+   */
+  href?: string;
 }
 
 export interface GlassIconsProps {
@@ -35,42 +45,52 @@ const GlassIcons: React.FC<GlassIconsProps> = ({ items, className }) => {
     <div
       className={`mx-auto grid grid-cols-2 gap-[5em] overflow-visible py-[3em] md:grid-cols-3 ${className || ''}`}
     >
-      {items.map((item, index) => (
-        <button
-          key={index}
-          type="button"
-          aria-label={item.label}
-          className={`group relative h-[4.5em] w-[4.5em] cursor-pointer border-none bg-transparent outline-none [-webkit-tap-highlight-color:transparent] [perspective:24em] [transform-style:preserve-3d] ${
-            item.customClass || ''
-          }`}
-        >
-          <span
-            className="absolute top-0 left-0 block h-full w-full origin-[100%_100%] rotate-[15deg] rounded-[1.25em] transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.83,0,0.17,1)] [will-change:transform] group-hover:[transform:rotate(25deg)_translate3d(-0.5em,-0.5em,0.5em)]"
-            style={{
-              ...getBackgroundStyle(item.color),
-              boxShadow: '0.5em -0.5em 0.75em hsla(223, 10%, 10%, 0.15)',
-            }}
-          ></span>
+      {items.map((item, index) => {
+        const Etiket = item.href ? 'a' : 'button';
+        const baglantiProps = item.href
+          ? { href: item.href, target: '_blank' as const, rel: 'noopener noreferrer' }
+          : { type: 'button' as const };
 
-          <span
-            className="absolute top-0 left-0 flex h-full w-full origin-[80%_50%] transform rounded-[1.25em] bg-[hsla(0,0%,100%,0.15)] backdrop-blur-[0.75em] transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.83,0,0.17,1)] [will-change:transform] [-moz-backdrop-filter:blur(0.75em)] [-webkit-backdrop-filter:blur(0.75em)] group-hover:[transform:translate3d(0,0,2em)]"
-            style={{
-              boxShadow: '0 0 0 0.1em hsla(0, 0%, 100%, 0.3) inset',
-            }}
+        return (
+          <Etiket
+            key={index}
+            aria-label={item.label}
+            {...baglantiProps}
+            className={`focus-ring group relative h-[4.5em] w-[4.5em] cursor-pointer border-none bg-transparent outline-none [-webkit-tap-highlight-color:transparent] [perspective:24em] [transform-style:preserve-3d] ${
+              item.customClass || ''
+            }`}
           >
             <span
-              className="m-auto flex h-[1.5em] w-[1.5em] items-center justify-center"
-              aria-hidden="true"
-            >
-              {item.icon}
-            </span>
-          </span>
+              className="absolute top-0 left-0 block h-full w-full origin-[100%_100%] rotate-[15deg] rounded-[1.25em] transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.83,0,0.17,1)] [will-change:transform] group-hover:[transform:rotate(25deg)_translate3d(-0.5em,-0.5em,0.5em)]"
+              style={{
+                ...getBackgroundStyle(item.color),
+                boxShadow: '0.5em -0.5em 0.75em hsla(223, 10%, 10%, 0.15)',
+              }}
+            ></span>
 
-          <span className="absolute top-full right-0 left-0 translate-y-0 text-center text-base leading-[2] whitespace-nowrap opacity-0 transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.83,0,0.17,1)] group-hover:[transform:translateY(20%)] group-hover:opacity-100">
-            {item.label}
-          </span>
-        </button>
-      ))}
+            <span
+              className="absolute top-0 left-0 flex h-full w-full origin-[80%_50%] transform rounded-[1.25em] bg-[hsla(0,0%,100%,0.15)] backdrop-blur-[0.75em] transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.83,0,0.17,1)] [will-change:transform] [-moz-backdrop-filter:blur(0.75em)] [-webkit-backdrop-filter:blur(0.75em)] group-hover:[transform:translate3d(0,0,2em)]"
+              style={{
+                boxShadow: '0 0 0 0.1em hsla(0, 0%, 100%, 0.3) inset',
+              }}
+            >
+              <span
+                className="m-auto flex h-[1.5em] w-[1.5em] items-center justify-center"
+                aria-hidden="true"
+              >
+                {item.icon}
+              </span>
+            </span>
+
+            <span
+              aria-hidden="true"
+              className="text-body absolute top-full right-0 left-0 translate-y-0 text-center text-base leading-[2] whitespace-nowrap opacity-0 transition-[opacity,transform] duration-300 ease-[cubic-bezier(0.83,0,0.17,1)] group-hover:[transform:translateY(20%)] group-hover:opacity-100"
+            >
+              {item.label}
+            </span>
+          </Etiket>
+        );
+      })}
     </div>
   );
 };

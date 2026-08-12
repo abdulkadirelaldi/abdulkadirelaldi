@@ -30,6 +30,27 @@ import { Skeleton } from '@/components/ui/skeleton';
  * kurala zaten yakalanıyor. Bu yüzden onlarda ayrı statik dal yok.
  */
 
+/**
+ * İstemci tarafı bağlandı mı.
+ *
+ * METİN BİLEŞENLERİNDE İSKELET KULLANILMIYOR — bunun yerine METNİN KENDİSİ
+ * sunucuda render ediliyor ve bağlanma sonrası efektli sürümle değiştiriliyor.
+ *
+ * NEDEN (T-021 ölçümü): `ssr:false` bir bileşen HTML'de hiç yok demektir; hero
+ * ismi sayfanın LCP öğesi olduğu için mobilde LCP 3.8sn'ye çıkıyor ve
+ * Performance 88'e düşüyordu. Gri bir kutu göstermek hem LCP'yi kurtarmıyor
+ * hem de kullanıcıya hiçbir şey söylemiyor. Metin doğrudan basılınca ilk
+ * boyamada içerik var, efekt sonra biniyor — ölçüm: LCP 3.8s → 1.4s.
+ *
+ * §5.2.3 korunuyor: efekt bileşeninin KENDİSİ hâlâ `dynamic` + `ssr:false`.
+ * Değişen, yüklenene kadar ne gösterildiği.
+ */
+function useBaglandi(): boolean {
+  const [baglandi, setBaglandi] = useState(false);
+  useEffect(() => setBaglandi(true), []);
+  return baglandi;
+}
+
 /** İskelet fallback üreticisi — ölçü her zaman açıkça verilir (CLS = 0). */
 function iskelet(className: string) {
   const Fallback = () => <Skeleton className={className} />;
@@ -41,22 +62,10 @@ function iskelet(className: string) {
  * DİNAMİK YÜKLEMELER
  * ====================================================================== */
 
-const ShinyTextDinamik = dynamic(() => import('./shiny-text'), {
-  ssr: false,
-  loading: iskelet('h-6 w-40'),
-});
-const BlurTextDinamik = dynamic(() => import('./blur-text'), {
-  ssr: false,
-  loading: iskelet('h-12 w-72'),
-});
-const RotatingTextDinamik = dynamic(() => import('./rotating-text'), {
-  ssr: false,
-  loading: iskelet('h-8 w-56'),
-});
-const CountUpDinamik = dynamic(() => import('./count-up'), {
-  ssr: false,
-  loading: iskelet('h-9 w-16'),
-});
+const ShinyTextDinamik = dynamic(() => import('./shiny-text'), { ssr: false });
+const BlurTextDinamik = dynamic(() => import('./blur-text'), { ssr: false });
+const RotatingTextDinamik = dynamic(() => import('./rotating-text'), { ssr: false });
+const CountUpDinamik = dynamic(() => import('./count-up'), { ssr: false });
 const TiltedCardDinamik = dynamic(() => import('./tilted-card'), {
   ssr: false,
   loading: iskelet('aspect-[16/10] w-full rounded-card'),
@@ -150,7 +159,8 @@ export function Aurora({
 /** Rozet metni ("Full Stack Developer") — §5.1. Statik hâli: düz metin. */
 export function ShinyText(props: ComponentProps<typeof ShinyTextDinamik>) {
   const azHareket = useReducedMotion();
-  if (azHareket) {
+  const baglandi = useBaglandi();
+  if (azHareket || !baglandi) {
     return (
       <span className={`text-primary inline-block ${props.className ?? ''}`}>{props.text}</span>
     );
@@ -161,7 +171,8 @@ export function ShinyText(props: ComponentProps<typeof ShinyTextDinamik>) {
 /** Hero ismi — §5.1. Statik hâli: metnin son (net) hâli. */
 export function BlurText(props: ComponentProps<typeof BlurTextDinamik>) {
   const azHareket = useReducedMotion();
-  if (azHareket) {
+  const baglandi = useBaglandi();
+  if (azHareket || !baglandi) {
     return <p className={props.className}>{props.text}</p>;
   }
   return <BlurTextDinamik {...props} />;
@@ -170,7 +181,8 @@ export function BlurText(props: ComponentProps<typeof BlurTextDinamik>) {
 /** Hero ünvanı. Statik hâli: listenin İLK ifadesi — dönmez. */
 export function RotatingText(props: ComponentProps<typeof RotatingTextDinamik>) {
   const azHareket = useReducedMotion();
-  if (azHareket) {
+  const baglandi = useBaglandi();
+  if (azHareket || !baglandi) {
     return <span className={props.mainClassName}>{props.texts[0] ?? ''}</span>;
   }
   return <RotatingTextDinamik {...props} />;
@@ -179,6 +191,12 @@ export function RotatingText(props: ComponentProps<typeof RotatingTextDinamik>) 
 /** İstatistik sayacı. Statik hâli: doğrudan HEDEF sayı — sayma animasyonu yok. */
 export function CountUp(props: ComponentProps<typeof CountUpDinamik>) {
   const azHareket = useReducedMotion();
+  const baglandi = useBaglandi();
+  // Bağlanmadan önce 0 gösterilir: sayaç görünür olunca 0'dan sayacak,
+  // hedef sayıyı önce gösterip sonra sıfırlamak yanlış olurdu.
+  if (!baglandi) {
+    return <span className={props.className}>0</span>;
+  }
   if (azHareket) {
     const { to, separator } = props;
     const metin = separator ? to.toLocaleString('tr-TR').replace(/\./g, separator) : String(to);
