@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
+import { SessionProvider } from 'next-auth/react';
 
+import { SignOutButton } from '@/components/auth/sign-out-button';
 import { TotpSetup } from '@/components/auth/totp-setup';
 import { Topbar } from '@/components/panel/topbar';
 import {
@@ -19,13 +21,15 @@ export const metadata: Metadata = {
  * §4.2 — `/panel/ayarlar` altında güvenlik sekmesi.
  *
  * Sunucu Bileşeni: durumu okur, Server Action referanslarını istemci bileşenine
- * geçirir. `TotpSetup` eylemleri prop olarak alır (T-036/K6) — bu yüzden
- * Backend'in eylemleri gelince bileşende hiçbir değişiklik gerekmedi.
+ * geçirir. `TotpSetup` eylemleri prop olarak alır (T-036/K6).
+ *
+ * `SessionProvider` BURADA, kök layout'ta DEĞİL: `useSession().update()` yalnızca
+ * bu ekranda gerekiyor (kurulum sonrası jetondaki `tfa` alanını tazelemek için).
+ * Kökte olsaydı her public sayfa gereksiz yere oturum istemcisini indirir ve
+ * `/api/auth/session`'a istek atardı — K1 (LCP) bedeli, karşılığı yok.
  *
  * `getTotpStatus()` bilinçli olarak HATA FIRLATMAZ: oturum yoksa ya da veritabanı
- * düşerse `{ enabled: false }` döner. Sunucu bileşeninde `try/catch` gerekmiyor;
- * sayfa zaten ara katmanla korunuyor (§8.5) ve her eylem kendi `auth()`
- * kontrolünü ayrıca yapıyor (§8.6).
+ * düşerse `{ enabled: false }` döner (§8.5, §8.6).
  */
 export default async function GuvenlikAyarlariPage() {
   const [session, status] = await Promise.all([auth(), getTotpStatus()]);
@@ -35,12 +39,21 @@ export default async function GuvenlikAyarlariPage() {
       <Topbar title="Güvenlik" />
 
       <main id="panel-icerik" className="flex-1 p-4 lg:p-6">
-        <div className="flex max-w-2xl flex-col gap-6">
-          <TotpSetup
-            status={status}
-            accountLabel={session?.user?.email ?? 'panel hesabı'}
-            actions={{ startTotpSetup, confirmTotpSetup, regenerateBackupCodes }}
-          />
+        <div className="flex max-w-2xl flex-col gap-4">
+          <SessionProvider session={session}>
+            <TotpSetup
+              status={status}
+              accountLabel={session?.user?.email ?? 'panel hesabı'}
+              actions={{ startTotpSetup, confirmTotpSetup, regenerateBackupCodes }}
+            />
+          </SessionProvider>
+
+          {/*
+            Çıkış, kartın DIŞINDA ve altında. §8.1 kapısı 2FA kurmamış kullanıcıyı
+            bu ekranda tutuyor; çıkış yolu olmadan ekran hapse dönüşürdü
+            (Güvenlik T3). Vurgusu bilinçli olarak düşük.
+          */}
+          <SignOutButton />
         </div>
       </main>
     </>
