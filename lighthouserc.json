@@ -2,8 +2,8 @@
   "$schema": "https://raw.githubusercontent.com/GoogleChrome/lighthouse-ci/main/packages/server/src/ui/schema.json",
   "ci": {
     "collect": {
-      "//": "PORT burada veriliyor — yapılandırma KENDİ KENDİNE YETERLİ olsun. Önceden port yalnızca CI adımının `env:` bloğunda vardı; `pnpm start` 3000'de açılıp `url` 3100'ü yoklayınca yerelde CHROME_INTERSTITIAL_ERROR alınıyordu (T-002b bulgusu). Tek doğruluk kaynağı artık bu satır.",
-      "startServerCommand": "PORT=3100 pnpm start",
+      "//": "PORT burada veriliyor — yapılandırma KENDİ KENDİNE YETERLİ olsun (T-002b). Sunucu `next start` DEĞİL standalone: `next start` + output:standalone gerçek Lighthouse iş yükünde 4. koşuda CHROME_INTERSTITIAL_ERROR veriyordu; standalone 10/10 temiz (T-029b). Gerekçe ve ölçüm: tests/olcum-sunucusu.mjs",
+      "startServerCommand": "PORT=3100 node tests/olcum-sunucusu.mjs",
       "startServerReadyPattern": "Ready in",
       "startServerReadyTimeout": 120000,
       "url": ["http://127.0.0.1:3100/"],

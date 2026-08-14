@@ -204,7 +204,7 @@ jobs:
       # adımının çıktısını kullanır. Yani `build` düşerse E2E hiç koşmaz.
       #
       # `DATABASE_URL` burada ŞART: hem `globalSetup` (test verisi hazırlığı)
-      # hem de `pnpm start` ile ayağa kalkan uygulama ona bakıyor.
+      # hem de ölçüm sunucusuyla ayağa kalkan uygulama ona bakıyor.
       - name: E2E (masaüstü + mobil, auth paketi dahil)
         env:
           DATABASE_URL: postgresql://ci:ci@localhost:5432/aelaldi_ci
@@ -386,13 +386,13 @@ jobs:
       # gelen HTML'de bu sınıfın varlığı "Aurora bu sayfada var" demek.
       - name: Ölçülen sayfa Aurora içeriyor mu?
         run: |
-          PORT=3100 pnpm start > /tmp/sunucu.log 2>&1 &
+          PORT=3100 node tests/olcum-sunucusu.mjs > /tmp/sunucu.log 2>&1 &
           for i in $(seq 1 40); do
             curl -sf -o /dev/null http://127.0.0.1:3100/ && break
             sleep 1
           done
           curl -s -H 'Cookie: ae-theme=dark' http://127.0.0.1:3100/ > /tmp/anasayfa.html
-          pkill -f "next start" || true
+          pkill -f "olcum-sunucusu" || true
           if grep -q 'aurora-katman' /tmp/anasayfa.html; then
             echo 'AURORA_SAYFADA=1' >> "$GITHUB_ENV"
             echo 'Ölçülen sayfa Aurora içeriyor.'

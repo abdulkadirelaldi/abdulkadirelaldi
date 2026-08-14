@@ -71,6 +71,7 @@ açığın ayrıntısı artık saldırgana bir şey kazandırmaz.
 | 2026-08-11 | T-019 | §8.1 zorunlu 2FA kurulumu kapısı (`src/middleware.ts`, `src/lib/security/two-factor.ts`) | Kapı kuruldu ve **devre dışı bırakılarak tuttuğu kanıtlandı** (12 birim + E2E kırılıyor). **BULGU-008 açıldı**: jetondaki `tfa` alanını giriş akışı henüz koymuyor, kapı üretimde tetiklenmiyor → §8.1 ⚠️ kalıyor. |
 | 2026-08-11 | T-019b | Geçiş penceresinin kapatılması; Backend beslemesinin doğrulanması | **BULGU-008 kapandı**, **§8.1 ⚠️→✅**. `null` artık kuruluma yönlendiriyor (kapalı yönde başarısız). E2E'de gevşek `/\/panel/` desenleri sıkılaştırıldı — kurulum ekranı da o desene uyduğu için üç test vakum hâlinde yeşil kalıyordu. |
 | 2026-08-11 | T-005b | Auth E2E'nin CI'ya alınması: Postgres servisi, migrate + seed, "atlanan test yok" nöbeti | **BULGU-009 açıldı ve aynı görevde kapandı**: auth paketi CI'da hiç koşmuyordu ("19 skipped" ile yeşil). §8.1 kapısı ve dört `code` kilidi artık merge kapısında tutuyor. |
+| 2026-08-14 | T-029b | Ölçüm sunucusunun kararsızlığı: teşhis + standalone'a geçiş | **BULGU-011 açıldı ve kapandı.** `next start` gerçek Lighthouse iş yükünde 4. koşuda düşüyordu; standalone 25/25 temiz. Yan kazanç: T-029a'daki koşu değişkenliği (yayılım 32 → ≤1) ve SEO 60 → 100. Isınma isteği önerisi geri çekildi. |
 | 2026-08-12 | T-029a | Lighthouse'a masaüstü + koyu profil (WebGL yolu), üç durumlu WebGL doğrulaması, koşu değişkenliği kararı | **BULGU-010 açıldı**: WebGL yolu hiçbir CI koşusunda ölçülmüyordu. Profil kuruldu ve doğrulandı; ölçüm T-021'in hero'yu bağlamasını bekliyor (kontrol kendi kendine zorunlu hâle geliyor). Değişkenliğin **ilk koşuya** ait olduğu ölçüldü; `numberOfRuns` 5, `aggregationMethod` açıkça medyan. |
 
 ---
@@ -826,6 +827,92 @@ koşucunun disk önbelleği ve JIT hepsi ilk koşuya yükleniyor.
    çözen budur; 5 koşu semptomu absorbe ediyor. Bu görevde eklenmedi çünkü
    LHCI'da yerleşik karşılığı yok ve `startServerCommand`'a ısınma eklemek
    yapılandırmayı bulanıklaştırırdı — kararı T-029 versin.
+
+---
+
+## BULGU-011 — Ölçüm sunucusu kararsızdı: `next start` + `output: standalone`
+
+> ## ✅ KAPANDI — 2026-08-14 (T-029b)
+
+**Önem:** Orta (ölçüm altyapısı — güvenlik açığı değil)
+**PROGRAM.md maddesi:** §9, §13.1
+**Dosya:** `tests/olcum-sunucusu.mjs` (yeni), `lighthouserc.json`, `playwright.config.ts`
+**Sorumlu:** Güvenlik & Test
+
+**Ne oluyordu:** Frontend'in ölçüm turunda sunucu beş kez düştü ve bir Lighthouse
+turu `CHROME_INTERSTITIAL_ERROR` ile boşa gitti (T-029/ENGEL-4). Paralel ajan yoktu.
+
+**Teşhis — tahmin değil, ölçüm:**
+
+Önce sentetik yük denendi (30 eşzamanlı istek): sunucu **hiç düşmedi**. Yani
+"yük altında çöküyor" hipotezi yanlıştı. Sonra GERÇEK iş yükü koşuldu — Lighthouse:
+
+| Sunucu | Gerçek Lighthouse iş yükü |
+| ------ | ------------------------- |
+| `next start` (output: standalone) | **4. koşuda `CHROME_INTERSTITIAL_ERROR`** |
+| `node .next/standalone/server.js` | 2 tur × 5 koşu = **10/10 temiz** |
+| Aynısı, 5 tur daha | **25/25 temiz** |
+
+Next zaten HER derlemede uyarıyordu: *"`next start` does not work with
+`output: standalone`. Use `node .next/standalone/server.js` instead."* T-004/T5'ten
+beri not düşülen bu uyarı, düşmelerin sebebiydi.
+
+**Çözüm:** `tests/olcum-sunucusu.mjs` — standalone sunucuyu çalıştırır ve
+`next build`'in **taşımadığı** `static/` ile `public/` dizinlerini kopyalar.
+Kopyalama unutulsaydı sunucu ayağa kalkar ama sayfa **stilsiz** açılır ve
+Lighthouse hata vermeden anlamsız düşük skorlar üretirdi.
+
+Hem Lighthouse hem Playwright **aynı sunucuyu** kullanıyor: ölçüm ve E2E'nin
+farklı sunucu davranışları üzerinde koşması, birinde görünmeyen bir sorunun
+ötekinde çıkmasına yol açardı. Ayrıca §13.1 gereği üretimde çalışacak olan da
+standalone; artık test ettiğimiz şey sevk ettiğimiz şey.
+
+### Yan bulgu — `HOSTNAME` yönlendirmeleri mutlaklaştırıyor
+
+Standalone'a geçince `auth.spec.ts` düştü. Sebep ölçüldü:
+
+| `HOSTNAME` | Ara katman yönlendirmesi (`/panel`, oturumsuz) |
+| ---------- | ---------------------------------------------- |
+| `127.0.0.1` | `http://localhost:3100/giris?...` — **MUTLAK** |
+| `localhost` | `/giris?...` — göreli (ama yalnız `[::1]` dinler) |
+| ayarsız (`0.0.0.0`) | `/giris?...` — göreli, her iki geri döngü de erişilebilir |
+
+Belirli bir geri döngü adresi verildiğinde Next, göreli yönlendirmeyi mutlak
+hâle getirip **`localhost`** yazıyor — istek `127.0.0.1`'e gelmiş olsa bile.
+Tarayıcı o anda köken değiştiriyor, oturum çerezi gönderilmiyor ve kullanıcı
+çıkış yapmış görünüyor.
+
+`localhost`'a geçmek yönlendirmeyi düzeltti ama yalnız IPv6 geri döngüsünü
+dinlediği için `127.0.0.1` istemcileri koptu — ve T-016'nın ölçerek doğruladığı
+`__Secure-` çerez davranışı `127.0.0.1` kökenine bağlı. Bu yüzden `HOSTNAME`
+hiç ayarlanmıyor: hem yönlendirme göreli kalıyor hem iki köken de çalışıyor.
+
+**⚠️ Dağıtım için not (T-070/T-072):** Bu davranış üretimde de geçerli. Coolify
+arkasında `HOSTNAME` belirli bir adrese sabitlenirse ara katman yönlendirmeleri
+`localhost`'a mutlaklaşabilir ve giriş akışı kırılır. Dağıtım görevinde ters
+vekil arkasında yönlendirmelerin göreli kaldığı **ölçülmeli**.
+
+### Yan kazanç — T-029a'daki koşu değişkenliği ORTADAN KALKTI
+
+T-029a'da "aykırı değer ilk koşuda çıkıyor, sunucu ısınmadan ölçüm başlıyor"
+teşhisini koymuş ve T-029 için **ısınma isteği** önermiştim. O teşhis eksikmiş:
+asıl sebep sunucunun kendisiydi.
+
+| Ölçüm | Ham performans değerleri | Yayılım |
+| ----- | ------------------------ | ------- |
+| T-006b (`next start`, 3 koşu) | `69, 90, 94` | 25 |
+| T-029a (`next start`, 5 koşu) | `59, 91, 91, 90, 91` | **32** |
+| T-029a (`next start`, tekrar) | `74, 91, 91, 91, 93` | 19 |
+| **T-029b (standalone, 5 tur × 5 koşu)** | `91,91,91,91,91` · `90,91,91,91,91` × 4 | **≤1** |
+
+**Isınma isteği önerisi GERİ ÇEKİLDİ** — çözülecek bir semptom kalmadı.
+`numberOfRuns: 5` yine de korunuyor: ucuz ve medyanı sağlamlaştırıyor.
+
+### Yan kazanç — SEO 60 → 100
+
+T-006b'den beri "ölçülen sayfa `robots: { index: false }` taşıyan geçici
+doğrulama sayfası" diye not düşülen SEO 60, T-021'in gerçek ana sayfasıyla
+birlikte **100** oldu. Beklenen düzelme gerçekleşti.
 
 ---
 
