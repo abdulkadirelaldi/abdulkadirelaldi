@@ -3,13 +3,9 @@ import type { PrismaClient } from '@/server/generated/prisma/client';
 
 import {
   ATTACHMENT_SELECT,
-  cachedRead,
   DEFAULT_LOCALE,
-  entityTag,
-  localeTag,
   toAttachmentRef,
-  type AttachmentRow,
-} from './_shared';
+  type AttachmentRow} from './_shared';
 import type { ProfileDto } from './content-dto';
 
 /**
@@ -98,9 +94,3 @@ export async function fetchProfile(
 
   return toDto(row);
 }
-
-/** Önbellekli public okuma — ADR-011. */
-export const getProfile = cachedRead((locale: string = DEFAULT_LOCALE) => fetchProfile(locale), {
-  keyParts: ['profile'],
-  tags: [entityTag('profile'), localeTag('profile', DEFAULT_LOCALE)],
-});

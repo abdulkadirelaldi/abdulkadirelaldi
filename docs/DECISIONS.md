@@ -32,6 +32,9 @@
 | ADR-024 | Kendi QR kodlayıcımız — dar kapsam, kalıcı doğrulama şartıyla | 2026-08-10 | Kabul edildi |
 | ADR-025 | React Bits bağımlılıkları: `ogl` onaylandı, `gsap` reddedildi | 2026-08-11 | Kabul edildi |
 | ADR-026 | F2 public sayfaları gerçek veriden okur; içerik servisleri F3'ten öne alındı | 2026-08-11 | Kabul edildi |
+| ADR-027 | İstatistikler türetilir, elle girilmez | 2026-08-12 | Kabul edildi |
+| ADR-028 | Dal ve commit disiplini: tur başına tek PR, Orkestra Şefi commit'ler | 2026-08-14 | Kabul edildi |
+| ADR-029 | `revalidateTag` tam dize eşleşir; her seviye ayrı düşürülür | 2026-08-14 | Kabul edildi |
 
 ---
 
@@ -1003,7 +1006,15 @@ Paralel çalışma **korunur** (ADR-012 geçerli), ancak **ölçüm görevleri t
 **Ölçüm görevi (rev. 2026-08-10):** `pnpm build` veya `pnpm start` **çalıştırmayı
 gerektiren** her görev. Ölçüt mekaniktir, Orkestra Şefi'nin takdirine bırakılmaz.
 
-> **Neden revize edildi:** T-036'yı "ölçüm görevi değil" diye işaretledim çünkü E2E veya
+> **İkinci revizyon (2026-08-12, T-021/ENGEL-4 — üçüncü tekrar):** Ölçüm görevinin *kendisi*
+> yalnız koşmak yetmiyor. Backend'in T-030'u paralel çalışırken bir `typecheck` koşumu yarım
+> yazılmış dosya yüzünden kırıldı ve bir Lighthouse turu bayat/dev derleme ölçüp
+> **perf 46–62, TBT 2.490 ms** gibi anlamsız rakamlar verdi (`unminified-javascript` uyarısı
+> ele verdi). Kural genişletildi: **bir ölçüm görevi koşarken hiçbir ajan `pnpm build`
+> üretmez** — kendi görevi ölçüm olmasa bile. Derleme üreten her ajan, ölçüm görevi
+> dağıtılmadan önce işini bitirmiş veya commit'lemiş olmalıdır.
+>
+> **Neden ilk kez revize edilmişti:** T-036'yı "ölçüm görevi değil" diye işaretledim çünkü E2E veya
 > Lighthouse istemiyordu. Ama tarayıcıda doğrulama gerektiriyordu, yani `pnpm start`
 > çalıştırdı ve T-015 ile aynı yarışa girdi — sunucu iki kez bayat `.next` servis etti.
 > Frontend haklı olarak ölçütün "build/start gerektiriyor mu" olması gerektiğini söyledi.
@@ -1178,3 +1189,145 @@ Değişen, **tesisatın doğru kurulması** — sayfa yeniden yazılmıyor.
 - **§11'e sadık kalıp statik veriyle gitmek** — Faz sırası bozulmazdı; **reddedildi** çünkü her sayfa iki kez yazılırdı ve ADR-011'in koruması hiç sınanmadan F3'e ertelenirdi.
 - **F2'yi bekletip önce T-030'u yapmak** — Sözleşme-önce gerektirmezdi; **reddedildi** çünkü Frontend bir tur boşta kalırdı ve ADR-012'nin çözdüğü sorun geri gelirdi.
 - **Fixture'ları kalıcı tutup veri bağlamayı F3'e bırakmak** — En az koordinasyon; **reddedildi** çünkü aynı ikiye-yazma sorunu, yalnızca adı değişmiş olur.
+
+---
+
+## ADR-027 — İstatistikler Türetilir, Elle Girilmez
+
+**Durum:** Kabul edildi · 2026-08-12 · **Tetikleyen:** T-021/ENGEL-2 (T-000'den beri açık)
+
+### Bağlam
+Ana sayfada §5.1'in `CountUp` ile gösterdiği istatistikler var ("2+ yıl", proje sayısı vb.).
+`ProfileDto` böyle bir alan taşımıyor ve soru T-000'den beri cevapsız: bu sayılar nereden
+gelecek? İki yol vardı — `Profile`'a `stats Json` eklemek (migration) veya mevcut veriden
+türetmek.
+
+Aynı turda Frontend, benzer bir soruyu kendi başına doğru cevaplamıştı: `Skill.level`
+yüzdesi DTO'da var ama **gösterilmiyor**, çünkü *"React %87" gibi uydurma kesinlik güven
+kaybettirir* (T-021/K6). İstatistikler için de aynı mantık geçerli — hatta daha güçlü:
+elle girilen bir "12 proje" sayısı, gerçek proje sayısı 9'a düştüğünde **yalan olur** ve
+kimse fark etmez.
+
+### Karar
+**İstatistikler mevcut veriden türetilir.** `Profile`'a `stats` alanı **eklenmez**;
+şema değişmez.
+
+| Gösterilen | Kaynak |
+|------------|--------|
+| Deneyim yılı | En erken `Experience.startDate`'ten bugüne |
+| Proje sayısı | `PUBLISHED` ve `publishedAt <= now()` olan `Project` sayısı |
+| Müşteri / iş sayısı | `Client` veya `DELIVERED` `Job` sayısı (F4'te bağlanır) |
+
+**Kural:** *türetilemeyen bir istatistik sayfada yer almaz.* Bir sayıyı göstermek için
+elle girmek gerekiyorsa, o sayı ya gerçek veriden çıkarılabilir hale getirilir ya da
+gösterilmez.
+
+Hesaplayıcı `src/server/services/_shared/` altında yaşar ve §9 gereği birim testi yazılır
+(sınır durumları: hiç `Experience` yok, hiç yayınlanmış proje yok, yıl dönümü sınırı —
+ADR-016'nın zaman dilimi yardımcısı kullanılır).
+
+### Sonuçlar
+- **Olumlu:** Sayılar her zaman doğru; bayatlamıyor. Şema değişmiyor, migration yok. `CountUp`'ın gösterdiği şey gerçek bir ölçüm oluyor — §1.A'nın "yetkinliği kanıtlamak" amacıyla tutarlı.
+- **Olumsuz / kabul edilen:** Anlatı esnekliği yok — "50+ mutlu müşteri" gibi bir sayı, karşılığı veride yoksa yazılamaz. Bu bir kısıt değil, kararın amacı.
+- Müşteri/iş istatistiği F4'e kadar bağlanamaz; o zamana kadar iki istatistik gösterilir. Eksik bir kart göstermek, uydurma bir sayı göstermekten iyidir.
+- `Hakkimda` bileşeninin `istatistikler` prop'u kalkar; veri servisten gelir.
+
+### Alternatifler ve neden reddedildi
+- **`Profile.stats Json`** — Panelden serbestçe düzenlenebilirdi; **reddedildi** çünkü gerçekle bağı kopuk bir sayı üretir ve bayatladığında sessizce yanlış olur. §8.19'un denetlediği türden bir mutasyon da değil — kimse "istatistik güncellendi" logunu okumaz.
+- **Sabit değerler koda gömmek** — En hızlı; **reddedildi**: §1.1 K2 ("public taraftaki her metin kod değişmeden güncellenebilir") ile doğrudan çelişir.
+- **Türetilenler + elle girilen karışık** — Esneklik verirdi; **reddedildi** çünkü ziyaretçi hangisinin ölçüm hangisinin iddia olduğunu ayırt edemez; karışım her iki sayının da güvenilirliğini düşürür.
+
+---
+
+## ADR-028 — Dal ve Commit Disiplini: Tur Başına Tek PR, Orkestra Şefi Commit'ler
+
+**Durum:** Kabul edildi · 2026-08-14 · **Tetikleyen:** T-030/E2, T-030b/E1, T-029b/T4 — **üç kez ısırdı**
+
+### Bağlam
+§10.5 "her görev kendi dalında" diyor. Bu kural **tek checkout paylaşan paralel ajanlarla
+uygulanamıyor** ve üç kez somut zarar verdi:
+
+1. **T-030/E2:** Backend dal açamadı, iş ağaçta kaldı.
+2. **T-030b/E1:** Aynı sorun tekrar; Backend dal değiştirse T-029b'nin koşan ölçümünü bozacaktı.
+3. **T-029b/T4:** Güvenlik'in dalı Frontend'in gönderilmemiş commit'i üzerine kuruldu;
+   push edilince **Frontend'in işi Güvenlik'in dalına gitti**. Ajan bunu fark edip PR açmadı
+   ve CI'ı `workflow_dispatch` ile tetikledi — doğru davranış, ama iş akışını tıkadı.
+
+Ayrıca T-020'de Frontend commit'lemeyi unuttu ve iş `main` üzerinde kaldı; T-021'in commit'i
+T-029a'nın dalına düştü. Kural, uygulanamadığı için sürekli ihlal ediliyor.
+
+### Karar
+**Ajanlar dal açmaz, commit atmaz, push etmez.** Görevlerini bitirir, çalışma ağacında
+bırakır ve raporlar. **Orkestra Şefi commit'ler, dallar ve PR açar.**
+
+Kurallar:
+1. Bir turda dağıtılan görevler **kesişmeyen dosyalara** dokunur (§10.1 zaten bunu istiyor).
+2. Tur bitince Orkestra Şefi işi **tek dalda** toplar ve **tek PR** açar. PR başlığı turu
+   tanımlar, gövdesi görevleri ayırır.
+3. **Orkestra Şefi PR'ın CI sonucunu görmeden bir sonraki turu dağıtmaz.** BULGU-012 iki
+   gün fark edilmedi çünkü bu adım yoktu.
+4. Ajanlar `pnpm build`'i yalnızca ölçüm görevindeyse çalıştırır (ADR-023); derleme
+   doğrulaması Orkestra Şefi'nde.
+
+§10.5'in "her görev kendi dalında" maddesi **"her tur kendi dalında"** olarak güncellenir.
+
+### Sonuçlar
+- **Olumlu:** Dal çakışması yapısal olarak imkânsız. Ajanlar git durumunu düşünmüyor. PR'lar tur bazında anlamlı bir bütün oluşturuyor (F1 böyle merge edildi ve okunabilir bir PR çıktı).
+- **Olumsuz / kabul edilen:** Commit granülaritesi kaba — bir PR birden çok görev içerir ve `git bisect` çözünürlüğü düşer. Kabul edildi: paralel ajan akışında alternatifi çalışmayan bir kural.
+- **Yeni sorumluluk:** CI sonucunu izlemek Orkestra Şefi'nin turu kapatma adımıdır, isteğe bağlı değil.
+- `git worktree` değerlendirildi ve reddedildi (aşağıda); ileride ajanlar ayrı çalışma dizinlerine taşınırsa bu ADR yeniden açılır.
+
+### Alternatifler ve neden reddedildi
+- **Ajan başına `git worktree`** — Gerçek izolasyon verirdi; **reddedildi** çünkü AJAN_PROMPTLARI.md ajanları aynı dizini paylaşan ayrı oturumlar olarak kurguluyor ve worktree yönetimi kullanıcıya günlük yük bindirir. `.next/` çakışmasını da çözmez (ADR-023 ayrı sorun).
+- **§10.5'i harfiyen uygulamakta ısrar** — **reddedildi**: üç kez denendi, üçünde de kural bozuldu. Uygulanamayan bir kural, disiplin değil gürültü üretir.
+- **Ajanlar commit'ler ama push etmez** — Yarı yol; **reddedildi** çünkü asıl çakışma `git checkout` anında oluyor (T-030b/E1), commit'te değil.
+
+---
+
+## ADR-029 — `revalidateTag` Tam Dize Eşleşir; Her Seviye Ayrı Düşürülür
+
+**Durum:** Kabul edildi · 2026-08-14 · **Tetikleyen:** T-030b, Ölçüm 2
+
+### Bağlam
+Önbellek etiketleri hiyerarşik **görünen** bir adlandırma kullanıyor:
+
+```
+content:project · content:project:tr · content:project:tr:kiyi-medya
+```
+
+Backend, Next 15.5.22'nin kaynağını okuyarak eşleşmenin **tam dize** olduğunu ölçtü
+(`tags-manifest.external.js:26` — `Map` araması). Yani `revalidateTag('content:project')`
+`content:project:tr` taşıyan bir girdiye **dokunmaz**. Hiyerarşi bir isimlendirme kuralı;
+geçersizleştirme hiyerarşik değil.
+
+Aynı ölçüm, T-030'da bırakılmış **gerçek bir hatayı** açığa çıkardı: liste okumalarında
+`tags` sarmalama anında bir kez hesaplanıyor ve `tr` sabit yazılıyordu. `getSkills('en')`
+ayrı bir önbellek girdisine düşüyor ama `content:skill:tr` etiketiyle işaretleniyordu —
+yani **İngilizce içerik panelden düzenlenir, kaydedilir, sitede değişmezdi** ve bir saat
+sonra emniyet ağı dolunca kendiliğinden düzelirdi. *Bazen çalışan* bir bayatlama: hata
+ayıklaması en zor sınıf.
+
+### Karar
+**Kural:** Bir önbellek girdisi, kendisini düşürebilecek **tüm** etiketleri taşımak
+zorundadır. Etiket adlandırmasındaki hiyerarşi okunabilirlik içindir, geçersizleştirme
+mekanizması değildir.
+
+**F3'ün Server Action'ları için bağlayıcı:**
+- İçerik **eklendi/silindi** → `localeTag(entity, locale)` düşürülür (liste ve sayılar değişti)
+- İçerik **düzenlendi** → `localeTag` **ve** `slugTag` birlikte düşürülür
+- **Durum değişti** (`DRAFT`→`PUBLISHED`, →`ARCHIVED`) → `localeTag` **mutlaka** düşürülür.
+  Yalnızca `slugTag` düşürmek `publishedProjects` istatistiğini bayat bırakır.
+
+**Yapısal koruma:** Etiketler sarmalama anında değil, **çağrı argümanlarından** hesaplanır.
+`cachedRead` tek sarmalayıcıdır ve `describe` fonksiyonunu **zorunlu** kılar — sabit etiket
+dizisi yazmak artık derlenmiyor. Kural yorumla değil tiple korunuyor.
+
+### Sonuçlar
+- **Olumlu:** Dil bazlı bayatlama sınıfı kapandı ve tekrarı derleme hatası veriyor. Regresyon testi **mutasyonla** doğrulandı (eski hâl geri konup testin kırıldığı görüldü).
+- **Olumsuz / kabul edilen:** Server Action'lar birden çok `revalidateTag` çağırmak zorunda; unutulan bir seviye bayat içerik bırakır. Bu yüzden kural bir kod yorumunda değil ADR'de — F3'ün her CRUD görev kartına referans verilecek.
+- Bugün tek dil (`tr`) olduğu için etkisi yoktu; **F3'te ikinci dil eklendiği anda** ortaya çıkardı.
+
+### Alternatifler ve neden reddedildi
+- **Tek düz etiket kullanmak** (`content:project`) — Hiyerarşi sorununu yok ederdi; **reddedildi** çünkü tek bir yazının düzenlenmesi tüm proje listesini ve istatistiği düşürürdü; önbelleğin faydası büyük ölçüde kaybolur.
+- **İki sarmalayıcı** (biri sabit etiketli, biri dinamik) — Basit kullanım için kısa yol verirdi; **reddedildi**: hatanın tekrarına davetiye. Tek sarmalayıcı + zorunlu `describe`, yanlış kullanımı imkânsız kılıyor.
+- **Kuralı yorumda bırakmak** — **reddedildi**: T-019b/K3'ün gösterdiği gibi, hatırlanması gereken kurallar unutulur. Tip ve ADR birlikte korur.

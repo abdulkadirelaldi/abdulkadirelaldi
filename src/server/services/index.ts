@@ -99,7 +99,17 @@
  * ```
  */
 
+/**
+ * ⚠️ BU BARREL NEXT'E BAĞLIDIR (BULGU-012) — `./cached` ve `content-cache`
+ * `next/cache` çeker. DÜZ NODE ile koşan betikler (seed, §13.5 cron) BURAYI
+ * İÇE AKTARAMAZ; `@/server/services/_shared` (saf barrel) veya tekil servis
+ * modüllerini kullanırlar.
+ */
+
 export * from './_shared';
+
+// ADR-011 — önbellek etiketleri; F3'ün Server Action'ları bunları kullanır
+export * from './_shared/content-cache';
 
 // ADR-026 — içerik DTO sözleşmesi. Frontend `import type` ile tüketir.
 export type * from './content-dto';
@@ -111,3 +121,9 @@ export * from './profile';
 export * from './project';
 export * from './service';
 export * from './skill';
+
+// ADR-027 — türetilmiş site istatistikleri
+export * from './stats';
+
+// ADR-011 — önbellekli public okumalar (getX). Sayfalar BUNLARI çağırır.
+export * from './cached';

@@ -25,7 +25,10 @@ import {
 } from '@/lib/schemas';
 import { hashPassword } from '@/server/auth/password';
 import { closeDatabase, db } from '@/server/db';
-import { calculateReadingMinutes } from '@/server/services/_shared';
+// BULGU-012: barrel yerine DOĞRUDAN modül — seed düz Node ile koşar, bkz.
+// `_shared/index.ts` başlığı. Saf barrel de güvenli; doğrudan import zinciri
+// en kısa tutuyor.
+import { calculateReadingMinutes } from '@/server/services/_shared/reading-time';
 
 /**
  * Seed — PROGRAM.md §6, ADR-013/014/017/018/019.

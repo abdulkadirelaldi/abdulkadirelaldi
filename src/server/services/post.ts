@@ -3,16 +3,11 @@ import type { PrismaClient } from '@/server/generated/prisma/client';
 
 import {
   ATTACHMENT_SELECT,
-  cachedRead,
   calculateReadingMinutes,
   DEFAULT_LOCALE,
-  entityTag,
-  localeTag,
   publishedWhere,
-  slugTag,
   toAttachmentRef,
-  type AttachmentRow,
-} from './_shared';
+  type AttachmentRow} from './_shared';
 import type { ContentLookup, PostDto, PostListItemDto } from './content-dto';
 
 /** `Post` servisi — §4.1 /blog, ADR-019. */
@@ -132,22 +127,4 @@ export async function fetchPostBySlug(
       content: row.content,
     },
   };
-}
-
-/* --- Önbellekli public okumalar (ADR-011) ------------------------------- */
-
-export const getPublishedPosts = cachedRead(
-  (locale: string = DEFAULT_LOCALE) => fetchPublishedPosts({ locale }),
-  { keyParts: ['posts'], tags: [entityTag('post'), localeTag('post', DEFAULT_LOCALE)] },
-);
-
-/** `slug` anahtara açıkça konur — bkz. `getProjectBySlug` yorumu. */
-export function getPostBySlug(
-  slug: string,
-  locale: string = DEFAULT_LOCALE,
-): Promise<ContentLookup<PostDto>> {
-  return cachedRead(() => fetchPostBySlug(slug, { locale }), {
-    keyParts: ['post', locale, slug],
-    tags: [entityTag('post'), localeTag('post', locale), slugTag('post', locale, slug)],
-  })();
 }

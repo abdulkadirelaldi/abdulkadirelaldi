@@ -2,7 +2,7 @@ import { db } from '@/server/db';
 import type { PrismaClient } from '@/server/generated/prisma/client';
 import type { ExperienceType } from '@/types';
 
-import { cachedRead, dateToAppDay, DEFAULT_LOCALE, entityTag, localeTag } from './_shared';
+import { dateToAppDay, DEFAULT_LOCALE} from './_shared';
 import type { ExperienceDto } from './content-dto';
 
 /** `Experience` servisi — §4.1 /hakkimda zaman çizelgesi. */
@@ -59,11 +59,3 @@ export async function fetchExperience(
   });
   return rows.map(toDto);
 }
-
-export const getExperience = cachedRead(
-  (locale: string = DEFAULT_LOCALE) => fetchExperience({ locale }),
-  {
-    keyParts: ['experience'],
-    tags: [entityTag('experience'), localeTag('experience', DEFAULT_LOCALE)],
-  },
-);

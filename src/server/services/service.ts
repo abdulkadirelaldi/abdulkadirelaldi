@@ -1,7 +1,7 @@
 import { db } from '@/server/db';
 import type { PrismaClient } from '@/server/generated/prisma/client';
 
-import { cachedRead, DEFAULT_LOCALE, entityTag, localeTag } from './_shared';
+import { DEFAULT_LOCALE} from './_shared';
 import type { ServiceDto } from './content-dto';
 
 /** `Service` servisi — §4.1 hizmetler, K4 CTA'ları. */
@@ -41,8 +41,3 @@ export async function fetchServices(
   });
   return rows.map(toDto);
 }
-
-export const getServices = cachedRead((locale: string = DEFAULT_LOCALE) => fetchServices(locale), {
-  keyParts: ['services'],
-  tags: [entityTag('service'), localeTag('service', DEFAULT_LOCALE)],
-});

@@ -3,15 +3,10 @@ import type { PrismaClient } from '@/server/generated/prisma/client';
 
 import {
   ATTACHMENT_SELECT,
-  cachedRead,
   DEFAULT_LOCALE,
-  entityTag,
-  localeTag,
   publishedWhere,
-  slugTag,
   toAttachmentRef,
-  type AttachmentRow,
-} from './_shared';
+  type AttachmentRow} from './_shared';
 import type { ContentLookup, ProjectDto, ProjectListItemDto } from './content-dto';
 
 /** `Project` servisi — §4.1 /projeler, ADR-018/019. */
@@ -167,36 +162,4 @@ export async function fetchProjectBySlug(
       gallery: await fetchProjectGallery(row.id, client),
     },
   };
-}
-
-/* --- Önbellekli public okumalar (ADR-011) ------------------------------- */
-
-export const getPublishedProjects = cachedRead(
-  (locale: string = DEFAULT_LOCALE) => fetchPublishedProjects({ locale }),
-  { keyParts: ['projects'], tags: [entityTag('project'), localeTag('project', DEFAULT_LOCALE)] },
-);
-
-export const getFeaturedProjects = cachedRead(
-  (locale: string = DEFAULT_LOCALE) => fetchPublishedProjects({ locale, featuredOnly: true }),
-  {
-    keyParts: ['projects', 'featured'],
-    tags: [entityTag('project'), localeTag('project', DEFAULT_LOCALE)],
-  },
-);
-
-/**
- * Slug bazlı önbellek.
- *
- * `slug` ANAHTARA AÇIKÇA KONUR: `unstable_cache` anahtarı argümanlardan
- * türetmez; konmasaydı tüm projeler aynı önbellek girdisini paylaşır ve
- * ziyaretçi başka bir projenin içeriğini görürdü.
- */
-export function getProjectBySlug(
-  slug: string,
-  locale: string = DEFAULT_LOCALE,
-): Promise<ContentLookup<ProjectDto>> {
-  return cachedRead(() => fetchProjectBySlug(slug, { locale }), {
-    keyParts: ['project', locale, slug],
-    tags: [entityTag('project'), localeTag('project', locale), slugTag('project', locale, slug)],
-  })();
 }

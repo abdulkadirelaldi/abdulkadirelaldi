@@ -17,6 +17,19 @@ import { unstable_cache } from 'next/cache';
  * Bir mutasyon EN GENİŞ etkilenen etiketi geçersizleştirir. Yeni proje eklemek
  * `content:project:tr`'yi düşürür (liste değişti); mevcut projeyi düzenlemek hem
  * onu hem kaydın kendi etiketini düşürür. Tekil varlıklarda (Profile) slug yok.
+ *
+ * ⚠️ HİYERARŞİ YALNIZCA OKUNABİLİRLİK İÇİN — EŞLEŞME TAM DİZEDİR.
+ *
+ * ÖLÇÜLDÜ (next 15.5.22, `incremental-cache/tags-manifest.external.js`):
+ * `isStale` etiketleri `tagsManifest.get(tag)` ile, yani bir Map araması ile
+ * karşılaştırır. ÖNEK EŞLEŞMESİ YOKTUR: `revalidateTag('content:project')`
+ * SADECE `content:project` etiketini TAŞIYAN girdileri düşürür — yalnızca
+ * `content:project:tr` taşıyan bir girdiye DOKUNMAZ.
+ *
+ * SONUÇ — her önbellek girdisi, kendisini düşürebilecek TÜM etiketleri
+ * taşımalıdır (dar olandan geniş olana), yoksa geniş bir geçersizleştirme
+ * sessizce hedefi ıskalar. Bu yüzden aşağıdaki servisler `entityTag` +
+ * `localeTag` (+ varsa `slugTag`) etiketlerini BİRLİKTE verir.
  */
 
 /** Önbellek etiketi öneki — tek yerde, elle dize yazılmaz. */
@@ -48,13 +61,43 @@ export function slugTag(entity: ContentEntity, locale: string, slug: string): st
  */
 export const CONTENT_REVALIDATE_SECONDS = 3600;
 
+/** Bir okumanın önbellek kimliği: anahtar parçaları + geçersizleştirme etiketleri. */
+export interface CacheDescriptor {
+  /**
+   * Önbellek anahtarının parçaları.
+   *
+   * `unstable_cache` argümanları anahtara KENDİ EKLER — ölçüldü (next 15.5.22,
+   * `spec-extension/unstable-cache.js:82`):
+   *
+   *   invocationKey = `${cb.toString()}-${keyParts.join(',')}` + JSON.stringify(args)
+   *
+   * Yani argümanları buraya tekrar koymak ŞART DEĞİL; yine de koyuyoruz çünkü
+   * anahtar böylece günlüklerde okunabilir oluyor ve `cb.toString()`e bağımlılık
+   * azalıyor (iki farklı okumanın gövdesi birebir aynı yazılırsa `keyParts`
+   * onları ayıran tek şeydir).
+   */
+  keyParts: string[];
+  /**
+   * Bu girdiyi düşürebilecek TÜM etiketler — dar olandan geniş olana.
+   * Eşleşme tam dizedir (yukarıya bakınız), bu yüzden eksik bırakılan bir
+   * etiket sessizce geçersizleştirilemez bir girdi bırakır.
+   */
+  tags: string[];
+}
+
 /**
  * Bir public okuma fonksiyonunu önbelleğe alır.
  *
- * `unstable_cache` ANAHTARI ARGÜMANLARDAN TÜRETMEZ — `keyParts` elle verilir.
- * Bu yüzden dinamik parametreler (locale, slug, sayfa) anahtara AÇIKÇA
- * konmalıdır; unutulursa iki farklı sorgu aynı önbellek girdisini paylaşır ve
- * kullanıcı başkasının sonucunu görür. Aşağıdaki sarmalayıcı bunu zorunlu kılar.
+ * ETİKETLER NEDEN FONKSİYONDAN GELİYOR: `unstable_cache`'in `tags` seçeneği
+ * SARMALAMA ANINDA bir kez okunur, argümanlara göre değişmez. Sabit bir dizi
+ * verilseydi — örneğin `tags: [localeTag('skill', 'tr')]` — `getSkills('en')`
+ * çağrısı ayrı bir önbellek girdisine düşer (anahtar argümanı içeriyor) ama
+ * `content:skill:tr` etiketiyle işaretlenirdi. Sonuç: `content:skill:en`
+ * geçersizleştirmesi o girdiyi ASLA düşüremez; İngilizce içerik yalnızca
+ * `CONTENT_REVALIDATE_SECONDS` dolunca tazelenirdi. SESSİZ BAYATLAMA.
+ *
+ * `describe` zorunlu tutularak bu hata yapısal olarak imkânsız kılındı:
+ * etiketler her çağrıda o çağrının argümanlarından hesaplanır.
  *
  * NOT: `unstable_cache` Next'in deneysel API'sidir (ADR-011 "veya güncel
  * eşdeğeri" diyerek bunu öngördü). Tek yerde sarmalandığı için ileride
@@ -62,15 +105,13 @@ export const CONTENT_REVALIDATE_SECONDS = 3600;
  */
 export function cachedRead<Args extends unknown[], Result>(
   read: (...args: Args) => Promise<Result>,
-  options: {
-    /** Önbellek anahtarının sabit kısmı — fonksiyonu benzersiz kılar. */
-    keyParts: string[];
-    /** Geçersizleştirme etiketleri. */
-    tags: string[];
-  },
+  describe: (...args: Args) => CacheDescriptor,
 ): (...args: Args) => Promise<Result> {
-  return unstable_cache(read, options.keyParts, {
-    tags: options.tags,
-    revalidate: CONTENT_REVALIDATE_SECONDS,
-  });
+  return (...args: Args): Promise<Result> => {
+    const { keyParts, tags } = describe(...args);
+    return unstable_cache(read, keyParts, {
+      tags,
+      revalidate: CONTENT_REVALIDATE_SECONDS,
+    })(...args);
+  };
 }
