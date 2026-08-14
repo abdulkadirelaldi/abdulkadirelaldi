@@ -1,35 +1,25 @@
 import type { Metadata } from 'next';
 
-import {
-  GECICI_HIZMETLER,
-  GECICI_PROFIL,
-  GECICI_PROJELER,
-  GECICI_YETENEKLER,
-} from '@/components/public/fixture';
-import { Hakkimda, type Istatistik } from '@/components/public/hakkimda';
+import { Hakkimda } from '@/components/public/hakkimda';
 import { Hero } from '@/components/public/hero';
 import { Hizmetler } from '@/components/public/hizmetler';
 import { Iletisim } from '@/components/public/iletisim';
 import { Projeler } from '@/components/public/projeler';
 import { Yetenekler } from '@/components/public/yetenekler';
 import { SITE_NAME } from '@/lib/constants';
+import {
+  getFeaturedProjects,
+  getProfile,
+  getServices,
+  getSiteStats,
+  getSkills,
+} from '@/server/services';
 
 /** §12 — adres koda gömülmez, ortam değişkeninden okunur. */
 const KIYI_MEDYA_URL = process.env.NEXT_PUBLIC_KIYI_MEDYA_URL ?? 'https://kiyimedya.com';
 
 /** RotatingText ifadeleri — `ProfileDto`'da çoklu ünvan alanı yok. */
 const UNVANLAR = ['Yazılım Mühendisi', 'Full Stack Developer', 'Ürün Odaklı Geliştirici'] as const;
-
-/**
- * İstatistiklerin KAYNAĞI HENÜZ KARARA BAĞLANMADI (T-000 / ENGEL-3).
- * `ProfileDto` böyle bir alan taşımıyor; `Profile.stats` mı eklenecek yoksa
- * `Project`/`Client` sayımından mı türetilecek, Orkestra Şefi'nde.
- */
-const ISTATISTIKLER: Istatistik[] = [
-  { deger: 2, sonek: '+', etiket: 'yıl deneyim' },
-  { deger: 18, etiket: 'tamamlanan proje' },
-  { deger: 12, etiket: 'mutlu müşteri' },
-];
 
 export const metadata: Metadata = {
   title: {
@@ -40,45 +30,52 @@ export const metadata: Metadata = {
 };
 
 /**
- * Ana sayfa — §4.1. Bu görevde ilk üç bölüm: Hero, Hakkımda, Yetenekler.
- * Projeler / Hizmetler / İletişim T-022'de eklenecek.
+ * Ana sayfa — §4.1, altı bölüm.
  *
  * ═══════════════════════════════════════════════════════════════════════════
- * VERİ: ŞU AN YER TUTUCU — ADR-026'nın beklediği yer burası
+ * VERİ: GERÇEK SERVİSLER (ADR-026) — fixture KALDIRILDI
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * ADR-026 sayfaların GERÇEK VERİDEN okumasını söylüyor ve geçici verinin
- * Backend'in DTO tiplerinden TÜRETİLMESİNİ şart koşuyor. T-030 tipleri bu görev
- * sırasında yayımladı (`src/server/services/content-dto.ts`); bölümler artık
- * doğrudan `ProfileDto` ve `SkillDto` alıyor.
+ * Beş okumanın hepsi `@/server/services`'in ÖNBELLEKLİ sürümleri (ADR-011):
+ * `getProfile` = `cachedRead(fetchProfile)`. Ham `fetch*` sürümleri BURADA
+ * KULLANILMAZ — onlar önbelleksizdir ve her ziyaret veritabanına giderdi.
  *
- * İçerik geçici olarak `fixture.ts`'ten geliyor ve o dosya tipleri Backend'den
- * TÜRETİYOR (elle kopya değil) — sözleşme değişirse `pnpm typecheck` kırılır.
- * Servisler (`fetchProfile` / `fetchSkills`) bağlanınca fixture silinecek.
+ * BU DOSYA SUNUCU BİLEŞENİ OLARAK KALMALI: okumalar önbelleklenebilir sınırın
+ * içinde kalsın, istemciye taşınmasın. Bölüm bileşenleri `'use client'` ama
+ * veriyi prop olarak alıyor; hiçbiri kendi başına veri çekmiyor.
  *
- * SERVİSLER gelince bu sayfa iki satırla bağlanır ve `fixture.ts` SİLİNİR:
+ * `Promise.all` SIRALI DEĞİL PARALEL: beşi arka arkaya `await` edilseydi
+ * gecikmeler toplanırdı (ölçüm: sıralı ~5×RTT, paralel ~1×RTT). Aralarında
+ * bağımlılık yok, sıraya girmeleri için sebep de yok.
  *
- *   const profil = await fetchProfile();   // önbelleklenmiş servis (ADR-011)
- *   const skills = await fetchSkills();
- *
- * Bu dosya Sunucu Bileşeni olarak KALMALI: veri çağrıları önbelleklenebilir
- * sınırın içinde kalsın, istemciye taşınmasın (ADR-011).
+ * BOŞ VERİTABANI: `getSkills` / `getFeaturedProjects` / `getServices` boş dizi
+ * döner ve bölümler `EmptyState` gösterir; `getSiteStats` sıfır döner ve kart
+ * hiç çizilmez (bkz. `hakkimda.tsx`). `getProfile` İSE FIRLATIR — profil
+ * ADR-017'de tekil, seed ile açılan bir kayıt; yokluğu boş durum değil kurulum
+ * hatasıdır. Bu bilinçli davranışın kullanıcıya dönük yüzü `error.tsx`.
  */
+export default async function AnaSayfa() {
+  const [profil, yetenekler, projeler, hizmetler, istatistikler] = await Promise.all([
+    getProfile(),
+    getSkills(),
+    getFeaturedProjects(),
+    getServices(),
+    getSiteStats(),
+  ]);
 
-export default function AnaSayfa() {
   return (
     <>
-      <Hero profil={GECICI_PROFIL} ad={SITE_NAME} unvanlar={[...UNVANLAR]} />
+      <Hero profil={profil} ad={SITE_NAME} unvanlar={[...UNVANLAR]} />
 
-      <Hakkimda profil={GECICI_PROFIL} istatistikler={[...ISTATISTIKLER]} />
+      <Hakkimda profil={profil} istatistikler={istatistikler} />
 
-      <Yetenekler yetenekler={GECICI_YETENEKLER} />
+      <Yetenekler yetenekler={yetenekler} />
 
-      <Projeler projeler={GECICI_PROJELER} />
+      <Projeler projeler={projeler} />
 
-      <Hizmetler hizmetler={GECICI_HIZMETLER} kiyiMedyaUrl={KIYI_MEDYA_URL} />
+      <Hizmetler hizmetler={hizmetler} kiyiMedyaUrl={KIYI_MEDYA_URL} />
 
-      <Iletisim profil={GECICI_PROFIL} />
+      <Iletisim profil={profil} />
     </>
   );
 }

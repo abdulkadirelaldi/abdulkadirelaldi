@@ -1,5 +1,32 @@
 'use client';
 
+/*
+ * İSTEMCİ BİLEŞENİ OLARAK KALDI — T-023'te sunucuya alındı, ÖLÇÜLDÜ, geri alındı.
+ *
+ * Beklenti: `'use client'` kalkarsa bölümün işaretlemesi istemci paketinden
+ * çıkar. Derleme çıktısı bunu doğruladı bile: ana sayfa parçası 11.5 kB →
+ * 3.39 kB, ilk yük 127 kB → 118 kB.
+ *
+ * GERÇEK ÖLÇÜM TERSİNİ SÖYLEDİ (Lighthouse mobil, her kol için 3 koşu, medyan;
+ * her koşudan önce `.next` silinip sunucu yeniden ayağa kaldırıldı):
+ *
+ *   | Bölümler | belge | FCP    | LCP     | performans |
+ *   | -------- | ----- | ------ | ------- | ---------- |
+ *   | istemci  | 11 kB | 758 ms | 3312 ms | 92/91/92   |
+ *   | sunucu   | 19 kB | 909 ms | 3556 ms | 91/91/89   |
+ *
+ * SEBEP: bölüm sunucuda render edilince RSC yükü BELGEYE SATIR İÇİ giriyor —
+ * aynı içerik hem HTML hem flight verisi olarak iki kez. Belge 8 kB büyüyor ve
+ * Slow 4G'de bu, ilk boyamayı doğrudan geciktiriyor. "First Load JS" sayısı
+ * düşerken kullanıcının gördüğü an gecikiyor; derleme çıktısındaki sayı burada
+ * yanıltıcı bir vekil.
+ *
+ * §7'nin "varsayılan Sunucu Bileşeni" kuralı hâlâ doğru; bu altı bölüm, uçtan
+ * uca istemci bileşenlerinden (React Bits sarmalayıcıları, `BolumGiris`) oluşan
+ * bir ağacın kökü oldukları için ölçüme dayalı istisna. Yeniden denenecekse
+ * yukarıdaki tablo yeniden üretilmeli — sayısız değil, sayıyla tartışılsın.
+ */
+
 import { BolumGiris } from '@/components/public/bolum-giris';
 import { SpotlightCard } from '@/components/reactbits/lazy';
 import { EmptyState } from '@/components/ui/empty-state';

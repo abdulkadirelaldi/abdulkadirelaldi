@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -o /dev/null -w 'warm %{time_starttransfer}\\\\n' http://127.0.0.1:3100/)",
+      "Bash(awk '{s+=$5; print $5, $9} END {print \"TOPLAM on-yuklenen:\", s}')",
+      "Bash(chmod +x /private/tmp/claude-501/-Users-abdulkadirelaldi-Desktop-web-abdulkadirelaldi/84954c68-b36f-4711-923f-c3e7177a4870/scratchpad/olc.sh)",
+      "Bash(/private/tmp/claude-501/-Users-abdulkadirelaldi-Desktop-web-abdulkadirelaldi/84954c68-b36f-4711-923f-c3e7177a4870/scratchpad/olc.sh ab-sunucu *)",
+      "Bash(DATABASE_URL='postgresql://aelaldi:aelaldi_dev_only@127.0.0.1:5433/aelaldi_bos?schema=public' pnpm exec prisma migrate deploy)",
+      "Bash(DATABASE_URL='postgresql://aelaldi:aelaldi_dev_only@127.0.0.1:5433/aelaldi_bos?schema=public' PORT=3106 node tests/olcum-sunucusu.mjs)",
+      "Bash(sh -c 'i=0; until curl -s -o /dev/null http://127.0.0.1:3106/ || [ $i -ge 40 ]; do i=$\\(\\(i+1\\)\\); sleep 1; done')",
+      "Bash(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3106/)",
+      "Bash(echo \"HTTP: $\\(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3106/\\)\")",
+      "Bash(curl -s http://127.0.0.1:3106/)",
+      "Bash(PORT=3106 node tests/olcum-sunucusu.mjs)",
+      "Bash(rm -rf .next/cache .next/standalone/.next/cache)",
+      "Bash(sh -c 'i=0; until curl -sf -o /dev/null http://127.0.0.1:3106/ || [ $i -ge 40 ]; do i=$\\(\\(i+1\\)\\); sleep 1; done')",
+      "Bash(node bos-kontrol.mjs http://127.0.0.1:3106/ bos-icerik.png)",
+      "Bash(curl -s -o /dev/null -w '3105 \\(seed\\): %{http_code}\\\\n' http://127.0.0.1:3105/)",
+      "Bash(PORT=3105 node tests/olcum-sunucusu.mjs)",
+      "Bash(sh -c 'i=0; until curl -sf -o /dev/null http://127.0.0.1:3105/ || [ $i -ge 40 ]; do i=$\\(\\(i+1\\)\\); sleep 1; done')",
+      "Bash(node teshis-giris.mjs)",
+      "Bash(node tam-kaydirma.mjs)",
+      "Bash(/private/tmp/claude-501/-Users-abdulkadirelaldi-Desktop-web-abdulkadirelaldi/84954c68-b36f-4711-923f-c3e7177a4870/scratchpad/olc.sh nihai-mobil *)",
+      "Bash(curl -s -o /dev/null -w 'gstatic: %{http_code}\\\\n' https://fonts.gstatic.com/)",
+      "Bash(/private/tmp/claude-501/-Users-abdulkadirelaldi-Desktop-web-abdulkadirelaldi/84954c68-b36f-4711-923f-c3e7177a4870/scratchpad/olc.sh kapi-acik *)",
+      "Bash(zsh -lc 'pnpm audit --audit-level high >/dev/null 2>&1; echo \"audit: $?\"; pnpm lint >/dev/null 2>&1; echo \"lint: $?\"; pnpm typecheck >/dev/null 2>&1; echo \"typecheck: $?\"; pnpm test 2>&1 | grep -E \"Tests \"; pnpm build >/dev/null 2>&1; echo \"build: $?\"')"
+    ]
+  }
+}

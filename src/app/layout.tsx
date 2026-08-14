@@ -29,6 +29,16 @@ const inter = Inter({
   variable: '--font-inter',
 });
 
+/**
+ * ÖN YÜKLEME AÇIK KALDI — T-023'te kapatıldı, ÖLÇÜLDÜ, geri alındı.
+ *
+ * Denenen: `preload: false`. Gerekçe makuldü — üç ailenin ön yüklenen altı
+ * dosyası 218 kB ve Slow 4G'de bu JS'ten büyük bir kalem.
+ * Ölçüm (3'er koşu, medyan): FCP 907 ms → 1359 ms, LCP 3456 → 3456.
+ * Sebep: ön yükleme kalkınca font BELGE → CSS → FONT zincirine düşüyor ve
+ * FCP grafiğine fazladan bir gidiş-dönüş ekliyor. Kazanılan bant genişliği,
+ * kaybedilen turdan küçük. Kayıtta kalsın ki bir daha denenmesin.
+ */
 const jetBrainsMono = JetBrains_Mono({
   subsets: ['latin', 'latin-ext'],
   weight: ['400', '500'],

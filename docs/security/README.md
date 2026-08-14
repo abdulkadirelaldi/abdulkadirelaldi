@@ -73,6 +73,7 @@ açığın ayrıntısı artık saldırgana bir şey kazandırmaz.
 | 2026-08-11 | T-005b | Auth E2E'nin CI'ya alınması: Postgres servisi, migrate + seed, "atlanan test yok" nöbeti | **BULGU-009 açıldı ve aynı görevde kapandı**: auth paketi CI'da hiç koşmuyordu ("19 skipped" ile yeşil). §8.1 kapısı ve dört `code` kilidi artık merge kapısında tutuyor. |
 | 2026-08-14 | T-029b | Ölçüm sunucusunun kararsızlığı: teşhis + standalone'a geçiş | **BULGU-011 açıldı ve kapandı.** `next start` gerçek Lighthouse iş yükünde 4. koşuda düşüyordu; standalone 25/25 temiz. Yan kazanç: T-029a'daki koşu değişkenliği (yayılım 32 → ≤1) ve SEO 60 → 100. Isınma isteği önerisi geri çekildi. |
 | 2026-08-12 | T-029a | Lighthouse'a masaüstü + koyu profil (WebGL yolu), üç durumlu WebGL doğrulaması, koşu değişkenliği kararı | **BULGU-010 açıldı**: WebGL yolu hiçbir CI koşusunda ölçülmüyordu. Profil kuruldu ve doğrulandı; ölçüm T-021'in hero'yu bağlamasını bekliyor (kontrol kendi kendine zorunlu hâle geliyor). Değişkenliğin **ilk koşuya** ait olduğu ölçüldü; `numberOfRuns` 5, `aggregationMethod` açıkça medyan. |
+| 2026-08-14 | T-005c | §8.24 tetiklendi: `nanoid` GHSA-2v37-7h3g-55p8 (Yüksek, geçişli, 9 yol) | **ADVISORY-001 kapandı** — `pnpm.overrides` ile `nanoid` `>=3.3.18 <4.0.0`. Denetim EXIT 0. Açık aralık (`>=3.3.18`) sessizce **6.0.1**'e çözülüyordu (üç majör atlama, ESM-only) — ölçülerek yakalandı ve daraltıldı. **Advisory oyunkitabı yazıldı**; kalıcı override'ların birikmesine karşı kaldırma koşulu ve altı aylık gözden geçirme kuralı kondu. |
 
 ---
 
@@ -986,6 +987,172 @@ birlikte **100** oldu. Beklenen düzelme gerçekleşti.
 
 ---
 
+## ADVISORY-001 — `nanoid` <3.3.18 (GHSA-2v37-7h3g-55p8, Yüksek, geçişli)
+
+**Tarih:** 2026-08-14 · **Görev:** T-005c · **Durum:** KAPANDI (override)
+**Bulan:** §8.24 kapısı — kodda değişiklik yokken kırmızıya döndü.
+
+Bu bir bulgu değil, **dış veri kaynağı kaynaklı bir kapı tetiklenmesi**. T-005b/K6
+denetimi ayrı bir iş olarak tasarlarken tam bu senaryoyu öngörmüştü: `kapi` yeşil
+kaldı, yalnızca `bagimlilik-denetimi` kırmızıya döndü.
+
+### Maruziyet — ölçüldü, varsayılmadı
+
+Advisory'nin gerektirdiği koşul: nanoid'in **özel üretici** (custom generator) ile
+`size = 0` çağrılması. Zincirdeki tek çağrı yeri:
+
+```js
+// postcss/lib/input.js
+let { nanoid } = require('nanoid/non-secure')
+this.id = '<input css ' + nanoid(6) + '>'
+```
+
+Varsayılan üretici, **sabit ve sıfır olmayan** boyut. Özel üretici yok. Bizim
+kodumuz nanoid'i hiç çağırmıyor (`src/`, `tests/`, `prisma/` tarandı: 0 eşleşme).
+**Pratik maruziyet: yok.** Buna rağmen override uygulandı — §8.24 sert bir kapı ve
+"bu açık bizi etkilemiyor" gerekçesiyle kapıyı gevşetmek, bir sonraki sefer gerçek
+bir açığı da elemek demektir. Bedeli olmayan bir düzeltme varken kapı tartışılmaz.
+
+### Uygulanan çözüm
+
+```json
+"pnpm": {
+  "overrides": {
+    "postcss": ">=8.5.23",
+    "sharp": ">=0.35.0",
+    "nanoid": ">=3.3.18 <4.0.0"
+  }
+}
+```
+
+Yalnızca kilit dosyası değişti: `nanoid@3.3.17` → `3.3.18` (9 yolun hepsinde tek
+sürüm). `postcss` 8.5.25 ve `sharp` override'ları **olduğu gibi duruyor**.
+
+### ÜST SINIR NEDEN VAR — ölçülmüş tuzak
+
+İlk deneme, mevcut override'ların kalıbına uyarak `">=3.3.18"` yazmaktı. Sonuç:
+
+```
+pnpm why nanoid  →  nanoid 6.0.1
+```
+
+Açık uçlu aralık en son majörü çekti — **üç majör atlama**. nanoid 4+ ESM-only:
+
+| | `main` | `exports["./non-secure"]` |
+| - | ------ | ------------------------- |
+| 3.3.18 | `index.cjs` | `require` + `import` koşulları var |
+| 6.0.1 | yok (`"type": "module"`) | yalnızca `default` (ESM) |
+
+postcss ise `require('nanoid/non-secure')` yapıyor. Yerelde (Node 22.23) yine de
+çalıştı — çünkü Node 22.12'den beri `require(ESM)` varsayılan olarak açık. Ama
+`engines.node` alt sınırımız **`>=22.11.0`** ve o yetenek 22.11'de **yok**. Yani
+denetim yeşil, testler yeşil, ama beyan ettiğimiz asgari Node'da postcss zinciri
+kırılırdı — **sessiz, ölçüm dışı bir kırılma**. 22.11 yerelde koşturulup
+doğrulanmadı; `engines` beyanı ile Node'un yayın notları arasındaki uyuşmazlık
+tek başına üst sınırı gerekçelendirdiği için orada durduruldu.
+
+**Ders:** override bir sürüm *tabanı* değil, bir *aralık* belirtir. Geçişli bir
+paketi majör sınırının ötesine taşımak, o paketi çağıran ara paketin sözleşmesini
+sessizce bozabilir. Üst sınır isteğe bağlı değil.
+
+### Kaldırma koşulu
+
+`postcss@8.5.26` (en son) hâlâ `nanoid: "^3.3.17"` ilan ediyor. Bu aralık **zaten
+3.3.18'i kapsıyor** — yani üst paket kırık değil, yalnızca kilit dosyamız eski
+sürüme sabitlenmişti. Bu, oyunkitabındaki en ucuz katman (A).
+
+**Override şu koşulda kaldırılır:** `pnpm why nanoid` çıktısındaki tüm yollar
+override olmadan `>=3.3.18` çözdüğünde. Pratikte bu, `postcss` bir sonraki kez
+güncellendiğinde kendiliğinden gerçekleşir. Kontrol tek komut:
+
+```bash
+# override satırı geçici olarak çıkarılır
+pnpm install --lockfile-only && pnpm why nanoid | grep -oE 'nanoid [0-9.]+' | sort -u
+# hepsi >=3.3.18 ise override SİLİNİR
+```
+
+**Son gözden geçirme:** 2026-08-14 · **Sonraki:** 2027-02-14 (bkz. oyunkitabı §4)
+
+---
+
+## Oyunkitabı — geçişli bağımlılıkta yüksek/kritik advisory
+
+ADVISORY-001 sonuncusu olmayacak. Bir dahaki sefere sırayla şunlar yapılır.
+
+### 1. Maruziyeti ölç — düzeltmeden ÖNCE
+
+Advisory metnini oku ve **tetikleyici koşulu** çıkar (ADVISORY-001'de "özel
+üretici + `size=0`"). Sonra iki soruyu ayrı ayrı cevapla:
+
+- **Bizim kodumuz o yolu çağırıyor mu?** → `grep -rn "<paket>" src/ tests/ prisma/`
+- **Ara paket o yolu çağırıyor mu?** → çağrı yerini `node_modules` içinde bul ve
+  **oku**. Çağırıyorsa hangi argümanlarla?
+
+Bu adım düzeltmeyi değiştirmez ama **aciliyeti** belirler: maruziyet varsa iş her
+şeyin önüne geçer ve tek başına ele alınır; yoksa kapıyı açmak için normal sırada
+yürür. "Muhtemelen etkilemiyor" bir cevap değildir — çağrı yerini gör.
+
+**Maruziyet yoksa bile düzeltilir.** §8.24 sert kapıdır; istisna yazmak, kapıyı
+bir sonraki gerçek açık için de gevşetir.
+
+### 2. Katmanı seç — en ucuzdan başla
+
+| Katman | Koşul | Yapılacak |
+| ------ | ----- | --------- |
+| **A · Kilit tazeleme** | Üst paketin ilan ettiği aralık yamalı sürümü **zaten kapsıyor** (ör. `^3.3.17` ⊇ 3.3.18) | `pnpm update <paket> --recursive`. Override'a gerek yok. Tek risk: kilit yeniden sabitlenince geri gelmesi — bu yüzden `pnpm audit` CI'da koşmalı (koşuyor). |
+| **B · Override** | Üst paket **yamasız bir aralık** ilan ediyor ve yamalı sürüm **aynı majör** içinde | `pnpm.overrides` → `">=<yamalı> <sonrakiMajör>"`. **ÜST SINIR ZORUNLU** (ADVISORY-001'in tuzağı). |
+| **C · Üst paketi yükselt** | Yamalı sürüm **majör sınırının ötesinde** — override ara paketin sözleşmesini bozar | Üst paketi yükselt (ör. `postcss` yeni majör). ADR gerekir: majör yükseltme davranış değiştirir. |
+| **D · Bekle + kaydet** | C mümkün değil (üst paket henüz yayınlamadı) **ve** maruziyet ölçülmüş biçimde yok | Bulgu kaydı aç, üst paketin issue'suna bağlan, `bagimlilik-denetimi` işine **süreli** istisna. Süresiz istisna yazılmaz. |
+
+**Üst paketi beklemek mi, override mı?** Ölçüt maruziyet değil, **majör sınırı**.
+Aynı majör içindeyse override (B) doğru cevaptır — ucuz, tersine çevrilebilir ve
+üst paket güncellendiğinde kendiliğinden gereksizleşir. Majör atlıyorsa override
+**yanlış** cevaptır (C'ye geç): ara paket eski majörün API'sini çağırıyor ve
+kırılma çalışma zamanında, denetimin göremediği bir yerde çıkar.
+
+### 3. Doğrula
+
+```bash
+pnpm install
+pnpm why <paket>                    # TÜM yollar yamalı sürümü mü çözdü
+pnpm audit --audit-level high       # EXIT 0
+pnpm lint && pnpm typecheck && pnpm test
+git diff pnpm-lock.yaml             # delta beklenenden BÜYÜKSE dur ve incele
+```
+
+`pnpm why` adımı atlanamaz: `pnpm audit`'in temiz olması sürümün *beklediğin*
+sürüm olduğunu göstermez (ADVISORY-001: audit 6.0.1 ile de temizdi).
+
+Derleme etkisi olabilecek zincirlerde (postcss/Tailwind) `pnpm build` **Orkestra
+Şefi tarafından** doğrulanır (ADR-023) — Güvenlik ajanı `src/**` derlemesini
+kendi başına yeşil ilan etmez.
+
+### 4. Kaldırma — override'lar birikirse bir gün gerçek açığı maskeler
+
+Her override kaydında **kaldırma koşulu** yazılır: hangi üst paket sürümü
+geldiğinde gereksizleşeceği. Koşulsuz override yazılmaz.
+
+**Altı ayda bir** (sonraki: **2027-02-14**) `pnpm.overrides` bloğu baştan sona
+gözden geçirilir. Her satır için: override geçici olarak çıkarılır,
+`pnpm install --lockfile-only && pnpm why <paket>` koşulur; çözülen sürüm zaten
+güvenliyse **satır silinir**.
+
+Gerekçesi somut: override, o paket için sürüm çözümlemesini **dondurur**. Bugün
+`nanoid`'i 3.3.18'e yükselten satır, yarın 3.3.25'te yayınlanacak bir açığı
+düzeltmez ama `pnpm update`'in doğal yükseltmesini de engelleyebilir. Ölü bir
+override, yaşayan bir açığı taşıyabilir.
+
+### 5. Kaydet
+
+`docs/security/README.md` → `ADVISORY-NNN` başlığı: advisory kimliği, tetikleyici
+koşul, **ölçülmüş maruziyet**, seçilen katman ve gerekçesi, kaldırma koşulu, son
+gözden geçirme tarihi. Denetim kütüğüne satır eklenir. R21 geçerlidir: açık
+kapanmadan istismar ayrıntısı yazılmaz — advisory zaten kamuya açık olduğu için
+kimliği ve tetikleyici koşulu vermek serbest, **bizim** zincirimizdeki çağrı
+yerini vermek düzeltmeden önce serbest değil.
+
+---
+
 ## §8 Güvenlik Gereksinimleri — Durum Tablosu
 
 **Ölçüm tarihi:** 2026-08-11 · **Faz:** F1 (kapandı) · **Son görev:** T-005b
@@ -1017,7 +1184,7 @@ Durum kodları: ✅ sağlandı · ⚠️ kısmi · ❌ eksik · ⏳ henüz uygul
 | 21 | Gece 03:00 şifreli `pg_dump` → R2, 30 gün | ⏳ | T-066 / T-073 · **Uyarı:** yol haritası F6/F7 diyor; gerçek muhasebe verisi F4'te girilmeye başlıyor. Yedeksiz geçen her F4 günü, başka kopyası olmayan mali veri riski. |
 | 22 | `restore.md` + en az bir prova | ⏳ | T-066 |
 | 23 | Yedek checksum doğrulaması | ⏳ | T-066 |
-| 24 | `npm audit` merge kapısı | ✅ | **Kuruldu** (T-005): `.github/workflows/ci.yml` → `bagimlilik-denetimi` işi, `pnpm audit --audit-level high` (ADR-003 gereği `npm` değil `pnpm`). Yüksek **ve** kritik kapsanır. Depo şu an temiz (her seviyede 0 açık). Kapının kırmızıya döndüğü ayrı bir izole projede kanıtlandı: `lodash@4.17.11` + `minimist@1.2.0` → 9 açık (2 kritik, 3 yüksek) → **EXIT 1**. Ayrıca yabancı kilit dosyası kontrolü de aynı işte. |
+| 24 | `npm audit` merge kapısı | ✅ | **Kuruldu** (T-005): `.github/workflows/ci.yml` → `bagimlilik-denetimi` işi, `pnpm audit --audit-level high` (ADR-003 gereği `npm` değil `pnpm`). Yüksek **ve** kritik kapsanır. Depo şu an temiz (her seviyede 0 açık). Kapının kırmızıya döndüğü ayrı bir izole projede kanıtlandı: `lodash@4.17.11` + `minimist@1.2.0` → 9 açık (2 kritik, 3 yüksek) → **EXIT 1**. Ayrıca yabancı kilit dosyası kontrolü de aynı işte. **T-005c — kapı gerçek bir advisory'de tetiklendi ve tuttu:** `nanoid` GHSA-2v37-7h3g-55p8 (Yüksek, geçişli, 9 yol) kodda hiçbir değişiklik yokken hattı kırmızıya çevirdi; `pnpm.overrides` ile kapandı, EXIT 0. Artık yalnızca izole projede değil, **kendi deposunda** kanıtlı. Tekrarlayan advisory'ler için oyunkitabı yazıldı (kaldırma koşulu + altı aylık gözden geçirme dahil). |
 | 25 | Yeni bağımlılık onay + DECISIONS kaydı | ✅ | T-004'ün 9 paketi görev kartında adı adına onaylı. **T-005 ve T-006b `package.json`'a hiçbir paket eklemedi** — `@lhci/cli` bilinçli olarak `pnpm dlx @lhci/cli@0.15.1` ile ephemeral çağrılıyor (yalnızca CI aracı, uygulama bağımlılığı değil; sürüm sabit, `latest` kullanılmıyor). **T-006b:** tüm GitHub eylemleri Node 24 hedefleyen güncel kararlı majora taşındı — `checkout@v7`, `setup-node@v7`, `cache@v6`, `upload-artifact@v7`, `pnpm/action-setup@v6`. Yamasız çalışma zamanı bırakmama gerekçesi ADR-008 ile aynı hat. |
 
 **Özet:** ✅ 9 · ⚠️ 4 · ❌ 0 · ⏳ 12
