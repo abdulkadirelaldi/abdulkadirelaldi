@@ -908,6 +908,76 @@ asıl sebep sunucunun kendisiydi.
 **Isınma isteği önerisi GERİ ÇEKİLDİ** — çözülecek bir semptom kalmadı.
 `numberOfRuns: 5` yine de korunuyor: ucuz ve medyanı sağlamlaştırıyor.
 
+### BULGU-010 KAPANDI — WebGL yolu artık gerçekten ölçülüyor
+
+T-021 hero arka planına Aurora'yı bağladı ve T-029a'nın üç durumlu kontrolü
+⏳'den ✅'e döndü. Aynı mantıkla ölçüldü (Aurora shader'ını taşıyan derleme
+parçası ağ isteklerinde aranır):
+
+| Profil | `ogl` parçası indirildi mi | Kural |
+| ------ | -------------------------- | ----- |
+| `masaustu-koyu` (1350×940, `ae-theme=dark`) | **evet** | §5.2.2 ✅ |
+| `mobil-aydinlik` (412×823) | **hayır** | §5.2.5 ✅ |
+
+Skorlar (5 koşu, medyan):
+
+| Profil | Perf | A11y | BP | SEO |
+| ------ | ---- | ---- | -- | --- |
+| `masaustu-koyu` | **100** | 100 | 100 | 100 |
+| `mobil-aydinlik` | **91** | 100 | 100 | 100 |
+
+**Ölçüm YERELDE alındı, CI'da değil** — sebebi BULGU-012: `kapi` işi "Seed"
+adımında düşüyor ve `lighthouse` işi ona bağlı (`needs: kapi`), dolayısıyla hiç
+koşmuyor. Doğrulama mantığı CI'dakiyle birebir aynı; BULGU-012 kapandığında
+kontrol CI'da da ✅ dönmeli ve bu **ilk ortak koşuda teyit edilmeli**.
+
+---
+
+## BULGU-012 — F2 dalında CI, "Seed" adımında kırık (12 Ağustos'tan beri)
+
+**Önem:** Yüksek (merge kapısı çalışmıyor)
+**PROGRAM.md maddesi:** §10.6
+**Dosya:** `prisma/seed.ts` → `src/server/services/_shared/index.ts` → `content-cache.ts`
+**Sorumlu ajan:** **Backend**
+**Durum:** AÇIK
+
+**Ne oluyor:**
+`prisma/seed.ts`, `calculateReadingMinutes` için `@/server/services/_shared`
+paketini içe aktarıyor. O paketin `index.ts` barrel dosyası `./content-cache`'i
+de yeniden ihraç ediyor ve `content-cache.ts` ilk satırında `next/cache`'ten
+`unstable_cache` alıyor.
+
+Seed, Next'in paketleyicisiyle değil DÜZ NODE ile koşuyor (`prisma/seed-resolver.mjs`).
+Düz Node `next/cache`'i çözemiyor:
+
+```
+ERR_MODULE_NOT_FOUND
+url: '.../node_modules/next/cache'
+```
+
+**Etkisi:** `kapi` işi seed adımında düşüyor → `E2E` hiç koşmuyor → `lighthouse`
+işi (`needs: kapi`) hiç koşmuyor. Yani **F2 dalında merge kapısının tamamı
+ölçüm yapmıyor.**
+
+**Ne zamandır:** Commit `d316885` (12 Ağustos). F2 dalının kendi CI koşumu
+(`31593417565`, 12 Ağustos) da **aynı adımda** düşmüş — yani iki gündür kırık
+ve fark edilmemiş. T-005b'nin kurduğu "atlanan test yok" nöbeti bu durumu
+yakalayamıyor çünkü iş zaten daha önce düşüyor.
+
+**Önerilen çözüm:** Seed'in ihtiyacı olan yalnızca `calculateReadingMinutes`.
+Barrel yerine doğrudan modülden alınırsa `next/cache` zinciri hiç yüklenmez:
+
+```ts
+// prisma/seed.ts
+import { calculateReadingMinutes } from '@/server/services/_shared/reading-time';
+```
+
+Barrel dosyalarının yan etkisi tam olarak budur: tek bir yardımcı için tüm
+paketi (ve onun çalışma zamanı bağımlılıklarını) yüklemek. Aynı tuzak `db:seed`
+dışında ileride yazılacak her cron betiğini de vurur (§13.5).
+
+---
+
 ### Yan kazanç — SEO 60 → 100
 
 T-006b'den beri "ölçülen sayfa `robots: { index: false }` taşıyan geçici
