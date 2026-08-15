@@ -216,6 +216,63 @@ ederken karşılığında şart koştuğu koruma.
 
 ## 3. Açık Görevler
 
+### BULGU-013 — `lighthouse` işinde veritabanı yok (Orkestra Şefi, 2026-08-14)
+
+**Önem:** Yüksek · **Sorumlu:** Güvenlik & Test · **Görev:** T-029c
+
+`lighthouse` işi ayrı runner'da koşuyor ve `services:` bloğu **yok** — Postgres yok,
+`db:seed` yok. ADR-026 ile ana sayfa gerçek veriden okumaya başlayınca `getProfile`
+satır bulamayıp fırlatıyor (ADR-017) → sayfa **500** → Lighthouse denetlemeyi reddediyor
+(`Status code: 500`, koşu `31814208273`).
+
+**Kimsenin hatası değil, ADR-026'nın öngörülmemiş yan etkisi:** ölçüm işi de veriye
+bağımlı hale geldi. `kapi` işinde DB var (T-005b) ama işler ayrı runner'da.
+
+**Not:** T-023'ün eklediği `error.tsx` ziyaretçiye düzgün bir hata sayfası gösteriyor
+ama HTTP durumu **500 kalıyor** — doğru davranış; Lighthouse'un reddi de doğru.
+
+### T-005c / T-023 kabul doğrulaması (Orkestra Şefi, 2026-08-14)
+
+**783 test · `audit` EXIT 0 · `Kapı` ve `§8.24` CI'da yeşil.**
+
+**T-005c — `pnpm audit`'in yeşil olması sürümün doğru olduğunu göstermiyor.** İlk override
+`">=3.3.18"` sessizce **6.0.1**'e çözüldü: üç majör atlama ve **CJS→ESM kopuşu**. `postcss`
+`require('nanoid/non-secure')` yapıyor; yerelde Node 22.23 tolere etti ama `engines.node`
+alt sınırımız `>=22.11.0` ve o yetenek 22.11'de yok — **beyan ettiğimiz asgari Node'da
+postcss zinciri kırılırdı ve hiçbir kapımız görmezdi.** `pnpm why` ile yakalandı, üst sınır
+eklendi. K2: *"aracın kendisine de ölçüm gözüyle bak"* bir kez daha karşılığını verdi.
+
+Oyunkitabının en değerli maddesi: **katman seçimi ölçütü maruziyet değil, majör sınırı.**
+Aynı majörde override doğru (ucuz, tersine çevrilebilir, üst paket güncellenince
+gereksizleşir); majör atlıyorsa override **yanlış cevap** — kırılma denetimin göremediği
+yerde çıkar. Ve *"ölü bir override, yaşayan bir açığı taşıyabilir"* — kaldırma koşulu
+zorunlu tutuldu.
+
+K3 (kendi ölçüm hatasını raporlaması: `node_modules` içinde `pnpm install` koşturup yanlış
+kilit yazması) ve bundan bir oyunkitabı adımı türetmesi doğru refleks.
+
+**T-023 — LCP teşhisi ölçüm modelini sorguladı.** Raporlanan 3.0 s "render delay",
+Lighthouse'un **Lantern simülasyonu artefaktıymış**: gerçek kısıtlamayla LCP = FCP = 828 ms.
+Ajan Lighthouse kaynağını okuyup mekanizmayı çıkardı (`getFirstPaintBasedGraph` cutoff'u
+gözlenen LCP; localhost belgeyi 40 ms'te verdiği için tüm başlangıç JS'i o pencereye
+düşüyor). **Fontlar ve render-blocking CSS suçlu değilmiş** — ENGEL-3'ün üç turdur taşınan
+hipotezi çürütüldü.
+
+Yine de tek gerçek kaldıraç olan "ilk 150 ms'e giren bayt" azaltıldı: `framer-motion`
+başlangıç paketinden çıktı (168 → 127 kB), mobilde beş efekt yüklenmiyor. Mobil
+90/91/92 → **92/92/92**, kritik JS 139 kB'a sabitlendi. **Denenip ölçüyle geri alınanlar
+da kodda tablo hâlinde duruyor** — bölümleri Sunucu Bileşeni yapmak (RSC yükü belgeyi
+11→19 kB büyütüyor) ve `preload: false` (FCP 907→1359).
+
+**İki gerçek hata:** (1) `IntersectionObserver` yalnızca `entries[0]`'a bakıyordu; hızlı
+kaydırmada öğe iki eşiği aynı karede geçince **altı bölüm kalıcı olarak gizli kalıyordu**.
+(2) `TiltedCard`'ın statik dalı `gorsel` prop'unu yok sayıp `src=""` basıyordu — **hareket
+tercihi kapalı kullanıcı kırık kutu görüyordu**, ve mobil de artık o dala düştüğü için
+kapsam genişlemişti.
+
+**Boş veritabanı ayrı bir DB açılarak sınandı** (paylaşılan geliştirme DB'sine
+dokunulmadan) ve `error.tsx` eklendi.
+
 ### T-036c / T-005b kabul doğrulaması (Orkestra Şefi, 2026-08-11) — **F1 merge edildi**
 
 **`main` = `e5dec94`.** PR #2 merge edildi, PR #1 kapatıldı (içeriği F1 dalındaydı).

@@ -13,6 +13,25 @@ on:
   pull_request:
   workflow_dispatch:
 
+  # HAFTALIK BAĞIMLILIK DENETİMİ (§8.24) — Pazartesi 06:17 UTC (09:17 TRT).
+  #
+  # NEDEN: advisory'ler BİZİM kodumuz değişmeden yayınlanır. Kapı yalnızca
+  # push/PR'da koşarsa, sessiz geçen bir hafta boyunca yüksek/kritik bir açık
+  # depoda fark edilmeden durur. Nitekim T-005c'deki `nanoid` açığını da bir PR
+  # koşusu değil, tesadüfen tetiklenen bir denetim ortaya çıkardı.
+  #
+  # Dakika BİLEREK :00 değil — tam saat başları GitHub'da en yoğun dilim ve
+  # zamanlanmış koşumlar orada uzun süre kuyrukta bekliyor.
+  #
+  # Zamanlanmış koşumda YALNIZCA `bagimlilik-denetimi` çalışır (aşağıdaki iki
+  # işte `if:` gardı var): haftalık koşumun amacı dış veri kaynağını yoklamak,
+  # değişmemiş kodu yeniden derlemek değil.
+  #
+  # DİKKAT: `schedule` yalnızca VARSAYILAN DALDAN tetiklenir. Bu dosya `main`'e
+  # girene kadar haftalık koşum başlamaz.
+  schedule:
+    - cron: '17 6 * * 1'
+
 # En az yetki: hat yalnızca kodu okur. Hiçbir iş yazma izni istemiyor.
 permissions:
   contents: read
@@ -38,6 +57,9 @@ jobs:
     name: 'Kapı: lint → typecheck → test → build → e2e'
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    # Haftalık denetim koşumunda atlanır — kod değişmedi, yeniden ölçmenin
+    # bilgi değeri yok. Gerekçe `on.schedule` bloğunda.
+    if: github.event_name != 'schedule'
 
     # §9 senaryo 3 ve §8.1 kapısı GERÇEK bir veritabanı ister: giriş akışı
     # kullanıcı kaydına, 2FA kurulumu `User.totpConfirmedAt`'e bakıyor.
@@ -281,6 +303,37 @@ jobs:
       - name: pnpm audit (yüksek + kritik)
         run: pnpm audit --audit-level high
 
+      # Kırmızı olduğunda NE OLUR — özellikle haftalık koşumda.
+      #
+      # Zamanlanmış koşum bir PR'a bağlı değildir; kimse "checks" sekmesine
+      # bakmaz. GitHub, varsayılan dalda düşen zamanlanmış iş akışları için depo
+      # sahibine bildirim gönderir; bu adım da arızayı koşum ÖZETİNE yazar, yani
+      # bildirime tıklayan kişi ham log kazmadan ne yapacağını görür.
+      #
+      # `if: failure()` — yalnızca denetim düştüğünde koşar.
+      #
+      # Otomatik ISSUE AÇILMIYOR: bunun için iş akışına `issues: write` vermek
+      # gerekirdi ve hat şu an salt okunur (`permissions: contents: read`).
+      # En az yetki duruşunu haftalık bir kolaylık için gevşetmek yanlış olurdu;
+      # istenirse ayrı bir karar olarak açılmalı.
+      - name: Denetim düştü — ne yapılacak
+        if: failure()
+        run: |
+          {
+            echo '## §8.24 — bağımlılık denetimi KIRMIZI'
+            echo
+            if [ "${{ github.event_name }}" = 'schedule' ]; then
+              echo 'Bu bir **haftalık** koşum: kod değişmedi, yeni bir advisory yayınlandı.'
+            else
+              echo 'Bu koşum bir push/PR tetiklemesi.'
+            fi
+            echo
+            echo 'Oyunkitabı: `docs/security/README.md` → "Oyunkitabı — geçişli'
+            echo 'bağımlılıkta yüksek/kritik advisory". Sırasıyla: maruziyeti ölç →'
+            echo 'katmanı seç (kilit tazeleme / override / üst paketi yükselt / bekle) →'
+            echo '`pnpm why` ile TÜM yolları doğrula → kaldırma koşuluyla kaydet.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
       # Kilit dosyası ile package.json ayrışmışsa `--frozen-lockfile` zaten
       # düşer; bu adım niyeti açık kılar ve ADR-003'ün diğer paket
       # yöneticilerini yasaklamasını uygular.
@@ -310,6 +363,57 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: kapi
+    if: github.event_name != 'schedule'
+
+    # ═══════════════════════════════════════════════════════════════════════
+    # BULGU-013 — ÖLÇÜM İŞİ DE VERİYE BAĞIMLI HÂLE GELDİ
+    # ═══════════════════════════════════════════════════════════════════════
+    #
+    # ADR-026 ana sayfayı fixture'dan gerçek servislere bağladı. `getProfile`
+    # profil kaydını bulamazsa FIRLATIR (ADR-017: profil tekil ve seed ile
+    # açılıyor; yokluğu boş durum değil, kurulum hatası). Bu iş AYRI BİR
+    # KOŞUCUDA çalışıyor ve `services:` bloğu yoktu — Postgres yok, seed yok:
+    #
+    #   koşum 31814208273 → "Status code: 500" → ERRORED_DOCUMENT_REQUEST
+    #   → üç profil de düştü, artifact üretilmedi.
+    #
+    # `kapi` işinde veritabanı vardı (T-005b) ama işler ayrı koşucularda;
+    # servis container'ı işler arasında paylaşılmaz.
+    #
+    # NEDEN KENDİ VERİTABANI, `kapi` İLE BİRLEŞTİRME DEĞİL:
+    # Bağımlılık DERLEME zamanında değil İSTEK zamanında. Kök layout `cookies()`
+    # okuduğu için `/` dinamik render ediliyor; derleme `DATABASE_URL` olmadan
+    # geçiyor (aşağıdaki adım hâlâ BULGU-002 nöbeti), 500 ölçüm anında çıkıyor.
+    # Yani `kapi`'den `.next` artifact'i devretmek bu bulguyu ÇÖZMEZ — artifact
+    # `.next` taşır, ayakta bir Postgres taşımaz. Birleştirme ise ~5 dakikalık,
+    # doğası gereği gürültülü bir performans ölçümünü zorunlu doğruluk kapısının
+    # içine sokardı: T-005b'de bağımlılık denetimi için kaçınılan sinyal
+    # kirlenmesinin aynısı. Kurulumun tekrarı, o kirlenmenin yanında ucuz.
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: aelaldi_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d aelaldi_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+
+    # CI-YEREL, ATILABİLİR DEĞERLER — `kapi` ile birebir aynı, hiçbiri gerçek
+    # sır değil. Seed bunları ŞART koşuyor: `ADMIN_EMAIL` tanımsızsa
+    # `prisma/seed.ts` "ADMIN_EMAIL tanımlı değil (§12)" diye fırlatıyor
+    # (yerelde ölçüldü). `DATABASE_URL` BİLEREK BURADA DEĞİL — gerekçe
+    # "Üretim derlemesi" adımının başında.
+    env:
+      AUTH_SECRET: ci-test-only-auth-secret-not-a-real-value
+      TOTP_ENCRYPTION_KEY: Y2ktdGVzdC1vbmx5LW5vdC1hLXJlYWwta2V5LTAwMDA=
+      ADMIN_EMAIL: ci@ornek.test
+      ADMIN_PASSWORD: ci-test-parolasi-1234
 
     steps:
       - uses: actions/checkout@v7
@@ -322,8 +426,61 @@ jobs:
       - name: Bağımlılıkları kur
         run: pnpm install --frozen-lockfile
 
-      - name: Üretim derlemesi
+      # `DATABASE_URL` BURADA DA BİLEREK TANIMSIZ — `kapi`'deki nöbetin ikizi
+      # (BULGU-002). Ana sayfa veriye bağlandıktan SONRA da derlemenin
+      # veritabanısız geçmesi gerekiyor; kök layout `cookies()` okuduğu için `/`
+      # istek zamanında render ediliyor ve derlemede hiçbir sorgu koşmuyor.
+      # Biri sayfayı statik prerender'a çevirirse burası kırmızı olur — istenen
+      # tam olarak budur, çünkü o değişiklik derlemeyi sessizce DB'ye bağlar.
+      - name: Üretim derlemesi (DATABASE_URL OLMADAN — BULGU-002 nöbeti)
         run: pnpm build
+
+      # --- Veritabanı hazırlığı — buradan sonrası DATABASE_URL ister ---------
+      #
+      # SIRA ÖNEMLİ: seed, ölçüm sunucusu başlamadan ÖNCE bitmiş olmalı.
+      # LHCI sunucuyu `startServerCommand` ile kendisi başlatıyor ve sunucu
+      # ilk isteği karşılarken `getProfile` profil kaydını arıyor. Seed
+      # sonraya kalsaydı ilk koşu yine 500 görürdü.
+      #
+      # `migrate dev` DEĞİL `deploy` — `dev` etkileşimlidir ve gerektiğinde
+      # veritabanını SIFIRLAR. Gerekçenin tamamı `kapi`'deki ikizinde.
+      - name: DB şeması (prisma migrate deploy)
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/aelaldi_ci
+        run: pnpm exec prisma migrate deploy
+
+      # Ölçülen sayfanın verisi buradan geliyor: profil, yetenekler, projeler,
+      # hizmetler, istatistikler. Seed'in içeriği ölçümün girdisi olduğu için
+      # skorlar seed verisinin boyutuna duyarlıdır — seed büyürse skor düşebilir.
+      - name: Seed (ölçülen sayfanın verisi)
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/aelaldi_ci
+        run: pnpm db:seed
+
+      # Ölçüm başlamadan önce sayfanın GERÇEKTEN 200 döndüğünü doğrular.
+      #
+      # NEDEN AYRI ADIM: LHCI 500'ü `ERRORED_DOCUMENT_REQUEST` diye, üç ekran
+      # dolusu LHR JSON'unun ortasında bildiriyor — BULGU-013'te sebebi
+      # görmek için ham log kazmak gerekti. Bu adım aynı arızayı tek satırda
+      # ve doğru yerde gösterir: veri kurulumu bozuksa ölçüme hiç girilmez.
+      - name: Ölçüm ön koşulu — `/` 200 dönüyor mu?
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/aelaldi_ci
+        run: |
+          PORT=3100 node tests/olcum-sunucusu.mjs > /tmp/onkosul.log 2>&1 &
+          for i in $(seq 1 40); do
+            curl -sf -o /dev/null http://127.0.0.1:3100/panel && break
+            sleep 1
+          done
+          KOD=$(curl -s -o /tmp/onkosul.html -w '%{http_code}' http://127.0.0.1:3100/)
+          pkill -f "olcum-sunucusu" || true
+          echo "GET / → HTTP $KOD"
+          if [ "$KOD" != "200" ]; then
+            echo "Ölçülecek sayfa $KOD dönüyor; Lighthouse bunu denetlemeyi reddeder."
+            echo '--- sunucu logu ---'
+            tail -40 /tmp/onkosul.log
+            exit 1
+          fi
 
       # `@lhci/cli` BİLEREK package.json'a eklenmedi: yalnızca CI'da kullanılan
       # bir araç, uygulamanın bağımlılığı değil. Sürüm sabitlenmiştir —
@@ -332,7 +489,15 @@ jobs:
       # `PORT` artık BURADA VERİLMİYOR — `lighthouserc.json` içindeki
       # `startServerCommand` kendi portunu taşıyor. Önceden port yalnızca bu
       # `env:` bloğunda vardı ve yapılandırma yerelde çalışmıyordu (T-002b).
+      #
+      # `DATABASE_URL` üç ölçüm adımının HEPSİNDE şart: LHCI sunucuyu
+      # `startServerCommand` ile kendi alt sürecinde başlatıyor ve o süreç
+      # ortamı bu adımdan miras alıyor. Adımlardan birinde unutulursa yalnızca
+      # o profil 500 görür — diğerleri yeşil kalır ve arıza tek profile
+      # gizlenir.
       - name: Lighthouse — mobil + aydınlık tema
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/aelaldi_ci
         run: pnpm dlx @lhci/cli@0.15.1 autorun
 
       # Koyu tema bizim VARSAYILAN temamız (§3) ama başlıksız bir Lighthouse
@@ -344,6 +509,8 @@ jobs:
       # ölçülen şey gerçekten koyu temadır. Kanıt: üretilen raporda
       # `configSettings.extraHeaders` alanı bu başlığı taşır.
       - name: Lighthouse — mobil + koyu tema (varsayılan tema)
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/aelaldi_ci
         run: |
           pnpm dlx @lhci/cli@0.15.1 autorun \
             --collect.settings.extraHeaders='{"Cookie":"ae-theme=dark"}' \
@@ -363,6 +530,8 @@ jobs:
       # bugüne kadar HİÇBİR CI koşusunda ölçülmedi — §5.2'nin en pahalı dalı
       # denetim dışındaydı. Bu profil o boşluğu kapatıyor.
       - name: Lighthouse — masaüstü + koyu tema (WebGL yolu)
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/aelaldi_ci
         run: |
           pnpm dlx @lhci/cli@0.15.1 autorun \
             --collect.settings.preset=desktop \
@@ -385,14 +554,24 @@ jobs:
       # yüklenmesin `aurora-katman` sınıfını HER ZAMAN basıyor; yani sunucudan
       # gelen HTML'de bu sınıfın varlığı "Aurora bu sayfada var" demek.
       - name: Ölçülen sayfa Aurora içeriyor mu?
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/aelaldi_ci
         run: |
           PORT=3100 node tests/olcum-sunucusu.mjs > /tmp/sunucu.log 2>&1 &
           for i in $(seq 1 40); do
             curl -sf -o /dev/null http://127.0.0.1:3100/ && break
             sleep 1
           done
-          curl -s -H 'Cookie: ae-theme=dark' http://127.0.0.1:3100/ > /tmp/anasayfa.html
+          KOD=$(curl -s -H 'Cookie: ae-theme=dark' -o /tmp/anasayfa.html -w '%{http_code}' http://127.0.0.1:3100/)
           pkill -f "olcum-sunucusu" || true
+          # Durum kodu KONTROL EDİLİYOR — BULGU-013'ün dersi. 500 gövdesinde de
+          # `aurora-katman` bulunmaz, yani kontrolsüz bırakılsaydı bu adım
+          # "sayfa Aurora içermiyor" der, `AURORA_SAYFADA=0` yazar ve §5.2.2
+          # doğrulaması sessizce BEKLEMEDE dalına düşerdi: arıza varken yeşil.
+          if [ "$KOD" != "200" ]; then
+            echo "Ayırt edici istek $KOD döndü; 'Aurora yok' sonucu güvenilir değil."
+            exit 1
+          fi
           if grep -q 'aurora-katman' /tmp/anasayfa.html; then
             echo 'AURORA_SAYFADA=1' >> "$GITHUB_ENV"
             echo 'Ölçülen sayfa Aurora içeriyor.'

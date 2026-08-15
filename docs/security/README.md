@@ -73,6 +73,7 @@ açığın ayrıntısı artık saldırgana bir şey kazandırmaz.
 | 2026-08-11 | T-005b | Auth E2E'nin CI'ya alınması: Postgres servisi, migrate + seed, "atlanan test yok" nöbeti | **BULGU-009 açıldı ve aynı görevde kapandı**: auth paketi CI'da hiç koşmuyordu ("19 skipped" ile yeşil). §8.1 kapısı ve dört `code` kilidi artık merge kapısında tutuyor. |
 | 2026-08-14 | T-029b | Ölçüm sunucusunun kararsızlığı: teşhis + standalone'a geçiş | **BULGU-011 açıldı ve kapandı.** `next start` gerçek Lighthouse iş yükünde 4. koşuda düşüyordu; standalone 25/25 temiz. Yan kazanç: T-029a'daki koşu değişkenliği (yayılım 32 → ≤1) ve SEO 60 → 100. Isınma isteği önerisi geri çekildi. |
 | 2026-08-12 | T-029a | Lighthouse'a masaüstü + koyu profil (WebGL yolu), üç durumlu WebGL doğrulaması, koşu değişkenliği kararı | **BULGU-010 açıldı**: WebGL yolu hiçbir CI koşusunda ölçülmüyordu. Profil kuruldu ve doğrulandı; ölçüm T-021'in hero'yu bağlamasını bekliyor (kontrol kendi kendine zorunlu hâle geliyor). Değişkenliğin **ilk koşuya** ait olduğu ölçüldü; `numberOfRuns` 5, `aggregationMethod` açıkça medyan. |
+| 2026-08-16 | T-029c | Ölçüm işinin veri kurulumu (BULGU-013) + §8.24 haftalık zamanlayıcı | **BULGU-013 açıldı ve düzeltildi**: `lighthouse` işi ayrı koşucuda `services:` bloğu olmadan koşuyordu; ADR-026 sonrası `/` 500 dönüyor, üç profil düşüyor, artifact üretilmiyordu. Kendi Postgres'i kuruldu (yol **a**). İki yeni nöbet: ölçüm ön koşulu ve ayırt edicide durum kodu kontrolü — ikincisi olmadan arıza "⏳ BEKLEMEDE" diye yeşil görünüyordu. §8.24 artık **haftalık** de koşuyor (`17 6 * * 1`). |
 | 2026-08-14 | T-005c | §8.24 tetiklendi: `nanoid` GHSA-2v37-7h3g-55p8 (Yüksek, geçişli, 9 yol) | **ADVISORY-001 kapandı** — `pnpm.overrides` ile `nanoid` `>=3.3.18 <4.0.0`. Denetim EXIT 0. Açık aralık (`>=3.3.18`) sessizce **6.0.1**'e çözülüyordu (üç majör atlama, ESM-only) — ölçülerek yakalandı ve daraltıldı. **Advisory oyunkitabı yazıldı**; kalıcı override'ların birikmesine karşı kaldırma koşulu ve altı aylık gözden geçirme kuralı kondu. |
 
 ---
@@ -1153,6 +1154,133 @@ yerini vermek düzeltmeden önce serbest değil.
 
 ---
 
+## BULGU-013 — Ölçüm işi veriye bağımlı hâle geldi; Lighthouse üç profilde de 500 ölçtü
+
+**Önem:** Yüksek (merge kapısı fiilen ölçüm yapmıyor) · **Görev:** T-029c
+**Durum:** DÜZELTİLDİ — CI'da doğrulanması bekleniyor (bkz. "Açık kalan")
+**Sorumlu:** Güvenlik & Test (CI yapılandırması) · **Kimsenin hatası değil**
+
+### Belirti
+
+Koşu **31814208273**, `lighthouse` işi, ilk profilin ilk koşusunda:
+
+```
+Run #1...failed!
+"runtimeError": {
+  "code": "ERRORED_DOCUMENT_REQUEST",
+  "message": "... (Status code: 500)"
+}
+```
+
+Üç profil de düştü. `if-no-files-found: error` devreye girdi, **artifact
+üretilmedi**. Yani §9 eşikleri ve BULGU-010'un WebGL doğrulaması bu koşumda
+hiçbir şey ölçmedi.
+
+### Sebep
+
+ADR-026 ana sayfayı fixture'dan gerçek servislere bağladı. `getProfile`, profil
+kaydını bulamazsa **fırlatır** — ADR-017'de profil tekil ve seed ile açılan bir
+kayıt; yokluğu boş durum değil kurulum hatasıdır. (`getSkills` /
+`getFeaturedProjects` / `getServices` boş dizi döner, `getSiteStats` sıfır döner;
+fırlatan tek okuma `getProfile`.)
+
+`kapi` işinde Postgres servisi ve seed var (T-005b). `lighthouse` **ayrı bir
+koşucuda** çalışıyor ve `services:` bloğu yoktu — servis container'ları işler
+arasında paylaşılmaz. Ölçüm işi, ADR-026'nın öngörülmemiş yan etkisiyle veriye
+bağımlı hâle geldi ve kimse fark etmedi.
+
+**Yerelde birebir yeniden üretildi** (veritabanı kapalıyken):
+
+```
+GET /       → HTTP 500
+GET /panel  → HTTP 200        # ara katman DB'ye bakmıyor
+  ⨯ PrismaClientKnownRequestError: Can't reach database server
+    Invalid `prisma.profile.findUnique()` invocation   (P1001)
+```
+
+Seed'den sonra aynı sunucu, aynı derleme: `GET /` → **200**.
+
+### Bağımlılık DERLEME zamanında değil, İSTEK zamanında
+
+Kök layout `cookies()` okuyor (tema), bu da `/` rotasını dinamik render'a
+çekiyor. Sonuç: `pnpm build` veritabanısız geçiyor — nitekim düşen koşumda
+derleme adımı **yeşildi**, 500 ölçüm anında çıktı.
+
+Bunun iki pratik sonucu var:
+
+1. **BULGU-002 nöbeti `lighthouse` işinde de geçerli ve korunmalı.** Derleme
+   adımına `DATABASE_URL` verilmedi; verilseydi, sayfayı statik prerender'a
+   çevirip derlemeyi sessizce DB'ye bağlayan bir değişiklik fark edilmezdi.
+2. **`kapi`'den `.next` artifact'i devretmek bu bulguyu ÇÖZMEZ.** Artifact
+   `.next` taşır, ayakta bir Postgres taşımaz. Devir yalnızca yeniden derlemeyi
+   önlerdi; 500 aynen kalırdı.
+
+### Düzeltme
+
+`lighthouse` işine `kapi`'dekiyle aynı veri kurulumu: Postgres 16 servisi →
+`prisma migrate deploy` → `pnpm db:seed` → ölçüm. T-005b'nin kararları korundu:
+`DATABASE_URL` **iş düzeyinde değil**, yalnızca ihtiyacı olan adımlarda;
+`migrate dev` değil `deploy`; CI kimlikleri açıkça sahte (`ci-test-…`).
+
+**Yan bulgu — seed'in kimlik ihtiyacı.** `prisma/seed.ts`, `ADMIN_EMAIL`
+tanımsızsa "ADMIN_EMAIL tanımlı değil (§12)" diye fırlatıyor. Yalnızca
+`DATABASE_URL` eklemek yetmezdi; `kapi`'nin dört sahte kimlik değişkeni de
+`lighthouse` işine kopyalandı. Yerelde ölçülerek bulundu, CI'da denenerek değil.
+
+### İki yeni nöbet — arıza bir daha aynı biçimde saklanamasın
+
+**1 · Ölçüm ön koşulu.** Profiller başlamadan sunucu ayağa kaldırılıp `/`'ın 200
+döndüğü doğrulanır; değilse iş orada durur ve sunucu logu basılır. Gerekçe:
+LHCI 500'ü `ERRORED_DOCUMENT_REQUEST` diye üç ekran LHR JSON'unun ortasında
+bildiriyor — bu bulguda sebebi görmek için ham log kazımak gerekti.
+
+**2 · Ayırt edicide durum kodu kontrolü.** "Ölçülen sayfa Aurora içeriyor mu?"
+adımı `aurora-katman` sınıfını arıyordu ama **durum kodunu kontrol etmiyordu**.
+500 gövdesinde de o sınıf bulunmaz; yani düzeltme yapılmasaydı bu adım "sayfa
+Aurora içermiyor" der, `AURORA_SAYFADA=0` yazar ve §5.2.2 doğrulaması sessizce
+"⏳ BEKLEMEDE" dalına düşerdi. **Arıza varken yeşil** — T-019b/K3'teki "vakum
+hâlinde yeşil" tuzağının aynısı, bu kez ölçüm hattında.
+
+### Yerel prova — CI işinin adım adım tekrarı
+
+Atılabilir bir Postgres 16 kümesi kuruldu; `migrate deploy` → `seed` → üç profil
+→ ayırt edici → WebGL kontrolü → skor özeti, **CI'daki betiklerin aynısıyla**:
+
+| Profil | koşu | Perf (medyan) | A11y | BP | SEO | yayılım |
+| ------ | ---- | ------------- | ---- | -- | --- | ------- |
+| `mobil-aydinlik` | 5/5 | **92** | 100 | 100 | 100 | 1 |
+| `mobil-koyu` | 5/5 | **92** | 100 | 100 | 100 | 2 |
+| `masaustu-koyu` | 5/5 | **100** | 100 | 100 | 100 | 1 |
+
+Üçünün de çıkış kodu 0; 15 koşunun 15'i temiz; `lighthouse-raporu/` altında
+**18 JSON / 13 MB** üretildi (artifact "No files were found" vermez).
+
+BULGU-010 doğrulaması, ayırt edici artık **zorunlu** dalda:
+
+```
+ayırt edici istek → HTTP 200
+AURORA_SAYFADA=1
+Aurora parçası: 369.849405c07f6c28ee.js
+masaüstü ogl indirdi mi : true     → §5.2.2 ✅
+mobil    ogl indirdi mi : false    → §5.2.5 ✅
+```
+
+T-023 `lazy.tsx`'i değiştirmiş olmasına rağmen dört koşullu ayırt edici
+**bozulmadan çalışıyor**. Skorlar T-023'ün yerel ölçümüyle (mobil ~92,
+masaüstü+koyu ~100) **tam tutuyor** — sapma yok, dolayısıyla açıklanacak fark
+da yok.
+
+### Açık kalan — CI doğrulaması
+
+Kabul kriteri "üç profili de düşmeden tamamlıyor — **gerçek koşu numarasıyla**"
+karşılanamadı: aynı görev kartı ADR-028 gereği **dal açmayı ve commit atmayı
+yasaklıyor**, gerçek koşu ise ancak iş akışı dosyası uzağa gidince tetiklenebilir.
+Yukarıdaki prova CI adımlarının birebir tekrarıdır ama CI değildir. İlk koşumda
+doğrulanması gerekenler: üç profil EXIT 0, artifact üretimi, `AURORA_SAYFADA=1`
+ve süre.
+
+---
+
 ## §8 Güvenlik Gereksinimleri — Durum Tablosu
 
 **Ölçüm tarihi:** 2026-08-11 · **Faz:** F1 (kapandı) · **Son görev:** T-005b
@@ -1184,7 +1312,7 @@ Durum kodları: ✅ sağlandı · ⚠️ kısmi · ❌ eksik · ⏳ henüz uygul
 | 21 | Gece 03:00 şifreli `pg_dump` → R2, 30 gün | ⏳ | T-066 / T-073 · **Uyarı:** yol haritası F6/F7 diyor; gerçek muhasebe verisi F4'te girilmeye başlıyor. Yedeksiz geçen her F4 günü, başka kopyası olmayan mali veri riski. |
 | 22 | `restore.md` + en az bir prova | ⏳ | T-066 |
 | 23 | Yedek checksum doğrulaması | ⏳ | T-066 |
-| 24 | `npm audit` merge kapısı | ✅ | **Kuruldu** (T-005): `.github/workflows/ci.yml` → `bagimlilik-denetimi` işi, `pnpm audit --audit-level high` (ADR-003 gereği `npm` değil `pnpm`). Yüksek **ve** kritik kapsanır. Depo şu an temiz (her seviyede 0 açık). Kapının kırmızıya döndüğü ayrı bir izole projede kanıtlandı: `lodash@4.17.11` + `minimist@1.2.0` → 9 açık (2 kritik, 3 yüksek) → **EXIT 1**. Ayrıca yabancı kilit dosyası kontrolü de aynı işte. **T-005c — kapı gerçek bir advisory'de tetiklendi ve tuttu:** `nanoid` GHSA-2v37-7h3g-55p8 (Yüksek, geçişli, 9 yol) kodda hiçbir değişiklik yokken hattı kırmızıya çevirdi; `pnpm.overrides` ile kapandı, EXIT 0. Artık yalnızca izole projede değil, **kendi deposunda** kanıtlı. Tekrarlayan advisory'ler için oyunkitabı yazıldı (kaldırma koşulu + altı aylık gözden geçirme dahil). |
+| 24 | `npm audit` merge kapısı | ✅ | **Kuruldu** (T-005): `.github/workflows/ci.yml` → `bagimlilik-denetimi` işi, `pnpm audit --audit-level high` (ADR-003 gereği `npm` değil `pnpm`). Yüksek **ve** kritik kapsanır. Depo şu an temiz (her seviyede 0 açık). Kapının kırmızıya döndüğü ayrı bir izole projede kanıtlandı: `lodash@4.17.11` + `minimist@1.2.0` → 9 açık (2 kritik, 3 yüksek) → **EXIT 1**. Ayrıca yabancı kilit dosyası kontrolü de aynı işte. **T-005c — kapı gerçek bir advisory'de tetiklendi ve tuttu:** `nanoid` GHSA-2v37-7h3g-55p8 (Yüksek, geçişli, 9 yol) kodda hiçbir değişiklik yokken hattı kırmızıya çevirdi; `pnpm.overrides` ile kapandı, EXIT 0. Artık yalnızca izole projede değil, **kendi deposunda** kanıtlı. Tekrarlayan advisory'ler için oyunkitabı yazıldı (kaldırma koşulu + altı aylık gözden geçirme dahil). **T-029c — kapı artık HAFTALIK da koşuyor** (`schedule: '17 6 * * 1'`, Pazartesi 09:17 TRT): advisory'ler kod değişmeden yayınlandığı için yalnızca push/PR'da koşan bir denetim, sessiz geçen bir hafta boyunca yüksek bir açığı fark etmez. Zamanlanmış koşumda diğer iki iş `if: github.event_name != 'schedule'` ile atlanır. |
 | 25 | Yeni bağımlılık onay + DECISIONS kaydı | ✅ | T-004'ün 9 paketi görev kartında adı adına onaylı. **T-005 ve T-006b `package.json`'a hiçbir paket eklemedi** — `@lhci/cli` bilinçli olarak `pnpm dlx @lhci/cli@0.15.1` ile ephemeral çağrılıyor (yalnızca CI aracı, uygulama bağımlılığı değil; sürüm sabit, `latest` kullanılmıyor). **T-006b:** tüm GitHub eylemleri Node 24 hedefleyen güncel kararlı majora taşındı — `checkout@v7`, `setup-node@v7`, `cache@v6`, `upload-artifact@v7`, `pnpm/action-setup@v6`. Yamasız çalışma zamanı bırakmama gerekçesi ADR-008 ile aynı hat. |
 
 **Özet:** ✅ 9 · ⚠️ 4 · ❌ 0 · ⏳ 12
