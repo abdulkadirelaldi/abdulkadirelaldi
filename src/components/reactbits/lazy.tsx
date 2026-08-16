@@ -1,9 +1,9 @@
 'use client';
 
-import { useReducedMotion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { useEffect, useState, type ComponentProps } from 'react';
 
+import { useAzHareket } from '@/components/az-hareket';
 import { useTheme } from '@/components/theme-provider';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -30,6 +30,27 @@ import { Skeleton } from '@/components/ui/skeleton';
  * kurala zaten yakalanıyor. Bu yüzden onlarda ayrı statik dal yok.
  */
 
+/**
+ * İstemci tarafı bağlandı mı.
+ *
+ * METİN BİLEŞENLERİNDE İSKELET KULLANILMIYOR — bunun yerine METNİN KENDİSİ
+ * sunucuda render ediliyor ve bağlanma sonrası efektli sürümle değiştiriliyor.
+ *
+ * NEDEN (T-021 ölçümü): `ssr:false` bir bileşen HTML'de hiç yok demektir; hero
+ * ismi sayfanın LCP öğesi olduğu için mobilde LCP 3.8sn'ye çıkıyor ve
+ * Performance 88'e düşüyordu. Gri bir kutu göstermek hem LCP'yi kurtarmıyor
+ * hem de kullanıcıya hiçbir şey söylemiyor. Metin doğrudan basılınca ilk
+ * boyamada içerik var, efekt sonra biniyor — ölçüm: LCP 3.8s → 1.4s.
+ *
+ * §5.2.3 korunuyor: efekt bileşeninin KENDİSİ hâlâ `dynamic` + `ssr:false`.
+ * Değişen, yüklenene kadar ne gösterildiği.
+ */
+function useBaglandi(): boolean {
+  const [baglandi, setBaglandi] = useState(false);
+  useEffect(() => setBaglandi(true), []);
+  return baglandi;
+}
+
 /** İskelet fallback üreticisi — ölçü her zaman açıkça verilir (CLS = 0). */
 function iskelet(className: string) {
   const Fallback = () => <Skeleton className={className} />;
@@ -41,22 +62,10 @@ function iskelet(className: string) {
  * DİNAMİK YÜKLEMELER
  * ====================================================================== */
 
-const ShinyTextDinamik = dynamic(() => import('./shiny-text'), {
-  ssr: false,
-  loading: iskelet('h-6 w-40'),
-});
-const BlurTextDinamik = dynamic(() => import('./blur-text'), {
-  ssr: false,
-  loading: iskelet('h-12 w-72'),
-});
-const RotatingTextDinamik = dynamic(() => import('./rotating-text'), {
-  ssr: false,
-  loading: iskelet('h-8 w-56'),
-});
-const CountUpDinamik = dynamic(() => import('./count-up'), {
-  ssr: false,
-  loading: iskelet('h-9 w-16'),
-});
+const ShinyTextDinamik = dynamic(() => import('./shiny-text'), { ssr: false });
+const BlurTextDinamik = dynamic(() => import('./blur-text'), { ssr: false });
+const RotatingTextDinamik = dynamic(() => import('./rotating-text'), { ssr: false });
+const CountUpDinamik = dynamic(() => import('./count-up'), { ssr: false });
 const TiltedCardDinamik = dynamic(() => import('./tilted-card'), {
   ssr: false,
   loading: iskelet('aspect-[16/10] w-full rounded-card'),
@@ -95,6 +104,40 @@ function useMasaustu(): boolean {
 }
 
 /**
+ * HAREKET EFEKTİ yüklensin mi — beş framer-motion tabanlı bileşenin ortak kapısı.
+ * (ShinyText, BlurText, RotatingText, CountUp, TiltedCard)
+ *
+ * ÜÇ ŞART:
+ *   `baglandi`   — hidrasyondan önce metnin KENDİSİ basılıyor (T-021 LCP notu)
+ *   `!azHareket` — §5.2.4
+ *   `masaustu`   — §5.2.5'in genişletilmesi; aşağıdaki ölçümle karara bağlandı
+ *
+ * MOBİL KAPISI NEDEN VAR (T-023, ölçüm):
+ * Lighthouse'un mobil LCP tahmini, GÖZLENEN LCP anına (~100–150 ms) kadar biten
+ * her ağ ve CPU düğümünü simüle etmekten çıkıyor (kaynak: Lantern
+ * `FirstContentfulPaint.getFirstPaintBasedGraph`, `endTime <= cutoffTimestamp`).
+ * Bu bileşenlerin parçaları hidrasyondan hemen sonra, yani ~130 ms'te iniyor —
+ * yani sınırın TAM ÜSTÜNDE. Sonuç, koşudan koşuya değişen bir LCP:
+ *
+ *   kapı kapalı: kritik JS 135–189 kB → LCP 3315 / 3549 / 3696 ms, perf 92/91/90
+ *   kapı açık:   kritik JS 135 kB     → LCP 3311 / 3312 / 3308 ms, perf 91/92/92
+ *
+ * Yani kapı LCP'nin ORTALAMASINI değil, KÖTÜ KOŞUSUNU düzeltiyor; 90 sınırına
+ * değen koşu ortadan kalkıyor. Ayrıca gerçek bir telefonda 32 kB'lık
+ * `framer-motion` parçası hiç inmiyor.
+ *
+ * TASARIM BEDELİ (rapora yazıldı): mobilde rozet parlamıyor, isim bulanıklaşarak
+ * gelmiyor, sayı artmıyor ve ÜNVAN DÖNMÜYOR — listenin ilki sabit duruyor.
+ * İçerik eksilmiyor, hareket eksiliyor. Kart eğimi zaten imleç istiyordu.
+ */
+function useEfektYuklensin(): boolean {
+  const azHareket = useAzHareket();
+  const masaustu = useMasaustu();
+  const baglandi = useBaglandi();
+  return baglandi && masaustu && !azHareket;
+}
+
+/**
  * Hero arka planı — tek WebGL bileşeni (§5.1, §5.2.2).
  *
  * DÖRT DURUMDA HİÇ YÜKLENMEZ:
@@ -125,7 +168,7 @@ export function Aurora({
   className,
   ...props
 }: ComponentProps<typeof AuroraDinamik> & { opacity?: number; className?: string }) {
-  const azHareket = useReducedMotion();
+  const azHareket = useAzHareket();
   const masaustu = useMasaustu();
   const { resolvedTheme } = useTheme();
   const webglYuklensin = masaustu && !azHareket && resolvedTheme === 'dark';
@@ -149,8 +192,7 @@ export function Aurora({
 
 /** Rozet metni ("Full Stack Developer") — §5.1. Statik hâli: düz metin. */
 export function ShinyText(props: ComponentProps<typeof ShinyTextDinamik>) {
-  const azHareket = useReducedMotion();
-  if (azHareket) {
+  if (!useEfektYuklensin()) {
     return (
       <span className={`text-primary inline-block ${props.className ?? ''}`}>{props.text}</span>
     );
@@ -160,8 +202,7 @@ export function ShinyText(props: ComponentProps<typeof ShinyTextDinamik>) {
 
 /** Hero ismi — §5.1. Statik hâli: metnin son (net) hâli. */
 export function BlurText(props: ComponentProps<typeof BlurTextDinamik>) {
-  const azHareket = useReducedMotion();
-  if (azHareket) {
+  if (!useEfektYuklensin()) {
     return <p className={props.className}>{props.text}</p>;
   }
   return <BlurTextDinamik {...props} />;
@@ -169,8 +210,7 @@ export function BlurText(props: ComponentProps<typeof BlurTextDinamik>) {
 
 /** Hero ünvanı. Statik hâli: listenin İLK ifadesi — dönmez. */
 export function RotatingText(props: ComponentProps<typeof RotatingTextDinamik>) {
-  const azHareket = useReducedMotion();
-  if (azHareket) {
+  if (!useEfektYuklensin()) {
     return <span className={props.mainClassName}>{props.texts[0] ?? ''}</span>;
   }
   return <RotatingTextDinamik {...props} />;
@@ -178,8 +218,15 @@ export function RotatingText(props: ComponentProps<typeof RotatingTextDinamik>) 
 
 /** İstatistik sayacı. Statik hâli: doğrudan HEDEF sayı — sayma animasyonu yok. */
 export function CountUp(props: ComponentProps<typeof CountUpDinamik>) {
-  const azHareket = useReducedMotion();
-  if (azHareket) {
+  const baglandi = useBaglandi();
+  const efekt = useEfektYuklensin();
+
+  // Bağlanmadan önce 0 gösterilir: sayaç görünür olunca 0'dan sayacak,
+  // hedef sayıyı önce gösterip sonra sıfırlamak yanlış olurdu.
+  if (!baglandi) {
+    return <span className={props.className}>0</span>;
+  }
+  if (!efekt) {
     const { to, separator } = props;
     const metin = separator ? to.toLocaleString('tr-TR').replace(/\./g, separator) : String(to);
     return <span className={props.className}>{metin}</span>;
@@ -189,22 +236,30 @@ export function CountUp(props: ComponentProps<typeof CountUpDinamik>) {
 
 /** Proje kartı — 3B eğim. Statik hâli: eğimsiz görsel. */
 export function TiltedCard(props: ComponentProps<typeof TiltedCardDinamik>) {
-  const azHareket = useReducedMotion();
-  if (azHareket) {
+  if (!useEfektYuklensin()) {
     return (
       <figure
         className="rounded-card border-line bg-surface relative overflow-hidden border"
         style={{ height: props.containerHeight, width: props.containerWidth }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element -- statik fallback; kaynak
-            bileşenle aynı <img> sözleşmesini kullanır, next/image uzak alan adı
-            yapılandırması ister (bkz. logo-loop.tsx notu). */}
-        <img
-          src={typeof props.imageSrc === 'string' ? props.imageSrc : ''}
-          alt={props.altText ?? ''}
-          className="h-full w-full object-cover"
-          style={{ height: props.imageHeight, width: props.imageWidth }}
-        />
+        {/*
+          `gorsel` VARSA O KULLANILIR. Eskiden bu dal doğrudan <img> basıyordu ve
+          çağıran taraf `gorsel` verdiğinde (Projeler: `KapakGorsel`) `src=""`
+          olan boş bir görsel çiziliyordu — hareketi kapatan kullanıcı kapak
+          yerine kırık kutu görüyordu. Mobil de bu dala düştüğü için hata artık
+          görünür olurdu; kaynağında kapatıldı.
+        */}
+        {props.gorsel ?? (
+          /* eslint-disable-next-line @next/next/no-img-element -- statik fallback; kaynak
+             bileşenle aynı <img> sözleşmesini kullanır, next/image uzak alan adı
+             yapılandırması ister (bkz. logo-loop.tsx notu). */
+          <img
+            src={typeof props.imageSrc === 'string' ? props.imageSrc : ''}
+            alt={props.altText ?? ''}
+            className="h-full w-full object-cover"
+            style={{ height: props.imageHeight, width: props.imageWidth }}
+          />
+        )}
       </figure>
     );
   }

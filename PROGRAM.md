@@ -592,7 +592,7 @@ boş/yükleniyor/hata durumları var · rapor formatında teslim edilmiş.
 |-----|--------|----------|
 | **F0 — Temel** | Next.js kurulumu, Tailwind token'ları, fontlar, tema anahtarı, klasör iskeleti, Prisma bağlantısı, `.env.example`, CI | Backend + Frontend |
 | **F1 — Veri & Auth** | Tam Prisma şeması, migration, seed, Auth.js + 2FA, middleware koruması, temel servis katmanı | Backend |
-| **F2 — Public İskelet** | Ana sayfa, hakkımda, projeler, blog, hizmetler, iletişim — statik veriyle, React Bits entegrasyonu | Frontend |
+| **F2 — Public İskelet** | Ana sayfa, hakkımda, projeler, blog, hizmetler, iletişim — **gerçek veriden** (ADR-026), React Bits entegrasyonu | Frontend + Backend |
 | **F3 — Panel Çekirdek** | Panel layout, dashboard, içerik yönetimi (proje/blog/profil), mesaj kutusu | Backend + Frontend |
 | **F4 — İş & Muhasebe** | Müşteri, iş kartları, işlem, kategori, raporlar, CSV/PDF dışa aktarım | Backend + Frontend |
 | **F5 — Sağlık, Spor, Hayat** | Ölçüm girişi, antrenman kaydı, PR, alışkanlık, hedef, günlük + grafikler | Backend + Frontend |

@@ -130,11 +130,12 @@ export default defineConfig({
      *
      * Yerelde tek komutla çalışsın diye derleme dahil edilir.
      */
-    command: isCI ? 'pnpm start' : 'pnpm build && pnpm start',
+    command: isCI ? 'node tests/olcum-sunucusu.mjs' : 'pnpm build && node tests/olcum-sunucusu.mjs',
     url: `${BASE_URL}/panel`,
+    // `HOSTNAME` GEÇİLMİYOR — gerekçe `tests/olcum-sunucusu.mjs` içinde
+    // (belirli bir geri döngü adresi yönlendirmeleri mutlaklaştırıyor).
     env: {
       PORT: String(PORT),
-      HOSTNAME: '127.0.0.1',
     },
     // Yerelde ayakta bir sunucu varsa yeniden kullan; CI'da her zaman temiz derleme.
     reuseExistingServer: !isCI,

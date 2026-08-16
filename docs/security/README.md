@@ -71,6 +71,10 @@ açığın ayrıntısı artık saldırgana bir şey kazandırmaz.
 | 2026-08-11 | T-019 | §8.1 zorunlu 2FA kurulumu kapısı (`src/middleware.ts`, `src/lib/security/two-factor.ts`) | Kapı kuruldu ve **devre dışı bırakılarak tuttuğu kanıtlandı** (12 birim + E2E kırılıyor). **BULGU-008 açıldı**: jetondaki `tfa` alanını giriş akışı henüz koymuyor, kapı üretimde tetiklenmiyor → §8.1 ⚠️ kalıyor. |
 | 2026-08-11 | T-019b | Geçiş penceresinin kapatılması; Backend beslemesinin doğrulanması | **BULGU-008 kapandı**, **§8.1 ⚠️→✅**. `null` artık kuruluma yönlendiriyor (kapalı yönde başarısız). E2E'de gevşek `/\/panel/` desenleri sıkılaştırıldı — kurulum ekranı da o desene uyduğu için üç test vakum hâlinde yeşil kalıyordu. |
 | 2026-08-11 | T-005b | Auth E2E'nin CI'ya alınması: Postgres servisi, migrate + seed, "atlanan test yok" nöbeti | **BULGU-009 açıldı ve aynı görevde kapandı**: auth paketi CI'da hiç koşmuyordu ("19 skipped" ile yeşil). §8.1 kapısı ve dört `code` kilidi artık merge kapısında tutuyor. |
+| 2026-08-14 | T-029b | Ölçüm sunucusunun kararsızlığı: teşhis + standalone'a geçiş | **BULGU-011 açıldı ve kapandı.** `next start` gerçek Lighthouse iş yükünde 4. koşuda düşüyordu; standalone 25/25 temiz. Yan kazanç: T-029a'daki koşu değişkenliği (yayılım 32 → ≤1) ve SEO 60 → 100. Isınma isteği önerisi geri çekildi. |
+| 2026-08-12 | T-029a | Lighthouse'a masaüstü + koyu profil (WebGL yolu), üç durumlu WebGL doğrulaması, koşu değişkenliği kararı | **BULGU-010 açıldı**: WebGL yolu hiçbir CI koşusunda ölçülmüyordu. Profil kuruldu ve doğrulandı; ölçüm T-021'in hero'yu bağlamasını bekliyor (kontrol kendi kendine zorunlu hâle geliyor). Değişkenliğin **ilk koşuya** ait olduğu ölçüldü; `numberOfRuns` 5, `aggregationMethod` açıkça medyan. |
+| 2026-08-16 | T-029c | Ölçüm işinin veri kurulumu (BULGU-013) + §8.24 haftalık zamanlayıcı | **BULGU-013 açıldı ve düzeltildi**: `lighthouse` işi ayrı koşucuda `services:` bloğu olmadan koşuyordu; ADR-026 sonrası `/` 500 dönüyor, üç profil düşüyor, artifact üretilmiyordu. Kendi Postgres'i kuruldu (yol **a**). İki yeni nöbet: ölçüm ön koşulu ve ayırt edicide durum kodu kontrolü — ikincisi olmadan arıza "⏳ BEKLEMEDE" diye yeşil görünüyordu. §8.24 artık **haftalık** de koşuyor (`17 6 * * 1`). |
+| 2026-08-14 | T-005c | §8.24 tetiklendi: `nanoid` GHSA-2v37-7h3g-55p8 (Yüksek, geçişli, 9 yol) | **ADVISORY-001 kapandı** — `pnpm.overrides` ile `nanoid` `>=3.3.18 <4.0.0`. Denetim EXIT 0. Açık aralık (`>=3.3.18`) sessizce **6.0.1**'e çözülüyordu (üç majör atlama, ESM-only) — ölçülerek yakalandı ve daraltıldı. **Advisory oyunkitabı yazıldı**; kalıcı override'ların birikmesine karşı kaldırma koşulu ve altı aylık gözden geçirme kuralı kondu. |
 
 ---
 
@@ -730,6 +734,553 @@ değerlendirilmeli.
 
 ---
 
+## BULGU-010 — WebGL yolu ölçüm dışındaydı; profil hazır, ölçülecek sayfa henüz yok
+
+**Önem:** Orta (kalite kapısı — güvenlik açığı değil)
+**PROGRAM.md maddesi:** §5.2.2, §5.2.5, §9
+**Sorumlu:** Güvenlik & Test (profil) · **Frontend** (sayfaya bağlama)
+**Durum:** Profil ✅ kuruldu · Ölçüm ⏳ T-021 bekliyor
+
+**Ne oluyordu (T-020b/ENGEL-1):**
+Lighthouse'un iki profili de **mobil** emülasyonda koşuyordu (412×823). Aurora
+— tek WebGL bileşenimiz — dört koşulun hepsi sağlanmadan yüklenmiyor
+(`src/components/reactbits/lazy.tsx`): masaüstü (`min-width: 768px`),
+`prefers-reduced-motion` yok, koyu tema, hidrasyon. Mobil emülasyonda birincisi
+sağlanmadığı için `ogl` parçası **hiçbir CI koşusunda ağdan istenmedi**. Yani
+§5.2'nin en pahalı dalı denetim dışındaydı.
+
+**Yapılan:** Üçüncü profil eklendi — `preset=desktop` + `ae-theme=dark` cookie.
+Emülasyonun doğru kurulduğu ölçüldü: `1350x940`, `mobile=false`,
+`formFactor: desktop`, `extraHeaders` raporda görünüyor.
+
+**Ama WebGL yine yüklenmedi — ve sebebi profil değil:**
+Ölçülen sayfa `/`, Aurora'yı **mount etmiyor**. Aurora şu an yalnızca
+`src/components/reactbits/galeri.tsx` içinde kullanılıyor; o da React Bits
+galerisi sayfasında (`/react-bits`) ve T-021 o geçici sayfayı kaldırıp gerçek
+ana sayfayı yazıyor. §5.1'e göre hero arka planı Aurora olacak.
+
+Doğrulandı: masaüstü ve mobil profilleri **birebir aynı** JS parçalarını istedi;
+Aurora'nın parçası (`369.*.js`, shader dizesi `uColorStops` ile bulundu)
+ikisinde de yok.
+
+**Kontrol ÜÇ DURUMLU ve kendi kendine sona eriyor:**
+
+| Durum | Davranış |
+| ----- | -------- |
+| Aurora parçası derlemede yok | 🔴 hata — bileşen kaldırılmış, adım güncellenmeli |
+| Parça var, sayfa Aurora mount ETMİYOR | ⏳ beklemede — gürültülü uyarı, iş yeşil |
+| Sayfa Aurora mount EDİYOR | 🔴 masaüstü yüklemediyse hata · 🔴 mobil yüklediyse §5.2.5 ihlali |
+
+Ayırt edici mekanik: `lazy.tsx` sarmalayıcısı `aurora-katman` sınıfını WebGL
+yüklensin ya da yüklenmesin **her zaman** basıyor; CI sunucudan gelen HTML'de
+bu sınıfı arıyor. **Elle çevrilecek bir bayrak yok** — T-021 hero'yu bağladığı
+anda kontrol kendiliğinden zorunlu hâle geliyor. Bekleme hâlini "yeşil ve
+sessiz" bırakmak, T-019b/K3'teki vakum tuzağının aynısı olurdu; bu yüzden log
+gürültülü.
+
+**§5.2.5 bugün bile ölçülüyor:** "mobilde WebGL hiç yüklenmez" kuralı her
+koşumda doğrulanıyor ve geçiyor.
+
+---
+
+## Ölçüm — Lighthouse profilleri (CI `31579671925`, 5 koşu/profil, medyan)
+
+| Profil | Ekran | Cookie | Perf | A11y | BP | SEO |
+| ------ | ----- | ------ | ---- | ---- | -- | --- |
+| `mobil-aydinlik` | 412×823 | — | 91 | **100** | **100** | 60 ¹ |
+| `mobil-koyu` | 412×823 | `ae-theme=dark` | 91 | **100** | **100** | 60 ¹ |
+| `masaustu-koyu` | 1350×940 | `ae-theme=dark` | **100** | **100** | **100** | 60 ¹ |
+
+¹ SEO 60 bilinen ve beklenen: ölçülen sayfa `robots: { index: false }` taşıyan
+geçici doğrulama sayfası. T-021 gerçek ana sayfayı yazınca düzelir (T-006b/E3).
+
+### Koşu değişkenliği — T-006b'deki notun cevabı
+
+T-006b'de aydınlık profil `69 / 90 / 94` ölçmüş, medyan 90 ile eşiği kıl payı
+geçmişti ve "T-029'da `error`'a çevrilince bu değişkenlik hattı kırmızıya
+çevirebilir" diye not düşmüştüm. Bu görevde 5 koşuya çıkarıldı ve **desen
+netleşti**:
+
+| Profil | Ham değerler | Yayılım |
+| ------ | ------------ | ------- |
+| `mobil-aydinlik` | `59, 91, 91, 90, 91` | **32** |
+| `mobil-koyu` | `91, 91, 91, 91, 90` | 1 |
+| `masaustu-koyu` | `100, 100, 100, 100, 100` | 0 |
+
+**Bulgu: değişkenlik genel değil, İLK KOŞUYA ait.** Aykırı değer (59) işin ilk
+Lighthouse koşusunda çıktı; aynı işte sonradan koşan iki profil neredeyse hiç
+oynamadı (yayılım 1 ve 0). T-006b'deki 69 da ilk koşuydu. Yani sebep "CI
+gürültülü" değil, **ölçüm ısınmadan başlıyor** — sunucunun ilk isteği,
+koşucunun disk önbelleği ve JIT hepsi ilk koşuya yükleniyor.
+
+**Kararlar:**
+
+1. **`numberOfRuns: 3 → 5`.** 3 koşuda medyanı devirmek için iki talihsiz koşu
+   yeter; 5'te üç gerekir. Ölçülen aykırı değerler (59, 69) eşiğin çok altında
+   olduğu için bu fark, eşikler `error` olduğunda kırmızı ile yeşil arasındaki
+   fark demek.
+2. **`aggregationMethod: "median"` AÇIKÇA yazıldı.** Varsayılan zaten medyan,
+   ama örtük bir varsayılana güvenmek kapıyı kütüphane sürümüne bağlar — T-013a'da
+   otplib'de tam bu sınıf hata çıkmıştı.
+3. **`optimistic` REDDEDİLDİ.** En iyi koşuyu almak aykırı değeri gizler, ama
+   gerçek gerilemeleri de gizler. Gürültüyü susturmak için doğruyu feda etmek olurdu.
+4. **T-029'a öneri:** eşikler `error`'a çevrilmeden önce **ısınma isteği**
+   eklensin (ölçümden önce sayfaya bir kez gidilip atılan bir koşu). Kök nedeni
+   çözen budur; 5 koşu semptomu absorbe ediyor. Bu görevde eklenmedi çünkü
+   LHCI'da yerleşik karşılığı yok ve `startServerCommand`'a ısınma eklemek
+   yapılandırmayı bulanıklaştırırdı — kararı T-029 versin.
+
+---
+
+## BULGU-011 — Ölçüm sunucusu kararsızdı: `next start` + `output: standalone`
+
+> ## ✅ KAPANDI — 2026-08-14 (T-029b)
+
+**Önem:** Orta (ölçüm altyapısı — güvenlik açığı değil)
+**PROGRAM.md maddesi:** §9, §13.1
+**Dosya:** `tests/olcum-sunucusu.mjs` (yeni), `lighthouserc.json`, `playwright.config.ts`
+**Sorumlu:** Güvenlik & Test
+
+**Ne oluyordu:** Frontend'in ölçüm turunda sunucu beş kez düştü ve bir Lighthouse
+turu `CHROME_INTERSTITIAL_ERROR` ile boşa gitti (T-029/ENGEL-4). Paralel ajan yoktu.
+
+**Teşhis — tahmin değil, ölçüm:**
+
+Önce sentetik yük denendi (30 eşzamanlı istek): sunucu **hiç düşmedi**. Yani
+"yük altında çöküyor" hipotezi yanlıştı. Sonra GERÇEK iş yükü koşuldu — Lighthouse:
+
+| Sunucu | Gerçek Lighthouse iş yükü |
+| ------ | ------------------------- |
+| `next start` (output: standalone) | **4. koşuda `CHROME_INTERSTITIAL_ERROR`** |
+| `node .next/standalone/server.js` | 2 tur × 5 koşu = **10/10 temiz** |
+| Aynısı, 5 tur daha | **25/25 temiz** |
+
+Next zaten HER derlemede uyarıyordu: *"`next start` does not work with
+`output: standalone`. Use `node .next/standalone/server.js` instead."* T-004/T5'ten
+beri not düşülen bu uyarı, düşmelerin sebebiydi.
+
+**Çözüm:** `tests/olcum-sunucusu.mjs` — standalone sunucuyu çalıştırır ve
+`next build`'in **taşımadığı** `static/` ile `public/` dizinlerini kopyalar.
+Kopyalama unutulsaydı sunucu ayağa kalkar ama sayfa **stilsiz** açılır ve
+Lighthouse hata vermeden anlamsız düşük skorlar üretirdi.
+
+Hem Lighthouse hem Playwright **aynı sunucuyu** kullanıyor: ölçüm ve E2E'nin
+farklı sunucu davranışları üzerinde koşması, birinde görünmeyen bir sorunun
+ötekinde çıkmasına yol açardı. Ayrıca §13.1 gereği üretimde çalışacak olan da
+standalone; artık test ettiğimiz şey sevk ettiğimiz şey.
+
+### Yan bulgu — `HOSTNAME` yönlendirmeleri mutlaklaştırıyor
+
+Standalone'a geçince `auth.spec.ts` düştü. Sebep ölçüldü:
+
+| `HOSTNAME` | Ara katman yönlendirmesi (`/panel`, oturumsuz) |
+| ---------- | ---------------------------------------------- |
+| `127.0.0.1` | `http://localhost:3100/giris?...` — **MUTLAK** |
+| `localhost` | `/giris?...` — göreli (ama yalnız `[::1]` dinler) |
+| ayarsız (`0.0.0.0`) | `/giris?...` — göreli, her iki geri döngü de erişilebilir |
+
+Belirli bir geri döngü adresi verildiğinde Next, göreli yönlendirmeyi mutlak
+hâle getirip **`localhost`** yazıyor — istek `127.0.0.1`'e gelmiş olsa bile.
+Tarayıcı o anda köken değiştiriyor, oturum çerezi gönderilmiyor ve kullanıcı
+çıkış yapmış görünüyor.
+
+`localhost`'a geçmek yönlendirmeyi düzeltti ama yalnız IPv6 geri döngüsünü
+dinlediği için `127.0.0.1` istemcileri koptu — ve T-016'nın ölçerek doğruladığı
+`__Secure-` çerez davranışı `127.0.0.1` kökenine bağlı. Bu yüzden `HOSTNAME`
+hiç ayarlanmıyor: hem yönlendirme göreli kalıyor hem iki köken de çalışıyor.
+
+**⚠️ Dağıtım için not (T-070/T-072):** Bu davranış üretimde de geçerli. Coolify
+arkasında `HOSTNAME` belirli bir adrese sabitlenirse ara katman yönlendirmeleri
+`localhost`'a mutlaklaşabilir ve giriş akışı kırılır. Dağıtım görevinde ters
+vekil arkasında yönlendirmelerin göreli kaldığı **ölçülmeli**.
+
+### Yan kazanç — T-029a'daki koşu değişkenliği ORTADAN KALKTI
+
+T-029a'da "aykırı değer ilk koşuda çıkıyor, sunucu ısınmadan ölçüm başlıyor"
+teşhisini koymuş ve T-029 için **ısınma isteği** önermiştim. O teşhis eksikmiş:
+asıl sebep sunucunun kendisiydi.
+
+| Ölçüm | Ham performans değerleri | Yayılım |
+| ----- | ------------------------ | ------- |
+| T-006b (`next start`, 3 koşu) | `69, 90, 94` | 25 |
+| T-029a (`next start`, 5 koşu) | `59, 91, 91, 90, 91` | **32** |
+| T-029a (`next start`, tekrar) | `74, 91, 91, 91, 93` | 19 |
+| **T-029b (standalone, 5 tur × 5 koşu)** | `91,91,91,91,91` · `90,91,91,91,91` × 4 | **≤1** |
+
+**Isınma isteği önerisi GERİ ÇEKİLDİ** — çözülecek bir semptom kalmadı.
+`numberOfRuns: 5` yine de korunuyor: ucuz ve medyanı sağlamlaştırıyor.
+
+### BULGU-010 KAPANDI — WebGL yolu artık gerçekten ölçülüyor
+
+T-021 hero arka planına Aurora'yı bağladı ve T-029a'nın üç durumlu kontrolü
+⏳'den ✅'e döndü. Aynı mantıkla ölçüldü (Aurora shader'ını taşıyan derleme
+parçası ağ isteklerinde aranır):
+
+| Profil | `ogl` parçası indirildi mi | Kural |
+| ------ | -------------------------- | ----- |
+| `masaustu-koyu` (1350×940, `ae-theme=dark`) | **evet** | §5.2.2 ✅ |
+| `mobil-aydinlik` (412×823) | **hayır** | §5.2.5 ✅ |
+
+Skorlar (5 koşu, medyan):
+
+| Profil | Perf | A11y | BP | SEO |
+| ------ | ---- | ---- | -- | --- |
+| `masaustu-koyu` | **100** | 100 | 100 | 100 |
+| `mobil-aydinlik` | **91** | 100 | 100 | 100 |
+
+**Ölçüm YERELDE alındı, CI'da değil** — sebebi BULGU-012: `kapi` işi "Seed"
+adımında düşüyor ve `lighthouse` işi ona bağlı (`needs: kapi`), dolayısıyla hiç
+koşmuyor. Doğrulama mantığı CI'dakiyle birebir aynı; BULGU-012 kapandığında
+kontrol CI'da da ✅ dönmeli ve bu **ilk ortak koşuda teyit edilmeli**.
+
+---
+
+## BULGU-012 — F2 dalında CI, "Seed" adımında kırık (12 Ağustos'tan beri)
+
+**Önem:** Yüksek (merge kapısı çalışmıyor)
+**PROGRAM.md maddesi:** §10.6
+**Dosya:** `prisma/seed.ts` → `src/server/services/_shared/index.ts` → `content-cache.ts`
+**Sorumlu ajan:** **Backend**
+**Durum:** AÇIK
+
+**Ne oluyor:**
+`prisma/seed.ts`, `calculateReadingMinutes` için `@/server/services/_shared`
+paketini içe aktarıyor. O paketin `index.ts` barrel dosyası `./content-cache`'i
+de yeniden ihraç ediyor ve `content-cache.ts` ilk satırında `next/cache`'ten
+`unstable_cache` alıyor.
+
+Seed, Next'in paketleyicisiyle değil DÜZ NODE ile koşuyor (`prisma/seed-resolver.mjs`).
+Düz Node `next/cache`'i çözemiyor:
+
+```
+ERR_MODULE_NOT_FOUND
+url: '.../node_modules/next/cache'
+```
+
+**Etkisi:** `kapi` işi seed adımında düşüyor → `E2E` hiç koşmuyor → `lighthouse`
+işi (`needs: kapi`) hiç koşmuyor. Yani **F2 dalında merge kapısının tamamı
+ölçüm yapmıyor.**
+
+**Ne zamandır:** Commit `d316885` (12 Ağustos). F2 dalının kendi CI koşumu
+(`31593417565`, 12 Ağustos) da **aynı adımda** düşmüş — yani iki gündür kırık
+ve fark edilmemiş. T-005b'nin kurduğu "atlanan test yok" nöbeti bu durumu
+yakalayamıyor çünkü iş zaten daha önce düşüyor.
+
+**Önerilen çözüm:** Seed'in ihtiyacı olan yalnızca `calculateReadingMinutes`.
+Barrel yerine doğrudan modülden alınırsa `next/cache` zinciri hiç yüklenmez:
+
+```ts
+// prisma/seed.ts
+import { calculateReadingMinutes } from '@/server/services/_shared/reading-time';
+```
+
+Barrel dosyalarının yan etkisi tam olarak budur: tek bir yardımcı için tüm
+paketi (ve onun çalışma zamanı bağımlılıklarını) yüklemek. Aynı tuzak `db:seed`
+dışında ileride yazılacak her cron betiğini de vurur (§13.5).
+
+---
+
+### Yan kazanç — SEO 60 → 100
+
+T-006b'den beri "ölçülen sayfa `robots: { index: false }` taşıyan geçici
+doğrulama sayfası" diye not düşülen SEO 60, T-021'in gerçek ana sayfasıyla
+birlikte **100** oldu. Beklenen düzelme gerçekleşti.
+
+---
+
+## ADVISORY-001 — `nanoid` <3.3.18 (GHSA-2v37-7h3g-55p8, Yüksek, geçişli)
+
+**Tarih:** 2026-08-14 · **Görev:** T-005c · **Durum:** KAPANDI (override)
+**Bulan:** §8.24 kapısı — kodda değişiklik yokken kırmızıya döndü.
+
+Bu bir bulgu değil, **dış veri kaynağı kaynaklı bir kapı tetiklenmesi**. T-005b/K6
+denetimi ayrı bir iş olarak tasarlarken tam bu senaryoyu öngörmüştü: `kapi` yeşil
+kaldı, yalnızca `bagimlilik-denetimi` kırmızıya döndü.
+
+### Maruziyet — ölçüldü, varsayılmadı
+
+Advisory'nin gerektirdiği koşul: nanoid'in **özel üretici** (custom generator) ile
+`size = 0` çağrılması. Zincirdeki tek çağrı yeri:
+
+```js
+// postcss/lib/input.js
+let { nanoid } = require('nanoid/non-secure')
+this.id = '<input css ' + nanoid(6) + '>'
+```
+
+Varsayılan üretici, **sabit ve sıfır olmayan** boyut. Özel üretici yok. Bizim
+kodumuz nanoid'i hiç çağırmıyor (`src/`, `tests/`, `prisma/` tarandı: 0 eşleşme).
+**Pratik maruziyet: yok.** Buna rağmen override uygulandı — §8.24 sert bir kapı ve
+"bu açık bizi etkilemiyor" gerekçesiyle kapıyı gevşetmek, bir sonraki sefer gerçek
+bir açığı da elemek demektir. Bedeli olmayan bir düzeltme varken kapı tartışılmaz.
+
+### Uygulanan çözüm
+
+```json
+"pnpm": {
+  "overrides": {
+    "postcss": ">=8.5.23",
+    "sharp": ">=0.35.0",
+    "nanoid": ">=3.3.18 <4.0.0"
+  }
+}
+```
+
+Yalnızca kilit dosyası değişti: `nanoid@3.3.17` → `3.3.18` (9 yolun hepsinde tek
+sürüm). `postcss` 8.5.25 ve `sharp` override'ları **olduğu gibi duruyor**.
+
+### ÜST SINIR NEDEN VAR — ölçülmüş tuzak
+
+İlk deneme, mevcut override'ların kalıbına uyarak `">=3.3.18"` yazmaktı. Sonuç:
+
+```
+pnpm why nanoid  →  nanoid 6.0.1
+```
+
+Açık uçlu aralık en son majörü çekti — **üç majör atlama**. nanoid 4+ ESM-only:
+
+| | `main` | `exports["./non-secure"]` |
+| - | ------ | ------------------------- |
+| 3.3.18 | `index.cjs` | `require` + `import` koşulları var |
+| 6.0.1 | yok (`"type": "module"`) | yalnızca `default` (ESM) |
+
+postcss ise `require('nanoid/non-secure')` yapıyor. Yerelde (Node 22.23) yine de
+çalıştı — çünkü Node 22.12'den beri `require(ESM)` varsayılan olarak açık. Ama
+`engines.node` alt sınırımız **`>=22.11.0`** ve o yetenek 22.11'de **yok**. Yani
+denetim yeşil, testler yeşil, ama beyan ettiğimiz asgari Node'da postcss zinciri
+kırılırdı — **sessiz, ölçüm dışı bir kırılma**. 22.11 yerelde koşturulup
+doğrulanmadı; `engines` beyanı ile Node'un yayın notları arasındaki uyuşmazlık
+tek başına üst sınırı gerekçelendirdiği için orada durduruldu.
+
+**Ders:** override bir sürüm *tabanı* değil, bir *aralık* belirtir. Geçişli bir
+paketi majör sınırının ötesine taşımak, o paketi çağıran ara paketin sözleşmesini
+sessizce bozabilir. Üst sınır isteğe bağlı değil.
+
+### Kaldırma koşulu
+
+`postcss@8.5.26` (en son) hâlâ `nanoid: "^3.3.17"` ilan ediyor. Bu aralık **zaten
+3.3.18'i kapsıyor** — yani üst paket kırık değil, yalnızca kilit dosyamız eski
+sürüme sabitlenmişti. Bu, oyunkitabındaki en ucuz katman (A).
+
+**Override şu koşulda kaldırılır:** `pnpm why nanoid` çıktısındaki tüm yollar
+override olmadan `>=3.3.18` çözdüğünde. Pratikte bu, `postcss` bir sonraki kez
+güncellendiğinde kendiliğinden gerçekleşir. Kontrol tek komut:
+
+```bash
+# override satırı geçici olarak çıkarılır
+pnpm install --lockfile-only && pnpm why nanoid | grep -oE 'nanoid [0-9.]+' | sort -u
+# hepsi >=3.3.18 ise override SİLİNİR
+```
+
+**Son gözden geçirme:** 2026-08-14 · **Sonraki:** 2027-02-14 (bkz. oyunkitabı §4)
+
+---
+
+## Oyunkitabı — geçişli bağımlılıkta yüksek/kritik advisory
+
+ADVISORY-001 sonuncusu olmayacak. Bir dahaki sefere sırayla şunlar yapılır.
+
+### 1. Maruziyeti ölç — düzeltmeden ÖNCE
+
+Advisory metnini oku ve **tetikleyici koşulu** çıkar (ADVISORY-001'de "özel
+üretici + `size=0`"). Sonra iki soruyu ayrı ayrı cevapla:
+
+- **Bizim kodumuz o yolu çağırıyor mu?** → `grep -rn "<paket>" src/ tests/ prisma/`
+- **Ara paket o yolu çağırıyor mu?** → çağrı yerini `node_modules` içinde bul ve
+  **oku**. Çağırıyorsa hangi argümanlarla?
+
+Bu adım düzeltmeyi değiştirmez ama **aciliyeti** belirler: maruziyet varsa iş her
+şeyin önüne geçer ve tek başına ele alınır; yoksa kapıyı açmak için normal sırada
+yürür. "Muhtemelen etkilemiyor" bir cevap değildir — çağrı yerini gör.
+
+**Maruziyet yoksa bile düzeltilir.** §8.24 sert kapıdır; istisna yazmak, kapıyı
+bir sonraki gerçek açık için de gevşetir.
+
+### 2. Katmanı seç — en ucuzdan başla
+
+| Katman | Koşul | Yapılacak |
+| ------ | ----- | --------- |
+| **A · Kilit tazeleme** | Üst paketin ilan ettiği aralık yamalı sürümü **zaten kapsıyor** (ör. `^3.3.17` ⊇ 3.3.18) | `pnpm update <paket> --recursive`. Override'a gerek yok. Tek risk: kilit yeniden sabitlenince geri gelmesi — bu yüzden `pnpm audit` CI'da koşmalı (koşuyor). |
+| **B · Override** | Üst paket **yamasız bir aralık** ilan ediyor ve yamalı sürüm **aynı majör** içinde | `pnpm.overrides` → `">=<yamalı> <sonrakiMajör>"`. **ÜST SINIR ZORUNLU** (ADVISORY-001'in tuzağı). |
+| **C · Üst paketi yükselt** | Yamalı sürüm **majör sınırının ötesinde** — override ara paketin sözleşmesini bozar | Üst paketi yükselt (ör. `postcss` yeni majör). ADR gerekir: majör yükseltme davranış değiştirir. |
+| **D · Bekle + kaydet** | C mümkün değil (üst paket henüz yayınlamadı) **ve** maruziyet ölçülmüş biçimde yok | Bulgu kaydı aç, üst paketin issue'suna bağlan, `bagimlilik-denetimi` işine **süreli** istisna. Süresiz istisna yazılmaz. |
+
+**Üst paketi beklemek mi, override mı?** Ölçüt maruziyet değil, **majör sınırı**.
+Aynı majör içindeyse override (B) doğru cevaptır — ucuz, tersine çevrilebilir ve
+üst paket güncellendiğinde kendiliğinden gereksizleşir. Majör atlıyorsa override
+**yanlış** cevaptır (C'ye geç): ara paket eski majörün API'sini çağırıyor ve
+kırılma çalışma zamanında, denetimin göremediği bir yerde çıkar.
+
+### 3. Doğrula
+
+```bash
+pnpm install
+pnpm why <paket>                    # TÜM yollar yamalı sürümü mü çözdü
+pnpm audit --audit-level high       # EXIT 0
+pnpm lint && pnpm typecheck && pnpm test
+git diff pnpm-lock.yaml             # delta beklenenden BÜYÜKSE dur ve incele
+```
+
+`pnpm why` adımı atlanamaz: `pnpm audit`'in temiz olması sürümün *beklediğin*
+sürüm olduğunu göstermez (ADVISORY-001: audit 6.0.1 ile de temizdi).
+
+Derleme etkisi olabilecek zincirlerde (postcss/Tailwind) `pnpm build` **Orkestra
+Şefi tarafından** doğrulanır (ADR-023) — Güvenlik ajanı `src/**` derlemesini
+kendi başına yeşil ilan etmez.
+
+### 4. Kaldırma — override'lar birikirse bir gün gerçek açığı maskeler
+
+Her override kaydında **kaldırma koşulu** yazılır: hangi üst paket sürümü
+geldiğinde gereksizleşeceği. Koşulsuz override yazılmaz.
+
+**Altı ayda bir** (sonraki: **2027-02-14**) `pnpm.overrides` bloğu baştan sona
+gözden geçirilir. Her satır için: override geçici olarak çıkarılır,
+`pnpm install --lockfile-only && pnpm why <paket>` koşulur; çözülen sürüm zaten
+güvenliyse **satır silinir**.
+
+Gerekçesi somut: override, o paket için sürüm çözümlemesini **dondurur**. Bugün
+`nanoid`'i 3.3.18'e yükselten satır, yarın 3.3.25'te yayınlanacak bir açığı
+düzeltmez ama `pnpm update`'in doğal yükseltmesini de engelleyebilir. Ölü bir
+override, yaşayan bir açığı taşıyabilir.
+
+### 5. Kaydet
+
+`docs/security/README.md` → `ADVISORY-NNN` başlığı: advisory kimliği, tetikleyici
+koşul, **ölçülmüş maruziyet**, seçilen katman ve gerekçesi, kaldırma koşulu, son
+gözden geçirme tarihi. Denetim kütüğüne satır eklenir. R21 geçerlidir: açık
+kapanmadan istismar ayrıntısı yazılmaz — advisory zaten kamuya açık olduğu için
+kimliği ve tetikleyici koşulu vermek serbest, **bizim** zincirimizdeki çağrı
+yerini vermek düzeltmeden önce serbest değil.
+
+---
+
+## BULGU-013 — Ölçüm işi veriye bağımlı hâle geldi; Lighthouse üç profilde de 500 ölçtü
+
+**Önem:** Yüksek (merge kapısı fiilen ölçüm yapmıyor) · **Görev:** T-029c
+**Durum:** DÜZELTİLDİ — CI'da doğrulanması bekleniyor (bkz. "Açık kalan")
+**Sorumlu:** Güvenlik & Test (CI yapılandırması) · **Kimsenin hatası değil**
+
+### Belirti
+
+Koşu **31814208273**, `lighthouse` işi, ilk profilin ilk koşusunda:
+
+```
+Run #1...failed!
+"runtimeError": {
+  "code": "ERRORED_DOCUMENT_REQUEST",
+  "message": "... (Status code: 500)"
+}
+```
+
+Üç profil de düştü. `if-no-files-found: error` devreye girdi, **artifact
+üretilmedi**. Yani §9 eşikleri ve BULGU-010'un WebGL doğrulaması bu koşumda
+hiçbir şey ölçmedi.
+
+### Sebep
+
+ADR-026 ana sayfayı fixture'dan gerçek servislere bağladı. `getProfile`, profil
+kaydını bulamazsa **fırlatır** — ADR-017'de profil tekil ve seed ile açılan bir
+kayıt; yokluğu boş durum değil kurulum hatasıdır. (`getSkills` /
+`getFeaturedProjects` / `getServices` boş dizi döner, `getSiteStats` sıfır döner;
+fırlatan tek okuma `getProfile`.)
+
+`kapi` işinde Postgres servisi ve seed var (T-005b). `lighthouse` **ayrı bir
+koşucuda** çalışıyor ve `services:` bloğu yoktu — servis container'ları işler
+arasında paylaşılmaz. Ölçüm işi, ADR-026'nın öngörülmemiş yan etkisiyle veriye
+bağımlı hâle geldi ve kimse fark etmedi.
+
+**Yerelde birebir yeniden üretildi** (veritabanı kapalıyken):
+
+```
+GET /       → HTTP 500
+GET /panel  → HTTP 200        # ara katman DB'ye bakmıyor
+  ⨯ PrismaClientKnownRequestError: Can't reach database server
+    Invalid `prisma.profile.findUnique()` invocation   (P1001)
+```
+
+Seed'den sonra aynı sunucu, aynı derleme: `GET /` → **200**.
+
+### Bağımlılık DERLEME zamanında değil, İSTEK zamanında
+
+Kök layout `cookies()` okuyor (tema), bu da `/` rotasını dinamik render'a
+çekiyor. Sonuç: `pnpm build` veritabanısız geçiyor — nitekim düşen koşumda
+derleme adımı **yeşildi**, 500 ölçüm anında çıktı.
+
+Bunun iki pratik sonucu var:
+
+1. **BULGU-002 nöbeti `lighthouse` işinde de geçerli ve korunmalı.** Derleme
+   adımına `DATABASE_URL` verilmedi; verilseydi, sayfayı statik prerender'a
+   çevirip derlemeyi sessizce DB'ye bağlayan bir değişiklik fark edilmezdi.
+2. **`kapi`'den `.next` artifact'i devretmek bu bulguyu ÇÖZMEZ.** Artifact
+   `.next` taşır, ayakta bir Postgres taşımaz. Devir yalnızca yeniden derlemeyi
+   önlerdi; 500 aynen kalırdı.
+
+### Düzeltme
+
+`lighthouse` işine `kapi`'dekiyle aynı veri kurulumu: Postgres 16 servisi →
+`prisma migrate deploy` → `pnpm db:seed` → ölçüm. T-005b'nin kararları korundu:
+`DATABASE_URL` **iş düzeyinde değil**, yalnızca ihtiyacı olan adımlarda;
+`migrate dev` değil `deploy`; CI kimlikleri açıkça sahte (`ci-test-…`).
+
+**Yan bulgu — seed'in kimlik ihtiyacı.** `prisma/seed.ts`, `ADMIN_EMAIL`
+tanımsızsa "ADMIN_EMAIL tanımlı değil (§12)" diye fırlatıyor. Yalnızca
+`DATABASE_URL` eklemek yetmezdi; `kapi`'nin dört sahte kimlik değişkeni de
+`lighthouse` işine kopyalandı. Yerelde ölçülerek bulundu, CI'da denenerek değil.
+
+### İki yeni nöbet — arıza bir daha aynı biçimde saklanamasın
+
+**1 · Ölçüm ön koşulu.** Profiller başlamadan sunucu ayağa kaldırılıp `/`'ın 200
+döndüğü doğrulanır; değilse iş orada durur ve sunucu logu basılır. Gerekçe:
+LHCI 500'ü `ERRORED_DOCUMENT_REQUEST` diye üç ekran LHR JSON'unun ortasında
+bildiriyor — bu bulguda sebebi görmek için ham log kazımak gerekti.
+
+**2 · Ayırt edicide durum kodu kontrolü.** "Ölçülen sayfa Aurora içeriyor mu?"
+adımı `aurora-katman` sınıfını arıyordu ama **durum kodunu kontrol etmiyordu**.
+500 gövdesinde de o sınıf bulunmaz; yani düzeltme yapılmasaydı bu adım "sayfa
+Aurora içermiyor" der, `AURORA_SAYFADA=0` yazar ve §5.2.2 doğrulaması sessizce
+"⏳ BEKLEMEDE" dalına düşerdi. **Arıza varken yeşil** — T-019b/K3'teki "vakum
+hâlinde yeşil" tuzağının aynısı, bu kez ölçüm hattında.
+
+### Yerel prova — CI işinin adım adım tekrarı
+
+Atılabilir bir Postgres 16 kümesi kuruldu; `migrate deploy` → `seed` → üç profil
+→ ayırt edici → WebGL kontrolü → skor özeti, **CI'daki betiklerin aynısıyla**:
+
+| Profil | koşu | Perf (medyan) | A11y | BP | SEO | yayılım |
+| ------ | ---- | ------------- | ---- | -- | --- | ------- |
+| `mobil-aydinlik` | 5/5 | **92** | 100 | 100 | 100 | 1 |
+| `mobil-koyu` | 5/5 | **92** | 100 | 100 | 100 | 2 |
+| `masaustu-koyu` | 5/5 | **100** | 100 | 100 | 100 | 1 |
+
+Üçünün de çıkış kodu 0; 15 koşunun 15'i temiz; `lighthouse-raporu/` altında
+**18 JSON / 13 MB** üretildi (artifact "No files were found" vermez).
+
+BULGU-010 doğrulaması, ayırt edici artık **zorunlu** dalda:
+
+```
+ayırt edici istek → HTTP 200
+AURORA_SAYFADA=1
+Aurora parçası: 369.849405c07f6c28ee.js
+masaüstü ogl indirdi mi : true     → §5.2.2 ✅
+mobil    ogl indirdi mi : false    → §5.2.5 ✅
+```
+
+T-023 `lazy.tsx`'i değiştirmiş olmasına rağmen dört koşullu ayırt edici
+**bozulmadan çalışıyor**. Skorlar T-023'ün yerel ölçümüyle (mobil ~92,
+masaüstü+koyu ~100) **tam tutuyor** — sapma yok, dolayısıyla açıklanacak fark
+da yok.
+
+### Açık kalan — CI doğrulaması
+
+Kabul kriteri "üç profili de düşmeden tamamlıyor — **gerçek koşu numarasıyla**"
+karşılanamadı: aynı görev kartı ADR-028 gereği **dal açmayı ve commit atmayı
+yasaklıyor**, gerçek koşu ise ancak iş akışı dosyası uzağa gidince tetiklenebilir.
+Yukarıdaki prova CI adımlarının birebir tekrarıdır ama CI değildir. İlk koşumda
+doğrulanması gerekenler: üç profil EXIT 0, artifact üretimi, `AURORA_SAYFADA=1`
+ve süre.
+
+---
+
 ## §8 Güvenlik Gereksinimleri — Durum Tablosu
 
 **Ölçüm tarihi:** 2026-08-11 · **Faz:** F1 (kapandı) · **Son görev:** T-005b
@@ -761,7 +1312,7 @@ Durum kodları: ✅ sağlandı · ⚠️ kısmi · ❌ eksik · ⏳ henüz uygul
 | 21 | Gece 03:00 şifreli `pg_dump` → R2, 30 gün | ⏳ | T-066 / T-073 · **Uyarı:** yol haritası F6/F7 diyor; gerçek muhasebe verisi F4'te girilmeye başlıyor. Yedeksiz geçen her F4 günü, başka kopyası olmayan mali veri riski. |
 | 22 | `restore.md` + en az bir prova | ⏳ | T-066 |
 | 23 | Yedek checksum doğrulaması | ⏳ | T-066 |
-| 24 | `npm audit` merge kapısı | ✅ | **Kuruldu** (T-005): `.github/workflows/ci.yml` → `bagimlilik-denetimi` işi, `pnpm audit --audit-level high` (ADR-003 gereği `npm` değil `pnpm`). Yüksek **ve** kritik kapsanır. Depo şu an temiz (her seviyede 0 açık). Kapının kırmızıya döndüğü ayrı bir izole projede kanıtlandı: `lodash@4.17.11` + `minimist@1.2.0` → 9 açık (2 kritik, 3 yüksek) → **EXIT 1**. Ayrıca yabancı kilit dosyası kontrolü de aynı işte. |
+| 24 | `npm audit` merge kapısı | ✅ | **Kuruldu** (T-005): `.github/workflows/ci.yml` → `bagimlilik-denetimi` işi, `pnpm audit --audit-level high` (ADR-003 gereği `npm` değil `pnpm`). Yüksek **ve** kritik kapsanır. Depo şu an temiz (her seviyede 0 açık). Kapının kırmızıya döndüğü ayrı bir izole projede kanıtlandı: `lodash@4.17.11` + `minimist@1.2.0` → 9 açık (2 kritik, 3 yüksek) → **EXIT 1**. Ayrıca yabancı kilit dosyası kontrolü de aynı işte. **T-005c — kapı gerçek bir advisory'de tetiklendi ve tuttu:** `nanoid` GHSA-2v37-7h3g-55p8 (Yüksek, geçişli, 9 yol) kodda hiçbir değişiklik yokken hattı kırmızıya çevirdi; `pnpm.overrides` ile kapandı, EXIT 0. Artık yalnızca izole projede değil, **kendi deposunda** kanıtlı. Tekrarlayan advisory'ler için oyunkitabı yazıldı (kaldırma koşulu + altı aylık gözden geçirme dahil). **T-029c — kapı artık HAFTALIK da koşuyor** (`schedule: '17 6 * * 1'`, Pazartesi 09:17 TRT): advisory'ler kod değişmeden yayınlandığı için yalnızca push/PR'da koşan bir denetim, sessiz geçen bir hafta boyunca yüksek bir açığı fark etmez. Zamanlanmış koşumda diğer iki iş `if: github.event_name != 'schedule'` ile atlanır. |
 | 25 | Yeni bağımlılık onay + DECISIONS kaydı | ✅ | T-004'ün 9 paketi görev kartında adı adına onaylı. **T-005 ve T-006b `package.json`'a hiçbir paket eklemedi** — `@lhci/cli` bilinçli olarak `pnpm dlx @lhci/cli@0.15.1` ile ephemeral çağrılıyor (yalnızca CI aracı, uygulama bağımlılığı değil; sürüm sabit, `latest` kullanılmıyor). **T-006b:** tüm GitHub eylemleri Node 24 hedefleyen güncel kararlı majora taşındı — `checkout@v7`, `setup-node@v7`, `cache@v6`, `upload-artifact@v7`, `pnpm/action-setup@v6`. Yamasız çalışma zamanı bırakmama gerekçesi ADR-008 ile aynı hat. |
 
 **Özet:** ✅ 9 · ⚠️ 4 · ❌ 0 · ⏳ 12
