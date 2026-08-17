@@ -29,6 +29,7 @@
 
 import { BolumGiris } from '@/components/public/bolum-giris';
 import { SpotlightCard } from '@/components/reactbits/lazy';
+import { KATEGORI_BASLIK } from '@/components/public/yetenek-kategori';
 import { EmptyState } from '@/components/ui/empty-state';
 import type { SkillDto } from '@/server/services/content-dto';
 import { SkillCategory } from '@/types';
@@ -43,17 +44,6 @@ export type YeteneklerProps = {
  * burada yalnızca TÜRKÇE KARŞILIĞI tanımlanıyor, yeni bir kavram değil.
  * Sıra da buradan gelir — `Object.keys` sırası şablonun sırasıdır.
  */
-const KATEGORI_BASLIK: Record<SkillCategory, string> = {
-  [SkillCategory.FRONTEND]: 'Frontend',
-  [SkillCategory.BACKEND]: 'Backend',
-  [SkillCategory.DATABASE]: 'Veritabanı',
-  [SkillCategory.DEVOPS]: 'Altyapı',
-  [SkillCategory.MOBILE]: 'Mobil',
-  [SkillCategory.DESIGN]: 'Tasarım',
-  [SkillCategory.TOOLING]: 'Araçlar',
-  [SkillCategory.SOFT_SKILL]: 'Çalışma biçimi',
-  [SkillCategory.OTHER]: 'Diğer',
-};
 
 /** Kategoriye göre gruplar; `order` alanına saygı duyar, boş grubu atlar. */
 function grupla(yetenekler: SkillDto[]) {

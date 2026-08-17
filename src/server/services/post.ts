@@ -7,7 +7,8 @@ import {
   DEFAULT_LOCALE,
   publishedWhere,
   toAttachmentRef,
-  type AttachmentRow} from './_shared';
+  type AttachmentRow,
+} from './_shared';
 import type { ContentLookup, PostDto, PostListItemDto } from './content-dto';
 
 /** `Post` servisi — §4.1 /blog, ADR-019. */
@@ -127,4 +128,14 @@ export async function fetchPostBySlug(
       content: row.content,
     },
   };
+}
+
+/**
+ * Yayındaki yazı listesini BELLEKTE süzer — bkz. `filterProjectList`.
+ */
+export function filterPostList(
+  items: PostListItemDto[],
+  filters: { tag?: string } = {},
+): PostListItemDto[] {
+  return items.filter((item) => filters.tag === undefined || item.tags.includes(filters.tag));
 }

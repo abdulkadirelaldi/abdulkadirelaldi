@@ -2,7 +2,7 @@ import { db } from '@/server/db';
 import type { PrismaClient } from '@/server/generated/prisma/client';
 import type { ExperienceType } from '@/types';
 
-import { dateToAppDay, DEFAULT_LOCALE} from './_shared';
+import { dateToAppDay, DEFAULT_LOCALE } from './_shared';
 import type { ExperienceDto } from './content-dto';
 
 /** `Experience` servisi — §4.1 /hakkimda zaman çizelgesi. */

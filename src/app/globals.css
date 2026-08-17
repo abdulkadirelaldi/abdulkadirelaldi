@@ -447,3 +447,66 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* --------------------------------------------------------------------------
+   4) YAZDIRMA — §4.1 /cv (T-023c)
+   Kural /cv'ye ÖZEL DEĞİL: yazdırılabilir her sayfa aynı sözleşmeyi kullanır.
+   Sayfa yalnızca `data-yazdirmada-gizle` işaretini koyar, geri kalanı burada.
+   -------------------------------------------------------------------------- */
+
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
+
+  /* MÜREKKEP PALETİ — üçüncü bir tema değil, aynı token'ların kâğıt karşılığı.
+     Koyu tema yazdırılırsa sayfa baştan sona dolu mürekkep olurdu; tarayıcı
+     arka planları zaten atıyor ama METİN rengini atmıyor, açık gri metin
+     kâğıtta okunmaz hâle geliyordu. Vurgu rengi KORUNUYOR: başlıkları
+     ayırıyor ve tek renkli lazerde de gri tona düşerek okunur kalıyor. */
+  :root,
+  :root.dark,
+  :root.light {
+    --bg-base: #ffffff;
+    --bg-surface: #ffffff;
+    --bg-elevated: #ffffff;
+    --text-primary: #000000;
+    --text-body: #1a1a1a;
+    --text-muted: #4a4a4a;
+    --border-line: #b4b4b4;
+    --border-line-hover: #b4b4b4;
+    color-scheme: light;
+  }
+
+  html,
+  body {
+    background: #ffffff;
+  }
+
+  [data-yazdirmada-gizle] {
+    display: none !important;
+  }
+
+  /* Kayıtlar sayfa sınırında ORTADAN İKİYE bölünmesin. */
+  li,
+  section,
+  h1,
+  h2,
+  h3 {
+    break-inside: avoid;
+  }
+
+  h1,
+  h2,
+  h3 {
+    break-after: avoid;
+  }
+
+  /* Kâğıt genişliği ekran değil: ekran için konan üst sınırlar ve iç boşluklar
+     yazdırmada sayfayı ikinciye taşıyordu. */
+  .yazdirma-sayfa {
+    max-width: none;
+    padding: 0;
+  }
+}

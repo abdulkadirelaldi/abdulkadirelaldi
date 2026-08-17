@@ -115,9 +115,9 @@ export function Hakkimda({ profil, istatistikler }: HakkimdaProps) {
               </p>
             ))}
 
+            {/* /hakkimda T-023c'de açıldı; ön çekme artık 404 üretmiyor. */}
             <Link
               href="/hakkimda"
-              prefetch={false}
               className="focus-ring text-accent-soft rounded-btn self-start text-sm font-medium"
             >
               Daha fazlası →

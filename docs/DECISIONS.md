@@ -35,6 +35,9 @@
 | ADR-027 | İstatistikler türetilir, elle girilmez | 2026-08-12 | Kabul edildi |
 | ADR-028 | Dal ve commit disiplini: tur başına tek PR, Orkestra Şefi commit'ler | 2026-08-14 | Kabul edildi |
 | ADR-029 | `revalidateTag` tam dize eşleşir; her seviye ayrı düşürülür | 2026-08-14 | Kabul edildi |
+| ADR-030 | Seed, ölçüm sözleşmesidir | 2026-08-16 | Kabul edildi |
+| ADR-031 | Fontlar repoda barındırılır — `next/font/local` | 2026-08-16 | Kabul edildi |
+| ADR-032 | Kullanıcı girdisi önbellek anahtarına doğrulanmadan girmez | 2026-08-16 | Kabul edildi |
 
 ---
 
@@ -1331,3 +1334,130 @@ dizisi yazmak artık derlenmiyor. Kural yorumla değil tiple korunuyor.
 - **Tek düz etiket kullanmak** (`content:project`) — Hiyerarşi sorununu yok ederdi; **reddedildi** çünkü tek bir yazının düzenlenmesi tüm proje listesini ve istatistiği düşürürdü; önbelleğin faydası büyük ölçüde kaybolur.
 - **İki sarmalayıcı** (biri sabit etiketli, biri dinamik) — Basit kullanım için kısa yol verirdi; **reddedildi**: hatanın tekrarına davetiye. Tek sarmalayıcı + zorunlu `describe`, yanlış kullanımı imkânsız kılıyor.
 - **Kuralı yorumda bırakmak** — **reddedildi**: T-019b/K3'ün gösterdiği gibi, hatırlanması gereken kurallar unutulur. Tip ve ADR birlikte korur.
+
+---
+
+## ADR-030 — Seed, Ölçüm Sözleşmesidir
+
+**Durum:** Kabul edildi · 2026-08-16 · **Tetikleyen:** T-029c/T1
+
+### Bağlam
+ADR-026 ile public sayfalar gerçek veriden okuyor; T-029c ile Lighthouse işi de veritabanı
+kuruyor. Sonuç: **ölçülen sayfa artık seed içeriğini render ediyor.** `prisma/seed.ts`
+büyürse (daha çok proje, yetenek, yazı) performans skoru **kod değişmeden** düşebilir.
+
+Bugün mobil 92, eşik 90 — iki puan pay var. T-029 eşikleri `error`'a çevirdiğinde, seed'i
+büyüten bir Backend görevi ölçüm hattını beklenmedik biçimde kırabilir.
+
+İki yol önerildi: (i) ölçüm için sabit ve küçük bir seed profili, (ii) mevcut seed'i
+ölçüm sözleşmesi saymak.
+
+### Karar
+**(ii) — seed ölçüm sözleşmesidir.** Ayrı bir "ölçüm seed'i" oluşturulmaz.
+
+Kurallar:
+1. Seed'i büyüten her görev **ölçümü yeniden alır ve raporlar.** Görev kartına kriter olarak yazılır.
+2. Skor eşiğin altına düşerse bu **bozuk bir kapı değil, gerçek bilgi**: sayfa o içerik hacmiyle yavaş demektir. Çözüm eşiği gevşetmek değil, sayfayı hızlandırmak veya içerik stratejisini gözden geçirmektir.
+3. Seed, üretim içeriğinin **gerçekçi bir örneği** olmayı hedefler. Yapay olarak küçük tutulmaz.
+
+### Sonuçlar
+- **Olumlu:** Ölçüm dürüst kalır. Sabit küçük bir seed rahat ama anlamsız sayılar üretirdi — gerçek site seed'den büyük olacak ve o zaman ilk kez gerçek rakamı görürdük, üstelik en geç anda.
+- **Olumsuz / kabul edilen:** Bir Backend görevi ölçüm hattını kırabilir. Bu maliyet bilerek üstlenildi; kırılma **doğru bir sinyal**, gürültü değil. Görev kartlarına "seed büyüyorsa yeniden ölç" kriteri eklenerek sürpriz olması engellenir.
+- T-029 eşikleri sertleştirdiğinde bu kural yürürlüktedir; iki puanlık pay dar ve bu bilinçli.
+
+### Alternatifler ve neden reddedildi
+- **Sabit küçük ölçüm seed'i** — Hattı kararlı tutardı; **reddedildi** çünkü ölçtüğümüz şey gerçek sayfa olmaktan çıkardı. "Yeşil bir paket, doğru şeyi ölçtüğünün kanıtı değil" (T-019b/K3) ilkesinin veri tarafındaki karşılığı.
+- **Ölçümü tamamen statik bir sayfaya bağlamak** — En kararlı; **reddedildi** çünkü §1.1 K1 gerçek public sayfaların hızını ölçmeyi istiyor.
+
+---
+
+## ADR-031 — Fontlar Repoda Barındırılır (`next/font/local`)
+
+**Durum:** Kabul edildi · 2026-08-16 · **Tetikleyen:** T-003d/T3 (öngörü) → CI koşusu `31909914487` (gerçekleşme)
+
+### Bağlam
+§3.2 fontların `next/font/google` ile yükleneceğini söylüyor. Backend T-003d/T3'te uyarmıştı:
+*"İlk `pnpm build` `next/font` Google font indiricisinde düştü. Kalıcı değil… CI'da
+tekrarlarsa `next/font` ağ bağımlılığı gündeme gelebilir."*
+
+CI'da tekrarladı: `Failed to fetch Inter from Google Fonts` → `Build failed`. Yeniden
+koşumda geçti (geçici ağ hatası), ama iki kez oldu.
+
+Asıl tehlike skorun kendisi değil: **rastgele düşen bir derleme, kapının güvenilirliğini
+aşındırır.** *"Zaten bazen düşüyor, tekrar koştur"* refleksi, bu projenin baştan beri
+savaştığı hata sınıfının kapıya bulaşmış hâli — bir gün gerçek bir kırılma da "herhalde
+yine font" diye geçilir. Ayrıca T-070'te Docker derlemesi aynı duvara çarpacak ve orada
+ağ erişimi daha da kısıtlı olabilir.
+
+### Karar
+Üç font (**Space Grotesk**, **Inter**, **JetBrains Mono**) `.woff2` dosyaları olarak
+repoya alınır ve `next/font/local` ile yüklenir. §3.2 buna göre güncellenir.
+
+Korunması zorunlu olanlar:
+- **`latin` + `latin-ext` subset** — Türkçe karakterler `latin-ext`te (§3.2)
+- `display: swap`
+- Mevcut ağırlıklar: Space Grotesk 600/700 · Inter 400/500/600 · JetBrains Mono 400/500
+- T-023'ün ölçtüğü `preload` davranışı — `preload: false` denenip **geri alınmıştı**
+  (FCP 907 → 1359); aynı hataya düşülmemeli
+
+### Sonuçlar
+- **Olumlu:** Derleme ağdan bağımsız — CI, Docker (T-070) ve çevrimdışı geliştirme deterministik. Çalışma zamanında `fonts.gstatic.com`'a istek gitmiyor: bir üçüncü taraf bağlantısı ve gizlilik yüzeyi eksiliyor. §8.13'ün CSP'si de sadeleşir (F6/T-060'ta bir kaynak daha az).
+- **Olumsuz / kabul edilen:** Font güncellemeleri elle. Repo birkaç yüz KB büyür. Yalnızca gereken ağırlık ve subset'ler alınarak sınırlanır.
+- Lisans: üç font da **SIL Open Font License** — repoda barındırmaya izin veriyor. Lisans dosyaları da alınır.
+- **Ölçüm zorunlu:** FCP/LCP değişebilir. T-023'ün rakamları taban: mobil FCP 0.76 s, LCP 3.31 s, Perf 92. Geçişten sonra yeniden ölçülür; düşerse geri alınır ve gerekçe raporlanır.
+
+### Alternatifler ve neden reddedildi
+- **Yeniden koşumla idare etmek** — Bedelsiz görünüyor; **reddedildi** çünkü kapının güvenilirliğini aşındırır ve T-070'te tekrar çıkar. Bu projede "bazen düşer" kabul edilmiş hiçbir şey yok.
+- **Derleme önbelleği / font önbelleği** — Sorunu azaltır, kaldırmaz; ilk derleme yine ağa bağımlı.
+- **Fontları CDN'den çalışma zamanında yüklemek** — `next/font`'un çözdüğü CLS ve gizlilik sorunlarını geri getirirdi.
+
+---
+
+## ADR-032 — Kullanıcı Girdisi Önbellek Anahtarına Doğrulanmadan Girmez
+
+**Durum:** Kabul edildi · 2026-08-16 · **Tetikleyen:** T-030d/K2 ve E4
+
+### Bağlam
+T-030d, filtreli liste okumalarını önbelleğe alırken beklenenden farklı bir itiraz buldu.
+Görev, T-030'un K4'ündeki "girdi sayısı artar" gerekçesini yeniden değerlendirmek üzere
+açılmıştı; ölçüm o gerekçenin zayıf olduğunu gösterdi (11 etiket, 5 teknoloji, en kötü
+durumda ~288 girdi — kişisel bir portfolyoda önemsiz).
+
+Ama `tag` ve `stack` **URL parametresinden** geliyor, yani **kullanıcı kontrollü**. Her
+filtre değerini önbellek anahtarına vermek şu demekti:
+
+> Ziyaretçi `?tag=<rastgele>` ile istediği kadar önbellek girdisi ürettirebilir.
+
+Sınır 288 değil, **sınırsız**. Girdilerin çoğu bir kez okunup bir daha kullanılmaz;
+dosya sistemi önbelleği şişer. T-030'un K4'ü yanlış gerekçeye dayanıyordu ama **tesadüfen
+doğru tarafta duruyordu.**
+
+Bu kalıp tek seferlik değil: F3/F4'te arama sorgusu, sayfa numarası, sıralama parametresi
+aynı yerde tekrar edecek.
+
+### Karar
+**Kullanıcı girdisi önbellek anahtarına ancak sınırlı ve doğrulanmış bir kümeye
+indirgenmişse girer.** Serbest metin, ham URL parametresi veya istemciden gelen herhangi
+bir değer doğrudan anahtar parçası olamaz.
+
+Uygulama sırasına göre tercih:
+1. **Anahtara hiç koyma** — önbellekli geniş sonucu bellekte süz. T-030d bunu seçti:
+   filtreli okuma, önbellekteki tam listeyi süzüyor. Yeni girdi üretilmiyor, üstelik
+   filtreli sayfa artık DB'ye **hiç** gitmiyor.
+2. **Sınırlı kümeye doğrula** — kaçınılmazsa (örn. sayfa numarası) Zod ile sınırla
+   (`min`/`max`, enum) ve anahtara **doğrulanmış** değeri koy.
+3. Serbest metni asla anahtara koyma.
+
+**Sınır:** 1. seçeneğin geçerliliği veri hacmine bağlı. Tam listeyi tek istekte taşımak
+pahalılaştığında yeniden değerlendirilir; T-030d bu eşiği kod yorumunda işaretledi
+(liste DTO'su MDX taşımıyor, bu yüzden bugün ucuz).
+
+### Sonuçlar
+- **Olumlu:** Önbellek şişirme yüzeyi kapandı ve tekrarı için bir kural var. F3/F4'ün arama ve sayfalama görevlerinde bu soru yeniden tartışılmayacak. Yan kazanç ölçülmüştü: filtreli görünüm DB'ye gitmiyor.
+- **Olumsuz / kabul edilen:** 1. seçenek, tam listeyi belleğe alma maliyeti getiriyor. Veri büyüdükçe 2. seçeneğe geçilmesi gerekebilir; eşik kodda işaretli.
+- Bu bir §8 maddesi değil ama komşusu: kaynak tüketimine dayalı, kimlik doğrulaması gerektirmeyen bir kötüye kullanım yüzeyi. F6/T-062 denetiminde §8.15–16'nın (hız sınırlama) yanında değerlendirilmeli.
+
+### Alternatifler ve neden reddedildi
+- **Filtreli okumaları hiç önbelleğe almamak** (T-030'un K4'ü) — Sorunu önlerdi; **reddedildi** çünkü filtreli sayfa her istekte DB'ye giderdi ve ADR-011'in F2 için şart koştuğu korumadan çıkardı.
+- **Filtre değerini anahtara koyup girdi sayısına üst sınır koymak** — Next'te yerleşik bir mekanizma yok; uygulama katmanında LRU yazmak, çözdüğünden fazla karmaşıklık getirirdi.
+- **Kuralı yalnızca kod yorumunda bırakmak** — **reddedildi**: aynı soru F3/F4'te başka bir ajan tarafından sorulacak ve yorum o dosyada kalır.

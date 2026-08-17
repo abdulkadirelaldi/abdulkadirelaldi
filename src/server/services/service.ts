@@ -1,7 +1,7 @@
 import { db } from '@/server/db';
 import type { PrismaClient } from '@/server/generated/prisma/client';
 
-import { DEFAULT_LOCALE} from './_shared';
+import { DEFAULT_LOCALE } from './_shared';
 import type { ServiceDto } from './content-dto';
 
 /** `Service` servisi — §4.1 hizmetler, K4 CTA'ları. */

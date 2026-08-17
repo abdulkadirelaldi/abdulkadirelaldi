@@ -67,9 +67,7 @@ function relPath(file: string): string {
  */
 function findNextDependency(entry: string): string | null {
   const seen = new Set<string>();
-  const queue: Array<{ file: string; path: string[] }> = [
-    { file: entry, path: [relPath(entry)] },
-  ];
+  const queue: Array<{ file: string; path: string[] }> = [{ file: entry, path: [relPath(entry)] }];
 
   while (queue.length > 0) {
     const current = queue.shift();
