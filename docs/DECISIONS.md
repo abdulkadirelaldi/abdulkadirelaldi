@@ -808,7 +808,20 @@ Sonradan eklemek migration + **tüm sorguların** değişmesi demek; şimdi ekle
 
 **C4 — Yayın durumu genişletilir.** `status` enum'u: `DRAFT` · `SCHEDULED` · `PUBLISHED` ·
 `ARCHIVED`. `SCHEDULED` ileri tarihli yayın için (`publishedAt` gelecekte), `ARCHIVED`
-yayından kaldırma için — **slug korunur ve `410 Gone` döner**, `404` değil. Sitemap ve RSS
+yayından kaldırma için — **slug korunur.**
+
+> **Revizyon (2026-08-18, T-024):** Özgün metin `410 Gone` diyordu. **Next 15.5'te bir
+> Sunucu Bileşeni yanıt durumunu belirleyemiyor:** `next/navigation` yalnızca 404/403/401
+> için kesme sağlıyor (`http-access-fallback` 410'u tanımıyor), `headers()` salt okunur ve
+> durum yazan bir API yok. Frontend kaynağı okuyup doğruladı.
+>
+> **Karar: `ARCHIVED` → `200` + `noindex, nofollow` + açık "kaldırıldı" ekranı.**
+> Değerlendirilen alternatif — Backend'in `getArchivedSlugs()` yayınlaması ve Güvenlik'in
+> bunu middleware'de 410'a çevirmesi — **reddedildi:** middleware Edge'de koşuyor ve
+> Prisma yüklenemiyor (T-014/K1); önbellekli bir okumayı oraya taşımak, korumakta olduğumuz
+> sınırı marjinal bir SEO kazancı için delmek olurdu. `noindex` de arama motoruna dizinden
+> çıkma sinyalini veriyor; 410'un farkı hız, doğruluk değil.
+> Next durum kontrolü eklerse karar yeniden açılır. Sitemap ve RSS
 yalnızca `PUBLISHED` **ve** `publishedAt <= now()` olanları içerir.
 
 **C3 — `viewCount` ayrılır.** Doğrudan sütun her görüntülemede `UPDATE` demek; bu hem

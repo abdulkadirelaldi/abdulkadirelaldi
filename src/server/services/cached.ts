@@ -1,10 +1,20 @@
 import { cachedRead, entityTag, localeTag, slugTag } from './_shared/content-cache';
 import { DEFAULT_LOCALE } from './_shared/content-query';
 import { fetchExperience } from './experience';
-import type { PostListItemDto, ProjectListItemDto } from './content-dto';
-import { fetchPostBySlug, fetchPublishedPosts, filterPostList } from './post';
+import type { PostListItemDto, ProjectListItemDto, SitemapEntryDto } from './content-dto';
+import {
+  fetchPostBySlug,
+  fetchPostSitemapEntries,
+  fetchPublishedPosts,
+  filterPostList,
+} from './post';
 import { fetchProfile } from './profile';
-import { fetchProjectBySlug, fetchPublishedProjects, filterProjectList } from './project';
+import {
+  fetchProjectBySlug,
+  fetchProjectSitemapEntries,
+  fetchPublishedProjects,
+  filterProjectList,
+} from './project';
 import { fetchServices } from './service';
 import { fetchSkills } from './skill';
 import { fetchSiteStats } from './stats';
@@ -206,5 +216,37 @@ export const getSiteStats = cachedRead(
       entityTag('experience'),
       localeTag('experience', locale),
     ],
+  }),
+);
+
+/* ===========================================================================
+ * SITEMAP — T-028
+ * ======================================================================== */
+
+/**
+ * Sitemap girdileri.
+ *
+ * YENİ ETİKET YOK: sitemap `Project` verisinden türüyor, dolayısıyla o varlığın
+ * mevcut etiketlerini taşır. F3'ün bir proje eklediğinde/düzenlediğinde zaten
+ * düşürdüğü `content:project:<locale>` bu girdiyi de düşürür — Server
+ * Action'larda hiçbir değişiklik gerekmiyor.
+ *
+ * Ayrı `keyParts` kullanılıyor çünkü projeksiyon farklı (slug + updatedAt),
+ * liste girdisiyle aynı anahtarı paylaşamaz.
+ */
+export const getProjectSitemapEntries: (locale?: string) => Promise<SitemapEntryDto[]> = cachedRead(
+  (locale: string = DEFAULT_LOCALE) => fetchProjectSitemapEntries({ locale }),
+  (locale = DEFAULT_LOCALE) => ({
+    keyParts: ['sitemap', 'projects', locale],
+    tags: [entityTag('project'), localeTag('project', locale)],
+  }),
+);
+
+/** Bkz. `getProjectSitemapEntries` — yeni etiket yok. */
+export const getPostSitemapEntries: (locale?: string) => Promise<SitemapEntryDto[]> = cachedRead(
+  (locale: string = DEFAULT_LOCALE) => fetchPostSitemapEntries({ locale }),
+  (locale = DEFAULT_LOCALE) => ({
+    keyParts: ['sitemap', 'posts', locale],
+    tags: [entityTag('post'), localeTag('post', locale)],
   }),
 );

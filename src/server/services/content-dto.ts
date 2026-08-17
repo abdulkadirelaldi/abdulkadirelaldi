@@ -190,6 +190,24 @@ export interface PostDto extends PostListItemDto {
 }
 
 /* ===========================================================================
+ * SITEMAP
+ * ======================================================================== */
+
+/**
+ * Sitemap girdisi — T-028.
+ *
+ * Liste DTO'larından AYRI tutuldu: sitemap'in `lastModified` için `updatedAt`'e
+ * ihtiyacı var, ama `updatedAt` public liste DTO'larında YOK ve olmamalı
+ * (sayfada gösterilmiyor, DTO'yu şişirir). Tersine sitemap'in başlığa,
+ * özete, kapağa ihtiyacı yok. İki ayrı projeksiyon, iki ayrı sorgu.
+ */
+export interface SitemapEntryDto {
+  slug: string;
+  /** `Project.updatedAt` / `Post.updatedAt` — ISO 8601. */
+  updatedAt: string;
+}
+
+/* ===========================================================================
  * ORTAK FİLTRE
  * ======================================================================== */
 

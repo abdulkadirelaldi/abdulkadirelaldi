@@ -9,7 +9,7 @@ import {
   toAttachmentRef,
   type AttachmentRow,
 } from './_shared';
-import type { ContentLookup, PostDto, PostListItemDto } from './content-dto';
+import type { ContentLookup, PostDto, PostListItemDto, SitemapEntryDto } from './content-dto';
 
 /** `Post` servisi — §4.1 /blog, ADR-019. */
 
@@ -138,4 +138,17 @@ export function filterPostList(
   filters: { tag?: string } = {},
 ): PostListItemDto[] {
   return items.filter((item) => filters.tag === undefined || item.tags.includes(filters.tag));
+}
+
+/** Sitemap girdileri — bkz. `fetchProjectSitemapEntries`. */
+export async function fetchPostSitemapEntries(
+  params: { locale?: string; now?: Date } = {},
+  client: PostClient = db,
+): Promise<SitemapEntryDto[]> {
+  const rows = await client.post.findMany({
+    where: { locale: params.locale ?? DEFAULT_LOCALE, ...publishedWhere(params.now ?? new Date()) },
+    select: { slug: true, updatedAt: true },
+    orderBy: [{ updatedAt: 'desc' }],
+  });
+  return rows.map((row) => ({ slug: row.slug, updatedAt: row.updatedAt.toISOString() }));
 }

@@ -8,7 +8,7 @@ import {
   toAttachmentRef,
   type AttachmentRow,
 } from './_shared';
-import type { ContentLookup, ProjectDto, ProjectListItemDto } from './content-dto';
+import type { ContentLookup, ProjectDto, ProjectListItemDto, SitemapEntryDto } from './content-dto';
 
 /** `Project` servisi — §4.1 /projeler, ADR-018/019. */
 
@@ -187,4 +187,25 @@ export function filterProjectList(
       (filters.stack === undefined || item.stack.includes(filters.stack)) &&
       (filters.featuredOnly !== true || item.featured),
   );
+}
+
+/**
+ * Sitemap girdileri — yalnızca `slug` + `updatedAt`.
+ *
+ * `publishedWhere` aynı iki koşulu uygular, bu yüzden `SCHEDULED`, ileri
+ * tarihli `PUBLISHED` ve `ARCHIVED` kayıtlar SIZMAZ. `ARCHIVED`'ın dışarıda
+ * kalması özellikle önemli: slug'ı korunuyor ve 410 dönüyor (ADR-019); 410
+ * dönen bir URL'yi sitemap'e koymak arama motoruna "bunu tara" derken sunucunun
+ * "kalıcı olarak gitti" demesi anlamına gelir — çelişkili sinyal.
+ */
+export async function fetchProjectSitemapEntries(
+  params: { locale?: string; now?: Date } = {},
+  client: ProjectClient = db,
+): Promise<SitemapEntryDto[]> {
+  const rows = await client.project.findMany({
+    where: { locale: params.locale ?? DEFAULT_LOCALE, ...publishedWhere(params.now ?? new Date()) },
+    select: { slug: true, updatedAt: true },
+    orderBy: [{ updatedAt: 'desc' }],
+  });
+  return rows.map((row) => ({ slug: row.slug, updatedAt: row.updatedAt.toISOString() }));
 }

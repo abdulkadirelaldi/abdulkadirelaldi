@@ -30,4 +30,6 @@ export * from './money';
 export * from './period-key';
 export * from './personal-record';
 export * from './reading-time';
+export * from './rss';
+export * from './site-url';
 export * from './stats';
