@@ -203,3 +203,14 @@ export interface PublicQuery {
 
 /** İçerik durumu — yalnızca panel tarafı görür; public DTO'larda YER ALMAZ. */
 export type { ContentStatus };
+
+/**
+ * Türetilmiş site istatistikleri — ADR-027.
+ *
+ * Tanım `_shared/stats.ts` içinde (hesap mantığıyla birlikte durması için) ama
+ * Frontend'in TEK KAYNAĞI bu dosyadır — T-023 haklı olarak buradan ihraç
+ * edilmediğini bildirdi. `import type` derlemede silindiği için sızıntı yoktu,
+ * ama iki farklı import yolu olması sözleşmenin tek kaynak olma niteliğini
+ * bozuyordu.
+ */
+export type { SiteStatsDto } from './_shared/stats';

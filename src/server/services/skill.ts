@@ -2,7 +2,7 @@ import { db } from '@/server/db';
 import type { PrismaClient } from '@/server/generated/prisma/client';
 import type { SkillCategory } from '@/types';
 
-import { DEFAULT_LOCALE} from './_shared';
+import { DEFAULT_LOCALE } from './_shared';
 import type { SkillDto } from './content-dto';
 
 /** `Skill` servisi — T-015 konvansiyonu. */

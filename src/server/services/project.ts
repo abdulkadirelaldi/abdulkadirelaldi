@@ -6,7 +6,8 @@ import {
   DEFAULT_LOCALE,
   publishedWhere,
   toAttachmentRef,
-  type AttachmentRow} from './_shared';
+  type AttachmentRow,
+} from './_shared';
 import type { ContentLookup, ProjectDto, ProjectListItemDto } from './content-dto';
 
 /** `Project` servisi — §4.1 /projeler, ADR-018/019. */
@@ -162,4 +163,28 @@ export async function fetchProjectBySlug(
       gallery: await fetchProjectGallery(row.id, client),
     },
   };
+}
+
+/**
+ * Yayındaki proje listesini BELLEKTE süzer — T-030d/K2.
+ *
+ * Sorguyu tekrar çalıştırmak yerine ZATEN ÖNBELLEKTEKİ tam listeyi süzüyoruz.
+ * Gerekçe `cached.ts`'teki `getFilteredProjects` yorumunda; özeti: `tag` URL'den
+ * gelir, yani kullanıcı kontrollüdür ve her kombinasyonu ayrı bir önbellek
+ * girdisine yazmak SINIRSIZ anahtar uzayı yaratır.
+ *
+ * `tags`/`stack` karşılaştırması Prisma'nın `has` semantiğiyle aynı: TAM eşleşme,
+ * büyük/küçük harf duyarlı. Farklı davransaydı önbellekli ve önbelleksiz yollar
+ * farklı sonuç verirdi — sessiz tutarsızlık.
+ */
+export function filterProjectList(
+  items: ProjectListItemDto[],
+  filters: { tag?: string; stack?: string; featuredOnly?: boolean } = {},
+): ProjectListItemDto[] {
+  return items.filter(
+    (item) =>
+      (filters.tag === undefined || item.tags.includes(filters.tag)) &&
+      (filters.stack === undefined || item.stack.includes(filters.stack)) &&
+      (filters.featuredOnly !== true || item.featured),
+  );
 }

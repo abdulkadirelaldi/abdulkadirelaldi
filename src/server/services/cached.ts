@@ -1,9 +1,10 @@
 import { cachedRead, entityTag, localeTag, slugTag } from './_shared/content-cache';
 import { DEFAULT_LOCALE } from './_shared/content-query';
 import { fetchExperience } from './experience';
-import { fetchPostBySlug, fetchPublishedPosts } from './post';
+import type { PostListItemDto, ProjectListItemDto } from './content-dto';
+import { fetchPostBySlug, fetchPublishedPosts, filterPostList } from './post';
 import { fetchProfile } from './profile';
-import { fetchProjectBySlug, fetchPublishedProjects } from './project';
+import { fetchProjectBySlug, fetchPublishedProjects, filterProjectList } from './project';
 import { fetchServices } from './service';
 import { fetchSkills } from './skill';
 import { fetchSiteStats } from './stats';
@@ -111,6 +112,42 @@ export const getProjectBySlug = cachedRead(
   }),
 );
 
+/**
+ * Etiket / teknoloji ile süzülmüş proje listesi — T-030d/K2.
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * NEDEN AYRI ÖNBELLEK GİRDİSİ DEĞİL — SINIRSIZ ANAHTAR UZAYI
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * T-030'un K4'ü filtreli okumaları önbelleğe almamıştı, gerekçe yanlıştı ve
+ * T-030b'de düzeltildi (anahtar argümanları İÇERİYOR). Ama doğru gerekçe
+ * ölçümle ortaya çıktı: `tag` ve `stack` URL parametresinden gelir, yani
+ * KULLANICI KONTROLLÜDÜR. Her filtre değerini `cachedRead`'e vermek, ziyaretçinin
+ * `?tag=<rastgele>` ile istediği kadar önbellek girdisi ÜRETTİREBİLMESİ demekti —
+ * disk dolar, girdilerin çoğu bir kez okunup bir daha kullanılmaz.
+ *
+ * Bunun yerine ZATEN ÖNBELLEKTEKİ tam liste süzülüyor:
+ *   - Yeni önbellek girdisi YOK, dolayısıyla sınırsız anahtar uzayı da yok.
+ *   - Yeni ETİKET de yok: girdi `getPublishedProjects`'in girdisi, F3'ün
+ *     `revalidateTag(localeTag('project', locale))` çağrısı zaten düşürüyor.
+ *   - Filtreli görünüm artık veritabanına HİÇ GİTMİYOR (önceden her filtre bir
+ *     sorguydu) — yani asıl kazanç, girdi başına önbellekten daha büyük.
+ *
+ * ÖLÇÜLDÜ (seed, ADR-030): 11 farklı etiket, 5 teknoloji, 6 proje. Liste DTO'su
+ * MDX içermiyor (T-030/K3), bu yüzden tam listeyi bellekte tutmak ucuz.
+ * Katalog büyürse (birkaç yüz kayıt) bu tercih yeniden değerlendirilmeli —
+ * eşik, tam listenin tek istekte taşınmasının pahalılaştığı noktadır.
+ *
+ * Süzme mantığı `project.ts`'te SAF fonksiyon olarak duruyor: Next'e bağlı
+ * olmadığı için kapı testinin saf tarafında kalıyor ve DB'siz sınanabiliyor.
+ */
+export async function getFilteredProjects(
+  filters: { tag?: string; stack?: string; featuredOnly?: boolean } = {},
+  locale: string = DEFAULT_LOCALE,
+): Promise<ProjectListItemDto[]> {
+  return filterProjectList(await getPublishedProjects(locale), filters);
+}
+
 /* ===========================================================================
  * POST
  * ======================================================================== */
@@ -131,6 +168,14 @@ export const getPostBySlug = cachedRead(
     tags: [entityTag('post'), localeTag('post', locale), slugTag('post', locale, slug)],
   }),
 );
+
+/** Etiketle süzülmüş yazı listesi — gerekçe `getFilteredProjects`'te. */
+export async function getFilteredPosts(
+  filters: { tag?: string } = {},
+  locale: string = DEFAULT_LOCALE,
+): Promise<PostListItemDto[]> {
+  return filterPostList(await getPublishedPosts(locale), filters);
+}
 
 /* ===========================================================================
  * İSTATİSTİK — ADR-027
