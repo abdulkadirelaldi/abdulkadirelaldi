@@ -200,6 +200,11 @@ Panelde tüm sayısal veri (tutar, kilo, set, tarih) JetBrains Mono ile sekmeli 
 /iletisim            Form + doğrudan iletişim bilgileri
 /cv                  Yazdırılabilir tek sayfa CV (print stylesheet)
 /rss.xml /sitemap.xml /robots.txt /og/[...]  (dinamik OG görseli)
+
+**Sitemap kuralı (BULGU-016):** Bir rota, **yayına girdiği turda** sitemap'e eklenir —
+önceden değil. Var olmayan adres bildirmek arama motoruna kırık bağlantı sinyali verir
+ve tarama bütçesi harcar. Aynı dürüstlük kuralı `NavItem.hazir` (T-018) ve "Yakında"
+kartlarında da geçerli: çalışıyormuş gibi görünen hiçbir beyan bırakılmaz.
 ```
 
 ### 4.2 Panel Rotaları (`/panel`, tamamı korumalı)

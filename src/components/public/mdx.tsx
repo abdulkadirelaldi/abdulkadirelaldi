@@ -3,6 +3,7 @@ import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
 import type { ComponentProps, ReactNode } from 'react';
 
+import { basligaSlug, metinCikar } from '@/components/public/baslik-slug';
 import { cn } from '@/lib/utils/cn';
 
 /**
@@ -53,16 +54,45 @@ function disBaglanti(href: string | undefined): boolean {
   return Boolean(href && /^https?:\/\//i.test(href));
 }
 
-function Baslik2({ className, ...props }: ComponentProps<'h2'>) {
-  return <h2 className={cn('mt-10 mb-3 text-2xl first:mt-0', className)} {...props} />;
+/**
+ * BAŞLIKLARA `id` BASILIYOR — /blog içindekiler tablosunun tutunacağı yer.
+ *
+ * `id` başlığın METNİNDEN üretiliyor (`basligaSlug`), içindekiler de aynı
+ * fonksiyonla aynı metinden üretiyor; ikisi tek kaynağa bakıyor.
+ *
+ * BİLİNEN SINIR: aynı metne sahip iki başlık aynı `id`'yi alır ve içindekiler
+ * bağlantısı İLKİNE gider. Sıra numarası eklemek çözerdi ama başlık bileşeni
+ * kendi sırasını bilmiyor (sunucuda modül düzeyinde sayaç tutmak istekler
+ * arasında sızardı). Tek yazarlı bir blogda yinelenen başlık nadir; sınır
+ * bilinerek bırakıldı.
+ *
+ * `scroll-mt-20`: bağlantıyla gelindiğinde başlık yapışkan başlığın altında
+ * kalmasın.
+ */
+function Baslik2({ className, children, ...props }: ComponentProps<'h2'>) {
+  return (
+    <h2
+      id={basligaSlug(metinCikar(children))}
+      className={cn('mt-10 mb-3 scroll-mt-20 text-2xl first:mt-0', className)}
+      {...props}
+    >
+      {children}
+    </h2>
+  );
 }
 
 const BILESENLER = {
   /* Başlıklar — `h1` bilinçli olarak `h2` üretir (yukarıdaki nota bakınız). */
   h1: Baslik2,
   h2: Baslik2,
-  h3: ({ className, ...props }: ComponentProps<'h3'>) => (
-    <h3 className={cn('mt-8 mb-2 text-xl', className)} {...props} />
+  h3: ({ className, children, ...props }: ComponentProps<'h3'>) => (
+    <h3
+      id={basligaSlug(metinCikar(children))}
+      className={cn('mt-8 mb-2 scroll-mt-20 text-xl', className)}
+      {...props}
+    >
+      {children}
+    </h3>
   ),
   h4: ({ className, ...props }: ComponentProps<'h4'>) => (
     <h4 className={cn('text-primary mt-6 mb-2 text-base font-semibold', className)} {...props} />

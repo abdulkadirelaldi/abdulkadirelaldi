@@ -73,6 +73,7 @@ açığın ayrıntısı artık saldırgana bir şey kazandırmaz.
 | 2026-08-11 | T-005b | Auth E2E'nin CI'ya alınması: Postgres servisi, migrate + seed, "atlanan test yok" nöbeti | **BULGU-009 açıldı ve aynı görevde kapandı**: auth paketi CI'da hiç koşmuyordu ("19 skipped" ile yeşil). §8.1 kapısı ve dört `code` kilidi artık merge kapısında tutuyor. |
 | 2026-08-14 | T-029b | Ölçüm sunucusunun kararsızlığı: teşhis + standalone'a geçiş | **BULGU-011 açıldı ve kapandı.** `next start` gerçek Lighthouse iş yükünde 4. koşuda düşüyordu; standalone 25/25 temiz. Yan kazanç: T-029a'daki koşu değişkenliği (yayılım 32 → ≤1) ve SEO 60 → 100. Isınma isteği önerisi geri çekildi. |
 | 2026-08-12 | T-029a | Lighthouse'a masaüstü + koyu profil (WebGL yolu), üç durumlu WebGL doğrulaması, koşu değişkenliği kararı | **BULGU-010 açıldı**: WebGL yolu hiçbir CI koşusunda ölçülmüyordu. Profil kuruldu ve doğrulandı; ölçüm T-021'in hero'yu bağlamasını bekliyor (kontrol kendi kendine zorunlu hâle geliyor). Değişkenliğin **ilk koşuya** ait olduğu ölçüldü; `numberOfRuns` 5, `aggregationMethod` açıkça medyan. |
+| 2026-08-17 | T-029d | Ölçüm yüzeyi dışındaki SEO/OG rotaları (BULGU-015) | **BULGU-015 kapandı** — `tests/e2e/seo-routes.spec.ts`: robots.txt, sitemap.xml, rss.xml, `/og` ve `/og/proje/<slug>` artık her koşumda isteniyor. PNG imza baytlarından, XML gerçek ayrıştırıcıyla doğrulanıyor. Kapsam iki katmanlı: sözleşme testleri + sitemap taraması (yeni sayfa kendiliğinden kapsanır). Mutasyonla kanıtlandı: düzeltme öncesi font aynı render yolunda BULGU-014'ün `TypeError`'ını veriyor. **BULGU-016 açıldı** — sitemap üç adet 404 adresi bildiriyor. |
 | 2026-08-16 | T-029c | Ölçüm işinin veri kurulumu (BULGU-013) + §8.24 haftalık zamanlayıcı | **BULGU-013 açıldı ve düzeltildi**: `lighthouse` işi ayrı koşucuda `services:` bloğu olmadan koşuyordu; ADR-026 sonrası `/` 500 dönüyor, üç profil düşüyor, artifact üretilmiyordu. Kendi Postgres'i kuruldu (yol **a**). İki yeni nöbet: ölçüm ön koşulu ve ayırt edicide durum kodu kontrolü — ikincisi olmadan arıza "⏳ BEKLEMEDE" diye yeşil görünüyordu. §8.24 artık **haftalık** de koşuyor (`17 6 * * 1`). |
 | 2026-08-14 | T-005c | §8.24 tetiklendi: `nanoid` GHSA-2v37-7h3g-55p8 (Yüksek, geçişli, 9 yol) | **ADVISORY-001 kapandı** — `pnpm.overrides` ile `nanoid` `>=3.3.18 <4.0.0`. Denetim EXIT 0. Açık aralık (`>=3.3.18`) sessizce **6.0.1**'e çözülüyordu (üç majör atlama, ESM-only) — ölçülerek yakalandı ve daraltıldı. **Advisory oyunkitabı yazıldı**; kalıcı override'ların birikmesine karşı kaldırma koşulu ve altı aylık gözden geçirme kuralı kondu. |
 
@@ -1278,6 +1279,130 @@ yasaklıyor**, gerçek koşu ise ancak iş akışı dosyası uzağa gidince teti
 Yukarıdaki prova CI adımlarının birebir tekrarıdır ama CI değildir. İlk koşumda
 doğrulanması gerekenler: üç profil EXIT 0, artifact üretimi, `AURORA_SAYFADA=1`
 ve süre.
+
+---
+
+## BULGU-015 — Dört rota ölçüm yüzeyinin tamamen dışındaydı
+
+**Önem:** Yüksek (kapı boşluğu) · **Görev:** T-029d · **Durum:** KAPANDI
+
+### Belirti
+
+BULGU-014 (`/og` çalışma zamanında `TypeError` ile çöküyor) hiçbir kapıya
+takılmadı:
+
+| Kapı | Sonuç |
+| ---- | ----- |
+| `pnpm build` | ✅ geçti |
+| 827 birim testi | ✅ geçti |
+| CI `kapi` | ✅ geçerdi |
+
+Sebep, kodun kalitesiyle ilgili değil: **hiçbir kapı o rotaya istek atmıyordu.**
+E2E `/` ve `/panel`'e vuruyor, Lighthouse `/`'a. `robots.txt`, `sitemap.xml`,
+`rss.xml` ve `/og` — dördü de ölçülmüyordu.
+
+Ortak özellikleri: **çıktılarını geliştirici görmez.** OG görselini sosyal medya
+botu çeker, sitemap'i arama motoru okur, RSS'i besleme okuyucu. Bozuldukları gün
+kimse fark etmez — üretime bozuk gidip haftalarca öyle kalabilirlerdi.
+
+T-019b/K3'ün kardeşi. Orada testler koşuyordu ama gevşek desenler yüzünden
+yanlış şeyi doğruluyorlardı; burada testler doğru çalışıyor ama bir yüzeyi **hiç**
+ölçmüyorlardı. İkisi de aynı sanının iki yüzü: *yeşil bir paket, doğru şeyin
+ölçüldüğünün kanıtı değildir.*
+
+### Kapatma — iki katman
+
+`tests/e2e/seo-routes.spec.ts` (8 test × 2 proje = 16 koşum):
+
+1. **Sözleşme testleri** — her rotanın biçimi: PNG imzası + IHDR boyutları,
+   `DOMParser` ile XML geçerliliği, `Disallow: /panel`, `Sitemap:` bildirimi,
+   RSS bağlantılarının mutlak olması, sitemap'in gizli alan bildirmemesi (§8.7).
+2. **Sitemap taraması** — sitemap'teki **her** URL 200 dönmeli. Yeni sayfa
+   yayına girdiğinde kapsama kendiliğinden girer.
+
+Kapsam kararının gerekçesi ve neden ikisinin birden gerektiği dosyanın başındaki
+yorumda.
+
+### PNG doğrulaması neden başlığa bakmıyor
+
+`Content-Type`'ı sunucu yazar. `ImageResponse` çöküp yerine bir hata gövdesi
+dönse bile başlık `image/png` görünebilir — yani başlığa bakan bir test
+BULGU-014'ü **yine kaçırırdı**. Doğrulama imza baytlarından yapılıyor
+(`89 50 4E 47 0D 0A 1A 0A`) ve IHDR bölütünden 1200×630 okunuyor: sekiz baytlık
+imza tek başına gövdenin geri kalanının anlamlı olduğunu göstermez.
+
+### Kapının gerçekten tuttuğunun kanıtı (mutasyon)
+
+Backend'in T-028b düzeltmesi ölçüm sırasında zaten iş ağacındaydı, yani `/og`
+testi ilk koşumda **yeşil** başladı. Kırmızıyı görmek için başka bir ajanın
+üzerinde çalıştığı dosyayı geri almak gerekirdi — yapılmadı. Bunun yerine iki
+font, **aynı render yolundan** (`next/og` → `ImageResponse`) geçirildi:
+
+| Font kaynağı | Sonuç |
+| ------------ | ----- |
+| `HEAD:src/app/og/font.ts` (düzeltme öncesi) | **ÇÖKTÜ** — `TypeError: Cannot read properties of undefined (reading '256')` |
+| İş ağacı (T-028b düzeltmesi) | PNG üretildi — 15 823 bayt, imza `89504e47` |
+
+Üstteki satır BULGU-014'ün bildirilen hatasının birebir aynısı. Hata yanıt
+üretimi sırasında fırlıyor; dolayısıyla istek düzeyinde bakan her test onu
+zorunlu olarak görür. **Kırmızı → yeşil geçişi kanıtlanmıştır.**
+
+### Geçersiz çıkan ikinci mutasyon — kayda geçiyor
+
+"Veritabanını durdur, `/og` düşsün" denendi ve **düşmedi**: `getProfile`
+önbellekli (`cachedRead`) ve Next'in kalıcı önbelleği sunucu yeniden başlasa
+bile cevap veriyor.
+
+```
+DB açık,   sıcak sunucu → /og 200
+DB kapalı, sıcak sunucu → /og 200
+DB kapalı, SOĞUK sunucu → /og 200
+```
+
+Mutasyon geçersiz, ama gözlem yararlı: OG rotası kısa bir veritabanı kesintisine
+dayanıklı. Bunun ikinci yüzü de var — `/og` testi, veri katmanı bozulsa bile
+önbellekten yeşil kalabilir. Test rotanın **çökmesini** yakalar, verinin
+tazeliğini değil; kapsamı budur.
+
+### CI değişikliği gerekmedi
+
+`kapi` işi zaten `pnpm test:e2e` çağırıyor; yeni paket kendiliğinden kapıya
+girdi. `ci.yml`'e dokunulmadı.
+
+---
+
+## BULGU-016 — `sitemap.xml` var olmayan üç adresi arama motorlarına bildiriyor
+
+**Önem:** Orta · **Görev:** T-029d (bulan) · **Durum:** AÇIK — Frontend/Backend
+**Bulan:** BULGU-015 için yazılan sitemap taraması, **ilk koşumunda**
+
+`src/app/sitemap.ts` statik listesinde `/blog` ve `/iletisim` var; `/blog/<slug>`
+adresleri ise yayınlanmış yazılardan üretiliyor. Bu sayfaların hiçbiri mevcut
+değil (`src/app/(public)` altında `cv`, `hakkimda`, `projeler`, `projeler/[slug]`
+var; `blog` ve `iletisim` yok):
+
+```
+  200  /                                       200  /projeler/kiyi-medya-kurumsal-site
+  200  /hakkimda                               200  /projeler/rezervasyon-yonetim-paneli
+  200  /projeler                               404  /blog
+  200  /cv                                     404  /iletisim
+                                               404  /blog/nextjs-15-app-router-notlari
+```
+
+**Etki:** Sitemap "bu adresi tara" demektir; sunucunun aynı adreste 404 demesi
+tarama bütçesini harcar ve sitede kırık bağlantı olduğu sinyalini verir. Aynı
+`sitemap.ts` yorumu `ARCHIVED` kayıtları tam bu gerekçeyle dışarıda bırakıyor —
+kural konmuş ama statik liste ve yazı akışı için uygulanmamış.
+
+**Düzeltme iki yoldan biri:** (a) sayfalar yayına girer, (b) sayfalar hazır
+olana kadar sitemap onları bildirmez. Karar Orkestra Şefi'nin.
+
+⚠️ **Bu bulgu şu an `kapi` işini KIRMIZI yapıyor** (E2E: 67 geçti, 2 düştü —
+aynı test iki projede). Kırmızı bilinçli bırakıldı: test gerçek bir kusuru
+gösteriyor ve susturmak, BULGU-015'te kapatılan boşluğun aynısını yeni bir
+biçimde açmak olurdu. Bir izin listesi (allowlist) ise görev kartının uyardığı
+`NavItem.hazir` kalıbının ta kendisi olurdu — unutulmaya açık, elle tutulan
+istisna. **F2'nin merge'ü buna bağlı; karar hızlı verilmeli.**
 
 ---
 

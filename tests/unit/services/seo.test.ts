@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -192,5 +195,55 @@ describe('buildRssFeed', () => {
     const xml = buildRssFeed(channel, []);
     expect(xml).toContain('</channel>');
     expect(xml).not.toContain('<item>');
+  });
+});
+
+/* ===================== SITEMAP DÜRÜSTLÜĞÜ (BULGU-016) ==================== */
+
+describe('sitemap yalnızca VAR OLAN rotaları bildirir — §4.1', () => {
+  /**
+   * BULGU-016: sitemap `/blog` ve `/iletisim` bildiriyordu ama o rotalar
+   * yazılmamıştı; yayınlanmış yazılar da `/blog/[slug]`e işaret ediyordu.
+   * Var olmayan adres bildirmek arama motoruna kırık bağlantı sinyalidir.
+   *
+   * Bu test sitemap MODÜLÜNÜ değil, dosyanın bildirdiği statik rota listesini
+   * okur: `sitemap()` çağırmak Next çalışma zamanı ve veritabanı isterdi.
+   * Kaynağı okumak, kuralın kendisini (liste ile gerçek rotalar örtüşmeli)
+   * doğrudan sınamanın en ucuz yolu.
+   */
+  const kaynak = readFileSync(resolve(__dirname, '../../../src/app/sitemap.ts'), 'utf8');
+
+  /** Yalnızca ETKİN satırlar — yorum satırları hariç. */
+  const bildirilen = kaynak
+    .split('\n')
+    .filter((line) => !line.trimStart().startsWith('//') && !line.trimStart().startsWith('*'))
+    .flatMap((line) => [...line.matchAll(/absoluteUrl\('([^']*)'\)/g)].map((m) => m[1]));
+
+  it('statik liste tam olarak var olan rotalar', () => {
+    expect(bildirilen.sort()).toEqual(['/', '/cv', '/hakkimda', '/projeler']);
+  });
+
+  it('YAZILMAMIŞ rotalar bildirilmiyor', () => {
+    expect(bildirilen).not.toContain('/blog');
+    expect(bildirilen).not.toContain('/iletisim');
+  });
+
+  it('yazı akışı KAPALI — /blog/[slug] rotası yok', () => {
+    // Etkin kodda `getPostSitemapEntries` çağrısı olmamalı.
+    const etkin = kaynak
+      .split('\n')
+      .filter((line) => !line.trimStart().startsWith('//') && !line.trimStart().startsWith('*'))
+      .join('\n');
+    expect(etkin).not.toContain('getPostSitemapEntries');
+    expect(etkin).not.toContain('/blog/');
+  });
+
+  it('proje akışı AÇIK — /projeler/[slug] rotası var', () => {
+    expect(kaynak).toContain('getProjectSitemapEntries');
+    expect(kaynak).toContain('/projeler/');
+  });
+
+  it('kural dosyada YAZILI — sonraki tur bilerek eklesin', () => {
+    expect(kaynak).toContain('YAYINA GİRDİĞİ TURDA');
   });
 });

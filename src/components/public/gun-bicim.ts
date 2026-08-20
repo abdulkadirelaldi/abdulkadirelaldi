@@ -49,3 +49,35 @@ export function aralik(baslangic: AppDay, bitis: AppDay | null, suregelen: boole
   if (!bitis) return bas;
   return `${bas} — ${ayYil(bitis)}`;
 }
+
+/** Uzun ay adları — kısa liste kart/etiket için, bu liste tam tarih için. */
+const AYLAR_UZUN = [
+  'Ocak',
+  'Şubat',
+  'Mart',
+  'Nisan',
+  'Mayıs',
+  'Haziran',
+  'Temmuz',
+  'Ağustos',
+  'Eylül',
+  'Ekim',
+  'Kasım',
+  'Aralık',
+] as const;
+
+/**
+ * `2026-06-01` → `1 Haziran 2026`. Blog yazılarının yayın tarihi.
+ *
+ * ISO ZAMAN DAMGASI VERİLİRSE gün kısmı alınır (`slice(0, 10)`); saat bilerek
+ * yok sayılır. Yayın tarihi bir GÜN bilgisidir ve `new Date(...)` üzerinden
+ * yerel saate çevrilirse gece yarısına yakın kayıtlarda bir gün kayabilir —
+ * `ayYil` ile aynı gerekçe.
+ */
+export function tamGun(gunVeyaIso: string): string {
+  const gun = gunVeyaIso.slice(0, 10);
+  const [yil, ay, gunSayisi] = gun.split('-');
+  const ad = AYLAR_UZUN[Number(ay) - 1];
+  if (!yil || !ad || !gunSayisi) return gun;
+  return `${Number(gunSayisi)} ${ad} ${yil}`;
+}

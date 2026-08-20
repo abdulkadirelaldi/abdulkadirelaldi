@@ -1419,6 +1419,22 @@ Korunması zorunlu olanlar:
 - Lisans: üç font da **SIL Open Font License** — repoda barındırmaya izin veriyor. Lisans dosyaları da alınır.
 - **Ölçüm zorunlu:** FCP/LCP değişebilir. T-023'ün rakamları taban: mobil FCP 0.76 s, LCP 3.31 s, Perf 92. Geçişten sonra yeniden ölçülür; düşerse geri alınır ve gerekçe raporlanır.
 
+### Ek: satori'ye verilen font **statik** olmalıdır (2026-08-18, T-028b/E3)
+
+OG görselleri `@vercel/og` → `satori` üzerinden üretiliyor. Paketin içindeki `opentype.js`
+**budanmış**: `name` tablosu ayrıştırması hiç yok, dolayısıyla `font.names` daima
+`undefined`. `fvar` ayrıştırıcısı ise eksen adlarını `names[nameID]` ile okuyor —
+**`fvar` taşıyan her font çalışma zamanında çöker** (`TypeError: Cannot read properties
+of undefined`; sabit, o fontun eksen adı nameID'sidir).
+
+Depodaki üç fontun **hepsi değişken** (ADR-031). OG için kullanılacak font önce statik
+örneğe çevrilir (`fonttools varLib.instancer`), sonra alt kümelenir. `--drop-tables+=fvar`
+**yetmez**: `gvar` verisi yerinde kalır ve tutarsız bir dosya üretir.
+
+Kural `tests/unit/og-font.test.ts` ile korunuyor: geçerli TrueType imzası, zorunlu tablolar,
+**`fvar`/`gvar` yokluğu** ve 12 Türkçe glifin `cmap`'te bulunması. Biri fontu güncellerken
+değişken bir font gömerse derleme ve diğer testler geçse bile bu test kırılır.
+
 ### Alternatifler ve neden reddedildi
 - **Yeniden koşumla idare etmek** — Bedelsiz görünüyor; **reddedildi** çünkü kapının güvenilirliğini aşındırır ve T-070'te tekrar çıkar. Bu projede "bazen düşer" kabul edilmiş hiçbir şey yok.
 - **Derleme önbelleği / font önbelleği** — Sorunu azaltır, kaldırmaz; ilk derleme yine ağa bağımlı.
