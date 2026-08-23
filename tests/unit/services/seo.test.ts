@@ -1,5 +1,5 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 
 import { describe, expect, it, vi } from 'vitest';
 
@@ -203,47 +203,76 @@ describe('buildRssFeed', () => {
 describe('sitemap yalnızca VAR OLAN rotaları bildirir — §4.1', () => {
   /**
    * BULGU-016: sitemap `/blog` ve `/iletisim` bildiriyordu ama o rotalar
-   * yazılmamıştı; yayınlanmış yazılar da `/blog/[slug]`e işaret ediyordu.
-   * Var olmayan adres bildirmek arama motoruna kırık bağlantı sinyalidir.
+   * yazılmamıştı. Var olmayan adres bildirmek arama motoruna kırık bağlantı
+   * sinyalidir — sitemap kamuya yapılan bir beyandır, niyet listesi değil.
    *
-   * Bu test sitemap MODÜLÜNÜ değil, dosyanın bildirdiği statik rota listesini
-   * okur: `sitemap()` çağırmak Next çalışma zamanı ve veritabanı isterdi.
-   * Kaynağı okumak, kuralın kendisini (liste ile gerçek rotalar örtüşmeli)
-   * doğrudan sınamanın en ucuz yolu.
+   * BEKLENTİ SABİT YAZILMIYOR, DOSYA SİSTEMİNDEN TÜRETİLİYOR. Sabit bir liste
+   * her yeni rotada bu testi kırardı ve "listeyi güncelle" refleksi kuralı
+   * aşındırırdı. Burada sınanan kuralın KENDİSİ: bildirilen her rota gerçekten
+   * var olmalı. T-025 `/blog`i yayına aldığında test kendiliğinden doğru
+   * kaldı; `/iletisim` hâlâ yok, dolayısıyla hâlâ bildirilemez.
    */
   const kaynak = readFileSync(resolve(__dirname, '../../../src/app/sitemap.ts'), 'utf8');
 
-  /** Yalnızca ETKİN satırlar — yorum satırları hariç. */
-  const bildirilen = kaynak
+  /** Yorum satırları hariç — `// T-026:` ile bekletilenler beyan sayılmaz. */
+  const etkin = kaynak
     .split('\n')
     .filter((line) => !line.trimStart().startsWith('//') && !line.trimStart().startsWith('*'))
-    .flatMap((line) => [...line.matchAll(/absoluteUrl\('([^']*)'\)/g)].map((m) => m[1]));
+    .join('\n');
 
-  it('statik liste tam olarak var olan rotalar', () => {
-    expect(bildirilen.sort()).toEqual(['/', '/cv', '/hakkimda', '/projeler']);
+  const bildirilen = [...etkin.matchAll(/absoluteUrl\('([^']*)'\)/g)].map((m) => m[1] as string);
+
+  /** `(public)` altındaki gerçek sayfa rotaları. */
+  function mevcutRotalar(dir: string, prefix = ''): string[] {
+    const out: string[] = [];
+    for (const name of readdirSync(dir)) {
+      const full = join(dir, name);
+      if (statSync(full).isDirectory()) {
+        // `(grup)` segmentleri URL'e girmez.
+        const segment = name.startsWith('(') ? '' : `/${name}`;
+        out.push(...mevcutRotalar(full, prefix + segment));
+      } else if (name === 'page.tsx') {
+        out.push(prefix === '' ? '/' : prefix);
+      }
+    }
+    return out;
+  }
+
+  const mevcut = new Set(mevcutRotalar(resolve(__dirname, '../../../src/app/(public)')));
+
+  it('tarama çalışıyor — en az birkaç rota bulundu', () => {
+    expect(mevcut.size).toBeGreaterThan(2);
+    expect(bildirilen.length).toBeGreaterThan(2);
   });
 
-  it('YAZILMAMIŞ rotalar bildirilmiyor', () => {
-    expect(bildirilen).not.toContain('/blog');
+  it('BİLDİRİLEN HER STATİK ROTA GERÇEKTEN VAR', () => {
+    const hayalet = bildirilen.filter((route) => !mevcut.has(route));
+    expect(hayalet, `sitemap var olmayan rota bildiriyor: ${hayalet.join(', ')}`).toEqual([]);
+  });
+
+  it('yazılmamış /iletisim bildirilmiyor (T-026 açacak)', () => {
+    expect(mevcut.has('/iletisim')).toBe(false);
     expect(bildirilen).not.toContain('/iletisim');
   });
 
-  it('yazı akışı KAPALI — /blog/[slug] rotası yok', () => {
-    // Etkin kodda `getPostSitemapEntries` çağrısı olmamalı.
-    const etkin = kaynak
-      .split('\n')
-      .filter((line) => !line.trimStart().startsWith('//') && !line.trimStart().startsWith('*'))
-      .join('\n');
-    expect(etkin).not.toContain('getPostSitemapEntries');
-    expect(etkin).not.toContain('/blog/');
-  });
-
-  it('proje akışı AÇIK — /projeler/[slug] rotası var', () => {
-    expect(kaynak).toContain('getProjectSitemapEntries');
-    expect(kaynak).toContain('/projeler/');
+  it('içerik akışları yalnızca [slug] rotası VARSA açık', () => {
+    // Akış açıkken rota yoksa BULGU-016 geri gelmiş demektir.
+    const projeRotasi = existsSync(
+      resolve(__dirname, '../../../src/app/(public)/projeler/[slug]/page.tsx'),
+    );
+    const blogRotasi = existsSync(
+      resolve(__dirname, '../../../src/app/(public)/blog/[slug]/page.tsx'),
+    );
+    expect(etkin.includes('getProjectSitemapEntries')).toBe(projeRotasi);
+    expect(etkin.includes('getPostSitemapEntries')).toBe(blogRotasi);
   });
 
   it('kural dosyada YAZILI — sonraki tur bilerek eklesin', () => {
     expect(kaynak).toContain('YAYINA GİRDİĞİ TURDA');
+  });
+
+  it('istek zamanında üretiliyor — derleme DB’ye bağlanmasın (BULGU-017)', () => {
+    // Ön-render, derlemeyi çalışan bir veritabanına bağlar ve içeriği dondurur.
+    expect(etkin).toContain("export const dynamic = 'force-dynamic'");
   });
 });

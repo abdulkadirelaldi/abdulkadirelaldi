@@ -3,7 +3,6 @@ import type { PrismaClient } from '@/server/generated/prisma/client';
 
 import {
   ATTACHMENT_SELECT,
-  calculateReadingMinutes,
   DEFAULT_LOCALE,
   publishedWhere,
   toAttachmentRef,
@@ -95,10 +94,17 @@ export async function fetchPublishedPosts(
 /**
  * Slug ile tek yazı — 404 / 410 ayrımı (ADR-019).
  *
- * `readingMinutes` BURADA YENİDEN HESAPLANIR: detayda `content` zaten elimizde
- * ve saklanan değer bayat olabilir (içerik panelden düzenlenip alan
- * güncellenmemiş olabilir). Hesaplayıcı T-015'in fonksiyonu — seed'deki geçici
- * tahmin oraya devredilmişti; burada da aynı kaynak kullanılıyor.
+ * `readingMinutes` TEK KAYNAKTAN GELİR: `Post.readingMinutes` kolonu (T-025
+ * bulgusu). Detay eskiden `calculateReadingMinutes(content)` ile YENİDEN
+ * hesaplıyordu; liste ise kolonu okuyordu. İkisi ayrıştığında AYNI YAZI iki
+ * sayfada iki farklı süre gösteriyordu — okuyucuya görünen, açıklanamayan bir
+ * tutarsızlık. Seed'de değerler tutarlı olduğu için ölçülene kadar görünmedi.
+ *
+ * "Detayda içerik zaten elimizde, taze hesaplayalım" savunulabilir görünüyordu
+ * ama YANLIŞ KATMANDI: bayat bir kolonu okuma tarafında maskelemek, kolonun
+ * bayat kalmasını KALICI hâle getirir ve tutarsızlığı yalnızca bir sayfada
+ * gizler. Doğru yer YAZMA yolu — kolon her kayıtta yeniden hesaplanmalı (F3 /
+ * T-031). Okuma tarafı tek bir kaynağa bakar, düzeltmeye çalışmaz.
  */
 export async function fetchPostBySlug(
   slug: string,
@@ -124,7 +130,6 @@ export async function fetchPostBySlug(
     state: 'FOUND',
     data: {
       ...toListDto(row),
-      readingMinutes: calculateReadingMinutes(row.content),
       content: row.content,
     },
   };

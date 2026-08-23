@@ -1,6 +1,10 @@
 import type { MetadataRoute } from 'next';
 
-import { absoluteUrl, getProjectSitemapEntries } from '@/server/services';
+import {
+  absoluteUrl,
+  getPostSitemapEntries,
+  getProjectSitemapEntries,
+} from '@/server/services';
 
 /**
  * sitemap.xml — §4.1.
@@ -32,18 +36,43 @@ import { absoluteUrl, getProjectSitemapEntries } from '@/server/services';
  * İki yönlü tek kural: SİTEMAP YALNIZCA 200 DÖNEN ADRESLERİ BİLDİRİR.
  *
  * EKLEME SIRASI — rota yayına girdiğinde:
- *   T-025 → `/blog` statik listeye + yazı akışı (aşağıdaki yorumlu blok)
- *   T-026 → `/iletisim` statik listeye
+ *   T-025 → `/blog` + yazı akışı  ✅ AÇILDI (T-028d)
+ *   T-026 → `/iletisim`            ⛔ HÂLÂ KAPALI — rota yazılmadı
  */
+/**
+ * İSTEK ZAMANINDA ÜRETİLİR — DERLEMEDE DEĞİL (BULGU-017).
+ *
+ * Bu satır olmadan Next bu rotayı ön-render eder ve `getProjectSitemapEntries`
+ * DERLEME SIRASINDA veritabanına gider. Sonuç ölçüldü: `pnpm build` yalnızca
+ * `DATABASE_URL` değil, ERİŞİLEBİLİR BİR VERİTABANI istiyordu — DB kapalıyken
+ * `Can't reach database server` ile kırılıyordu. Derlemeyi çalışan bir altyapıya
+ * bağlamak BULGU-002'nin nöbet tuttuğu tam durumdur.
+ *
+ * İkinci ve daha sinsi sorun: ön-render, içeriğin DERLEME ANINDAKİ hâlini
+ * dondurur. Panelden yeni bir proje yayımlandığında sitemap yeniden dağıtım
+ * yapılana kadar eski kalırdı — üstelik sessizce.
+ *
+ * ISR (`export const revalidate`) BU SORUNU ÇÖZMEZ: ÖLÇÜLDÜ — `revalidate = 3600`
+ * ile de ilk sürüm derlemede üretiliyor ve build aynı hatayla kırılıyor.
+ *
+ * MALİYET DÜŞÜK: veri okuması `unstable_cache` ile önbellekli (ADR-011), yani
+ * "her istekte üretilir" DEMEK "her istekte veritabanına gidilir" DEMEK DEĞİL.
+ * İstek başına yapılan iş, önbellekten okunan listeyi XML'e çevirmektir.
+ */
+export const dynamic = 'force-dynamic';
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const projects = await getProjectSitemapEntries();
+  const [projects, posts] = await Promise.all([
+    getProjectSitemapEntries(),
+    getPostSitemapEntries(),
+  ]);
 
   const staticRoutes: MetadataRoute.Sitemap = [
     { url: absoluteUrl('/'), changeFrequency: 'weekly', priority: 1 },
     { url: absoluteUrl('/hakkimda'), changeFrequency: 'monthly', priority: 0.8 },
     { url: absoluteUrl('/projeler'), changeFrequency: 'weekly', priority: 0.9 },
     { url: absoluteUrl('/cv'), changeFrequency: 'monthly', priority: 0.6 },
-    // T-025: { url: absoluteUrl('/blog'), changeFrequency: 'weekly', priority: 0.9 },
+    { url: absoluteUrl('/blog'), changeFrequency: 'weekly', priority: 0.9 },
     // T-026: { url: absoluteUrl('/iletisim'), changeFrequency: 'yearly', priority: 0.5 },
   ];
 
@@ -55,18 +84,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'monthly' as const,
       priority: 0.7,
     })),
-    /**
-     * YAZI AKIŞI T-025'TE AÇILACAK. `/blog/[slug]` rotası henüz yok; yayınlanmış
-     * yazıları bildirmek 404 üretiyordu (BULGU-016). Okuma servisi
-     * (`getPostSitemapEntries`) YERİNDE BIRAKILDI ve testleri duruyor —
-     * T-025'te tek satırla geri açılacak:
-     *
-     *   ...posts.map((entry) => ({
-     *     url: absoluteUrl(`/blog/${entry.slug}`),
-     *     lastModified: new Date(entry.updatedAt),
-     *     changeFrequency: 'monthly' as const,
-     *     priority: 0.7,
-     *   })),
-     */
+    ...posts.map((entry) => ({
+      url: absoluteUrl(`/blog/${entry.slug}`),
+      lastModified: new Date(entry.updatedAt),
+      changeFrequency: 'monthly' as const,
+      priority: 0.7,
+    })),
   ];
 }
