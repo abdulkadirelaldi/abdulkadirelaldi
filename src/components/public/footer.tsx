@@ -2,13 +2,14 @@ import Link from 'next/link';
 
 import { SITE_NAME } from '@/lib/constants';
 
+/** `hazir`: sayfa AÇILDI mı. Açılmamış rotayı ön çekmek 404 üretir (T-002b). */
 const FOOTER_LINKS = [
-  { href: '/hakkimda', label: 'Hakkımda' },
-  { href: '/projeler', label: 'Projeler' },
-  { href: '/blog', label: 'Blog' },
-  { href: '/hizmetler', label: 'Hizmetler' },
-  { href: '/iletisim', label: 'İletişim' },
-  { href: '/cv', label: 'CV' },
+  { href: '/hakkimda', label: 'Hakkımda', hazir: true },
+  { href: '/projeler', label: 'Projeler', hazir: false },
+  { href: '/blog', label: 'Blog', hazir: false },
+  { href: '/hizmetler', label: 'Hizmetler', hazir: false },
+  { href: '/iletisim', label: 'İletişim', hazir: false },
+  { href: '/cv', label: 'CV', hazir: true },
 ] as const;
 
 /**
@@ -22,7 +23,7 @@ export function Footer() {
   const kiyiMedyaUrl = process.env.NEXT_PUBLIC_KIYI_MEDYA_URL ?? 'https://kiyimedya.com';
 
   return (
-    <footer className="border-line bg-surface/40 mt-auto border-t">
+    <footer data-yazdirmada-gizle className="border-line bg-surface/40 mt-auto border-t">
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-12 sm:flex-row sm:justify-between">
         <div className="flex max-w-sm flex-col gap-2">
           <p className="font-display text-primary text-base font-bold">{SITE_NAME}</p>
@@ -37,7 +38,7 @@ export function Footer() {
               <li key={link.href}>
                 <Link
                   href={link.href}
-                  prefetch={false}
+                  prefetch={link.hazir ? undefined : false}
                   className="focus-ring ease-brand duration-micro rounded-btn text-body hover:text-primary text-sm transition-colors"
                 >
                   {link.label}

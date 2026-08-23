@@ -1,11 +1,7 @@
 import { db } from '@/server/db';
 import type { PrismaClient } from '@/server/generated/prisma/client';
 
-import {
-  ATTACHMENT_SELECT,
-  DEFAULT_LOCALE,
-  toAttachmentRef,
-  type AttachmentRow} from './_shared';
+import { ATTACHMENT_SELECT, DEFAULT_LOCALE, toAttachmentRef, type AttachmentRow } from './_shared';
 import type { ProfileDto } from './content-dto';
 
 /**

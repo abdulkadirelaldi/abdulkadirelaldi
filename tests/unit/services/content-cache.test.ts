@@ -15,7 +15,9 @@ const { unstableCache, calls } = vi.hoisted(() => {
     unstableCache: vi.fn(
       (_read: unknown, keyParts: string[], options: { tags: string[]; revalidate?: number }) => {
         calls.push({ keyParts, tags: options.tags });
-        return async (): Promise<null> => null;
+        // Boş dizi: süzme yardımcıları liste bekliyor. Dönen değer bu testte
+        // önemsiz — ölçülen şey Next'e HANGİ anahtar/etiketin verildiği.
+        return async (): Promise<unknown[]> => [];
       },
     ),
   };
@@ -23,12 +25,16 @@ const { unstableCache, calls } = vi.hoisted(() => {
 
 vi.mock('next/cache', () => ({ unstable_cache: unstableCache }));
 
-const { CONTENT_REVALIDATE_SECONDS, entityTag, localeTag, slugTag } = await import(
-  '@/server/services/_shared/content-cache'
-);
-const { getProjectBySlug, getPublishedProjects, getSiteStats, getSkills } = await import(
-  '@/server/services/cached'
-);
+const { CONTENT_REVALIDATE_SECONDS, entityTag, localeTag, slugTag } =
+  await import('@/server/services/_shared/content-cache');
+const {
+  getFilteredPosts,
+  getFilteredProjects,
+  getProjectBySlug,
+  getPublishedProjects,
+  getSiteStats,
+  getSkills,
+} = await import('@/server/services/cached');
 
 beforeEach(() => {
   calls.length = 0;
@@ -122,5 +128,44 @@ describe('getSiteStats önbelleği — ADR-027', () => {
     await getSiteStats('en');
     expect(lastCall().tags).toContain('content:experience:en');
     expect(lastCall().tags).not.toContain('content:experience:tr');
+  });
+});
+
+describe('filtreli okumalar YENİ önbellek girdisi üretmez — T-030d/K2', () => {
+  it('farklı etiketler AYNI girdiyi paylaşır (sınırsız anahtar uzayı yok)', async () => {
+    // `tag` URL'den gelir, yani kullanıcı kontrollü. Her değeri ayrı girdiye
+    // yazsaydık ziyaretçi `?tag=<rastgele>` ile önbelleği şişirebilirdi.
+    await getFilteredProjects({ tag: 'cms' });
+    await getFilteredProjects({ tag: 'saas' });
+    await getFilteredProjects({ tag: 'rastgele-uydurma-etiket' });
+
+    const keys = calls.map((c) => c.keyParts.join('|'));
+    expect(new Set(keys).size).toBe(1);
+  });
+
+  it('süzülmüş okuma tam listenin ETİKETLERİNİ taşır — F3 için yeni etiket yok', async () => {
+    await getFilteredProjects({ tag: 'cms', stack: 'Next.js' });
+    expect(lastCall().tags).toEqual(
+      expect.arrayContaining(['content:project', 'content:project:tr']),
+    );
+  });
+
+  it('filtre değeri ANAHTARA girmez', async () => {
+    await getFilteredProjects({ tag: 'cms' });
+    expect(lastCall().keyParts.join('|')).not.toContain('cms');
+  });
+
+  it('yazılarda da aynı davranış', async () => {
+    await getFilteredPosts({ tag: 'react' });
+    await getFilteredPosts({ tag: 'nextjs' });
+    expect(new Set(calls.map((c) => c.keyParts.join('|'))).size).toBe(1);
+  });
+
+  it('locale AYRIMI korunuyor — süzme dilleri birbirine karıştırmıyor', async () => {
+    await getFilteredProjects({ tag: 'cms' }, 'tr');
+    const tr = lastCall().keyParts.join('|');
+    await getFilteredProjects({ tag: 'cms' }, 'en');
+    expect(lastCall().keyParts.join('|')).not.toBe(tr);
+    expect(lastCall().tags).toContain('content:project:en');
   });
 });

@@ -393,21 +393,29 @@ describe('fetchPostBySlug — durum ayrımı ve readingMinutes', () => {
     expect(r.state).toBe('NOT_FOUND');
   });
 
-  it('readingMinutes DETAYDA yeniden hesaplanır — bayat sütuna güvenilmez', async () => {
-    // Saklanan değer 99; içerik ~200 kelime → 1 dakika olmalı.
+  it('readingMinutes DETAY ve LİSTEDE AYNI KAYNAKTAN — kolon (T-025 bulgusu)', async () => {
+    // Kolon 99, içerik ~1 dakikalık: kasten ayrıştırılmış.
+    // Detay eskiden içerikten hesaplıyordu; aynı yazı iki sayfada 99 ve 1
+    // gösteriyordu. Artık ikisi de kolonu okuyor.
     const content = 'kelime '.repeat(200);
-    const r = await fetchPostBySlug(
-      's',
-      { now: NOW },
-      harness({ ...base, status: 'PUBLISHED', publishedAt: PAST, content }),
-    );
+    const r = await fetchPostBySlug('s', { now: NOW },
+      harness({ ...base, status: 'PUBLISHED', publishedAt: PAST, content }));
 
     expect(r.state).toBe('FOUND');
     if (r.state !== 'FOUND') return;
-    expect(r.data.readingMinutes).toBe(1);
-    expect(r.data.readingMinutes).not.toBe(99);
+    expect(r.data.readingMinutes).toBe(99);
   });
-});
+
+  it('detay ile liste AYNI değeri veriyor — tek kaynak', async () => {
+    const row = { ...base, status: 'PUBLISHED', publishedAt: PAST, content: 'kelime '.repeat(500) };
+    const detail = await fetchPostBySlug('s', { now: NOW }, harness(row));
+    const findMany = vi.fn().mockResolvedValue([row]);
+    const [listItem] = await fetchPublishedPosts({ now: NOW }, clientWith({ post: { findMany } }));
+
+    expect(detail.state).toBe('FOUND');
+    if (detail.state !== 'FOUND') return;
+    expect(detail.data.readingMinutes).toBe(listItem?.readingMinutes);
+  });});
 
 /* ============================ DİĞER SERVİSLER ============================ */
 

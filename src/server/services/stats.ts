@@ -2,10 +2,7 @@ import { db } from '@/server/db';
 import type { PrismaClient } from '@/server/generated/prisma/client';
 
 import type { SiteStatsDto, StatsSource } from './_shared';
-import {
-  computeSiteStats,
-  DEFAULT_LOCALE,
-  publishedWhere} from './_shared';
+import { computeSiteStats, DEFAULT_LOCALE, publishedWhere } from './_shared';
 
 /**
  * Site istatistikleri servisi — ADR-027.

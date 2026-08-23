@@ -73,7 +73,9 @@ açığın ayrıntısı artık saldırgana bir şey kazandırmaz.
 | 2026-08-11 | T-005b | Auth E2E'nin CI'ya alınması: Postgres servisi, migrate + seed, "atlanan test yok" nöbeti | **BULGU-009 açıldı ve aynı görevde kapandı**: auth paketi CI'da hiç koşmuyordu ("19 skipped" ile yeşil). §8.1 kapısı ve dört `code` kilidi artık merge kapısında tutuyor. |
 | 2026-08-14 | T-029b | Ölçüm sunucusunun kararsızlığı: teşhis + standalone'a geçiş | **BULGU-011 açıldı ve kapandı.** `next start` gerçek Lighthouse iş yükünde 4. koşuda düşüyordu; standalone 25/25 temiz. Yan kazanç: T-029a'daki koşu değişkenliği (yayılım 32 → ≤1) ve SEO 60 → 100. Isınma isteği önerisi geri çekildi. |
 | 2026-08-12 | T-029a | Lighthouse'a masaüstü + koyu profil (WebGL yolu), üç durumlu WebGL doğrulaması, koşu değişkenliği kararı | **BULGU-010 açıldı**: WebGL yolu hiçbir CI koşusunda ölçülmüyordu. Profil kuruldu ve doğrulandı; ölçüm T-021'in hero'yu bağlamasını bekliyor (kontrol kendi kendine zorunlu hâle geliyor). Değişkenliğin **ilk koşuya** ait olduğu ölçüldü; `numberOfRuns` 5, `aggregationMethod` açıkça medyan. |
+| 2026-08-17 | T-029d | Ölçüm yüzeyi dışındaki SEO/OG rotaları (BULGU-015) | **BULGU-015 kapandı** — `tests/e2e/seo-routes.spec.ts`: robots.txt, sitemap.xml, rss.xml, `/og` ve `/og/proje/<slug>` artık her koşumda isteniyor. PNG imza baytlarından, XML gerçek ayrıştırıcıyla doğrulanıyor. Kapsam iki katmanlı: sözleşme testleri + sitemap taraması (yeni sayfa kendiliğinden kapsanır). Mutasyonla kanıtlandı: düzeltme öncesi font aynı render yolunda BULGU-014'ün `TypeError`'ını veriyor. **BULGU-016 açıldı** — sitemap üç adet 404 adresi bildiriyor. |
 | 2026-08-16 | T-029c | Ölçüm işinin veri kurulumu (BULGU-013) + §8.24 haftalık zamanlayıcı | **BULGU-013 açıldı ve düzeltildi**: `lighthouse` işi ayrı koşucuda `services:` bloğu olmadan koşuyordu; ADR-026 sonrası `/` 500 dönüyor, üç profil düşüyor, artifact üretilmiyordu. Kendi Postgres'i kuruldu (yol **a**). İki yeni nöbet: ölçüm ön koşulu ve ayırt edicide durum kodu kontrolü — ikincisi olmadan arıza "⏳ BEKLEMEDE" diye yeşil görünüyordu. §8.24 artık **haftalık** de koşuyor (`17 6 * * 1`). |
+| 2026-08-22 | T-005d | Derleme adımının `NEXT_PUBLIC_SITE_URL` eksiği (koşum 32386089662) + §8.24'te ikinci advisory | Değişken **iş düzeyinde** verildi (açıkça sahte: `https://ci-test-only.ornek.test`), `DATABASE_URL` adım düzeyinde kaldı. **BULGU-017 açıldı**: env düzelince altından ikinci arıza çıktı — `sitemap.xml`/`rss.xml` ön-render edildiği için derleme yeniden DB'ye bağımlı. **BULGU-002 nöbeti sentetik değil GERÇEK bir gerilemeyle tuttu.** **ADVISORY-002 açıldı** (`deepmerge-ts` GHSA-ggr8-5vv4-36mx): majör atlıyor + üst paket sürümü **tam sabitliyor** → override reddedildi, **katman D**, 2026-11-22'de kendiliğinden sona eren istisna. İstisna kapısının altı kırılma dalı da mutasyonla kanıtlandı. |
 | 2026-08-14 | T-005c | §8.24 tetiklendi: `nanoid` GHSA-2v37-7h3g-55p8 (Yüksek, geçişli, 9 yol) | **ADVISORY-001 kapandı** — `pnpm.overrides` ile `nanoid` `>=3.3.18 <4.0.0`. Denetim EXIT 0. Açık aralık (`>=3.3.18`) sessizce **6.0.1**'e çözülüyordu (üç majör atlama, ESM-only) — ölçülerek yakalandı ve daraltıldı. **Advisory oyunkitabı yazıldı**; kalıcı override'ların birikmesine karşı kaldırma koşulu ve altı aylık gözden geçirme kuralı kondu. |
 
 ---
@@ -732,6 +734,14 @@ o değer için tarama boşta çalışıyor. İki gereksinim burada birbiriyle ç
 ve BULGU-002 nöbeti daha değerli görüldü. F6/T-062 denetiminde yeniden
 değerlendirilmeli.
 
+**T-005d eki:** derleme adımına `NEXT_PUBLIC_SITE_URL` girdi. Bu tabloyu
+değiştirmiyor — değer tanımı gereği **kamuya açık** (`NEXT_PUBLIC_` öneki
+"tarayıcı paketine gömülür" demek) ve aynı testin ad/değer desenlerinden
+geçiyor: `https://ci-test-only.ornek.test` ne sır ima eden bir ad taşıyor ne de
+bir sır imzasına uyuyor (`public-env.test.ts` → "meşru public değerleri yanlış
+pozitif vermez" bloğu aynı biçimdeki URL'leri zaten kapsıyor). Derleme
+çıktısında bu değerin **bulunması beklenir**; tarama sır arıyor, adres değil.
+
 ---
 
 ## BULGU-010 — WebGL yolu ölçüm dışındaydı; profil hazır, ölçülecek sayfa henüz yok
@@ -1076,6 +1086,148 @@ pnpm install --lockfile-only && pnpm why nanoid | grep -oE 'nanoid [0-9.]+' | so
 
 ---
 
+## ADVISORY-002 — `deepmerge-ts` <8.0.0 (GHSA-ggr8-5vv4-36mx, Yüksek, geçişli)
+
+**Tarih:** 2026-08-22 · **Görev:** T-005d · **Durum:** AÇIK — **süreli istisna**, bitiş **2026-11-22**
+**Bulan:** §8.24 kapısı · **CVE:** CVE-2026-40345 · **Katman:** **D** (bekle + kaydet)
+
+```
+deepmerge-ts  <8.0.0   "stack exhaustion when merging recursive object graphs"
+mevcut 7.1.5 · yama >=8.0.0 · 3 yol, hepsi aynı zincir:
+  . > prisma@7.9.1 > @prisma/config@7.9.1 > deepmerge-ts@7.1.5
+  . > @prisma/client@7.9.1 > prisma@7.9.1 > …
+  . > @auth/prisma-adapter@2.11.3 > @prisma/client@7.9.1 > prisma@7.9.1 > …
+```
+
+Üç yol da tek bir gerçek bağımlılığın farklı görünümleri: `prisma` CLI'ı
+(`@prisma/client` onu **isteğe bağlı peer** olarak ilan ediyor).
+
+### Maruziyet — ölçüldü, varsayılmadı
+
+Tetikleyici koşul: **özyinelemeli (kendine referans veren) bir nesne grafiği**
+birleştirilirse yığın tükenir → DoS. Yani zararın şartı, saldırganın
+birleştirilen nesneyi etkileyebilmesi.
+
+Bizim kodumuz: `grep -rn deepmerge src/ tests/ prisma/` → **0 eşleşme**.
+
+Ara paketteki tek çağrı yeri (`@prisma/config@7.9.1/dist/index.js:588-619`):
+
+```js
+async function loadConfigTsOrJs(configRoot, configFile) {
+  const { loadConfig: loadConfigWithC12 } = await import('c12');
+  const { deepmerge } = await import('deepmerge-ts');
+  await loadConfigWithC12({
+    cwd: configRoot, name: 'prisma', configFile,
+    dotenv: false, rcFile: false, giget: false, extend: false, packageJson: false,
+    merger: deepmerge, …
+  });
+}
+```
+
+Üç ölçüm, üçü de maruziyeti düşürüyor:
+
+1. **Girdi bizim.** Birleştirilen tek nesne `prisma.config.ts` — depodaki,
+   bizim yazdığımız dosya. Dış girdi yok.
+2. **Katman zaten kapalı.** c12'nin dışarıdan katman getiren tüm yolları
+   kapatılmış: `extend: false`, `rcFile: false`, `giget: false`,
+   `packageJson: false`, `dotenv: false`. Yani birleştirilecek ikinci bir
+   kaynak fiilen yok.
+3. **Çalışma zamanında değil.** `prisma.config.ts`in kendi başlığındaki not:
+   *"Bu dosya YALNIZCA Prisma CLI tarafından okunur; uygulama çalışma
+   zamanında kullanılmaz."* Uygulama sunucusu bu kod yolunu hiç çalıştırmıyor
+   — `generate` / `migrate` / `seed` komutları çalıştırıyor.
+
+**Pratik maruziyet: yok.** Bir saldırganın bunu tetiklemesi için önce depoya
+özyinelemeli bir `prisma.config.ts` yazabilmesi gerekirdi; o noktada yığın
+tüketmekten çok daha kötü şeyler yapabilir.
+
+### Neden override DEĞİL — oyunkitabının ölçütü uygulandı
+
+Ölçüt maruziyet değil, **majör sınırı**: yama **8.0.0**, mevcut **7.1.5**.
+Majör atlıyor → oyunkitabı katman B'yi (override) açıkça yasaklıyor. Bu vaka
+onu iki ölçümle daha da güçlendiriyor:
+
+- **Üst paket sürümü TAM SABİTLİYOR.** `@prisma/config@7.9.1` →
+  `"deepmerge-ts": "7.1.5"` — aralık değil, tek sürüm. ADVISORY-001'de aşılan
+  şey bayat bir aralıktı (`^3.3.17`); burada aşılacak olan **açık bir
+  sözleşme**. Override, üst paketin "yalnızca bu sürümle çalıştığımı beyan
+  ediyorum" demesinin üstünden geçmek olurdu.
+- **Majör gerçek.** 7.1.5 → 8.0.0 diffinde dört genel dışa aktarım yeniden
+  adlandırılmış: `mergeRecords`/`mergeMaps`/`mergeRecordsInto`/`mergeMapsInto`
+  → `…Fast`. Bizim ihtiyacımız olan `deepmerge` duruyor, yani **çökme**
+  olmayabilir. Asıl risk zaten çökme değil: `deepmerge` c12'ye **birleştirme
+  semantiği** olarak veriliyor. Sessizce farklı birleşen bir config, örneğin
+  `datasource.url`u düşürür ve arıza "migrate yanlış veritabanına gitti"
+  biçiminde, denetimin göremediği yerde çıkar.
+- ADVISORY-001'in ESM tuzağı burada **yok** (8.0.0 hem `require` hem `import`
+  koşulu taşıyor). Bu, override'ı güvenli yapmaz — yalnızca bu kez kırılmanın
+  yükleme anında değil, davranışta olacağını söyler. Daha kötüsü.
+
+**Karşı argüman, kayda geçsin:** maruziyet sıfır ve kırılma görünür olurdu —
+`postinstall → prisma generate`, `migrate deploy` ve `db:seed` zaten her CI
+koşusunda bu kod yolunu çalıştırıyor. Yani "override'ı dene, kırılırsa kapı
+söyler" savunulabilir bir pozisyon. Reddedildi: kazanç **sıfır** (ölçülmüş
+maruziyet yok, yalnızca denetim çıktısı yeşile döner), risk ise sessiz
+mis-merge. Denetim çıktısını yeşile boyamak için üst paketin sözleşmesini
+çiğnemek, kapının amacını tersine çevirir.
+
+### Neden C (üst paketi yükselt) DEĞİL — bugün mümkün değil
+
+| Kanal | Sürüm | `deepmerge-ts` |
+| ----- | ----- | -------------- |
+| `prisma@latest` | 7.9.1 | 7.1.5 (açık) |
+| en son 7.x kararlı | 7.9.1 | 7.1.5 (açık) |
+| `prisma@next` | 8.0.0-rc.7 | ön sürüm — kararlı değil |
+
+Kararlı hiçbir sürüm yamayı getirmiyor. `@prisma/config@latest` = 7.9.1 ve
+hâlâ `7.1.5` sabitliyor. Bir RC'ye geçmek, denetim çıktısını temizlemek için
+üretim veri katmanını yayın öncesi koda taşımak olurdu — §8.25'in tersi.
+
+Geriye **D** kalıyor: süreli istisna + kayıt.
+
+### İstisna nasıl uygulandı — kendi son kullanma tarihini taşıyor
+
+`pnpm.auditConfig` ile susturma bilerek **kullanılmadı**: süresizdir, bir kez
+yazılır ve ölü bir satır bir gün yaşayan bir açığı maskeler (oyunkitabı §4'ün
+override'lar için söylediğinin aynısı). Bunun yerine `bagimlilik-denetimi` işi
+artık `pnpm audit --json` çıktısını okuyan bir betikten geçiyor
+(`.github/workflows/ci.yml`). Kapı **altı** ayrı biçimde kırmızıya döner:
+
+| # | Koşul | Neden |
+| - | ----- | ----- |
+| 1 | Listede olmayan yüksek/kritik advisory | Eski davranış — kapı gevşemedi |
+| 2 | İstisnanın süresi doldu (`bitis`) | İstisna unutulamaz; tarih geçince kapı durur |
+| 3 | İstisna artık bildirilmiyor | Ölü satır silinsin (üst paket yamayı getirmiş demektir) |
+| 4 | Advisory'nin YOLU değişti | Maruziyet ölçümü `@prisma/config` yoluna dayanıyor; başka yol = başka ölçüm |
+| 5 | Paket adı beklenenden farklı | Aynı GHSA'nın başka bir pakete taşınması |
+| 6 | `audit` çıktısı ayrıştırılamadı | "Bulgu yok" ile "ölçüm yapılamadı" karıştırılmasın |
+
+**Altısı da mutasyonla kanıtlandı** (T-005d raporu, K2). Gerçek çıktıyla:
+`EXIT 0`, `⏳ 92 gün kaldı`.
+
+### Kaldırma koşulu
+
+İstisna şu üç durumdan **biri** gerçekleşince kalkar; hangisi olursa olsun
+`pnpm why deepmerge-ts` ile TÜM yollar doğrulanır (oyunkitabı §3):
+
+1. **Kararlı `prisma`/`@prisma/config` `deepmerge-ts@>=8.0.0` getirirse** →
+   sürümü yükselt, istisnayı sil. Prisma 8 bizim için de majör olduğundan
+   **ADR gerekir** (Prisma 7→8 kırıcı değişiklikleri; R8'in tekrarı).
+2. **7.x hattına geri taşınırsa** (ör. `@prisma/config@7.10.x` → `^8`) → bu,
+   oyunkitabının **en ucuz katmanı A**'dır: yalnızca `pnpm update prisma
+   --recursive`, override yok, ADR yok.
+3. **Advisory geri çekilirse / seviyesi düşerse** → istisna kendiliğinden ölü
+   satır olur ve kapı 3. koşuldan kırmızıya döner; satır silinir.
+
+**Hiçbiri 2026-11-22'ye kadar gerçekleşmezse** kapı durur ve süre yalnızca
+**yeniden ölçülmüş** bir gerekçeyle uzatılabilir. Süre neden üç ay: `prisma@next`
+şu an rc.7 — kararlı 8.0.0 bu pencerede beklenir; beklenmezse kararı yeniden
+vermek gerekir, sessizce sürüklemek değil.
+
+**Son gözden geçirme:** 2026-08-22 · **Sonraki:** 2026-11-22 (istisnanın bitişi)
+
+---
+
 ## Oyunkitabı — geçişli bağımlılıkta yüksek/kritik advisory
 
 ADVISORY-001 sonuncusu olmayacak. Bir dahaki sefere sırayla şunlar yapılır.
@@ -1103,7 +1255,16 @@ bir sonraki gerçek açık için de gevşetir.
 | **A · Kilit tazeleme** | Üst paketin ilan ettiği aralık yamalı sürümü **zaten kapsıyor** (ör. `^3.3.17` ⊇ 3.3.18) | `pnpm update <paket> --recursive`. Override'a gerek yok. Tek risk: kilit yeniden sabitlenince geri gelmesi — bu yüzden `pnpm audit` CI'da koşmalı (koşuyor). |
 | **B · Override** | Üst paket **yamasız bir aralık** ilan ediyor ve yamalı sürüm **aynı majör** içinde | `pnpm.overrides` → `">=<yamalı> <sonrakiMajör>"`. **ÜST SINIR ZORUNLU** (ADVISORY-001'in tuzağı). |
 | **C · Üst paketi yükselt** | Yamalı sürüm **majör sınırının ötesinde** — override ara paketin sözleşmesini bozar | Üst paketi yükselt (ör. `postcss` yeni majör). ADR gerekir: majör yükseltme davranış değiştirir. |
-| **D · Bekle + kaydet** | C mümkün değil (üst paket henüz yayınlamadı) **ve** maruziyet ölçülmüş biçimde yok | Bulgu kaydı aç, üst paketin issue'suna bağlan, `bagimlilik-denetimi` işine **süreli** istisna. Süresiz istisna yazılmaz. |
+| **D · Bekle + kaydet** | C mümkün değil (üst paket henüz yayınlamadı) **ve** maruziyet ölçülmüş biçimde yok | Bulgu kaydı aç, üst paketin issue'suna bağlan, `bagimlilik-denetimi` işine **süreli** istisna. Süresiz istisna yazılmaz. **Mekanizma ADVISORY-002'de kuruldu**: `ci.yml` → "pnpm audit … süreli istisnalarla". `pnpm.auditConfig` KULLANILMAZ — süresizdir. |
+
+**ADVISORY-002'nin eklediği ölçüt — ÜST PAKETİN İLANINA BAK.** Katman seçerken
+majör sınırından önce üst paketin `package.json`ı okunur:
+
+- Bayat **aralık** (`^3.3.17`) → override o aralığın içinde kalarak yalnızca
+  kilidi tazeler; üst paket zaten bu sürümle çalışacağını beyan etmiş (B).
+- **Tam sabit sürüm** (`"deepmerge-ts": "7.1.5"`) → override, açık bir
+  sözleşmenin üstünden geçmektir. Majör atlamıyor olsa bile burada durulur ve
+  gerekçe yazılır.
 
 **Üst paketi beklemek mi, override mı?** Ölçüt maruziyet değil, **majör sınırı**.
 Aynı majör içindeyse override (B) doğru cevaptır — ucuz, tersine çevrilebilir ve
@@ -1281,6 +1442,213 @@ ve süre.
 
 ---
 
+## BULGU-015 — Dört rota ölçüm yüzeyinin tamamen dışındaydı
+
+**Önem:** Yüksek (kapı boşluğu) · **Görev:** T-029d · **Durum:** KAPANDI
+
+### Belirti
+
+BULGU-014 (`/og` çalışma zamanında `TypeError` ile çöküyor) hiçbir kapıya
+takılmadı:
+
+| Kapı | Sonuç |
+| ---- | ----- |
+| `pnpm build` | ✅ geçti |
+| 827 birim testi | ✅ geçti |
+| CI `kapi` | ✅ geçerdi |
+
+Sebep, kodun kalitesiyle ilgili değil: **hiçbir kapı o rotaya istek atmıyordu.**
+E2E `/` ve `/panel`'e vuruyor, Lighthouse `/`'a. `robots.txt`, `sitemap.xml`,
+`rss.xml` ve `/og` — dördü de ölçülmüyordu.
+
+Ortak özellikleri: **çıktılarını geliştirici görmez.** OG görselini sosyal medya
+botu çeker, sitemap'i arama motoru okur, RSS'i besleme okuyucu. Bozuldukları gün
+kimse fark etmez — üretime bozuk gidip haftalarca öyle kalabilirlerdi.
+
+T-019b/K3'ün kardeşi. Orada testler koşuyordu ama gevşek desenler yüzünden
+yanlış şeyi doğruluyorlardı; burada testler doğru çalışıyor ama bir yüzeyi **hiç**
+ölçmüyorlardı. İkisi de aynı sanının iki yüzü: *yeşil bir paket, doğru şeyin
+ölçüldüğünün kanıtı değildir.*
+
+### Kapatma — iki katman
+
+`tests/e2e/seo-routes.spec.ts` (8 test × 2 proje = 16 koşum):
+
+1. **Sözleşme testleri** — her rotanın biçimi: PNG imzası + IHDR boyutları,
+   `DOMParser` ile XML geçerliliği, `Disallow: /panel`, `Sitemap:` bildirimi,
+   RSS bağlantılarının mutlak olması, sitemap'in gizli alan bildirmemesi (§8.7).
+2. **Sitemap taraması** — sitemap'teki **her** URL 200 dönmeli. Yeni sayfa
+   yayına girdiğinde kapsama kendiliğinden girer.
+
+Kapsam kararının gerekçesi ve neden ikisinin birden gerektiği dosyanın başındaki
+yorumda.
+
+### PNG doğrulaması neden başlığa bakmıyor
+
+`Content-Type`'ı sunucu yazar. `ImageResponse` çöküp yerine bir hata gövdesi
+dönse bile başlık `image/png` görünebilir — yani başlığa bakan bir test
+BULGU-014'ü **yine kaçırırdı**. Doğrulama imza baytlarından yapılıyor
+(`89 50 4E 47 0D 0A 1A 0A`) ve IHDR bölütünden 1200×630 okunuyor: sekiz baytlık
+imza tek başına gövdenin geri kalanının anlamlı olduğunu göstermez.
+
+### Kapının gerçekten tuttuğunun kanıtı (mutasyon)
+
+Backend'in T-028b düzeltmesi ölçüm sırasında zaten iş ağacındaydı, yani `/og`
+testi ilk koşumda **yeşil** başladı. Kırmızıyı görmek için başka bir ajanın
+üzerinde çalıştığı dosyayı geri almak gerekirdi — yapılmadı. Bunun yerine iki
+font, **aynı render yolundan** (`next/og` → `ImageResponse`) geçirildi:
+
+| Font kaynağı | Sonuç |
+| ------------ | ----- |
+| `HEAD:src/app/og/font.ts` (düzeltme öncesi) | **ÇÖKTÜ** — `TypeError: Cannot read properties of undefined (reading '256')` |
+| İş ağacı (T-028b düzeltmesi) | PNG üretildi — 15 823 bayt, imza `89504e47` |
+
+Üstteki satır BULGU-014'ün bildirilen hatasının birebir aynısı. Hata yanıt
+üretimi sırasında fırlıyor; dolayısıyla istek düzeyinde bakan her test onu
+zorunlu olarak görür. **Kırmızı → yeşil geçişi kanıtlanmıştır.**
+
+### Geçersiz çıkan ikinci mutasyon — kayda geçiyor
+
+"Veritabanını durdur, `/og` düşsün" denendi ve **düşmedi**: `getProfile`
+önbellekli (`cachedRead`) ve Next'in kalıcı önbelleği sunucu yeniden başlasa
+bile cevap veriyor.
+
+```
+DB açık,   sıcak sunucu → /og 200
+DB kapalı, sıcak sunucu → /og 200
+DB kapalı, SOĞUK sunucu → /og 200
+```
+
+Mutasyon geçersiz, ama gözlem yararlı: OG rotası kısa bir veritabanı kesintisine
+dayanıklı. Bunun ikinci yüzü de var — `/og` testi, veri katmanı bozulsa bile
+önbellekten yeşil kalabilir. Test rotanın **çökmesini** yakalar, verinin
+tazeliğini değil; kapsamı budur.
+
+### CI değişikliği gerekmedi
+
+`kapi` işi zaten `pnpm test:e2e` çağırıyor; yeni paket kendiliğinden kapıya
+girdi. `ci.yml`'e dokunulmadı.
+
+---
+
+## BULGU-016 — `sitemap.xml` var olmayan üç adresi arama motorlarına bildiriyor
+
+**Önem:** Orta · **Görev:** T-029d (bulan) · **Durum:** **KAPANDI** (T-028c, PR #9)
+**Bulan:** BULGU-015 için yazılan sitemap taraması, **ilk koşumunda**
+
+> **Kapanış (2026-08-22, T-005d kaydı):** Backend T-028c'de yol (b)'yi seçti —
+> üç adres sitemap'ten çıkarıldı ve mutasyonla doğrulandı. Aşağıdaki metin
+> bulgunun özgün hâlidir; "kırmızı" uyarısı artık geçerli değildir.
+
+`src/app/sitemap.ts` statik listesinde `/blog` ve `/iletisim` var; `/blog/<slug>`
+adresleri ise yayınlanmış yazılardan üretiliyor. Bu sayfaların hiçbiri mevcut
+değil (`src/app/(public)` altında `cv`, `hakkimda`, `projeler`, `projeler/[slug]`
+var; `blog` ve `iletisim` yok):
+
+```
+  200  /                                       200  /projeler/kiyi-medya-kurumsal-site
+  200  /hakkimda                               200  /projeler/rezervasyon-yonetim-paneli
+  200  /projeler                               404  /blog
+  200  /cv                                     404  /iletisim
+                                               404  /blog/nextjs-15-app-router-notlari
+```
+
+**Etki:** Sitemap "bu adresi tara" demektir; sunucunun aynı adreste 404 demesi
+tarama bütçesini harcar ve sitede kırık bağlantı olduğu sinyalini verir. Aynı
+`sitemap.ts` yorumu `ARCHIVED` kayıtları tam bu gerekçeyle dışarıda bırakıyor —
+kural konmuş ama statik liste ve yazı akışı için uygulanmamış.
+
+**Düzeltme iki yoldan biri:** (a) sayfalar yayına girer, (b) sayfalar hazır
+olana kadar sitemap onları bildirmez. Karar Orkestra Şefi'nin.
+
+⚠️ **Bu bulgu şu an `kapi` işini KIRMIZI yapıyor** (E2E: 67 geçti, 2 düştü —
+aynı test iki projede). Kırmızı bilinçli bırakıldı: test gerçek bir kusuru
+gösteriyor ve susturmak, BULGU-015'te kapatılan boşluğun aynısını yeni bir
+biçimde açmak olurdu. Bir izin listesi (allowlist) ise görev kartının uyardığı
+`NavItem.hazir` kalıbının ta kendisi olurdu — unutulmaya açık, elle tutulan
+istisna. **F2'nin merge'ü buna bağlı; karar hızlı verilmeli.**
+
+---
+
+## BULGU-017 — Derleme yeniden veritabanına bağımlı: `sitemap.xml` ve `rss.xml` ön-render ediliyor
+
+**Önem:** Yüksek (BULGU-002'nin gerilemesi; `kapi` kırmızı) · **Görev:** T-005d (bulan)
+**Durum:** AÇIK — düzeltme `src/**` tarafında (Backend)
+**Bulan:** BULGU-002 nöbeti — **tam olarak bunun için duruyordu**
+
+### İki arıza üst üste duruyordu
+
+Koşum `32386089662`'nin bildirdiği hata `NEXT_PUBLIC_SITE_URL` idi. T-005d o
+değişkeni derleme adımına verdi ve derleme **yine düştü** — bu kez altındaki
+ikinci arızayla:
+
+```
+### 1) env yok                    → Error occurred prerendering page "/robots.txt"
+                                    Error: NEXT_PUBLIC_SITE_URL tanımlı değil…
+### 2) NEXT_PUBLIC_SITE_URL var,  → Error occurred prerendering page "/sitemap.xml"
+       DATABASE_URL yok             Error: DATABASE_URL tanımlı değil…
+```
+
+İlk hata ikincisini **maskeliyordu**: Next ilk ön-render hatasında derlemeyi
+sonlandırıyor (`exiting the build`), yani ikinci arıza ancak birincisi düzelince
+görünür hâle geldi.
+
+### Sebep
+
+`src/app/sitemap.ts` ve `src/app/rss.xml/route.ts` veri okuyor
+(`getProjectSitemapEntries`, `getPublishedPosts`, `getProfile`) ama hiçbir
+dinamiklik işareti taşımıyor. Next'in varsayılanı bu durumda **derleme anında
+ön-render**: sorgu `next build` sırasında koşuyor. `src/app/robots.ts` de statik,
+ama o yalnızca `absoluteUrl` çağırıyor — veriye değil, adres değişkenine bağlı.
+
+Depodaki `dynamic` beyanları: yalnızca `src/app/api/v1/health/route.ts`.
+
+### Neden bu bir gerileme
+
+BULGU-002 tam olarak buydu: derleme veritabanı bağlantısı istiyordu ve `.env`
+bulunmayan her ortamda (CI, Docker derleme katmanı, taze klon) çöküyordu.
+T-003c havuzu tembel kuruluma çevirip düzeltmişti. F2'nin SEO rotaları bağı
+**sessizce** geri getirdi — derleme adımı `DATABASE_URL`siz koştuğu için nöbet
+uyandı ve gerilemeyi **aynı gün** yakaladı.
+
+### Ölçüm — nöbetin iki yönlü kanıtı
+
+Yerelde, CI adımının birebir tekrarı (`.env` geçici olarak kaldırıldı, çıktı
+`pnpm build`):
+
+| Durum | `NEXT_PUBLIC_SITE_URL` | `DATABASE_URL` | Sonuç |
+| ----- | ---------------------- | -------------- | ----- |
+| Bugünkü ağaç | yok | yok | ✗ `/robots.txt` — site adresi yok |
+| T-005d'nin CI'sı | **var** | yok | ✗ `/sitemap.xml` — **DB yok** ← nöbet burada tutuyor |
+| Geçici mutasyon: iki rota `force-dynamic` | var | yok | ✓ **EXIT 0** |
+
+Üçüncü satır geçici bir ölçüm mutasyonuydu ve **geri alındı** (`git status`
+temiz) — düzeltme Backend'in kararı. O koşuda çıkan rota tablosu, ilgili tüm
+rotaların istek zamanına geçtiğini gösteriyor:
+
+```
+○ /robots.txt          (statik — yalnızca NEXT_PUBLIC_SITE_URL ister)
+ƒ /sitemap.xml   ƒ /rss.xml   ƒ /og/[[...parts]]   ƒ /  …
+```
+
+`/og` zaten dinamikti (yakalama-tümü segment), yani derlemede veri okumuyor.
+
+### Düzeltme — Backend
+
+`sitemap.ts` ve `rss.xml/route.ts` istek zamanına alınmalı
+(`export const dynamic = 'force-dynamic'` ya da bir `revalidate` süresi;
+tercih Backend'in — ISR seçilirse ilk üretim yine derlemede koşar, o yüzden
+`force-dynamic` daha güvenli). Ölçülmüş etki: iki satır, derleme EXIT 0.
+
+### NE YAPILMAYACAK
+
+Derleme adımına `DATABASE_URL` **verilmeyecek**. Kapıyı yeşile boyardı ve
+BULGU-002 nöbetini bitirirdi: bundan sonra hiçbir kod, derlemeyi veritabanına
+bağladığı için kırmızıya düşmezdi. Nöbetin değeri, tam da bugün kanıtlandığı
+gibi, sessiz bağımlılığı **derleme anında** görünür kılması.
+
+---
+
 ## §8 Güvenlik Gereksinimleri — Durum Tablosu
 
 **Ölçüm tarihi:** 2026-08-11 · **Faz:** F1 (kapandı) · **Son görev:** T-005b
@@ -1312,7 +1680,7 @@ Durum kodları: ✅ sağlandı · ⚠️ kısmi · ❌ eksik · ⏳ henüz uygul
 | 21 | Gece 03:00 şifreli `pg_dump` → R2, 30 gün | ⏳ | T-066 / T-073 · **Uyarı:** yol haritası F6/F7 diyor; gerçek muhasebe verisi F4'te girilmeye başlıyor. Yedeksiz geçen her F4 günü, başka kopyası olmayan mali veri riski. |
 | 22 | `restore.md` + en az bir prova | ⏳ | T-066 |
 | 23 | Yedek checksum doğrulaması | ⏳ | T-066 |
-| 24 | `npm audit` merge kapısı | ✅ | **Kuruldu** (T-005): `.github/workflows/ci.yml` → `bagimlilik-denetimi` işi, `pnpm audit --audit-level high` (ADR-003 gereği `npm` değil `pnpm`). Yüksek **ve** kritik kapsanır. Depo şu an temiz (her seviyede 0 açık). Kapının kırmızıya döndüğü ayrı bir izole projede kanıtlandı: `lodash@4.17.11` + `minimist@1.2.0` → 9 açık (2 kritik, 3 yüksek) → **EXIT 1**. Ayrıca yabancı kilit dosyası kontrolü de aynı işte. **T-005c — kapı gerçek bir advisory'de tetiklendi ve tuttu:** `nanoid` GHSA-2v37-7h3g-55p8 (Yüksek, geçişli, 9 yol) kodda hiçbir değişiklik yokken hattı kırmızıya çevirdi; `pnpm.overrides` ile kapandı, EXIT 0. Artık yalnızca izole projede değil, **kendi deposunda** kanıtlı. Tekrarlayan advisory'ler için oyunkitabı yazıldı (kaldırma koşulu + altı aylık gözden geçirme dahil). **T-029c — kapı artık HAFTALIK da koşuyor** (`schedule: '17 6 * * 1'`, Pazartesi 09:17 TRT): advisory'ler kod değişmeden yayınlandığı için yalnızca push/PR'da koşan bir denetim, sessiz geçen bir hafta boyunca yüksek bir açığı fark etmez. Zamanlanmış koşumda diğer iki iş `if: github.event_name != 'schedule'` ile atlanır. |
+| 24 | `npm audit` merge kapısı | ✅ | **Kuruldu** (T-005): `.github/workflows/ci.yml` → `bagimlilik-denetimi` işi, `pnpm audit --audit-level high` (ADR-003 gereği `npm` değil `pnpm`). Yüksek **ve** kritik kapsanır. Depo şu an temiz (her seviyede 0 açık). Kapının kırmızıya döndüğü ayrı bir izole projede kanıtlandı: `lodash@4.17.11` + `minimist@1.2.0` → 9 açık (2 kritik, 3 yüksek) → **EXIT 1**. Ayrıca yabancı kilit dosyası kontrolü de aynı işte. **T-005c — kapı gerçek bir advisory'de tetiklendi ve tuttu:** `nanoid` GHSA-2v37-7h3g-55p8 (Yüksek, geçişli, 9 yol) kodda hiçbir değişiklik yokken hattı kırmızıya çevirdi; `pnpm.overrides` ile kapandı, EXIT 0. Artık yalnızca izole projede değil, **kendi deposunda** kanıtlı. Tekrarlayan advisory'ler için oyunkitabı yazıldı (kaldırma koşulu + altı aylık gözden geçirme dahil). **T-029c — kapı artık HAFTALIK da koşuyor** (`schedule: '17 6 * * 1'`, Pazartesi 09:17 TRT): advisory'ler kod değişmeden yayınlandığı için yalnızca push/PR'da koşan bir denetim, sessiz geçen bir hafta boyunca yüksek bir açığı fark etmez. Zamanlanmış koşumda diğer iki iş `if: github.event_name != 'schedule'` ile atlanır. **T-005d — kapı ikinci kez tetiklendi ve bu kez düzeltilemedi:** `deepmerge-ts` GHSA-ggr8-5vv4-36mx (Yüksek, geçişli, 3 yol, hepsi `prisma` CLI zinciri). Yama majör sınırının ötesinde ve üst paket sürümü tam sabitliyor → oyunkitabı **katman D**. Kapı artık `pnpm audit --json` çıktısını okuyan bir betikten geçiyor: yalnızca **süreli ve kayıtlı** istisnalar tolere ediliyor (ADVISORY-002, bitiş **2026-11-22**), süre dolunca / yol değişince / istisna gereksizleşince kapı **kırmızı**. Altı kırılma dalının hepsi mutasyonla ayrı ayrı doğrulandı. `pnpm.auditConfig` bilerek kullanılmadı — süresizdir. |
 | 25 | Yeni bağımlılık onay + DECISIONS kaydı | ✅ | T-004'ün 9 paketi görev kartında adı adına onaylı. **T-005 ve T-006b `package.json`'a hiçbir paket eklemedi** — `@lhci/cli` bilinçli olarak `pnpm dlx @lhci/cli@0.15.1` ile ephemeral çağrılıyor (yalnızca CI aracı, uygulama bağımlılığı değil; sürüm sabit, `latest` kullanılmıyor). **T-006b:** tüm GitHub eylemleri Node 24 hedefleyen güncel kararlı majora taşındı — `checkout@v7`, `setup-node@v7`, `cache@v6`, `upload-artifact@v7`, `pnpm/action-setup@v6`. Yamasız çalışma zamanı bırakmama gerekçesi ADR-008 ile aynı hat. |
 
 **Özet:** ✅ 9 · ⚠️ 4 · ❌ 0 · ⏳ 12

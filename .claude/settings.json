@@ -23,7 +23,32 @@
       "Bash(/private/tmp/claude-501/-Users-abdulkadirelaldi-Desktop-web-abdulkadirelaldi/84954c68-b36f-4711-923f-c3e7177a4870/scratchpad/olc.sh nihai-mobil *)",
       "Bash(curl -s -o /dev/null -w 'gstatic: %{http_code}\\\\n' https://fonts.gstatic.com/)",
       "Bash(/private/tmp/claude-501/-Users-abdulkadirelaldi-Desktop-web-abdulkadirelaldi/84954c68-b36f-4711-923f-c3e7177a4870/scratchpad/olc.sh kapi-acik *)",
-      "Bash(zsh -lc 'pnpm audit --audit-level high >/dev/null 2>&1; echo \"audit: $?\"; pnpm lint >/dev/null 2>&1; echo \"lint: $?\"; pnpm typecheck >/dev/null 2>&1; echo \"typecheck: $?\"; pnpm test 2>&1 | grep -E \"Tests \"; pnpm build >/dev/null 2>&1; echo \"build: $?\"')"
+      "Bash(zsh -lc 'pnpm audit --audit-level high >/dev/null 2>&1; echo \"audit: $?\"; pnpm lint >/dev/null 2>&1; echo \"lint: $?\"; pnpm typecheck >/dev/null 2>&1; echo \"typecheck: $?\"; pnpm test 2>&1 | grep -E \"Tests \"; pnpm build >/dev/null 2>&1; echo \"build: $?\"')",
+      "Bash(python3 -c \"import fontTools; print\\('fontTools', fontTools.version\\)\")",
+      "Bash(grep -v \"^$\")",
+      "Bash(/private/tmp/claude-501/-Users-abdulkadirelaldi-Desktop-web-abdulkadirelaldi/84954c68-b36f-4711-923f-c3e7177a4870/scratchpad/olc.sh font-yerel *)",
+      "Bash(node font-dogrula.mjs)",
+      "Bash(node yazdirma.mjs)",
+      "Bash(qlmanage -t -s 1400 -o . cv-dark.pdf)",
+      "Bash(/private/tmp/claude-501/-Users-abdulkadirelaldi-Desktop-web-abdulkadirelaldi/84954c68-b36f-4711-923f-c3e7177a4870/scratchpad/olc.sh son-anasayfa *)",
+      "Bash(node sayfa-dogrula.mjs)",
+      "Bash(sh -c 'i=0; until curl -sf -o /dev/null http://127.0.0.1:3106/cv || [ $i -ge 40 ]; do i=$\\(\\(i+1\\)\\); sleep 1; done')",
+      "Bash(node bos-sayfalar.mjs)",
+      "Bash(sh -c 'i=0; until curl -sf -o /dev/null http://127.0.0.1:3105/cv || [ $i -ge 40 ]; do i=$\\(\\(i+1\\)\\); sleep 1; done')",
+      "Bash(curl -s http://127.0.0.1:3105/cv)",
+      "Read(//System/Library/Fonts/Supplemental/**)",
+      "Read(//Library/Fonts/**)",
+      "Bash(command -v fonttools pyftsubset woff2_decompress)",
+      "Bash(python3 -c \"import fontTools; print\\('fontTools VAR', fontTools.version\\)\")",
+      "Bash(DATABASE_URL='postgresql://aelaldi:aelaldi_dev_only@127.0.0.1:5433/aelaldi_t024?schema=public' PORT=3107 node tests/olcum-sunucusu.mjs)",
+      "Bash(curl -s -o /dev/null -w 'HTTP %{http_code}\\\\n' http://127.0.0.1:3107/projeler)",
+      "Bash(/private/tmp/claude-501/-Users-abdulkadirelaldi-Desktop-web-abdulkadirelaldi/84954c68-b36f-4711-923f-c3e7177a4870/scratchpad/olc.sh mob-projeler *)",
+      "Bash(SAKLA_DERLEME=1 /private/tmp/claude-501/-Users-abdulkadirelaldi-Desktop-web-abdulkadirelaldi/84954c68-b36f-4711-923f-c3e7177a4870/scratchpad/olc.sh mob-detay /projeler/kiyi-medya-kurumsal-site)",
+      "Bash(/private/tmp/claude-501/-Users-abdulkadirelaldi-Desktop-web-abdulkadirelaldi/84954c68-b36f-4711-923f-c3e7177a4870/scratchpad/olc.sh nihai-projeler *)",
+      "Bash(SAKLA_DERLEME=1 /private/tmp/claude-501/-Users-abdulkadirelaldi-Desktop-web-abdulkadirelaldi/84954c68-b36f-4711-923f-c3e7177a4870/scratchpad/olc.sh nihai-detay /projeler/kiyi-medya-kurumsal-site)",
+      "Bash(zsh -lc 'PORT=3111 node tests/olcum-sunucusu.mjs >/tmp/og.log 2>&1 & *)",
+      "Bash(/opt/anaconda3/bin/fonttools varLib.instancer --help)",
+      "Bash(python3 -c ' *)"
     ]
   }
 }

@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from 'next';
-import { Inter, JetBrains_Mono, Space_Grotesk } from 'next/font/google';
+import localFont from 'next/font/local';
 import { cookies } from 'next/headers';
 import type { ReactNode } from 'react';
 
@@ -10,39 +10,68 @@ import { cn } from '@/lib/utils/cn';
 
 import './globals.css';
 
-/**
- * §3.2 — üç font ailesi.
- * `latin-ext` subset'i ZORUNLUDUR: ğ ü ş İ ı ö ç karakterleri `latin` içinde yok;
- * eksik olursa tarayıcı yedek fontla harf harf yama yapar ve metin bozulur.
+/* ===========================================================================
+ * §3.2 — ÜÇ FONT AİLESİ, REPODAN (ADR-031)
+ * ===========================================================================
+ *
+ * NEDEN `next/font/google` DEĞİL: o yükleyici DERLEME ANINDA fonts.gstatic.com'a
+ * çıkar. CI koşusu 31909914487'de "Failed to fetch Inter from Google Fonts" ile
+ * derleme düştü; yeniden koşuda geçti. Asıl zarar skor değil, "zaten bazen
+ * düşüyor, tekrar koştur" refleksinin kapıyı aşındırması — o refleks bir gün
+ * gerçek bir kırılmayı da yutar. T-070'in Docker derlemesi aynı duvara
+ * çarpacaktı. Artık dosyalar `./fonts` altında; derleme ağa HİÇ çıkmıyor.
+ *
+ * DOSYALAR NASIL ÜRETİLDİ: `fonts/uret.py` (aynı klasörde, tekrar üretilebilir).
+ * google/fonts deposundaki DEĞİŞKEN kaynaklar alındı, ağırlık ekseni yalnızca
+ * kullandığımız aralığa daraltıldı ve `latin` + `latin-ext` birleşimine
+ * indirgendi. Aralıklar elle uydurulmadı: eski `next/font/google` çıktısının
+ * `unicode-range` değerlerinden birebir kopyalandı.
+ *
+ * `latin-ext` ZORUNLU: ğ ü ş İ ı ö ç karakterleri `latin` içinde YOK; eksik
+ * olsaydı tarayıcı yedek fontla harf harf yama yapar ve metin bozulurdu.
+ * Kapsam `fonts/uret.py` ile üretim sonrası doğrulandı (üç fontta da eksik yok).
+ *
+ * AİLE BAŞINA TEK DOSYA: Google altkümeleri `latin` ve `latin-ext` diye ikiye
+ * bölüp ön yükleme listesini altı dosyaya çıkarıyordu (218 kB). Birleşik
+ * değişken dosyalar 163 kB ve üç istek — hem daha küçük hem daha az gidiş-dönüş.
+ *
+ * `weight` ARALIK OLARAK VERİLİYOR ('600 700'): dosya değişken kaldığı için tek
+ * yüz bütün ağırlıkları karşılıyor. Sabit ağırlıklara ayırmak yedi dosya ve
+ * 275 kB ederdi — ölçüldü.
+ *
+ * ÖN YÜKLEME AÇIK (varsayılan) — T-023'te kapatmak DENENDİ ve GERİ ALINDI:
+ * `preload: false` ile font BELGE → CSS → FONT zincirine düşüyor ve FCP
+ * grafiğine fazladan bir gidiş-dönüş ekliyor; ölçüm FCP 907 → 1359 ms, LCP
+ * değişmedi. Bir daha denenmesin diye burada duruyor.
+ *
+ * `adjustFontFallback: 'Arial'` DA AÇIK: yedek font için ascent/descent ve
+ * `size-adjust` üretir. `swap` sırasında satır yüksekliği oynamadığı için
+ * CLS 0 bunun sayesinde korunuyor; kapatmak sessiz bir düzen kaymasıdır.
  */
-const spaceGrotesk = Space_Grotesk({
-  subsets: ['latin', 'latin-ext'],
-  weight: ['600', '700'],
+const spaceGrotesk = localFont({
+  src: './fonts/space-grotesk.woff2',
+  weight: '600 700',
+  style: 'normal',
   display: 'swap',
+  adjustFontFallback: 'Arial',
   variable: '--font-space-grotesk',
 });
 
-const inter = Inter({
-  subsets: ['latin', 'latin-ext'],
-  weight: ['400', '500', '600'],
+const inter = localFont({
+  src: './fonts/inter.woff2',
+  weight: '400 600',
+  style: 'normal',
   display: 'swap',
+  adjustFontFallback: 'Arial',
   variable: '--font-inter',
 });
 
-/**
- * ÖN YÜKLEME AÇIK KALDI — T-023'te kapatıldı, ÖLÇÜLDÜ, geri alındı.
- *
- * Denenen: `preload: false`. Gerekçe makuldü — üç ailenin ön yüklenen altı
- * dosyası 218 kB ve Slow 4G'de bu JS'ten büyük bir kalem.
- * Ölçüm (3'er koşu, medyan): FCP 907 ms → 1359 ms, LCP 3456 → 3456.
- * Sebep: ön yükleme kalkınca font BELGE → CSS → FONT zincirine düşüyor ve
- * FCP grafiğine fazladan bir gidiş-dönüş ekliyor. Kazanılan bant genişliği,
- * kaybedilen turdan küçük. Kayıtta kalsın ki bir daha denenmesin.
- */
-const jetBrainsMono = JetBrains_Mono({
-  subsets: ['latin', 'latin-ext'],
-  weight: ['400', '500'],
+const jetBrainsMono = localFont({
+  src: './fonts/jetbrains-mono.woff2',
+  weight: '400 500',
+  style: 'normal',
   display: 'swap',
+  adjustFontFallback: 'Arial',
   variable: '--font-jetbrains-mono',
 });
 

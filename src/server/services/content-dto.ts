@@ -190,6 +190,24 @@ export interface PostDto extends PostListItemDto {
 }
 
 /* ===========================================================================
+ * SITEMAP
+ * ======================================================================== */
+
+/**
+ * Sitemap girdisi — T-028.
+ *
+ * Liste DTO'larından AYRI tutuldu: sitemap'in `lastModified` için `updatedAt`'e
+ * ihtiyacı var, ama `updatedAt` public liste DTO'larında YOK ve olmamalı
+ * (sayfada gösterilmiyor, DTO'yu şişirir). Tersine sitemap'in başlığa,
+ * özete, kapağa ihtiyacı yok. İki ayrı projeksiyon, iki ayrı sorgu.
+ */
+export interface SitemapEntryDto {
+  slug: string;
+  /** `Project.updatedAt` / `Post.updatedAt` — ISO 8601. */
+  updatedAt: string;
+}
+
+/* ===========================================================================
  * ORTAK FİLTRE
  * ======================================================================== */
 
@@ -203,3 +221,14 @@ export interface PublicQuery {
 
 /** İçerik durumu — yalnızca panel tarafı görür; public DTO'larda YER ALMAZ. */
 export type { ContentStatus };
+
+/**
+ * Türetilmiş site istatistikleri — ADR-027.
+ *
+ * Tanım `_shared/stats.ts` içinde (hesap mantığıyla birlikte durması için) ama
+ * Frontend'in TEK KAYNAĞI bu dosyadır — T-023 haklı olarak buradan ihraç
+ * edilmediğini bildirdi. `import type` derlemede silindiği için sızıntı yoktu,
+ * ama iki farklı import yolu olması sözleşmenin tek kaynak olma niteliğini
+ * bozuyordu.
+ */
+export type { SiteStatsDto } from './_shared/stats';

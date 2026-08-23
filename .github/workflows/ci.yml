@@ -102,6 +102,33 @@ jobs:
       ADMIN_EMAIL: ci@ornek.test
       # §8.2 — `passwordSchema` en az 12 karakter istiyor.
       ADMIN_PASSWORD: ci-test-parolasi-1234
+      # ─────────────────────────────────────────────────────────────────────
+      # NEXT_PUBLIC_SITE_URL — T-005d, koşum 32386089662'nin düzeltmesi.
+      #
+      # NEDEN GEREKLİ: F2 ile gelen SEO rotaları mutlak adres üretiyor ve
+      # `getSiteUrl` değer yoksa FIRLATIYOR (bilerek: `http://localhost:3000`e
+      # sessizce düşmek, üretimde tüm dünyaya localhost adresleri yayınlardı).
+      # `robots.txt` derleme anında ön-render edildiği için değişken artık
+      # DERLEME adımında da şart:
+      #   Error occurred prerendering page "/robots.txt"
+      #   Error: NEXT_PUBLIC_SITE_URL tanımlı değil…
+      #
+      # NEDEN İŞ DÜZEYİNDE, ADIM DÜZEYİNDE DEĞİL: `DATABASE_URL`in adım
+      # düzeyinde tutulmasının TEK sebebi BULGU-002 nöbeti — "derleme DB'ye
+      # bağımlı olmasın". Site adresi için böyle bir nöbet yok ve olması da
+      # anlamsız: değişkeni derleme (robots.txt), E2E (istek zamanı sitemap /
+      # rss / og) ve ölçüm sunucusu birden istiyor.
+      #
+      # NÖBETİ ZAYIFLATMIYOR: bu bir sır değil, veritabanı bağlantısı hiç
+      # değil. `NEXT_PUBLIC_` öneki zaten "bu değer tarayıcı paketine gömülür"
+      # demek (§8.18). `DATABASE_URL` bu blokta YOK ve olmayacak.
+      #
+      # DEĞER AÇIKÇA SAHTE (T-005b/K4): `.test` RFC 2606 ile ayrılmış, asla
+      # çözümlenmeyen bir TLD; ad "ci-test-only" ibaresi taşıyor. Gerçek alan
+      # adı buraya YAZILMAZ — yazılsaydı CI derlemesinin ürettiği robots.txt
+      # ve sitemap üretim adresleri gösterir, "bu artifact yayına konabilir"
+      # sanısını beslerdi.
+      NEXT_PUBLIC_SITE_URL: https://ci-test-only.ornek.test
 
     steps:
       - name: Depoyu al
@@ -182,6 +209,17 @@ jobs:
       # KOYMADI; yalnızca migrate/seed/e2e adımlarına verdi. Böylece bu adım
       # o düzeltmenin canlı gerileme testi olmayı SÜRDÜRÜYOR: biri derlemeyi
       # yeniden DB'ye bağımlı hâle getirirse burası kırmızı olur.
+      #
+      # NÖBET T-005d'DE GERÇEKTEN TUTTU (BULGU-017). Koşum 32386089662'nin
+      # bildirdiği `NEXT_PUBLIC_SITE_URL` hatası ÜSTTEKİ arızaydı; o düzelince
+      # altından ikincisi çıktı:
+      #   Error occurred prerendering page "/sitemap.xml"
+      #   Error: DATABASE_URL tanımlı değil…
+      # `sitemap.xml` ve `rss.xml` veri okuyor ama dinamik işaretlenmemiş, yani
+      # derleme anında ön-render ediliyor → derleme yeniden veritabanına bağımlı.
+      # Yani bu adım sentetik bir mutasyonla değil, GERÇEK bir gerilemeyle
+      # kanıtlandı. Düzeltme `src/**` tarafında (Backend); bu adıma
+      # `DATABASE_URL` VERİLEREK susturulmaz — susturmak nöbeti bitirirdi.
       - name: 4/5 · Üretim derlemesi (DATABASE_URL OLMADAN — BULGU-002 nöbeti)
         run: pnpm build
 
@@ -300,8 +338,153 @@ jobs:
 
       # ADR-003 gereği `npm audit` değil `pnpm audit`. `--audit-level high`
       # yüksek VE kritik seviyeyi kapsar; bulgu varsa çıkış kodu sıfır değildir.
-      - name: pnpm audit (yüksek + kritik)
-        run: pnpm audit --audit-level high
+      #
+      # KAPI ARTIK BİR BETİKTEN GEÇİYOR — tek sebebi ADVISORY-002 (T-005d).
+      # Oyunkitabının D katmanı ("bekle + kaydet") SÜRELİ bir istisna istiyor;
+      # `pnpm audit`in kendi susturma mekanizması (`pnpm.auditConfig`) ise
+      # SÜRESİZDİR: bir kez yazılır, kimse bir daha bakmaz ve ölü bir istisna
+      # bir gün yaşayan bir açığı maskeler (oyunkitabı §4'ün override'lar için
+      # söylediğinin aynısı). Aşağıdaki liste bunun tersini yapar — istisna
+      # kendi son kullanma tarihini taşır, tarih geçince KAPI KIRMIZI OLUR.
+      #
+      # Üç ayrı biçimde kırılır ve üçü de bilinçli:
+      #   1. Listede olmayan yüksek/kritik advisory  → kapı kırmızı (eski davranış)
+      #   2. Süresi dolmuş istisna                   → kapı kırmızı (unutulamaz)
+      #   3. Artık bildirilmeyen istisna             → kapı kırmızı (ölü satır silinsin)
+      #   4. Advisory'nin YOLU değişmiş              → kapı kırmızı (maruziyet
+      #      ölçümü o yola dayanıyordu; yol değiştiyse ölçüm de geçersiz)
+      - name: pnpm audit (yüksek + kritik) — süreli istisnalarla
+        run: |
+          # `|| true`: audit bulgu varsa sıfır olmayan kod döner; kararı
+          # aşağıdaki betik verir. Depoya dosya bırakmamak için çıktı
+          # `$RUNNER_TEMP` altına yazılıyor.
+          pnpm audit --audit-level high --json > "$RUNNER_TEMP/denetim.json" || true
+
+          node <<'BETIK'
+          const { readFileSync } = require('node:fs');
+          const path = require('node:path');
+
+          /**
+           * SÜRELİ İSTİSNALAR — her satırın karşılığı `docs/security/README.md`
+           * içinde bir ADVISORY-NNN kaydıdır. Kayıtsız satır yazılmaz.
+           */
+          const ISTISNALAR = [
+            {
+              ghsa: 'GHSA-ggr8-5vv4-36mx',
+              paket: 'deepmerge-ts',
+              // Maruziyet ölçümü BU YOLA dayanıyor: deepmerge yalnızca
+              // `@prisma/config`in c12 birleştiricisi olarak, yalnızca CLI
+              // zamanında, yalnızca bizim yazdığımız `prisma.config.ts` için
+              // çağrılıyor. Başka bir yoldan gelirse ölçüm geçersizdir.
+              yolIcermeli: '@prisma/config@',
+              bitis: '2026-11-22',
+              kayit: 'ADVISORY-002',
+              neden:
+                'Yama 8.0.0, mevcut 7.1.5 — MAJÖR ATLAMA. Üst paket sürümü ' +
+                'TAM SABİTLİYOR ("deepmerge-ts": "7.1.5"), yani override üst ' +
+                "paketin açık sözleşmesini çiğnerdi (oyunkitabı katman C/D).",
+            },
+          ];
+
+          const raporYolu = path.join(process.env.RUNNER_TEMP, 'denetim.json');
+          let rapor;
+          try {
+            rapor = JSON.parse(readFileSync(raporYolu, 'utf8'));
+          } catch (e) {
+            // Ayrıştırılamayan çıktı YUTULMAZ: `pnpm audit` ağ hatası ya da
+            // kayıt sunucusu arızası yüzünden boş dönmüş olabilir ve o hâlde
+            // "bulgu yok" sonucu ölçüm değil, ölçüm YOKLUĞUDUR.
+            console.error(`Denetim çıktısı okunamadı (${raporYolu}): ${e.message}`);
+            process.exit(1);
+          }
+
+          const advisories = Object.values(rapor.advisories ?? {});
+          for (const a of advisories) {
+            console.log(
+              `${a.github_advisory_id} · ${a.severity} · ${a.module_name}@` +
+                `${a.findings?.[0]?.version} · yama ${a.patched_versions} · ${a.url ?? ''}`,
+            );
+          }
+          const bugun = new Date().toISOString().slice(0, 10);
+
+          const hatalar = [];
+          const kullanilan = new Set();
+
+          for (const a of advisories) {
+            if (a.severity !== 'high' && a.severity !== 'critical') continue;
+
+            const ghsa = a.github_advisory_id;
+            const istisna = ISTISNALAR.find((i) => i.ghsa === ghsa);
+
+            if (!istisna) {
+              hatalar.push(
+                `${ghsa} (${a.severity}, ${a.module_name}) — istisna YOK. ` +
+                  'Oyunkitabı: docs/security/README.md → "Oyunkitabı".',
+              );
+              continue;
+            }
+
+            kullanilan.add(ghsa);
+
+            if (bugun > istisna.bitis) {
+              hatalar.push(
+                `${ghsa} — istisnanın SÜRESİ DOLDU (${istisna.bitis}, bugün ${bugun}). ` +
+                  `${istisna.kayit} yeniden değerlendirilmeli: üst paket yamalı ` +
+                  'sürümü getirdiyse istisna silinir, getirmediyse süre GEREKÇEYLE uzatılır.',
+              );
+              continue;
+            }
+
+            if (a.module_name !== istisna.paket) {
+              hatalar.push(`${ghsa} — beklenen paket ${istisna.paket}, gelen ${a.module_name}.`);
+              continue;
+            }
+
+            const yollar = (a.findings ?? []).flatMap((f) => f.paths ?? []);
+            const sapan = yollar.filter((y) => !y.includes(istisna.yolIcermeli));
+            if (sapan.length > 0) {
+              hatalar.push(
+                `${ghsa} — YENİ YOL(LAR) belirdi; ${istisna.kayit}'nin maruziyet ` +
+                  `ölçümü "${istisna.yolIcermeli}" yoluna dayanıyordu:\n    ` +
+                  sapan.join('\n    '),
+              );
+              continue;
+            }
+
+            const kalan = Math.ceil(
+              (Date.parse(istisna.bitis) - Date.parse(bugun)) / 86400000,
+            );
+            console.log(
+              `⏳ ${ghsa} (${a.module_name}@${a.findings?.[0]?.version}) — ` +
+                `${istisna.kayit} kapsamında SÜRELİ istisna, ${kalan} gün kaldı ` +
+                `(bitiş ${istisna.bitis}). ${yollar.length} yolun hepsi beklenen zincirde.`,
+            );
+          }
+
+          // Ölü satır avı: bildirilmeyen bir istisna, silinmesi gereken bir
+          // satırdır. Sessizce dursaydı bir sonraki gözden geçirmede "bu neden
+          // burada?" sorusuna kimse cevap veremezdi.
+          for (const i of ISTISNALAR) {
+            if (!kullanilan.has(i.ghsa)) {
+              hatalar.push(
+                `${i.ghsa} artık bildirilmiyor — ${i.kayit} istisnası GEREKSİZ. ` +
+                  'Bu satırı ve kaydı kapatın (üst paket muhtemelen yamayı getirdi).',
+              );
+            }
+          }
+
+          if (hatalar.length > 0) {
+            console.error('\n§8.24 KAPISI KIRMIZI:\n- ' + hatalar.join('\n- '));
+            process.exit(1);
+          }
+
+          const toplam = advisories.filter(
+            (a) => a.severity === 'high' || a.severity === 'critical',
+          ).length;
+          console.log(
+            `\n§8.24 geçti — ${toplam} yüksek/kritik advisory, hepsi süreli ve kayıtlı istisna.`,
+          );
+          BETIK
 
       # Kırmızı olduğunda NE OLUR — özellikle haftalık koşumda.
       #
@@ -332,6 +515,11 @@ jobs:
             echo 'bağımlılıkta yüksek/kritik advisory". Sırasıyla: maruziyeti ölç →'
             echo 'katmanı seç (kilit tazeleme / override / üst paketi yükselt / bekle) →'
             echo '`pnpm why` ile TÜM yolları doğrula → kaldırma koşuluyla kaydet.'
+            echo
+            echo 'Adımın kendi çıktısı hangi dalda düştüğünü söyler: istisnası olmayan'
+            echo 'yeni bir advisory mi, süresi dolmuş bir istisna mı (ADVISORY-NNN'
+            echo 'yeniden değerlendirilmeli), gereksizleşmiş bir istisna mı (satır'
+            echo 'silinmeli), yoksa beklenmedik bir bağımlılık yolu mu.'
           } >> "$GITHUB_STEP_SUMMARY"
 
       # Kilit dosyası ile package.json ayrışmışsa `--frozen-lockfile` zaten
@@ -414,6 +602,12 @@ jobs:
       TOTP_ENCRYPTION_KEY: Y2ktdGVzdC1vbmx5LW5vdC1hLXJlYWwta2V5LTAwMDA=
       ADMIN_EMAIL: ci@ornek.test
       ADMIN_PASSWORD: ci-test-parolasi-1234
+      # `kapi` ile AYNI DEĞER — gerekçenin tamamı orada. Bu iş de `pnpm build`
+      # koşuyor, yani `robots.txt` ön-render'ı buradaki derlemede de var:
+      # değişken olmadan bu iş `kapi` ile birebir aynı hatayla düşerdi.
+      # T-029c'de eklenen DB kurulumu bu arızayı KARŞILAMAZ — eksik olan
+      # veritabanı değil, mutlak adres.
+      NEXT_PUBLIC_SITE_URL: https://ci-test-only.ornek.test
 
     steps:
       - uses: actions/checkout@v7

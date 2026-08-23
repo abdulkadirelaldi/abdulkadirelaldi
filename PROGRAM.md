@@ -156,8 +156,10 @@ Kart zemininde gradient kullanılmaz.
 | Body | **Inter** (400/500/600) | Paragraf, buton, form, nav |
 | Utility | **JetBrains Mono** (400/500) | Sayılar, para birimi, tarih, etiket, kod |
 
-`next/font/google` ile yüklenir, `display: swap`, sadece `latin` + `latin-ext` subset
-(Türkçe karakterler için `latin-ext` zorunlu).
+**`next/font/local` ile yüklenir** — `.woff2` dosyaları repoda barındırılır (ADR-031;
+derleme ağa bağımlı olmasın ve çalışma zamanında üçüncü tarafa istek gitmesin).
+`display: swap`, sadece `latin` + `latin-ext` subset (Türkçe karakterler için
+`latin-ext` **zorunlu**). Üç font da SIL Open Font License; lisans dosyaları repoda tutulur.
 
 **Tip ölçeği (rem):** 0.75 / 0.875 / 1 / 1.125 / 1.25 / 1.5 / 1.875 / 2.25 / 3 / 3.75
 Başlıklarda `letter-spacing: -0.02em`, gövde metninde `line-height: 1.7`.
@@ -198,6 +200,11 @@ Panelde tüm sayısal veri (tutar, kilo, set, tarih) JetBrains Mono ile sekmeli 
 /iletisim            Form + doğrudan iletişim bilgileri
 /cv                  Yazdırılabilir tek sayfa CV (print stylesheet)
 /rss.xml /sitemap.xml /robots.txt /og/[...]  (dinamik OG görseli)
+
+**Sitemap kuralı (BULGU-016):** Bir rota, **yayına girdiği turda** sitemap'e eklenir —
+önceden değil. Var olmayan adres bildirmek arama motoruna kırık bağlantı sinyali verir
+ve tarama bütçesi harcar. Aynı dürüstlük kuralı `NavItem.hazir` (T-018) ve "Yakında"
+kartlarında da geçerli: çalışıyormuş gibi görünen hiçbir beyan bırakılmaz.
 ```
 
 ### 4.2 Panel Rotaları (`/panel`, tamamı korumalı)
