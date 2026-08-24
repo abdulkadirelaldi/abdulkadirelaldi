@@ -536,18 +536,25 @@ jobs:
           echo "Yalnızca pnpm-lock.yaml var."
 
   # ---------------------------------------------------------------------------
-  # §9 — Lighthouse eşikleri.
+  # §9 — Lighthouse eşikleri. **T-029'DAN İTİBAREN MERGE KAPISI** ("error").
   #
-  # F0'da UYARI modunda (`lighthouserc.json` → level "warn"): public sayfalar
-  # henüz yazılmadı, `/` şu an T-002'nin geçici doğrulama sayfası. Gerçek
-  # eşikleri bugün zorlamak, ölçülen şey ile hedeflenen şey farklı olduğu için
-  # anlamsız bir kırmızı üretirdi.
+  # F0-F2 boyunca "warn"di: ölçülen sayfa T-002'nin geçici doğrulama sayfasıydı,
+  # gerçek eşikleri zorlamak anlamsız bir kırmızı üretirdi. T-021 gerçek ana
+  # sayfayı, T-029b kararlı ölçüm sunucusunu, T-029c veri kurulumunu getirdi;
+  # eşikler artık ölçülen şeyi ölçüyor.
   #
-  # F2 sonunda (T-029) "warn" → "error" çevrilecek; o noktada ölçülen sayfa
-  # gerçek ana sayfa olacak.
+  # EŞİKLER İKİ YERDE DEĞİL: `lighthouserc.json` mobil iki profilin eşiklerini
+  # taşır; masaüstü profili aşağıda O DOSYADAN TÜRETİLİR (yalnızca performans
+  # satırı değişir). Gerekçe ve ölçüm: BULGU-018.
+  #
+  # ⚠️ ADR-030 — SEED ÖLÇÜM SÖZLEŞMESİDİR. Eşikler sertleştiği için, seed
+  # verisini büyüten her görev bu işi kırabilir: ölçülen sayfanın içeriği
+  # seed'den geliyor. Bu BOZUK BİR KAPI DEĞİL, GERÇEK BİLGİ — sayfa gerçekten
+  # ağırlaşmıştır. Seed büyüten görev Lighthouse'u yeniden ölçüp raporlamak
+  # zorundadır (docs/security/README.md → "ADR-030 ve eşikler").
   # ---------------------------------------------------------------------------
   lighthouse:
-    name: §9 · Lighthouse (uyarı modunda — T-029'da error olacak)
+    name: §9 · Lighthouse (merge kapısı — eşikler "error")
     runs-on: ubuntu-latest
     timeout-minutes: 20
     needs: kapi
@@ -689,7 +696,22 @@ jobs:
       # ortamı bu adımdan miras alıyor. Adımlardan birinde unutulursa yalnızca
       # o profil 500 görür — diğerleri yeşil kalır ve arıza tek profile
       # gizlenir.
+      #
+      # ⚠️ `continue-on-error: true` — KAPI GEVŞEMİYOR, aşağıdaki "§9 KAPISI"
+      # adımı üç profilin sonucunu toplayıp işi düşürüyor. Gerekçe: eşikler
+      # "error" olduğu andan itibaren ilk düşen profil adımı sonlandırır ve
+      # ARKASINDAKİ HER ŞEY atlanırdı — diğer iki profil hiç ölçülmez, üç
+      # profilin skor özeti basılmaz, §5.2.2/§5.2.5 WebGL doğrulaması hiç
+      # koşmazdı. Yani "mobil performans 2 puan düştü" tek satırı, WebGL
+      # denetimini de sessizce kapatırdı. Bu kurulumda üçü de her koşumda
+      # ölçülür, bütün tanı çıktısı üretilir, sonra iş kırmızı olur.
+      #
+      # Güvenli olmasının sebebi ölçüldü: `lhci autorun` assert başarısız olsa
+      # bile raporları YİNE yükler (autorun.js — assert → upload → exit 1),
+      # dolayısıyla özet ve WebGL doğrulaması verisiz kalmaz.
       - name: Lighthouse — mobil + aydınlık tema
+        id: profil-mobil-aydinlik
+        continue-on-error: true
         env:
           DATABASE_URL: postgresql://ci:ci@localhost:5432/aelaldi_ci
         run: pnpm dlx @lhci/cli@0.15.1 autorun
@@ -703,6 +725,8 @@ jobs:
       # ölçülen şey gerçekten koyu temadır. Kanıt: üretilen raporda
       # `configSettings.extraHeaders` alanı bu başlığı taşır.
       - name: Lighthouse — mobil + koyu tema (varsayılan tema)
+        id: profil-mobil-koyu
+        continue-on-error: true
         env:
           DATABASE_URL: postgresql://ci:ci@localhost:5432/aelaldi_ci
         run: |
@@ -723,11 +747,60 @@ jobs:
       # sağlanmıyor ve `ogl` parçası ağdan HİÇ istenmiyor. Sonuç: WebGL yolu
       # bugüne kadar HİÇBİR CI koşusunda ölçülmedi — §5.2'nin en pahalı dalı
       # denetim dışındaydı. Bu profil o boşluğu kapatıyor.
-      - name: Lighthouse — masaüstü + koyu tema (WebGL yolu)
+      #
+      # PERFORMANS EŞİĞİ BU PROFİLDE FARKLI — 0.90 değil 0.55 (BULGU-018).
+      # Ölçüm (koşum 32671011873 ve 32670153381, 5'er koşu, YAYILIM 0):
+      #   mobil-koyu     perf 95   TBT     80 ms   SI  0.8 s
+      #   masaustu-koyu  perf 60   TBT  9 990 ms   SI 11.9 s
+      # Fark tek bir şeyden geliyor: bu profilde Aurora (WebGL) yükleniyor ve
+      # koşucuda GPU yok — `ogl` parçası yazılım rasterleyicide çalışıyor.
+      # 0.90 dayatmak, kod gerilemesi olmadan HER koşumda kırmızı üretirdi;
+      # "haksız düşen kapı"nın ta kendisi (font dersimiz). 0.55 ise ölçülen
+      # 60'ın 5 puan altında: bugünü geçirir, DAHA DA kötüleşirse kırmızı olur.
+      # Bu eşik bir HEDEF DEĞİL TAVAN — §9'un masaüstü hedefi hâlâ 90.
+      #
+      # Config TÜRETİLİYOR, kopyalanmıyor: `lighthouserc.json` tek kaynak;
+      # burada yalnızca performans satırı değişiyor, diğer üç eşik miras
+      # alınıyor. CLI ile geçersiz kılma DENENDİ VE ÇALIŞMIYOR (nokta gösterimi
+      # `normalizeAssertion is not a function` ile çöküyor; JSON dizi biçimi
+      # sessizce yok sayılıyor — ikincisi daha tehlikeli: kapı gevşemiş
+      # görünmeden gevşerdi).
+      - name: Lighthouse — masaüstü + koyu tema (WebGL yolu, perf eşiği 0.55)
+        id: profil-masaustu-koyu
+        continue-on-error: true
         env:
           DATABASE_URL: postgresql://ci:ci@localhost:5432/aelaldi_ci
         run: |
+          node <<'BETIK'
+          const { readFileSync, writeFileSync } = require('node:fs');
+          const path = require('node:path');
+
+          const cfg = JSON.parse(readFileSync('lighthouserc.json', 'utf8'));
+          const esikler = cfg.ci.assert.assertions;
+
+          // Türetmenin sessizce boşa düşmemesi için ÖNCE beklenen tabanı
+          // doğrula: temel dosyada performans eşiği 0.90 "error" olmalı.
+          // Biri temeli değiştirirse burada durur ve fark edilir.
+          const mevcut = esikler['categories:performance'];
+          if (mevcut?.[0] !== 'error' || mevcut?.[1]?.minScore !== 0.9) {
+            console.error(
+              'lighthouserc.json performans eşiği beklenenden farklı: ' +
+                JSON.stringify(mevcut) +
+                '\nMasaüstü türetmesi (BULGU-018) gözden geçirilmeli.',
+            );
+            process.exit(1);
+          }
+
+          esikler['categories:performance'] = ['error', { minScore: 0.55 }];
+
+          const hedef = path.join(process.env.RUNNER_TEMP, 'lighthouserc.masaustu.json');
+          writeFileSync(hedef, JSON.stringify(cfg, null, 2));
+          console.log(`Masaüstü config türetildi → ${hedef}`);
+          console.log(JSON.stringify(esikler, null, 2));
+          BETIK
+
           pnpm dlx @lhci/cli@0.15.1 autorun \
+            --config="$RUNNER_TEMP/lighthouserc.masaustu.json" \
             --collect.settings.preset=desktop \
             --collect.settings.extraHeaders='{"Cookie":"ae-theme=dark"}' \
             --upload.outputDir=lighthouse-raporu/masaustu-koyu
@@ -924,6 +997,86 @@ jobs:
               );
             }
           }
+          BETIK
+
+      # ═══════════════════════════════════════════════════════════════════════
+      # §9 KAPISI — üç profilin verdiği kararı burada topluyoruz (T-029).
+      # ═══════════════════════════════════════════════════════════════════════
+      #
+      # Üç ölçüm adımı `continue-on-error: true` taşıyor ki hepsi koşsun ve tanı
+      # çıktısı tam olsun. İŞİ DÜŞÜREN ADIM BURASI — bu adım silinirse eşikler
+      # sessizce tavsiyeye döner. Kapı gevşetilmek istenirse yapılacak şey bu
+      # adımı kaldırmak değil, `lighthouserc.json`daki eşiği ÖLÇÜYLE değiştirip
+      # gerekçesini yazmaktır.
+      #
+      # `if: always()` — önceki bir adım (ör. WebGL doğrulaması) düşse bile
+      # profil kararı yine de raporlanır.
+      - name: §9 KAPISI — eşikleri geçemeyen profil var mı
+        if: always()
+        env:
+          MOBIL_AYDINLIK: ${{ steps.profil-mobil-aydinlik.outcome }}
+          MOBIL_KOYU: ${{ steps.profil-mobil-koyu.outcome }}
+          MASAUSTU_KOYU: ${{ steps.profil-masaustu-koyu.outcome }}
+        run: |
+          node <<'BETIK'
+          const { appendFileSync } = require('node:fs');
+
+          // Eşikler yalnızca RAPOR METNİ için burada; tek kaynak
+          // `lighthouserc.json` (masaüstü performansı ondan türetiliyor).
+          const PROFILLER = [
+            { ad: 'mobil-aydinlik', env: 'MOBIL_AYDINLIK', esik: 'perf 0.90 · a11y/bp/seo 0.95' },
+            { ad: 'mobil-koyu', env: 'MOBIL_KOYU', esik: 'perf 0.90 · a11y/bp/seo 0.95' },
+            {
+              ad: 'masaustu-koyu',
+              env: 'MASAUSTU_KOYU',
+              esik: 'perf 0.55 (BULGU-018 tavanı) · a11y/bp/seo 0.95',
+            },
+          ];
+
+          const satirlar = [];
+          const dusenler = [];
+
+          for (const p of PROFILLER) {
+            const sonuc = process.env[p.env];
+            // 'skipped' de başarısızlıktır: profil hiç ölçülmediyse §9 o profil
+            // için "geçti" DİYEMEZ. Sessiz atlama, T-005b'de auth paketinin
+            // kendini atlamasıyla aynı sınıf hata olurdu.
+            const gecti = sonuc === 'success';
+            if (!gecti) dusenler.push(`${p.ad} (${sonuc})`);
+            satirlar.push(`| ${p.ad} | ${p.esik} | ${gecti ? '✅ geçti' : `❌ ${sonuc}`} |`);
+          }
+
+          const ozet = [
+            '## §9 · Lighthouse kapısı',
+            '',
+            '| Profil | Eşik | Sonuç |',
+            '| ------ | ---- | ----- |',
+            ...satirlar,
+            '',
+          ];
+
+          if (dusenler.length > 0) {
+            ozet.push(
+              `**${dusenler.length} profil eşiği geçemedi:** ${dusenler.join(', ')}.`,
+              '',
+              'Skorların tamamı bir önceki adımda ("Profil skorları") ham değerleriyle',
+              'listelendi; hangi kategorinin düştüğü ilgili profil adımının çıktısında.',
+              '',
+              'Meşru iki cevap var: sayfayı hafifletmek, ya da eşiği YENİ BİR ÖLÇÜMLE ve',
+              'gerekçeyle değiştirmek (docs/security/README.md → "Eşikler error\'a çevrildi").',
+              'Seed verisi büyüdüyse bu bozuk bir kapı değil, gerçek bilgidir (ADR-030).',
+            );
+          } else {
+            ozet.push('Üç profil de eşikleri geçti.');
+          }
+
+          const metin = ozet.join('\n');
+          console.log(metin);
+          if (process.env.GITHUB_STEP_SUMMARY) {
+            appendFileSync(process.env.GITHUB_STEP_SUMMARY, metin + '\n');
+          }
+
+          if (dusenler.length > 0) process.exit(1);
           BETIK
 
       # Yol NOKTA İLE BAŞLAMAMALI: `actions/upload-artifact` gizli dosya ve

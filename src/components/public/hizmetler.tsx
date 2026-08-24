@@ -74,7 +74,7 @@ export function Hizmetler({ hizmetler, kiyiMedyaUrl }: HizmetlerProps) {
             title="Hizmet listesi hazırlanıyor"
             description="Ne yaptığımı buradan anlatacağım. Aklındaki işi şimdiden konuşabiliriz."
             action={
-              <Link href="/iletisim" prefetch={false} className={buttonClasses({ size: 'sm' })}>
+              <Link href="/iletisim" className={buttonClasses({ size: 'sm' })}>
                 Bana yaz
               </Link>
             }

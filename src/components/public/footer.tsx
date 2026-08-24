@@ -5,10 +5,10 @@ import { SITE_NAME } from '@/lib/constants';
 /** `hazir`: sayfa AÇILDI mı. Açılmamış rotayı ön çekmek 404 üretir (T-002b). */
 const FOOTER_LINKS = [
   { href: '/hakkimda', label: 'Hakkımda', hazir: true },
-  { href: '/projeler', label: 'Projeler', hazir: false },
-  { href: '/blog', label: 'Blog', hazir: false },
-  { href: '/hizmetler', label: 'Hizmetler', hazir: false },
-  { href: '/iletisim', label: 'İletişim', hazir: false },
+  { href: '/projeler', label: 'Projeler', hazir: true },
+  { href: '/blog', label: 'Blog', hazir: true },
+  { href: '/hizmetler', label: 'Hizmetler', hazir: true },
+  { href: '/iletisim', label: 'İletişim', hazir: true },
   { href: '/cv', label: 'CV', hazir: true },
 ] as const;
 

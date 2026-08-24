@@ -465,8 +465,12 @@ model ContactMessage {
   message    String
   sourcePage String?
 
-  /// §8 / KVKK — 90 gün sonra temizlenir.
+  /// §8 / KVKK — 90 gün sonra temizlenir. §8.15'in saatlik sayacı da bunu okur.
   ip String?
+  /// §8 / KVKK — `ip` ile aynı ömürde temizlenir. Spam incelemesinde tek başına
+  /// `ip`den daha ayırt edici: aynı vekilden gelen gerçek ziyaretçi ile betiği
+  /// ayıran şey çoğu zaman istemci imzasıdır.
+  userAgent String?
 
   isRead     Boolean   @default(false)
   isSpam     Boolean   @default(false)
@@ -485,6 +489,10 @@ model ContactMessage {
 
   @@index([isRead, createdAt])
   @@index([isSpam, createdAt])
+  /// §8.15 — "IP başına saatte 3" sayacının okuduğu tam desen. Bu indeks
+  /// olmadan her form gönderimi tabloyu baştan sona tarar; hız sınırının
+  /// maliyeti mesaj sayısıyla birlikte sessizce büyürdü.
+  @@index([ip, createdAt])
   @@map("contact_message")
 }
 

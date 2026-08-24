@@ -16,17 +16,21 @@ import { cn } from '@/lib/utils/cn';
  * 404 döner ve tarayıcı bunu konsola HATA olarak yazar — Lighthouse'un
  * `errors-in-console` denetimi bu yüzden sıfır almıştı.
  *
- * T-023c: kural artık BAĞLANTI BAŞINA. Toptan kaldırmak, henüz açılmamış dört
- * rotanın 404 ön çekmesini geri getirirdi; toptan bırakmak da açılmış sayfaların
- * gezinmesini yavaşlatırdı. `hazir` alanı sayfa açıldığı gün `true` yapılır ve
- * o bağlantı ön çekmeye başlar.
+ * T-023c: kural artık BAĞLANTI BAŞINA. Toptan kaldırmak, henüz açılmamış
+ * rotaların 404 ön çekmesini geri getirirdi; toptan bırakmak da açılmış
+ * sayfaların gezinmesini yavaşlatırdı. `hazir` alanı sayfa açıldığı gün `true`
+ * yapılır ve o bağlantı ön çekmeye başlar.
+ *
+ * T-026 itibarıyla menüdeki HER rota yayında, yani hepsi `true`. Alan yine de
+ * duruyor: bir sonraki yeni sayfa `false` ile eklenip yayına girdiği turda
+ * açılacak. İki kez işe yaradı, silinecek bir şey değil.
  */
 const NAV_LINKS = [
   { href: '/hakkimda', label: 'Hakkımda', hazir: true },
-  { href: '/projeler', label: 'Projeler', hazir: false },
-  { href: '/blog', label: 'Blog', hazir: false },
-  { href: '/hizmetler', label: 'Hizmetler', hazir: false },
-  { href: '/iletisim', label: 'İletişim', hazir: false },
+  { href: '/projeler', label: 'Projeler', hazir: true },
+  { href: '/blog', label: 'Blog', hazir: true },
+  { href: '/hizmetler', label: 'Hizmetler', hazir: true },
+  { href: '/iletisim', label: 'İletişim', hazir: true },
 ] as const;
 
 /**

@@ -297,7 +297,26 @@ export const GooeyNav = dynamic(() => import('./gooey-nav'), {
   loading: iskelet('h-10 w-96'),
 });
 
-/** Kıyı Medya müşteri logoları — hizmetler sayfası (§5.1). */
+/**
+ * Kıyı Medya müşteri logoları — §5.1 bunu hizmetler sayfasına koyuyor.
+ *
+ * ⚠️ BUGÜN ÇAĞIRAN YOK — T-026 kararı, gerekçesiyle:
+ *
+ * Gösterilecek logo VERİSİ yok. `Client` tablosu var ama public bir servisi
+ * yok ve logolar `Attachment` olarak saklanacak; `AttachmentRefDto` da henüz
+ * URL taşımıyor (ADR-018, T-037 bekliyor). Yani şerit ya boş kutularla ya da
+ * uydurma logolarla çizilirdi.
+ *
+ * İkisi de kabul edilmedi: "müşteri logoları" başlıklı bir şerit, içindekiler
+ * yer tutucu olsa bile "bunlar benim müşterilerim" iddiası taşır — ADR-027'nin
+ * yasakladığı uydurma istatistikle aynı şey, üstelik görselle. Eksik bölüm,
+ * yanlış iddiadan iyidir.
+ *
+ * BÖLÜMÜN AÇILMA KOŞULU (ikisi birden): (1) müşteri logolarını veren bir public
+ * servis, (2) T-037'nin imzalı URL'leri. İkisi olduğunda `/hizmetler` sayfasına
+ * bir bölüm eklenir ve bu bileşen oradan çağrılır — bileşenin kendisi T-020'de
+ * uyarlandı, hazır duruyor.
+ */
 export const LogoLoop = dynamic(() => import('./logo-loop'), {
   ssr: false,
   loading: iskelet('h-16 w-full'),

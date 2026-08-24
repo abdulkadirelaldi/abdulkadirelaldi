@@ -27,12 +27,8 @@ describe('getSiteUrl — adres koda gömülmez', () => {
   });
 
   it('sondaki eğik çizgiyi kırpar — çift eğik çizgi yinelenen URL üretir', () => {
-    expect(getSiteUrl({ NEXT_PUBLIC_SITE_URL: 'https://x.dev/' })).toBe(
-      'https://x.dev',
-    );
-    expect(getSiteUrl({ NEXT_PUBLIC_SITE_URL: 'https://x.dev///' })).toBe(
-      'https://x.dev',
-    );
+    expect(getSiteUrl({ NEXT_PUBLIC_SITE_URL: 'https://x.dev/' })).toBe('https://x.dev');
+    expect(getSiteUrl({ NEXT_PUBLIC_SITE_URL: 'https://x.dev///' })).toBe('https://x.dev');
   });
 
   it('TANIMSIZSA FIRLATIR — sessizce localhost yayınlamaz', () => {
@@ -42,15 +38,13 @@ describe('getSiteUrl — adres koda gömülmez', () => {
   });
 
   it('şemasız değer FIRLATIR', () => {
-    expect(() =>
-      getSiteUrl({ NEXT_PUBLIC_SITE_URL: 'abdulkadirelaldi.com' }),
-    ).toThrow(/geçerli bir URL değil/);
+    expect(() => getSiteUrl({ NEXT_PUBLIC_SITE_URL: 'abdulkadirelaldi.com' })).toThrow(
+      /geçerli bir URL değil/,
+    );
   });
 
   it('http/https dışı şema FIRLATIR', () => {
-    expect(() =>
-      getSiteUrl({ NEXT_PUBLIC_SITE_URL: 'ftp://x.dev' }),
-    ).toThrow(/http\/https/);
+    expect(() => getSiteUrl({ NEXT_PUBLIC_SITE_URL: 'ftp://x.dev' })).toThrow(/http\/https/);
   });
 });
 

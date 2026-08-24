@@ -1,10 +1,6 @@
 import type { MetadataRoute } from 'next';
 
-import {
-  absoluteUrl,
-  getPostSitemapEntries,
-  getProjectSitemapEntries,
-} from '@/server/services';
+import { absoluteUrl, getPostSitemapEntries, getProjectSitemapEntries } from '@/server/services';
 
 /**
  * sitemap.xml — §4.1.
