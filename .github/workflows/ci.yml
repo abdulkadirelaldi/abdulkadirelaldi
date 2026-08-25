@@ -543,9 +543,10 @@ jobs:
   # sayfayı, T-029b kararlı ölçüm sunucusunu, T-029c veri kurulumunu getirdi;
   # eşikler artık ölçülen şeyi ölçüyor.
   #
-  # EŞİKLER İKİ YERDE DEĞİL: `lighthouserc.json` mobil iki profilin eşiklerini
-  # taşır; masaüstü profili aşağıda O DOSYADAN TÜRETİLİR (yalnızca performans
-  # satırı değişir). Gerekçe ve ölçüm: BULGU-018.
+  # EŞİKLER TEK YERDE: `lighthouserc.json`. T-029'da masaüstü profili için
+  # ayrı bir tavan (0.55) türetiliyordu; T-020c BULGU-018'i kapatınca profil
+  # gerçek koşucuda 100 ölçtü ve türetme T-029e'de KALDIRILDI — üç profil de
+  # aynı eşikleri kullanıyor.
   #
   # ⚠️ ADR-030 — SEED ÖLÇÜM SÖZLEŞMESİDİR. Eşikler sertleştiği için, seed
   # verisini büyüten her görev bu işi kırabilir: ölçülen sayfanın içeriği
@@ -626,6 +627,155 @@ jobs:
 
       - name: Bağımlılıkları kur
         run: pnpm install --frozen-lockfile
+
+      # ═══════════════════════════════════════════════════════════════════════
+      # KOŞUCUNUN ÇİZİM GÜCÜ — ÖLÇÜLÜR, VARSAYILMAZ (T-029e)
+      # ═══════════════════════════════════════════════════════════════════════
+      #
+      # NEDEN VAR: T-020c, Aurora'ya BEŞİNCİ bir yüklenmeme koşulu ekledi —
+      # yazılım rasterleyici (BULGU-018: GPU'suz koşucuda WebGL CPU'da koşuyor,
+      # `bootup-time` 40.8 sn). Bundan sonra "masaüstü profilinde ogl inmeli"
+      # demek TEK BAŞINA YANLIŞ: doğru beklenti koşucunun GPU'suna bağlı.
+      # Koşum 32828187466 tam bu yüzden kırmızıydı — kontrol doğru çalışıyordu
+      # ama ÖNCÜLÜ bayattı.
+      #
+      # ⚠️ "headless = GPU yok" VARSAYIMI YANLIŞ — ölçüldü (macOS, M2):
+      #   tam Chrome / Playwright chromium + `--headless=new` → ANGLE Metal (DONANIM)
+      #   `chrome-headless-shell`                             → SwiftShader (YAZILIM)
+      #   tam Chrome + `--disable-gpu`                        → bağlam REDDEDİLDİ
+      # Yani cevap İKİLİYE ve BAYRAKLARA bağlı. Bu yüzden sonda, LHCI'ın
+      # kullandığı ikiliyi ve `lighthouserc.json`daki bayrakların AYNISINI
+      # kullanır; başka bayrak eklemez (bir `--disable-gpu` ölçümü uydururdu).
+      - name: Koşucunun çizim gücü (GPU mu, yazılım rasterleyici mi?)
+        run: |
+          node <<'BETIK'
+          const { execFileSync } = require('node:child_process');
+          const { appendFileSync, existsSync, readFileSync, writeFileSync } = require('node:fs');
+          const path = require('node:path');
+
+          /* 1) LHCI hangi Chrome'u kullanıyorsa sonda da onu kullanmalı.
+                `chrome-launcher` önce CHROME_PATH'e bakar, sonra kurulu
+                sürümleri arar; aynı sırayı izliyoruz. */
+          const adaylar = [
+            process.env.CHROME_PATH,
+            'google-chrome-stable',
+            'google-chrome',
+            'chromium-browser',
+            'chromium',
+          ].filter(Boolean);
+
+          let chrome = null;
+          for (const aday of adaylar) {
+            try {
+              chrome = execFileSync('bash', ['-lc', `command -v ${JSON.stringify(aday)}`], {
+                encoding: 'utf8',
+              }).trim();
+              if (chrome) break;
+            } catch {
+              /* sıradaki adaya geç */
+            }
+          }
+          if (!chrome) {
+            // SESSİZ VARSAYILAN YOK: Chrome bulunamadıysa ölçüm yapılamamıştır
+            // ve "GPU yok" demek ölçüm değil, tahmin olurdu (BULGU-013 dersi).
+            console.error(
+              'Chrome bulunamadı — çizim gücü ÖLÇÜLEMEDİ. Denenen: ' + adaylar.join(', ') +
+                '\nLighthouse zaten bu ikiliyle koşuyor; yoksa ölçümün tamamı şüphelidir.',
+            );
+            process.exit(1);
+          }
+
+          /* 2) Bayraklar TEK KAYNAKTAN: `lighthouserc.json`. Sonda ile ölçüm
+                farklı bayraklarla koşarsa sonda başka bir tarayıcıyı ölçer. */
+          const rc = JSON.parse(readFileSync('lighthouserc.json', 'utf8'));
+          const bayraklar = String(rc.ci.collect.settings.chromeFlags).split(/\s+/).filter(Boolean);
+
+          /* 3) Sonda sayfası — `gpu-tespit.ts` ile AYNI İKİ SİNYAL:
+                (a) failIfMajorPerformanceCaveat, (b) rasterleyici dizesi. */
+          const sondaYolu = path.join(process.env.RUNNER_TEMP, 'gpu-sonda.html');
+          writeFileSync(
+            sondaYolu,
+            `<!doctype html><meta charset="utf-8"><pre id="c">calisiyor</pre>
+            <script>
+            (function () {
+              var s = { baglam: 'yok', rasterleyici: '', hata: '' };
+              try {
+                var t = document.createElement('canvas'); t.width = 1; t.height = 1;
+                var o = { failIfMajorPerformanceCaveat: true };
+                var gl = t.getContext('webgl2', o) || t.getContext('webgl', o);
+                s.baglam = gl ? 'verildi' : 'reddedildi';
+                if (gl) {
+                  var e = gl.getExtension('WEBGL_debug_renderer_info');
+                  s.rasterleyici = e ? String(gl.getParameter(e.UNMASKED_RENDERER_WEBGL)) : '';
+                  var l = gl.getExtension('WEBGL_lose_context'); if (l) l.loseContext();
+                }
+              } catch (err) { s.hata = String((err && err.message) || err); }
+              document.getElementById('c').textContent = 'GPU_SONDA:' + JSON.stringify(s);
+            })();
+            </script>`,
+          );
+
+          let dom = '';
+          try {
+            dom = execFileSync(chrome, [...bayraklar, '--dump-dom', `file://${sondaYolu}`], {
+              encoding: 'utf8',
+              timeout: 60_000,
+              stdio: ['ignore', 'pipe', 'ignore'],
+            });
+          } catch (e) {
+            console.error(`Sonda çalıştırılamadı (${chrome}): ${e.message}`);
+            process.exit(1);
+          }
+
+          const eslesme = dom.match(/GPU_SONDA:(\{.*?\})/);
+          if (!eslesme) {
+            console.error('Sonda çıktısı ayrıştırılamadı — ölçüm YOK sayılır.');
+            process.exit(1);
+          }
+          const sonda = JSON.parse(eslesme[1]);
+
+          /* 4) İmza listesi Frontend'in modülünden OKUNUR (dosyaya dokunulmaz).
+                Kendi kopyamızı tutsaydık listeler sessizce ayrışır ve sonda ile
+                uygulama aynı koşucuda FARKLI karar verirdi. */
+          const kaynak = 'src/components/reactbits/gpu-tespit.ts';
+          if (!existsSync(kaynak)) {
+            console.error(`${kaynak} bulunamadı; imza listesi okunamıyor.`);
+            process.exit(1);
+          }
+          const blok = readFileSync(kaynak, 'utf8').match(/YAZILIM_IMZALARI\s*=\s*\[([\s\S]*?)\]/);
+          const imzalar = blok
+            ? [
+                ...blok[1]
+                  .replace(/\/\*[\s\S]*?\*\//g, '')
+                  .replace(/\/\/[^\n]*/g, '')
+                  .matchAll(/['"]([^'"]+)['"]/g),
+              ].map((m) => m[1].toLowerCase())
+            : [];
+          if (imzalar.length === 0) {
+            console.error(
+              `${kaynak} içindeki YAZILIM_IMZALARI listesi okunamadı. Liste taşındıysa ` +
+                'bu adım güncellenmeli — sessizce boş liste kullanmak, her yazılım ' +
+                'rasterleyiciyi "donanım" saymak olurdu.',
+            );
+            process.exit(1);
+          }
+
+          const rasterleyici = sonda.rasterleyici.toLowerCase();
+          const yazilimDizesi = imzalar.some((i) => rasterleyici.includes(i));
+          const guc = sonda.baglam !== 'verildi' || yazilimDizesi ? 'yazilim' : 'donanim';
+
+          console.log(`Chrome            : ${chrome}`);
+          console.log(`Bayraklar         : ${bayraklar.join(' ')}`);
+          console.log(`Bağlam (caveat)   : ${sonda.baglam}${sonda.hata ? ` (${sonda.hata})` : ''}`);
+          console.log(`Rasterleyici      : ${sonda.rasterleyici || '(bilgi yok)'}`);
+          console.log(`İmza eşleşti mi   : ${yazilimDizesi}`);
+          console.log(`ÇİZİM GÜCÜ        : ${guc.toUpperCase()}`);
+
+          appendFileSync(
+            process.env.GITHUB_ENV,
+            `CIZIM_GUCU=${guc}\nRASTERLEYICI=${sonda.rasterleyici || 'bilinmiyor'}\n`,
+          );
+          BETIK
 
       # `DATABASE_URL` BURADA DA BİLEREK TANIMSIZ — `kapi`'deki nöbetin ikizi
       # (BULGU-002). Ana sayfa veriye bağlandıktan SONRA da derlemenin
@@ -748,59 +898,28 @@ jobs:
       # bugüne kadar HİÇBİR CI koşusunda ölçülmedi — §5.2'nin en pahalı dalı
       # denetim dışındaydı. Bu profil o boşluğu kapatıyor.
       #
-      # PERFORMANS EŞİĞİ BU PROFİLDE FARKLI — 0.90 değil 0.55 (BULGU-018).
-      # Ölçüm (koşum 32671011873 ve 32670153381, 5'er koşu, YAYILIM 0):
-      #   mobil-koyu     perf 95   TBT     80 ms   SI  0.8 s
-      #   masaustu-koyu  perf 60   TBT  9 990 ms   SI 11.9 s
-      # Fark tek bir şeyden geliyor: bu profilde Aurora (WebGL) yükleniyor ve
-      # koşucuda GPU yok — `ogl` parçası yazılım rasterleyicide çalışıyor.
-      # 0.90 dayatmak, kod gerilemesi olmadan HER koşumda kırmızı üretirdi;
-      # "haksız düşen kapı"nın ta kendisi (font dersimiz). 0.55 ise ölçülen
-      # 60'ın 5 puan altında: bugünü geçirir, DAHA DA kötüleşirse kırmızı olur.
-      # Bu eşik bir HEDEF DEĞİL TAVAN — §9'un masaüstü hedefi hâlâ 90.
+      # EŞİK TÜRETMESİ KALDIRILDI (T-029e) — bu profil de artık 0.90.
       #
-      # Config TÜRETİLİYOR, kopyalanmıyor: `lighthouserc.json` tek kaynak;
-      # burada yalnızca performans satırı değişiyor, diğer üç eşik miras
-      # alınıyor. CLI ile geçersiz kılma DENENDİ VE ÇALIŞMIYOR (nokta gösterimi
-      # `normalizeAssertion is not a function` ile çöküyor; JSON dizi biçimi
-      # sessizce yok sayılıyor — ikincisi daha tehlikeli: kapı gevşemiş
-      # görünmeden gevşerdi).
-      - name: Lighthouse — masaüstü + koyu tema (WebGL yolu, perf eşiği 0.55)
+      # T-029'da buraya 0.55'lik bir TAVAN konmuştu çünkü profil 60 ölçüyordu:
+      # Aurora yazılım rasterleyicide koşuyor, TBT 9 990 ms (BULGU-018). T-020c
+      # o kök nedeni kapattı — GPU yoksa Aurora hiç yüklenmiyor — ve profil
+      # koşum 32828187466'da GERÇEK CI KOŞUCUSUNDA 100 ölçtü:
+      #   masaustu-koyu  perf medyan=100  [100, 100, 100, 100, 100]  yayılım=0
+      # Yani tavanın gerekçesi ortadan kalktı; 0.55'te tutmak, ölçüsü olmayan
+      # bir gevşekliği taşımak olurdu (10 puanlık pay yerine 45 puanlık pay).
+      #
+      # DONANIMLI KOŞUCUDA DA GÜVENLİ: Aurora'nın yüklendiği tek ölçüm
+      # (T-029b, GPU'lu makine) aynı profilde 100 vermişti. Yani her iki yolda
+      # da ölçülen değer 100; 0.90 ikisini de karşılıyor.
+      # Koşucu bir gün GPU'lu olursa ölçülen şey WebGL yoluna döner ve bunu
+      # "Koşucunun çizim gücü" adımı açıkça yazar — sessiz bir kayma olmaz.
+      - name: Lighthouse — masaüstü + koyu tema (WebGL yolu)
         id: profil-masaustu-koyu
         continue-on-error: true
         env:
           DATABASE_URL: postgresql://ci:ci@localhost:5432/aelaldi_ci
         run: |
-          node <<'BETIK'
-          const { readFileSync, writeFileSync } = require('node:fs');
-          const path = require('node:path');
-
-          const cfg = JSON.parse(readFileSync('lighthouserc.json', 'utf8'));
-          const esikler = cfg.ci.assert.assertions;
-
-          // Türetmenin sessizce boşa düşmemesi için ÖNCE beklenen tabanı
-          // doğrula: temel dosyada performans eşiği 0.90 "error" olmalı.
-          // Biri temeli değiştirirse burada durur ve fark edilir.
-          const mevcut = esikler['categories:performance'];
-          if (mevcut?.[0] !== 'error' || mevcut?.[1]?.minScore !== 0.9) {
-            console.error(
-              'lighthouserc.json performans eşiği beklenenden farklı: ' +
-                JSON.stringify(mevcut) +
-                '\nMasaüstü türetmesi (BULGU-018) gözden geçirilmeli.',
-            );
-            process.exit(1);
-          }
-
-          esikler['categories:performance'] = ['error', { minScore: 0.55 }];
-
-          const hedef = path.join(process.env.RUNNER_TEMP, 'lighthouserc.masaustu.json');
-          writeFileSync(hedef, JSON.stringify(cfg, null, 2));
-          console.log(`Masaüstü config türetildi → ${hedef}`);
-          console.log(JSON.stringify(esikler, null, 2));
-          BETIK
-
           pnpm dlx @lhci/cli@0.15.1 autorun \
-            --config="$RUNNER_TEMP/lighthouserc.masaustu.json" \
             --collect.settings.preset=desktop \
             --collect.settings.extraHeaders='{"Cookie":"ae-theme=dark"}' \
             --upload.outputDir=lighthouse-raporu/masaustu-koyu
@@ -906,8 +1025,23 @@ jobs:
 
           const hatalar = [];
 
+          /* Çizim gücü ÖLÇÜLMÜŞ olmalı — "ölçüm yok" ile "GPU yok" ayrı şeyler.
+             Sonda adımı düşerse iş zaten kırmızıdır; buradaki kontrol, birinin
+             sonda adımını kaldırıp bu betiği olduğu gibi bırakmasına karşı. */
+          const cizimGucu = process.env.CIZIM_GUCU;
+          if (cizimGucu !== 'donanim' && cizimGucu !== 'yazilim') {
+            console.error(
+              `CIZIM_GUCU ölçülmemiş (değer: ${cizimGucu ?? 'tanımsız'}). ` +
+                'Bu betiğin beklentisi koşucunun GPU durumuna bağlı; ölçüm ' +
+                'olmadan hiçbir iddia sınanamaz. "Koşucunun çizim gücü" adımı ' +
+                'kaldırıldıysa bu kontrol de gözden geçirilmeli.',
+            );
+            process.exit(1);
+          }
+          console.log(`çizim gücü (ölçülen) : ${cizimGucu} — ${process.env.RASTERLEYICI}`);
+
           // §5.2.5 HER KOŞULDA geçerli: mobilde WebGL parçası hiç istenmemeli.
-          // Bu dal, Aurora sayfada olsun olmasın anlamlıdır.
+          // Bu dal, Aurora sayfada olsun olmasın ve GPU olsun olmasın anlamlıdır.
           if (mobilYukledi) {
             hatalar.push(
               '§5.2.5 İHLALİ — Mobil profilinde WebGL parçası indirildi. ' +
@@ -916,25 +1050,58 @@ jobs:
           }
 
           /*
-           * ÜÇ DURUM, ÜÇ DAVRANIŞ. Ortadaki durum bilerek "hata" değil:
-           * Aurora şu an yalnızca React Bits galerisinde kullanılıyor, ölçülen
-           * `/` sayfasında değil (T-021 gerçek ana sayfayı yazıyor ve §5.1'e
-           * göre hero arka planı Aurora olacak).
+           * ÜÇ İDDİA (T-029e). Beklenen davranış koşucunun ÇİZİM GÜCÜNE bağlı;
+           * tek yönlü "ogl inmeli" kuralı T-020c'den sonra YANLIŞ oldu ve koşum
+           * 32828187466'yı haksız yere kırmızı yaptı — kontrol çalışıyordu ama
+           * öncülü bayattı.
            *
-           * Bu bekleme hâli KENDİ KENDİNE SONA ERER: sayfa Aurora'yı mount
-           * ettiği anda `AURORA_SAYFADA=1` olur ve kontrol ZORUNLU hâle gelir.
-           * Elle bir bayrak çevirmek gerekmiyor — unutulacak bir adım yok.
+           *   GPU VAR      → masaüstünde ogl İNMELİ      (§5.2.2, eski iddia)
+           *   GPU YOK      → masaüstünde ogl İNMEMELİ    (T-020c, YENİ iddia)
+           *   HER KOŞULDA  → mobilde ogl İNMEMELİ        (§5.2.5, yukarıda)
+           *
+           * Son dal (Aurora sayfada değil) T-021'den beri fiilen kullanılmıyor
+           * ama duruyor: hero bir gün Aurora'sız kalırsa kontrol kendiliğinden
+           * beklemeye döner ve yanlış bir iddiada bulunmaz.
            */
-          if (process.env.AURORA_SAYFADA === '1') {
+          if (process.env.AURORA_SAYFADA === '1' && cizimGucu === 'donanim') {
+            /* İDDİA 1 — GPU VAR: masaüstünde ogl İNMELİ (§5.2.2, değişmedi).
+               Beş koşulun beşi de sağlanıyor demektir; inmiyorsa biri bozuk. */
             if (!masaustuYukledi) {
               hatalar.push(
-                '§5.2.2 — Sayfa Aurora içeriyor AMA masaüstü profilinde WebGL ' +
-                  'parçası indirilmedi. Dört koşuldan biri bozulmuş olmalı ' +
-                  '(masaüstü eşiği / hareket kısıtı / tema cookie\'si / hidrasyon). ' +
-                  'Bu hâlde profil "WebGL yolunu ölçüyorum" diyemez.',
+                '§5.2.2 — Sayfa Aurora içeriyor, koşucuda DONANIM hızlandırması ' +
+                  `var (${process.env.RASTERLEYICI}) AMA masaüstü profilinde WebGL ` +
+                  'parçası indirilmedi. Beş koşuldan biri bozulmuş olmalı (masaüstü ' +
+                  "eşiği / hareket kısıtı / tema cookie'si / hidrasyon / çizim gücü " +
+                  'tespiti). Bu hâlde profil "WebGL yolunu ölçüyorum" diyemez.',
               );
             } else {
-              console.log('§5.2.2 doğrulandı — masaüstünde WebGL yüklendi.');
+              console.log('§5.2.2 doğrulandı — donanım hızlandırmalı koşucuda WebGL yüklendi.');
+            }
+          } else if (process.env.AURORA_SAYFADA === '1' && cizimGucu === 'yazilim') {
+            /* İDDİA 2 — GPU YOK: masaüstünde ogl İNMEMELİ (T-020c kuralı).
+               Bu YENİ bir iddia ve kontrolü ZAYIFLATMIYOR, aksine BULGU-018'in
+               geri gelişini yakalıyor: yazılım rasterleyicide Aurora yüklenirse
+               `bootup-time` 40 saniyeye, TBT 10 saniyeye çıkıyordu ve eşikler
+               bunu ancak DOLAYLI görüyordu (performans skoru). Artık kapı
+               doğrudan sebebi söylüyor. */
+            if (masaustuYukledi) {
+              hatalar.push(
+                'T-020c İHLALİ (BULGU-018 geri geldi) — koşucuda GPU YOK ' +
+                  `(${process.env.RASTERLEYICI}) ama masaüstü profilinde WebGL ` +
+                  'parçası İNDİRİLDİ. Yazılım rasterleyicide Aurora yüklenmemeli: ' +
+                  'ölçülen bedel bootup-time 40.8 sn, TBT 9 990 ms. Çizim gücü ' +
+                  'tespiti (`gpu-tespit.ts`) devre dışı kalmış ya da eşiği kaymış olmalı.',
+              );
+            } else {
+              console.log(
+                'T-020c doğrulandı — yazılım rasterleyicide WebGL parçası hiç indirilmedi.',
+              );
+              console.log(
+                '⚠️ §5.2.2 BU KOŞUMDA ÖLÇÜLMEDİ: WebGL yolu yalnızca donanım ' +
+                  'hızlandırmalı bir koşucuda ölçülebilir. Bu koşumda masaüstü ' +
+                  'profilinin performans skoru WebGL yolunu DEĞİL, statik gradyanlı ' +
+                  'sayfayı ölçüyor — skorlar bu bilgiyle okunmalı.',
+              );
             }
           } else {
             console.log(
@@ -1022,15 +1189,12 @@ jobs:
           const { appendFileSync } = require('node:fs');
 
           // Eşikler yalnızca RAPOR METNİ için burada; tek kaynak
-          // `lighthouserc.json` (masaüstü performansı ondan türetiliyor).
+          // `lighthouserc.json` — üç profil de aynı eşikleri kullanıyor
+          // (T-029e'den beri masaüstü türetmesi yok).
           const PROFILLER = [
             { ad: 'mobil-aydinlik', env: 'MOBIL_AYDINLIK', esik: 'perf 0.90 · a11y/bp/seo 0.95' },
             { ad: 'mobil-koyu', env: 'MOBIL_KOYU', esik: 'perf 0.90 · a11y/bp/seo 0.95' },
-            {
-              ad: 'masaustu-koyu',
-              env: 'MASAUSTU_KOYU',
-              esik: 'perf 0.55 (BULGU-018 tavanı) · a11y/bp/seo 0.95',
-            },
+            { ad: 'masaustu-koyu', env: 'MASAUSTU_KOYU', esik: 'perf 0.90 · a11y/bp/seo 0.95' },
           ];
 
           const satirlar = [];
