@@ -4,6 +4,7 @@ import dynamic from 'next/dynamic';
 import { useEffect, useState, type ComponentProps } from 'react';
 
 import { useAzHareket } from '@/components/az-hareket';
+import { cizimGucunuOlc, type CizimGucu } from '@/components/reactbits/gpu-tespit';
 import { useTheme } from '@/components/theme-provider';
 import { Skeleton } from '@/components/ui/skeleton';
 
@@ -104,6 +105,28 @@ function useMasaustu(): boolean {
 }
 
 /**
+ * WebGL DONANIMDA mı koşuyor — BULGU-018.
+ *
+ * İLK RENDER'DA 'bilinmiyor' DÖNER ve bu KASITLI: karar verilene kadar
+ * `AuroraDinamik` JSX'e girmiyor, dolayısıyla `ogl` parçası AĞDAN İSTENMİYOR.
+ * `useMasaustu` ile aynı desen — tespit ölçüm sonrası geliyor, efekt de öyle.
+ * Yani yazılım rasterleyicideki bir cihaz `ogl`'i indirmiyor, ayrıştırmıyor,
+ * çalıştırmıyor: CI'da 40 saniyelik `bootup-time` üreten iş hiç başlamıyor.
+ *
+ * Ölçüm bir kez yapılır (`useState` başlatıcısı değil, `useEffect`) — sunucuda
+ * `document` yok ve hidrasyon uyuşmazlığı istemeyiz.
+ */
+function useCizimGucu(): CizimGucu {
+  const [guc, setGuc] = useState<CizimGucu>('bilinmiyor');
+
+  useEffect(() => {
+    setGuc(cizimGucunuOlc());
+  }, []);
+
+  return guc;
+}
+
+/**
  * HAREKET EFEKTİ yüklensin mi — beş framer-motion tabanlı bileşenin ortak kapısı.
  * (ShinyText, BlurText, RotatingText, CountUp, TiltedCard)
  *
@@ -140,13 +163,20 @@ function useEfektYuklensin(): boolean {
 /**
  * Hero arka planı — tek WebGL bileşeni (§5.1, §5.2.2).
  *
- * DÖRT DURUMDA HİÇ YÜKLENMEZ:
+ * BEŞ DURUMDA HİÇ YÜKLENMEZ:
  *   - `<768px`                  → §5.2.5, mobilde WebGL yok
  *   - `prefers-reduced-motion`  → §5.2.4
  *   - AYDINLIK TEMA             → §5.2.7, aşağıdaki ölçüm
+ *   - YAZILIM RASTERLEYİCİ      → BULGU-018 / T-020c, `gpu-tespit.ts`
  *   - JS kapalı / hidrasyon öncesi → `ssr: false`
- * Dördünde de yerini `aurora-statik` CSS gradient'i alır; ölçü aynı kaldığı için
+ * Beşinde de yerini `aurora-statik` CSS gradient'i alır; ölçü aynı kaldığı için
  * CLS oluşmaz.
+ *
+ * YAZILIM RASTERLEYİCİ NEDEN LİSTEDE (T-020c): GPU yoksa WebGL CPU'da koşuyor
+ * ve CI ölçümünde masaüstü performansı 100 → 60'a düşüyor; `bootup-time` 40.8
+ * saniye, tamamı `ogl` parçasında. Bu, mobil kapısıyla AYNI SINIF bir karar:
+ * cihaz efektin bedelini ödeyemiyor. Gerçek kullanıcı karşılığı da var — eski
+ * dizüstüler, sanal masaüstleri, uzak masaüstü oturumları.
  *
  * AYDINLIK TEMA NEDEN DIŞARIDA (T-020b ölçümü): Aurora'nın shader'ı rengi
  * yoğunlukla çarpıyor ve koyu-doygun pikseller üretiyor. Koyu zeminde bunlar
@@ -170,8 +200,12 @@ export function Aurora({
 }: ComponentProps<typeof AuroraDinamik> & { opacity?: number; className?: string }) {
   const azHareket = useAzHareket();
   const masaustu = useMasaustu();
+  const cizimGucu = useCizimGucu();
   const { resolvedTheme } = useTheme();
-  const webglYuklensin = masaustu && !azHareket && resolvedTheme === 'dark';
+
+  /* `=== 'donanim'`: 'bilinmiyor' de kapıyı KAPALI tutar (ölçüm bitmeden yükleme yok). */
+  const webglYuklensin =
+    masaustu && !azHareket && resolvedTheme === 'dark' && cizimGucu === 'donanim';
 
   return (
     <div className={`aurora-katman ${className ?? ''}`} aria-hidden="true">
