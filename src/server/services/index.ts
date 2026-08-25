@@ -114,6 +114,9 @@ export * from './_shared/content-cache';
 // ADR-026 — içerik DTO sözleşmesi. Frontend `import type` ile tüketir.
 export type * from './content-dto';
 
+// §4.1 /iletisim — public form yazma tarafı (T-027)
+export * from './contact-message';
+
 // ADR-026 — içerik servisleri (F2 public okuma tarafı)
 export * from './experience';
 export * from './post';

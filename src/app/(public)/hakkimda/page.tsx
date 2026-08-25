@@ -86,7 +86,7 @@ export default async function HakkimdaSayfasi() {
             title="Deneyim kayıtları hazırlanıyor"
             description="Çalışma geçmişimi buraya ekleyeceğim. Ne yaptığımı şimdiden konuşabiliriz."
             action={
-              <Link href="/iletisim" prefetch={false} className={buttonClasses({ size: 'sm' })}>
+              <Link href="/iletisim" className={buttonClasses({ size: 'sm' })}>
                 Bana yaz
               </Link>
             }

@@ -48,7 +48,10 @@
       "Bash(SAKLA_DERLEME=1 /private/tmp/claude-501/-Users-abdulkadirelaldi-Desktop-web-abdulkadirelaldi/84954c68-b36f-4711-923f-c3e7177a4870/scratchpad/olc.sh nihai-detay /projeler/kiyi-medya-kurumsal-site)",
       "Bash(zsh -lc 'PORT=3111 node tests/olcum-sunucusu.mjs >/tmp/og.log 2>&1 & *)",
       "Bash(/opt/anaconda3/bin/fonttools varLib.instancer --help)",
-      "Bash(python3 -c ' *)"
+      "Bash(python3 -c ' *)",
+      "Bash(pnpm db:up)",
+      "Bash(zsh -lc 'pnpm exec prisma migrate deploy 2>&1 | tail -4; pnpm exec prisma migrate status 2>&1 | tail -3')",
+      "Bash(zsh -lc 'pnpm db:seed >/dev/null 2>&1; echo \"seed: $?\"; pnpm lint >/dev/null 2>&1; echo \"lint: $?\"; pnpm typecheck >/dev/null 2>&1; echo \"typecheck: $?\"; pnpm test 2>&1 | grep -E \"Tests \"; pnpm build >/dev/null 2>&1; echo \"build: $?\"; pnpm test:e2e 2>&1 | grep -E \"passed|failed\" | tail -2')"
     ]
   }
 }

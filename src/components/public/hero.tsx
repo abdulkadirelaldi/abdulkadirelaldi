@@ -139,7 +139,7 @@ export function Hero({ profil, ad, unvanlar }: HeroProps) {
           <StarBorder as="div" speed="6s" className="w-full cursor-default sm:w-auto">
             <Link
               href="/projeler"
-              prefetch={false}
+
               className="focus-ring rounded-btn block w-full text-center"
             >
               Projelerimi gör
@@ -148,7 +148,7 @@ export function Hero({ profil, ad, unvanlar }: HeroProps) {
 
           <Link
             href="/iletisim"
-            prefetch={false}
+
             className={buttonClasses({
               variant: 'secondary',
               size: 'lg',

@@ -126,7 +126,7 @@ export function Iletisim({ profil }: IletisimProps) {
 
               <Link
                 href="/iletisim"
-                prefetch={false}
+
                 className={buttonClasses({ size: 'sm', className: 'mt-auto self-start' })}
               >
                 İletişim formunu aç

@@ -27,12 +27,8 @@ describe('getSiteUrl — adres koda gömülmez', () => {
   });
 
   it('sondaki eğik çizgiyi kırpar — çift eğik çizgi yinelenen URL üretir', () => {
-    expect(getSiteUrl({ NEXT_PUBLIC_SITE_URL: 'https://x.dev/' })).toBe(
-      'https://x.dev',
-    );
-    expect(getSiteUrl({ NEXT_PUBLIC_SITE_URL: 'https://x.dev///' })).toBe(
-      'https://x.dev',
-    );
+    expect(getSiteUrl({ NEXT_PUBLIC_SITE_URL: 'https://x.dev/' })).toBe('https://x.dev');
+    expect(getSiteUrl({ NEXT_PUBLIC_SITE_URL: 'https://x.dev///' })).toBe('https://x.dev');
   });
 
   it('TANIMSIZSA FIRLATIR — sessizce localhost yayınlamaz', () => {
@@ -42,15 +38,13 @@ describe('getSiteUrl — adres koda gömülmez', () => {
   });
 
   it('şemasız değer FIRLATIR', () => {
-    expect(() =>
-      getSiteUrl({ NEXT_PUBLIC_SITE_URL: 'abdulkadirelaldi.com' }),
-    ).toThrow(/geçerli bir URL değil/);
+    expect(() => getSiteUrl({ NEXT_PUBLIC_SITE_URL: 'abdulkadirelaldi.com' })).toThrow(
+      /geçerli bir URL değil/,
+    );
   });
 
   it('http/https dışı şema FIRLATIR', () => {
-    expect(() =>
-      getSiteUrl({ NEXT_PUBLIC_SITE_URL: 'ftp://x.dev' }),
-    ).toThrow(/http\/https/);
+    expect(() => getSiteUrl({ NEXT_PUBLIC_SITE_URL: 'ftp://x.dev' })).toThrow(/http\/https/);
   });
 });
 
@@ -208,9 +202,26 @@ describe('sitemap yalnızca VAR OLAN rotaları bildirir — §4.1', () => {
    *
    * BEKLENTİ SABİT YAZILMIYOR, DOSYA SİSTEMİNDEN TÜRETİLİYOR. Sabit bir liste
    * her yeni rotada bu testi kırardı ve "listeyi güncelle" refleksi kuralı
-   * aşındırırdı. Burada sınanan kuralın KENDİSİ: bildirilen her rota gerçekten
-   * var olmalı. T-025 `/blog`i yayına aldığında test kendiliğinden doğru
-   * kaldı; `/iletisim` hâlâ yok, dolayısıyla hâlâ bildirilemez.
+   * aşındırırdı. Burada sınanan kuralın KENDİSİ: sitemap'in bildirdiği küme
+   * ile var olan rotaların kümesi ÖRTÜŞMELİ.
+   *
+   * ───────────────────────────────────────────────────────────────────────
+   * KURAL İKİ YÖNLÜ OLDU — T-028e
+   * ───────────────────────────────────────────────────────────────────────
+   *
+   * Özgün hâlde tek yön sınanıyordu (bildirilen her rota var mı) ve buna ek
+   * olarak `/iletisim`in HENÜZ bildirilmediğini doğrulayan tekil bir assert
+   * vardı. T-026 rotayı yayına alınca o assert öttü — doğru öttü, çünkü
+   * öncülü geçersizleşmişti. Ama tekil assert'i yenisiyle değiştirmek
+   * ("şimdi de `/hizmetler` bildirilmemeli") tam olarak T-028d'de reddedilen
+   * sabit-liste refleksi olurdu.
+   *
+   * Bunun yerine EKSİK YÖN eklendi: var olan bir statik rota sitemap'te
+   * YOKSA da test kırılır. Bu, aynı turda `/hizmetler`in unutulmuş olmasını
+   * yakalayan yöndür — tek yönlü tuzak onu sessizce geçirmişti: hiç
+   * bildirilmeyen bir rota "hayalet" üretmediği için görünmüyordu.
+   *
+   * İki yön birlikte, hiçbir rota adı yazmadan, kuralın kendisini sabitliyor.
    */
   const kaynak = readFileSync(resolve(__dirname, '../../../src/app/sitemap.ts'), 'utf8');
 
@@ -250,9 +261,39 @@ describe('sitemap yalnızca VAR OLAN rotaları bildirir — §4.1', () => {
     expect(hayalet, `sitemap var olmayan rota bildiriyor: ${hayalet.join(', ')}`).toEqual([]);
   });
 
-  it('yazılmamış /iletisim bildirilmiyor (T-026 açacak)', () => {
-    expect(mevcut.has('/iletisim')).toBe(false);
-    expect(bildirilen).not.toContain('/iletisim');
+  /**
+   * Sitemap'e BİLEREK girmeyen statik rotalar.
+   *
+   * BUGÜN BOŞ ve öyle kalması iyi. Buraya bir satır eklemek, "bu sayfa var ama
+   * arama motoruna bildirilmesin" demektir — nadiren doğru olan, her zaman
+   * GEREKÇE İSTEYEN bir karar. Liste boşken kural kendiliğinden işliyor; yeni
+   * bir rota eklendiğinde ya sitemap'e girer ya burada gerekçesini yazar.
+   *
+   * (Dinamik `[slug]` rotaları buraya YAZILMAZ — onlar akış girdileriyle
+   * bildiriliyor ve aşağıda ayrıca sınanıyor.)
+   */
+  const BILDIRILMEYECEK: readonly string[] = [];
+
+  it('VAR OLAN HER STATİK ROTA BİLDİRİLİYOR — kuralın diğer yönü', () => {
+    const eksik = [...mevcut]
+      .filter((route) => !route.includes('['))
+      .filter((route) => !BILDIRILMEYECEK.includes(route))
+      .filter((route) => !bildirilen.includes(route))
+      .sort();
+
+    expect(
+      eksik,
+      `rota var ama sitemap bildirmiyor: ${eksik.join(', ')} — ` +
+        'ya sitemap.ts’e ekleyin ya BILDIRILMEYECEK listesine gerekçesiyle yazın',
+    ).toEqual([]);
+  });
+
+  it('istisna listesi ÖLÜ DEĞİL — her satır gerçekten var olan bir rota', () => {
+    // Kaldırılmış bir rota listede kalırsa kural sessizce gevşer: o rota geri
+    // geldiğinde sitemap'ten muaf sayılır ve kimse fark etmez.
+    for (const route of BILDIRILMEYECEK) {
+      expect(mevcut.has(route), `${route} artık yok — istisna listesinden çıkarın`).toBe(true);
+    }
   });
 
   it('içerik akışları yalnızca [slug] rotası VARSA açık', () => {

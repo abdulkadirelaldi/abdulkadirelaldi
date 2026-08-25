@@ -1,10 +1,6 @@
 import type { MetadataRoute } from 'next';
 
-import {
-  absoluteUrl,
-  getPostSitemapEntries,
-  getProjectSitemapEntries,
-} from '@/server/services';
+import { absoluteUrl, getPostSitemapEntries, getProjectSitemapEntries } from '@/server/services';
 
 /**
  * sitemap.xml — §4.1.
@@ -36,8 +32,19 @@ import {
  * İki yönlü tek kural: SİTEMAP YALNIZCA 200 DÖNEN ADRESLERİ BİLDİRİR.
  *
  * EKLEME SIRASI — rota yayına girdiğinde:
- *   T-025 → `/blog` + yazı akışı  ✅ AÇILDI (T-028d)
- *   T-026 → `/iletisim`            ⛔ HÂLÂ KAPALI — rota yazılmadı
+ *   T-025 → `/blog` + yazı akışı        ✅ AÇILDI (T-028d)
+ *   T-026 → `/iletisim`, `/hizmetler`   ✅ AÇILDI (T-028e)
+ *
+ * `/hizmetler` bu listede ÖNCEDEN YOKTU — bekletilen bir satır değildi, hiç
+ * yazılmamıştı. §4.1'de tanımlı üst düzey bir sayfa, kendine ait dizinlenebilir
+ * içeriği var (hizmet listesi + §1.A/K4 ticari yönlendirme), menü ve alt
+ * bilgiden bağlı ve 200 dönüyor — yani yukarıdaki tek kuralın her şartını
+ * sağlıyor. Bildirilmemesi bir eksiklikti, bir karar değil.
+ *
+ * Kuralın ikinci yönü artık `seo.test.ts` ile de zorlanıyor: var olan bir
+ * statik rota sitemap'te YOKSA da test kırılır. Bu turda `/hizmetler`in
+ * unutulmuş olması, tek yönlü tuzağın böyle bir eksiği sessizce geçirdiğini
+ * gösterdi.
  */
 /**
  * İSTEK ZAMANINDA ÜRETİLİR — DERLEMEDE DEĞİL (BULGU-017).
@@ -71,9 +78,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: absoluteUrl('/'), changeFrequency: 'weekly', priority: 1 },
     { url: absoluteUrl('/hakkimda'), changeFrequency: 'monthly', priority: 0.8 },
     { url: absoluteUrl('/projeler'), changeFrequency: 'weekly', priority: 0.9 },
+    // Ticari niyetin girişi (§1.A/K4). İçeriği nadiren değişir ama önceliği
+    // yüksek: aranıp bulunması İSTENEN sayfa bu.
+    { url: absoluteUrl('/hizmetler'), changeFrequency: 'monthly', priority: 0.8 },
     { url: absoluteUrl('/cv'), changeFrequency: 'monthly', priority: 0.6 },
     { url: absoluteUrl('/blog'), changeFrequency: 'weekly', priority: 0.9 },
-    // T-026: { url: absoluteUrl('/iletisim'), changeFrequency: 'yearly', priority: 0.5 },
+    // Dönüşümün son adımı; içeriği neredeyse hiç değişmez, aranarak değil
+    // site içinden gelinir — bu yüzden düşük öncelik ve `yearly`.
+    { url: absoluteUrl('/iletisim'), changeFrequency: 'yearly', priority: 0.5 },
   ];
 
   return [

@@ -104,7 +104,7 @@ export default async function ProjelerSayfasi({
             title="Vitrin hazırlanıyor"
             description="İlk projeler çok yakında burada olacak. Bu arada nasıl çalıştığımı konuşalım."
             action={
-              <Link href="/iletisim" prefetch={false} className={buttonClasses({ size: 'sm' })}>
+              <Link href="/iletisim" className={buttonClasses({ size: 'sm' })}>
                 Bana yaz
               </Link>
             }

@@ -398,8 +398,11 @@ describe('fetchPostBySlug — durum ayrımı ve readingMinutes', () => {
     // Detay eskiden içerikten hesaplıyordu; aynı yazı iki sayfada 99 ve 1
     // gösteriyordu. Artık ikisi de kolonu okuyor.
     const content = 'kelime '.repeat(200);
-    const r = await fetchPostBySlug('s', { now: NOW },
-      harness({ ...base, status: 'PUBLISHED', publishedAt: PAST, content }));
+    const r = await fetchPostBySlug(
+      's',
+      { now: NOW },
+      harness({ ...base, status: 'PUBLISHED', publishedAt: PAST, content }),
+    );
 
     expect(r.state).toBe('FOUND');
     if (r.state !== 'FOUND') return;
@@ -415,7 +418,8 @@ describe('fetchPostBySlug — durum ayrımı ve readingMinutes', () => {
     expect(detail.state).toBe('FOUND');
     if (detail.state !== 'FOUND') return;
     expect(detail.data.readingMinutes).toBe(listItem?.readingMinutes);
-  });});
+  });
+});
 
 /* ============================ DİĞER SERVİSLER ============================ */
 

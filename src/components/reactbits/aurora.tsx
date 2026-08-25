@@ -206,8 +206,49 @@ export default function Aurora(props: AuroraProps) {
     const mesh = new Mesh(gl, { geometry, program });
     ctn.appendChild(gl.canvas);
 
+    /*
+     * ═══════════════════════════════════════════════════════════════════════
+     * GÖRÜNMEYEN HERO KARE ÜRETMEZ — T-020c
+     * ═══════════════════════════════════════════════════════════════════════
+     *
+     * Hero ekranın dışına çıktığında shader çalışmaya devam etmesinin hiçbir
+     * karşılığı yok: kullanıcı görmüyor, GPU/CPU çalışıyor, pil bitiyor.
+     * Sayfa uzun (ana sayfa ~2300 px mobilde) ve ziyaretçi zamanının çoğunu
+     * hero dışında geçiriyor.
+     *
+     * KOŞULSUZ uygulanıyor: donanım hızlandırması olsun olmasın doğru olan bu.
+     * Yazılım rasterleyicide zaten Aurora hiç yüklenmiyor (`lazy.tsx`), yani
+     * bu iki önlem birbirinin yerine geçmiyor — biri "hiç başlatma", diğeri
+     * "gereksiz yere sürdürme".
+     *
+     * `requestAnimationFrame` sekme gizlendiğinde tarayıcı tarafından zaten
+     * durduruluyor; buradaki gözlemci onun kapsamadığı durumu kapatıyor:
+     * sekme görünür ama hero kaydırılıp geçilmiş.
+     */
+    let gorunur = true;
     let animateId = 0;
+
+    const gozlemci = new IntersectionObserver(
+      (girdiler) => {
+        const yeni = girdiler.some((g) => g.isIntersecting);
+        if (yeni === gorunur) return;
+        gorunur = yeni;
+
+        if (gorunur) {
+          /* Yeniden başlarken çift döngü kurulmasın diye önce iptal. */
+          cancelAnimationFrame(animateId);
+          animateId = requestAnimationFrame(update);
+        } else {
+          cancelAnimationFrame(animateId);
+        }
+      },
+      /* Kenardan biraz önce başlasın: kullanıcı hero'ya dönerken kare hazır olsun. */
+      { rootMargin: '120px' },
+    );
+    gozlemci.observe(ctn);
+
     const update = (t: number) => {
+      if (!gorunur) return;
       animateId = requestAnimationFrame(update);
       const { time = t * 0.01, speed = 1.0 } = propsRef.current;
       if (program) {
@@ -228,6 +269,7 @@ export default function Aurora(props: AuroraProps) {
 
     return () => {
       cancelAnimationFrame(animateId);
+      gozlemci.disconnect();
       window.removeEventListener('resize', resize);
       if (ctn && gl.canvas.parentNode === ctn) {
         ctn.removeChild(gl.canvas);

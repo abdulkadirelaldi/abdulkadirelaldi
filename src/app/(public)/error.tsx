@@ -52,7 +52,7 @@ export default function PublicHata({
           Tekrar dene
         </Button>
 
-        <Link href="/iletisim" prefetch={false} className={buttonClasses({ variant: 'secondary' })}>
+        <Link href="/iletisim" className={buttonClasses({ variant: 'secondary' })}>
           Bana yaz
         </Link>
       </div>

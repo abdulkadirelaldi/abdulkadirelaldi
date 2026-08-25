@@ -83,7 +83,9 @@ describe('gömülü OG fontu', () => {
   });
 
   it('ZORUNLU tablolar yerinde', () => {
-    expect(tableTags(font)).toEqual(expect.arrayContaining(['cmap', 'glyf', 'head', 'hmtx', 'loca']));
+    expect(tableTags(font)).toEqual(
+      expect.arrayContaining(['cmap', 'glyf', 'head', 'hmtx', 'loca']),
+    );
   });
 
   it('DEĞİŞKEN FONT DEĞİL — fvar/gvar YOK (BULGU-014)', () => {
@@ -96,8 +98,18 @@ describe('gömülü OG fontu', () => {
 
   it('TÜRKÇE HARFLERİN HEPSİ VAR', () => {
     const turkish: Record<string, number> = {
-      İ: 0x0130, ı: 0x0131, ğ: 0x011f, Ğ: 0x011e, ş: 0x015f, Ş: 0x015e,
-      ç: 0x00e7, Ç: 0x00c7, ö: 0x00f6, Ö: 0x00d6, ü: 0x00fc, Ü: 0x00dc,
+      İ: 0x0130,
+      ı: 0x0131,
+      ğ: 0x011f,
+      Ğ: 0x011e,
+      ş: 0x015f,
+      Ş: 0x015e,
+      ç: 0x00e7,
+      Ç: 0x00c7,
+      ö: 0x00f6,
+      Ö: 0x00d6,
+      ü: 0x00fc,
+      Ü: 0x00dc,
     };
     const eksik = Object.entries(turkish)
       .filter(([, cp]) => !hasGlyph(font, cp))

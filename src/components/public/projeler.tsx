@@ -75,7 +75,7 @@ export function Projeler({ projeler }: ProjelerProps) {
           {sirali.length > 0 && (
             <Link
               href="/projeler"
-              prefetch={false}
+
               className="focus-ring text-accent-soft rounded-btn text-sm font-medium"
             >
               Tümünü gör →
@@ -90,7 +90,7 @@ export function Projeler({ projeler }: ProjelerProps) {
             title="Vitrin hazırlanıyor"
             description="İlk projeler çok yakında burada olacak. Bu arada nasıl çalıştığımı konuşalım."
             action={
-              <Link href="/iletisim" prefetch={false} className={buttonClasses({ size: 'sm' })}>
+              <Link href="/iletisim" className={buttonClasses({ size: 'sm' })}>
                 Bana yaz
               </Link>
             }
@@ -135,7 +135,7 @@ export function Projeler({ projeler }: ProjelerProps) {
                         */}
                         <Link
                           href={`/projeler/${proje.slug}`}
-                          prefetch={false}
+
                           className="focus-ring hover:text-accent-soft ease-brand duration-micro rounded-btn transition-colors"
                         >
                           {proje.title}

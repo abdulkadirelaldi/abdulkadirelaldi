@@ -75,6 +75,8 @@ açığın ayrıntısı artık saldırgana bir şey kazandırmaz.
 | 2026-08-12 | T-029a | Lighthouse'a masaüstü + koyu profil (WebGL yolu), üç durumlu WebGL doğrulaması, koşu değişkenliği kararı | **BULGU-010 açıldı**: WebGL yolu hiçbir CI koşusunda ölçülmüyordu. Profil kuruldu ve doğrulandı; ölçüm T-021'in hero'yu bağlamasını bekliyor (kontrol kendi kendine zorunlu hâle geliyor). Değişkenliğin **ilk koşuya** ait olduğu ölçüldü; `numberOfRuns` 5, `aggregationMethod` açıkça medyan. |
 | 2026-08-17 | T-029d | Ölçüm yüzeyi dışındaki SEO/OG rotaları (BULGU-015) | **BULGU-015 kapandı** — `tests/e2e/seo-routes.spec.ts`: robots.txt, sitemap.xml, rss.xml, `/og` ve `/og/proje/<slug>` artık her koşumda isteniyor. PNG imza baytlarından, XML gerçek ayrıştırıcıyla doğrulanıyor. Kapsam iki katmanlı: sözleşme testleri + sitemap taraması (yeni sayfa kendiliğinden kapsanır). Mutasyonla kanıtlandı: düzeltme öncesi font aynı render yolunda BULGU-014'ün `TypeError`'ını veriyor. **BULGU-016 açıldı** — sitemap üç adet 404 adresi bildiriyor. |
 | 2026-08-16 | T-029c | Ölçüm işinin veri kurulumu (BULGU-013) + §8.24 haftalık zamanlayıcı | **BULGU-013 açıldı ve düzeltildi**: `lighthouse` işi ayrı koşucuda `services:` bloğu olmadan koşuyordu; ADR-026 sonrası `/` 500 dönüyor, üç profil düşüyor, artifact üretilmiyordu. Kendi Postgres'i kuruldu (yol **a**). İki yeni nöbet: ölçüm ön koşulu ve ayırt edicide durum kodu kontrolü — ikincisi olmadan arıza "⏳ BEKLEMEDE" diye yeşil görünüyordu. §8.24 artık **haftalık** de koşuyor (`17 6 * * 1`). |
+| 2026-08-25 | T-029e | WebGL kontrolünün bayat öncülü (koşum 32828187466) + masaüstü eşiği | Kontrol **dört** koşul biliyordu, T-020c **beşincisini** (yazılım rasterleyici) eklemişti; kontrol doğru çalışıp yanlış şeyi iddia ediyordu. Artık **üç iddia** var: GPU var → `ogl` inmeli (§5.2.2) · GPU yok → **inmemeli** (T-020c, yeni — BULGU-018'in geri gelişini doğrudan yakalar) · mobilde inmemeli (§5.2.5). Koşucunun çizim gücü **ölçülüyor**: LHCI'ın ikilisi + `lighthouserc.json` bayrakları, `gpu-tespit.ts` ile aynı iki sinyal, imza listesi o dosyadan **okunuyor** (sürüklenme koruması). "headless = GPU yok" varsayımı ölçümle çürütüldü — tam Chrome `--headless=new` ile ANGLE Metal, `chrome-headless-shell` ile SwiftShader bildiriyor. Altı dal mutasyonla, ayrıca kırmızı koşumun gerçek raporlarıyla sınandı. **BULGU-018 KAPANDI** (T-020c; CI'da 60 → **100**, yayılım 0) → masaüstü tavanı 0.55 kaldırıldı, üç profil de **0.90**. |
+| 2026-08-24 | T-029 | §9 eşiklerinin `error`'a çevrilmesi, ADR-030 notu, Playwright ikilileri, Docker Hub kesintisi | Eşikler profil başına ve **ölçüye dayalı** kondu: mobil perf **0.90** (ölçülen 94-95), masaüstü perf **0.55** (ölçülen 60), a11y/bp/seo **0.95** (ölçülen 100, yayılım 0). **BULGU-018 açıldı** — masaüstü WebGL profili TBT 9 990 ms / SI 11.9 s ölçüyor (GPU'suz koşucuda `ogl` yazılımla render ediliyor); görev kartındaki "masaüstü 100" rakamı **yerelde** alınmış, bayat. SEO `error` yapıldı: 91'lik yanlış pozitif **detay sayfalarında** ve ölçüm listesinde detay sayfası yok. Dokuz satırlık kırmızı/yeşil matrisi **CI'dan indirilen gerçek raporlara** karşı koşuldu. Playwright: sürüm tam sabit, ikili adımı koşulsuz — değişiklik gerekmedi. Docker Hub: kabul + yeniden koş, yeniden değerlendirme koşuluyla. |
 | 2026-08-22 | T-005d | Derleme adımının `NEXT_PUBLIC_SITE_URL` eksiği (koşum 32386089662) + §8.24'te ikinci advisory | Değişken **iş düzeyinde** verildi (açıkça sahte: `https://ci-test-only.ornek.test`), `DATABASE_URL` adım düzeyinde kaldı. **BULGU-017 açıldı**: env düzelince altından ikinci arıza çıktı — `sitemap.xml`/`rss.xml` ön-render edildiği için derleme yeniden DB'ye bağımlı. **BULGU-002 nöbeti sentetik değil GERÇEK bir gerilemeyle tuttu.** **ADVISORY-002 açıldı** (`deepmerge-ts` GHSA-ggr8-5vv4-36mx): majör atlıyor + üst paket sürümü **tam sabitliyor** → override reddedildi, **katman D**, 2026-11-22'de kendiliğinden sona eren istisna. İstisna kapısının altı kırılma dalı da mutasyonla kanıtlandı. |
 | 2026-08-14 | T-005c | §8.24 tetiklendi: `nanoid` GHSA-2v37-7h3g-55p8 (Yüksek, geçişli, 9 yol) | **ADVISORY-001 kapandı** — `pnpm.overrides` ile `nanoid` `>=3.3.18 <4.0.0`. Denetim EXIT 0. Açık aralık (`>=3.3.18`) sessizce **6.0.1**'e çözülüyordu (üç majör atlama, ESM-only) — ölçülerek yakalandı ve daraltıldı. **Advisory oyunkitabı yazıldı**; kalıcı override'ların birikmesine karşı kaldırma koşulu ve altı aylık gözden geçirme kuralı kondu. |
 
@@ -1646,6 +1648,421 @@ Derleme adımına `DATABASE_URL` **verilmeyecek**. Kapıyı yeşile boyardı ve
 BULGU-002 nöbetini bitirirdi: bundan sonra hiçbir kod, derlemeyi veritabanına
 bağladığı için kırmızıya düşmezdi. Nöbetin değeri, tam da bugün kanıtlandığı
 gibi, sessiz bağımlılığı **derleme anında** görünür kılması.
+
+---
+
+## Eşikler `error`'a çevrildi — §9 artık merge kapısı (T-029)
+
+> ⚠️ **T-029e güncellemesi (2026-08-25):** aşağıdaki masaüstü rakamları
+> (perf 60, eşik 0.55, türetilmiş config) **tarihsel kayıttır**. T-020c
+> BULGU-018'i kapattı, profil CI'da 100 ölçtü ve masaüstü eşiği **0.90**'a
+> çekilip türetme kaldırıldı. Güncel durum: "WebGL kontrolü çizim gücüne göre
+> üç iddiaya çıktı (T-029e)". Mobil eşikler ve SEO kararı **değişmedi**.
+
+**Tarih:** 2026-08-24 · **Kaynak ölçümler:** CI `32671011873` (main, PR #9 merge)
+ve `32670153381` (dal) — profil başına **5 koşu, medyan**, iki koşum bağımsız.
+
+### Ölçülen — eşiklerin dayanağı
+
+| Profil | Ekran | Perf (ham) | A11y | BP | SEO |
+| ------ | ----- | ---------- | ---- | -- | --- |
+| `mobil-aydinlik` | 412×823 | **94** `[73, 94, 95, 94, 95]` | 100 | 100 | 100 |
+| `mobil-koyu` | 412×823 | **95** `[95, 95, 94, 95, 95]` | 100 | 100 | 100 |
+| `masaustu-koyu` | 1350×940 | **60** `[60, 60, 60, 60, 60]` | 100 | 100 | 100 |
+
+Dal koşusu aynı deseni verdi: `95 [66,96,95,95,95]` · `95 [95,94,95,94,96]` ·
+**`60 [60,60,60,60,60]`**. A11y/BP/SEO altı ölçümün hepsinde 100, yayılım 0.
+
+⚠️ **Görev kartındaki "masaüstü 100/100/100" rakamı bayat** — o ölçüm T-029b'de
+**yerelde**, GPU'lu bir makinede alınmıştı. CI'da masaüstü performansı **60** ve
+**yayılım 0**: gürültü değil, tekrarlanabilir bir olgu (BULGU-018).
+
+### Konan eşikler — profil başına, gerekçesiyle
+
+| Profil | Perf | A11y | BP | SEO | Pay |
+| ------ | ---- | ---- | -- | --- | --- |
+| `mobil-aydinlik` | **0.90** | 0.95 | 0.95 | 0.95 | 4 puan |
+| `mobil-koyu` | **0.90** | 0.95 | 0.95 | 0.95 | 5 puan |
+| `masaustu-koyu` | **0.55** ¹ | 0.95 | 0.95 | 0.95 | 5 puan |
+
+¹ **Hedef değil TAVAN.** §9'un masaüstü performans hedefi hâlâ 90; bugün
+ölçülen 60. Eşik, bugünü geçirip **daha da kötüleşmeyi** yakalasın diye
+ölçülen değerin 5 puan altına kondu. BULGU-018 kapanınca 0.90'a çekilecek.
+
+**Kural:** her eşik = ölçülen medyan − ~5 puan, üç kategoride §9'un kendi
+sayısıyla çakışıyor (0.95) çünkü ölçüm (100) onu rahatça geçiyor. Hiçbir eşik
+temenniye dayanmıyor.
+
+**Mobil payın darlığı bilinçli** (görev kartı da böyle istiyor): 94 → 90.
+İlk koşu hâlâ aykırı değer üretiyor (73 ve 66 ölçüldü — T-029b standalone'a
+geçince yerelde kaybolan ısınma etkisi CI'da **sürüyor**), ama 5 koşuda medyanı
+devirmek için **üç** talihsiz koşu gerekir. Bugüne kadar en fazla bir tane çıktı.
+
+### SEO — "error", çünkü yanlış pozitif bu kapıya girmiyor
+
+Frontend'in T-025'te ölçtüğü **SEO 91** gerçek ve bilinen: Next 15.5 akışlı
+metadata, `generateMetadata` sayfa gövdesiyle yarışıyor; sınırlı bot listesi
+(Twitterbot/Slackbot/facebookexternalhit) metadata'yı `<head>` içinde alıyor,
+Googlebot gövdede ama JS çalıştırdığı için pratikte etkilenmiyor.
+`streamingMetadata: false` LCP'ye bedel yazacağı için akışlı metadata kalıyor.
+
+**Ama o 91 DETAY SAYFALARINDA ölçüldü ve ölçüm listemizde detay sayfası yok:**
+`collect.url` = `["http://127.0.0.1:3100/"]`. Ana sayfada SEO altı ölçümün
+hepsinde **100, yayılım 0**. Yani SEO'yu `error` yapmak bugün ölçülmüş bir
+yanlış pozitifi merge engeline **çevirmiyor** — seçenek (a) "SEO'yu warn bırak"
+gerçek bir kapıyı, var olmayan bir sorun için kapalı tutmak olurdu.
+
+**Ne zaman bozulur ve o gün ne yapılacak:** `collect.url` listesine bir detay
+sayfası eklenirse eşik haksız yere kırmızıya döner. Doğru cevap kategoriyi
+düşürmek (seçenek b) değil, **sorunlu denetimi tek tek hariç tutmak** (seçenek
+c) — `meta-description` gibi ilgili assertion ayrıca yazılır, kategori `error`
+kalır. Kural `lighthouserc.json` içine de yazıldı. Bu senaryo benzetimle
+ölçüldü: SEO 91 verildiğinde eşik gerçekten kırmızıya dönüyor (aşağıdaki tablo).
+
+### Masaüstü eşiği nasıl uygulandı — config TÜRETİLİYOR, kopyalanmıyor
+
+LHCI eşikleri profil başına ayıramıyor: üç profilin de URL'i aynı olduğu için
+`assertMatrix` işe yaramaz ve **CLI ile assertion geçersiz kılma ÇALIŞMIYOR** —
+ölçüldü:
+
+| Deneme | Sonuç |
+| ------ | ----- |
+| `--assert.assertions.categories:performance.minScore=0.55` | `TypeError: normalizeAssertion is not a function` ile **çöküyor** |
+| `--assert.assertions.categories:performance='["error",{"minScore":0.55}]'` | **sessizce yok sayılıyor** — temel eşik uygulanmaya devam ediyor |
+
+İkincisi daha tehlikeli: kapı gevşemiş görünmeden gevşerdi. Bu yüzden masaüstü
+adımı, `lighthouserc.json`u okuyup **yalnızca performans satırını** değiştiren
+bir config'i `$RUNNER_TEMP`e türetiyor. Diğer üç eşik temelden miras alınıyor;
+eşikler tek kaynakta kalıyor. Türetici, temel dosyada beklediği değeri
+(`["error", {minScore: 0.9}]`) bulamazsa **durur** — biri temeli değiştirirse
+masaüstü türetmesi sessizce eskimesin diye. Mutasyonla doğrulandı: temel 0.85
+yapıldığında türetme `EXIT 1` veriyor.
+
+### Eşiklerin GERÇEKTEN tuttuğunun kanıtı
+
+LHCI'ın kendi assert motoru, **CI'dan indirilen gerçek raporlara** karşı
+koşuldu (`gh run download 32671011873 -n lighthouse-raporu`). Yani aşağıdaki
+satırlar taklit veriyle değil, kapının merge'de göreceği veriyle üretildi:
+
+| # | Girdi | Eşik | Sonuç |
+| - | ----- | ---- | ----- |
+| 1 | `mobil-aydinlik` gerçek | temel (perf 0.90) | ✅ **yeşil** |
+| 2 | `mobil-koyu` gerçek | temel (perf 0.90) | ✅ **yeşil** |
+| 3 | `masaustu-koyu` gerçek | türetilmiş (perf 0.55) | ✅ **yeşil** |
+| 4 | `mobil-koyu` gerçek | perf **0.96**'ya çekildi | ❌ kırmızı — `found: 0.95` |
+| 5 | `masaustu-koyu` gerçek | perf **0.65**'e çekildi | ❌ kırmızı — `found: 0.6` |
+| 6 | `masaustu-koyu` gerçek | **temel** eşikle (0.90) | ❌ kırmızı — türetme ŞART |
+| 7 | `mobil-koyu`, SEO 100→**91** | temel | ❌ kırmızı — `categories.seo` |
+| 8 | `mobil-koyu`, A11y 100→**90** | temel | ❌ kırmızı — `categories.accessibility` |
+| 9 | `masaustu-koyu`, BP 100→**90** | türetilmiş | ❌ kırmızı — `categories.best-practices` |
+
+4-6 eşiği kaydırarak, 7-9 **raporun kendisini bozarak** sınıyor. İkisi birden
+gerekliydi: yalnızca eşik kaydırmak, 100 ölçen üç kategorinin assertion'ının
+gerçekten koştuğunu gösteremezdi (100'ün üstüne eşik konamaz). 7. satır aynı
+zamanda SEO kararının bedelini sayısallaştırıyor: detay sayfası ölçüm listesine
+girerse kapı **gerçekten** kırmızı olur.
+
+Hepsi geri alındı; `lighthouserc.json` konan eşiklerle duruyor.
+
+### Üç profil de her koşumda ölçülüyor — "error"ın yan etkisi kapatıldı
+
+`error`'a çevirmenin fark edilmesi kolay olmayan bir bedeli vardı: ilk düşen
+profil adımı sonlandırır ve **arkasındaki her şey atlanırdı** — diğer iki
+profil hiç ölçülmez, skor özeti basılmaz ve §5.2.2/§5.2.5 **WebGL doğrulaması
+hiç koşmazdı**. Yani "mobil performans iki puan düştü" satırı, WebGL denetimini
+de sessizce kapatırdı; T-029a'nın kapattığı boşluk geri açılırdı.
+
+Çözüm: üç ölçüm adımı `continue-on-error: true` taşıyor, **işi düşüren ayrı bir
+adım** var (`§9 KAPISI`). Böylece üçü de her koşumda ölçülür, tanı çıktısının
+tamamı üretilir, sonra iş kırmızı olur. Kapı gevşemiyor — yalnızca kararın
+verildiği yer değişiyor, ve o yer koşum özetine (`GITHUB_STEP_SUMMARY`) profil
+başına bir tablo yazıyor.
+
+Güvenli olmasının sebebi ölçüldü: `lhci autorun`, assert düşse bile raporları
+**yine yüklüyor** (`autorun.js`: collect → assert → upload → `exit 1`), yani
+özet ve WebGL doğrulaması verisiz kalmıyor.
+
+Kapı adımı üç durumla sınandı: üçü `success` → **EXIT 0**; biri `failure` →
+**EXIT 1**; biri `skipped` → **EXIT 1**. Üçüncüsü bilinçli: hiç ölçülmemiş bir
+profil için §9 "geçti" diyemez — T-005b'de auth paketinin kendini atlayıp
+koşumu yeşil bırakmasıyla aynı sınıf hata olurdu.
+
+### ADR-030 ve eşikler — seed büyüten görevin borcu
+
+**ADR-030: seed bir ölçüm sözleşmesidir.** Eşikler `warn` iken seed'i büyütmek
+yalnızca bir uyarı satırı üretiyordu; `error` olduğu andan itibaren
+**seed verisini büyüten her görev bu kapıyı kırabilir.** Ölçülen sayfanın
+içeriği (profil, yetenekler, projeler, hizmetler, istatistikler) seed'den
+geliyor; sayfa büyüdükçe LCP ve TBT büyür.
+
+Bu **bozuk bir kapı değil, gerçek bilgi**: sayfa gerçekten ağırlaşmıştır ve
+kullanıcı da o ağırlığı görecektir. Kapının doğru davranışı bunu söylemektir.
+
+**Kural:** seed'i büyüten görev, işini Lighthouse'u **yeniden ölçüp raporlamadan
+tamamlanmış sayamaz.** Ölçüm düşerse iki meşru cevap vardır — sayfayı
+hafifletmek ya da eşiği **yeni ölçümle ve gerekçeyle** değiştirmek. Meşru
+olmayan cevap: eşiği sessizce indirmek ya da profili kapatmak.
+
+Bugünkü pay dar (mobil 94 → 90, dört puan) ve bu bilinçli: kapının erken
+konuşması, geç konuşmasından iyidir.
+
+---
+
+## BULGU-018 — Masaüstü WebGL profili performansı 60 ölçüyor; §9 hedefinin 30 puan altında
+
+**Önem:** Orta (kalite kapısı — güvenlik açığı değil) · **Görev:** T-029 (bulan)
+**Durum:** **KAPANDI** — T-020c (Frontend), CI'da doğrulandı · **Bulan:** eşikleri
+`error`'a çevirmeden önceki doğrulama ölçümü
+
+> **Kapanış (2026-08-25, T-029e kaydı):** Frontend, Aurora'ya **beşinci** bir
+> yüklenmeme koşulu ekledi — yazılım rasterleyici (`gpu-tespit.ts`, iki sinyal:
+> `failIfMajorPerformanceCaveat` + rasterleyici dizesi). GPU'suz koşucuda `ogl`
+> parçası artık hiç indirilmiyor. **Koşum 32828187466'da gerçek CI koşucusunda
+> ölçülen sonuç:**
+>
+> ```
+> masaustu-koyu  performance  medyan=100  [100, 100, 100, 100, 100]  yayılım=0
+> ```
+>
+> 60 → 100. Aşağıdaki metin bulgunun özgün hâlidir; "Frontend'e sorular"
+> bölümündeki üç soru T-020c'de (3) numaralı yolla cevaplandı: düşük güçlü
+> ortamda statik gradyana düşülüyor. Eşik sonucu: masaüstü tavanı (0.55)
+> **kaldırıldı**, profil de 0.90'a bağlandı.
+
+### Belirti
+
+`masaustu-koyu` profili iki bağımsız CI koşusunda **5/5 koşuda tam 60** ölçtü
+(yayılım 0). Aynı sayfa mobil profillerde 94-95.
+
+### Sebep — ölçüldü, tahmin edilmedi
+
+Medyan raporun metrik dökümü:
+
+| Metrik | `mobil-koyu` | `masaustu-koyu` |
+| ------ | ------------ | --------------- |
+| FCP | 0.8 s | 0.2 s |
+| LCP | 3.0 s | **0.6 s** |
+| CLS | 0 | 0 |
+| **TBT** | **80 ms** | **9 990 ms** |
+| **Speed Index** | **0.8 s** | **11.9 s** |
+
+Sayfa **anında** boyanıyor (LCP 0.6 s — mobilden beş kat iyi), sonra ana iş
+parçacığı on saniye boyunca meşgul kalıyor. Yük dağılımı tek bir yeri
+gösteriyor:
+
+```
+bootup-time      40 839 ms  →  chunks/2369.…js      ← Aurora/ogl parçası
+                  2 031 ms  →  chunks/734.…js
+ana iş parçacığı 43 149 ms  →  "other" (raster/GPU işi CPU'da)
+                    888 ms  →  scriptEvaluation
+```
+
+`2369` parçası **yalnızca masaüstü profilinde** isteniyor (mobilde 20 istek,
+masaüstünde 30; parça mobilde yok) — yani §5.2.5 kuralı çalışıyor ve fark tam
+olarak WebGL yolundan geliyor. Koşucuda GPU yok: `ogl` yazılım rasterleyicide
+(SwiftShader) çalışıyor ve maliyet CPU'ya biniyor.
+
+### Bu bir "CI tuhaflığı" mı, gerçek bir maliyet mi — ikisi de
+
+- **CI'ya özgü yanı:** gerçek masaüstü kullanıcıların çoğunda GPU var; orada bu
+  iş GPU'ya gider ve TBT bu kadar büyümez. T-029b'de aynı profil **yerelde
+  100** ölçmüştü — fark donanım.
+- **Gerçek olan yanı:** GPU hızlandırması olmayan kullanıcılar var (eski
+  makineler, sanal masaüstleri, sürücü kara listeleri, uzak oturumlar). Onlarda
+  deneyim CI'daki ölçüme benzer. Ayrıca Aurora **sürekli** çizim yapıyor —
+  sayfa görünür olduğu sürece kare üretimi durmuyor.
+
+Bu yüzden profil kapatılmadı ve eşik "yok" yapılmadı: 0.55 tavanı, durumu
+görünür tutuyor ve **daha da kötüleşirse** kapıyı kırmızıya çeviriyor.
+
+### Frontend'e sorular (bu görevin kapsamı dışında, `src/**`)
+
+1. Aurora sekme/bölüm görünür değilken çizimi durduruyor mu
+   (`IntersectionObserver` / `visibilitychange`)?
+2. Kare hızı sınırlanabilir mi (60 → 30 fps) ya da çözünürlük ölçeklenebilir mi?
+3. `WEBGL_lose_context` / yazılım rasterleyici tespiti ile düşük güçlü
+   cihazlarda statik gradyana düşmek §5.2'ye uygun mu?
+
+Karar verilene kadar eşik 0.55'te kalır. **Kapandığında yapılacak:** masaüstü
+performans eşiği 0.90'a çekilir ve `ci.yml`'deki türetme adımı silinir —
+`lighthouserc.json` yeniden tek ve tek biçimli kaynak olur.
+
+---
+
+## WebGL kontrolü çizim gücüne göre üç iddiaya çıktı (T-029e)
+
+**Tarih:** 2026-08-25 · **Tetikleyen:** koşum `32828187466` — eşikler GEÇTİ,
+düşen adım "WebGL gerçekten koştu mu? (§5.2.2 / §5.2.5)".
+
+### Kontrol çalışıyordu; ÖNCÜLÜ bayattı
+
+```
+masaüstü ogl indirdi mi : false
+mobil    ogl indirdi mi : false
+§5.2.2 — Sayfa Aurora içeriyor AMA masaüstü profilinde WebGL parçası indirilmedi.
+```
+
+Kontrol, T-029a'da yazıldığı hâliyle **dört** koşul biliyordu (masaüstü genişlik
+/ hareket kısıtı yok / koyu tema / hidrasyon) ve bu dördü sağlanınca `ogl`
+inmesini şart koşuyordu. T-020c **beşinci** koşulu ekledi: yazılım rasterleyici.
+Koşucuda GPU yok, dolayısıyla `ogl`in inmemesi **doğru davranış** — kontrol
+doğru çalışıp yanlış şeyi iddia etti.
+
+Bu, T-028e'de Backend'in tek yönlü sitemap tuzağında gördüğüm desenin **ters
+yönü**: orada "bildirilmeyen rota hayalet üretmediği için görünmüyordu"; burada
+kontrol "ogl yüklenmeli" diyor ama **hangi koşulda** yüklenmesi gerektiğini
+söylemiyordu. İki durumda da eksik olan şey aynı: iddianın **koşulu**.
+
+### Koşucunun çizim gücü — ÖLÇÜLDÜ, varsayılmadı
+
+Frontend'in uyarısı ("headless = GPU var varsayımı yanlış") haklıydı, ama ölçüm
+daha ilginç bir şey söyledi: **cevap ikiliye ve bayraklara bağlı.** macOS/M2'de,
+`gpu-tespit.ts` ile aynı iki sinyalle:
+
+| İkili / bayraklar | `failIfMajorPerformanceCaveat` | `UNMASKED_RENDERER_WEBGL` | Karar |
+| ----------------- | ------------------------------ | ------------------------- | ----- |
+| Tam Chrome, `--headless=new --no-sandbox` | bağlam **verildi** | ANGLE Metal, Apple M2 | **donanim** |
+| Playwright paket içi chromium, aynı bayraklar | bağlam **verildi** | ANGLE Metal, Apple M2 | **donanim** |
+| `chrome-headless-shell` | bağlam verildi | **SwiftShader** (Vulkan/LLVM) | **yazilim** |
+| Tam Chrome + `--disable-gpu` | bağlam **REDDEDİLDİ** | — | **yazilim** |
+
+Yani "Playwright bu makinede hep SwiftShader bildiriyor" gözlemi, Playwright'ın
+başsız modda **headless shell** ikilisini kullanmasından geliyor; aynı paketin
+tam chromium ikilisi `--headless=new` ile donanım bildiriyor. Sonda bu yüzden
+**LHCI'ın kullandığı ikiliyi** (`CHROME_PATH` → `google-chrome-stable` → …,
+`chrome-launcher` sırası) ve **`lighthouserc.json`daki bayrakların aynısını**
+kullanıyor; kendiliğinden `--disable-gpu` gibi bir bayrak eklemiyor — eklerse
+kendi cevabını uydurmuş olurdu.
+
+**CI koşucusunun ölçülen durumu: `yazilim`.** Bugünkü kanıt dolaylı ama sağlam:
+koşum 32828187466'da sayfa Aurora'yı mount etti (`AURORA_SAYFADA=1`), masaüstü
+profili koştu, ve `ogl` parçası **indirilmedi** — uygulamanın kendi sondası
+(aynı iki sinyal) o koşucuda "yazılım" dedi. Yeni adım bunu bundan sonra
+**doğrudan** ve rasterleyici dizesiyle birlikte yazacak.
+
+### İmza listesi Frontend'in modülünden OKUNUYOR — sürüklenme koruması
+
+Sonda, yazılım imzalarını (`swiftshader`, `llvmpipe`, `software`, `basic
+render`, `mesa offscreen`, `softpipe`) `src/components/reactbits/gpu-tespit.ts`
+içinden okuyor (**dosyaya dokunulmadan**, salt okuma). Kendi kopyamızı
+tutsaydık listeler sessizce ayrışır ve **aynı koşucuda uygulama ile kontrol
+farklı karar verirdi** — kapı, olmayan bir ihlali bildirirdi. Liste okunamazsa
+adım **durur**: boş listeyle devam etmek her yazılım rasterleyiciyi "donanım"
+saymak olurdu (mutasyonla doğrulandı → `EXIT 1`).
+
+### Üç iddianın son hâli
+
+| Koşul | İddia | Kaynak |
+| ----- | ----- | ------ |
+| GPU **var** (donanim) | masaüstü profilinde `ogl` **İNMELİ** | §5.2.2 — değişmedi |
+| GPU **yok** (yazilim) | masaüstü profilinde `ogl` **İNMEMELİ** | T-020c — **YENİ** |
+| Her koşulda | mobil profilinde `ogl` **İNMEMELİ** | §5.2.5 — değişmedi |
+
+İkinci satır kontrolü **zayıflatmıyor, genişletiyor**: BULGU-018'in geri gelişi
+(yazılım rasterleyicide Aurora'nın yeniden yüklenmesi) artık **doğrudan** ve
+sebebiyle yakalanıyor. Önceden bu ancak dolaylı görülürdü — performans skoru
+düşerdi ve nedeni raporun içinden kazılırdı.
+
+Ayrıca "GPU yok" dalı, §5.2.2'nin o koşumda **ölçülmediğini** açıkça yazıyor.
+Ölçülmemiş bir şeyi "doğrulandı" saymak, T-005b'de auth paketinin kendini atlayıp
+koşumu yeşil bırakmasıyla aynı sınıf hata olurdu.
+
+### Mutasyon matrisi — altı dal, altısı da sınandı
+
+| # | Girdi | Beklenen | Sonuç |
+| - | ----- | -------- | ----- |
+| 1 | GPU var + masaüstünde `ogl` indi | yeşil (§5.2.2 ✅) | ✅ |
+| 2 | GPU var + `ogl` **inmedi** | **kırmızı** (§5.2.2 ihlali) | ✅ exit 1 |
+| 3 | GPU yok + `ogl` inmedi | yeşil (T-020c ✅) | ✅ |
+| 4 | GPU yok + `ogl` **indi** | **kırmızı** (BULGU-018 geri geldi) | ✅ exit 1 |
+| 5 | mobilde `ogl` indi | **kırmızı** (§5.2.5) | ✅ exit 1 |
+| 6 | çizim gücü ölçülmemiş | **kırmızı** (ölçüm yok ≠ GPU yok) | ✅ exit 1 |
+
+4 numara bu turun asıl kazancı: BULGU-018'i geri getirecek değişikliği kapıda
+yakalayacak olan dal odur.
+
+**Ayrıca gerçek veriyle oynandı:** kırmızı koşumun (`32828187466`) indirilen
+raporları, ölçülen çizim gücü `yazilim` ile yeni kontrolden geçirildi →
+**EXIT 0**, "T-020c doğrulandı". Yani haksız kırmızı gerçekten kalkıyor.
+
+Sonda adımının kendi dalları da ayrı ayrı sınandı: donanım (iki ikili), yazılım
+(iki sinyal: reddedilen bağlam ve SwiftShader dizesi), Chrome bulunamadı →
+`EXIT 1`, imza listesi okunamadı → `EXIT 1`.
+
+### Masaüstü eşiği: 0.55 → **0.90**, türetme kaldırıldı
+
+**Karar: bu turda 0.90'a çekildi.** Frontend "bir tur daha izleyelim, CI donanımı
+benim makinemden yavaş" diye önerdi; itiraz makul ama **artık gerçek CI rakamı
+var** — beklemenin ölçeceği şey zaten ölçülmüş durumda:
+
+| Kaynak | Profil | Perf | Yayılım |
+| ------ | ------ | ---- | ------- |
+| CI `32828187466` (T-020c sonrası, koşucu = yazılım) | `masaustu-koyu` | **100** | 0 (5 koşu) |
+| T-029b yerel ölçüm (GPU'lu, Aurora YÜKLÜ) | `masaustu-koyu` | **100** | 0 |
+
+İki farklı kod yolu (Aurora yüklü ve yüklü değil), iki farklı donanım, **ikisi de
+100**. 0.90 her ikisini de 10 puan payla karşılıyor. 0.55'i korumak, gerekçesi
+ortadan kalkmış bir gevşekliği taşımak olurdu: kapı 45 puanlık bir düşüşü
+sessizce geçirirdi.
+
+Gerçek raporlara karşı doğrulandı: `masaustu-koyu` (32828187466) + 0.90 →
+**yeşil**; aynı raporlarda perf 100 → 85 yapılınca → **kırmızı**
+(`expected >=0.9, found 0.85`). `mobil-koyu` gerçek raporları + 0.90 → yeşil.
+
+Türetme adımı silindi; eşikler yine **tek dosyada**. LHCI'ın CLI ile assertion
+geçersiz kılamadığı ölçümü `lighthouserc.json` içinde not olarak bıraktım — bir
+gün profil başına eşik yeniden gerekirse çözüm yolu hazır olsun.
+
+**İzleme borcu:** koşucu bir gün GPU'lu olursa ölçülen şey WebGL yoluna döner.
+Bu artık sessiz bir kayma değil — "Koşucunun çizim gücü" adımı rasterleyici
+dizesini her koşumda yazıyor ve iddia 1'e geçildiği log'dan görülüyor.
+
+---
+
+## CI ikili ve imaj kararları (T-029)
+
+### Playwright ikilileri — CI'da sorun yok, değişiklik yapılmadı
+
+Backend'in yerelde aldığı `Executable doesn't exist … chromium_headless_shell`
+hatasının CI'da karşılığı **yok**; üç ayak da yerinde:
+
+| Soru | Durum |
+| ---- | ----- |
+| Sürüm sabit mi? | ✅ `package.json` → `"@playwright/test": "1.62.1"` — aralık değil, **tam sürüm** |
+| İkili indirme adımı var mı? | ✅ `ci.yml` → "Playwright tarayıcılarını kur" → `playwright install --with-deps chromium` |
+| Headless shell de iniyor mu? | ✅ ölçüldü: `playwright install --dry-run chromium` üç hedef listeliyor — `chromium-1234`, `chromium_headless_shell-1234`, `ffmpeg-1011` |
+| Önbellek bayatlarsa ne olur? | ✅ kurulum adımı **koşulsuz** koşuyor (`if:` yok); eksik ikiliyi kendi tamamlar |
+| Sürüm yükselince önbellek? | ✅ anahtar `hashFiles('pnpm-lock.yaml')` — Playwright sürümü değişince kilit değişir, anahtar değişir, ikililer yeniden iner |
+
+Yerelde çıkan hatanın sebebi bayat bir `~/Library/Caches/ms-playwright` idi ve
+`playwright install chromium` doğru çözümdü. CI'da aynı durum kendiliğinden
+düzelir çünkü kurulum adımı her koşumda çalışır.
+
+**Tek sürtünme (kabul edildi):** önbellek anahtarı tüm kilit dosyasını
+hash'lediği için Playwright ile ilgisiz bir bağımlılık değişikliği de ikilileri
+yeniden indirtiyor. Anahtarı Playwright sürümüne daraltmak ek bir adım (sürümü
+okuyup çıktıya yazmak) gerektirir; kazanç birkaç dakika, risk ise yanlış
+anahtarla **bayat ikili** kullanmak. Yavaş ama doğru olan tercih edildi.
+
+### Docker Hub kesintisi — kabul edildi, mühendislik yapılmadı
+
+PR #9'da `lighthouse` işi "Initialize containers" adımında düştü:
+`postgres:16-alpine` üç denemede de çekilemedi (`registry-1.docker.io` zaman
+aşımı). Yeniden koşumda geçti.
+
+**Karar: kabul et ve yeniden koş.** Gerekçe — önerilen çarelerin hiçbiri asıl
+sorunu çözmüyor:
+
+| Çare | Neden değil |
+| ---- | ----------- |
+| Digest ile sabitleme | **Erişilebilirliği düzeltmez.** Digest'li çekim de aynı kayıt sunucusuna gider; sunucu düşükken digest de inmez. Digest'in faydası tekrarlanabilirlik/tedarik zinciri (§8.25), bu arıza o değil. |
+| İmaj önbelleği | GitHub'ın servis container'ları koşum başında çekilir; `actions/cache` bu adımın önüne giremez. Kendi elimizle Postgres kurmak (docker run + sağlık beklemesi) gerekirdi — servis bloğunun tüm faydasını kaybederiz. |
+| Aynayı değiştirmek (GHCR/ECR) | Resmî `postgres` imajının birebir karşılığı değil; yeni bir tedarik zinciri kararı (§8.25) ve ADR gerektirir. Bir kesinti için fazla. |
+
+**Arıza zaten gürültülü:** iş kırmızı olur, kimse yanlış bir yeşil görmez;
+"yeniden koş" bir tıklama. **Yeniden değerlendirme koşulu:** aynı ay içinde
+**ikiden fazla** koşum bu adımda düşerse karar yeniden açılır ve ilk sıradaki
+seçenek "Postgres'i adım içinde, yeniden deneme ile kur" olur.
 
 ---
 
