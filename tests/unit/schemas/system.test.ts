@@ -186,10 +186,23 @@ describe('createContactMessageSchema — §8.15', () => {
     );
   });
 
-  it('HONEYPOT dolu gelirse reddeder', () => {
+  /**
+   * DEĞİŞTİ (T-031) — bu test eskiden "HONEYPOT dolu gelirse REDDEDER" diyordu
+   * ve tam olarak T-026b'de ölçülen kusuru sabitliyordu.
+   *
+   * Reddetmek YANLIŞ sonuçtur: aynı şema istemcide `zodResolver` ile koşunca
+   * dolu honeypot bir doğrulama hatasına dönüşüyor, `handleSubmit` hiç
+   * tetiklenmiyor ve gönderim sunucuya ULAŞMIYORDU — bot kazanıyor, spam
+   * sinyali kaydedilmiyor (ADR-020/C11), yanlış pozitifte gerçek kullanıcı
+   * "Gönder"e basınca hiçbir şey olmuyordu.
+   *
+   * Doğru kural "işaretle ve YİNE KABUL ET" ve Zod bunu ifade edemez; bu yüzden
+   * alan `serverInterpreted` ile işaretli, karar `route.ts`'te.
+   */
+  it('HONEYPOT dolu gelirse REDDETMEZ — kural sunucuda (T-026b/T-031)', () => {
     expect(
       createContactMessageSchema.safeParse({ ...valid, website: 'https://spam.example' }).success,
-    ).toBe(false);
+    ).toBe(true);
   });
 
   it('isSpam / spamScore istemciden alınmaz — sunucu belirler', () => {

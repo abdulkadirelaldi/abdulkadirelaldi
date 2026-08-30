@@ -4,8 +4,8 @@
 > Kaynak: `PROGRAM.md` §11 Yol Haritası.
 
 **Son güncelleme:** 2026-08-11
-**Aktif faz:** F2 — Public İskelet · **F1 `main`'e merge edildi (`e5dec94`)**
-**Genel ilerleme:** 2 / 8 faz tamamlandı · ~31 görev bitti, ~48 kaldı
+**Aktif faz:** F3 — Panel Çekirdek · **F2 kapandı**
+**Genel ilerleme:** 3 / 8 faz tamamlandı · ~55 görev bitti
 
 ---
 
@@ -16,7 +16,7 @@
 | F0  | Temel — kurulum, token, tema, iskelet, CI | Backend + Frontend + Güvenlik | 🟢 **Tamam** |
 | F1  | Veri & Auth                               | Backend                       | 🟢 **Tamam** |
 | F2  | Public İskelet                            | Frontend                      | ⚪ Bekliyor |
-| F3  | Panel Çekirdek                            | Backend + Frontend            | ⚪ Bekliyor |
+| F3  | Panel Çekirdek                            | Backend + Frontend            | 🔵 Aktif    |
 | F4  | İş & Muhasebe                             | Backend + Frontend            | ⚪ Bekliyor |
 | F5  | Sağlık, Spor, Hayat                       | Backend + Frontend            | ⚪ Bekliyor |
 | F6  | Sertleştirme                              | Güvenlik & Test               | ⚪ Bekliyor |
@@ -106,7 +106,32 @@ Durum kodları: ⚪ Bekliyor · 🔵 Aktif · 🟡 Kısmen · 🟢 Tamamlandı �
 
 ---
 
-### F2 — Public İskelet ⚪ (T-020 paralel — ADR-012)
+### F2 — Public İskelet 🟢 **KAPANDI (2026-08-28)**
+
+**F2 KABUL KONTROLÜ — Orkestra Şefi**
+
+| Kriter | Kanıt |
+| ------ | ----- |
+| §4.1'in public rotaları | ✅ `/` `/hakkimda` `/projeler` `/projeler/[slug]` `/blog` `/blog/[slug]` `/hizmetler` `/iletisim` `/cv` — dokuzu da 200 |
+| React Bits, §5.2 sert kuralları | ✅ 11 bileşen · sayfa başına tek WebGL · Aurora **beş** durumda yüklenmiyor |
+| ADR-026 — gerçek veriden okuma | ✅ altı içerik servisi |
+| ADR-011 — açık önbellekleme | ✅ `unstable_cache` + `revalidateTag`, ADR-029 kuralıyla |
+| SEO altyapısı | ✅ sitemap (10 adres, e2e ile 200 doğrulanıyor) · robots · RSS · dinamik OG |
+| §1.1 K1 — hız | ✅ mobil 93–96 · masaüstü 100 · CLS 0 |
+| §1.1 K5 — WCAG AA | ✅ A11y 100 · kontrast iki temada ölçülü |
+| §1.1 K4 — Kıyı Medya CTA | ✅ `data-cta`/`data-hizmet`/`data-kaynak` |
+| §9 — Lighthouse | ✅ **merge kapısı**, eşikler `error` |
+| İletişim formu | ✅ §8.15 hız sınırı · honeypot · zaman tuzağı · uçtan uca ölçüldü |
+
+**901 birim + 69 E2E · §8: ✅ 9 · ⚠️ 4 · ⏳ 12**
+
+**F2'den devreden borçlar (F3 boyunca):**
+1. **T-037** — imzalı URL'ler gelmeden tüm kapaklar yer tutucu; `LogoLoop` bölümü kapalı
+2. **`readingMinutes` yazma yolu** — kolon her kayıtta yeniden hesaplanmalı (T-031)
+3. **Rota envanteri ↔ kapı kapsamı** karşılaştırması (T-029d önerisi)
+4. **ADVISORY-002** — 2026-11-22'de kendini hatırlatacak
+5. **Yerel Docker kararsızlığı** — bu turda üçüncü kez düştü; F3'te ölçüm görevleri artacak
+6. **Sunucu-only zorlanan şema alanları** için konvansiyon (T-026b önerisi)
 
 | #     | Görev                                                                      | Ajan     | Bağımlılık   |
 | ----- | -------------------------------------------------------------------------- | -------- | ------------ |

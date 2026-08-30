@@ -134,7 +134,10 @@ export function IletisimFormu({
   /** Jetonu tazeler. Hata YUTULUYOR — jeton olmadan da gönderim çalışır (not 1). */
   const jetonAl = async () => {
     try {
-      const yanit = await fetch(ILETISIM_UCU, { method: 'GET', headers: { Accept: 'application/json' } });
+      const yanit = await fetch(ILETISIM_UCU, {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+      });
       if (!yanit.ok) return;
       const govde = (await yanit.json()) as ApiResponse<{ formToken: string }>;
       if (govde.ok) jeton.current = govde.data.formToken;
@@ -147,7 +150,6 @@ export function IletisimFormu({
   useEffect(() => {
     void jetonAl();
   }, []);
-
 
   const gonder = handleSubmit(async (degerler) => {
     setDurum('gonderiliyor');
@@ -269,8 +271,8 @@ export function IletisimFormu({
         >
           <CheckCircle2 className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
           <span>
-            Mesajın bana ulaştı. Genelde bir gün içinde dönüyorum — yanıtı yazdığın e-posta
-            adresine göndereceğim.
+            Mesajın bana ulaştı. Genelde bir gün içinde dönüyorum — yanıtı yazdığın e-posta adresine
+            göndereceğim.
           </span>
         </div>
       )}

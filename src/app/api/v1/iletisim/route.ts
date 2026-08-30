@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 
-import { createContactMessageSchema } from '@/lib/schemas';
+import { contactMessageFormSchema } from '@/lib/schemas';
 import { extractClientIp } from '@/server/auth/credentials';
 import {
   CONTACT_TIME_TRAP,
@@ -136,20 +136,18 @@ export async function POST(request: Request): Promise<NextResponse<ApiResponse<u
   /*
    * HONEYPOT VE JETON ŞEMADAN ÖNCE AYRILIR.
    *
-   * `createContactMessageSchema.website` alanı `.max(0)` taşıyor — yani şema,
-   * dolu honeypot'u DOĞRULAMA HATASI sayar. Bu kural İSTEMCİ için doğru (form
-   * tipini ve alanı orada tanımlıyor), ama sunucuda uygulanırsa kabul
-   * kriterinin tam tersini yapar: bot 400 alır, mesaj kaydedilmez ve hangi
-   * alanın tuzak olduğunu `fields.website` anahtarından okur.
+   * `website` alanı `serverInterpreted` ile işaretli (T-031 konvansiyonu):
+   * kuralını Zod değil BURASI koyar, çünkü doğru kural "reddet" değil
+   * "işaretle ve yine kabul et" ve Zod'un elindeki tek sonuç reddetmektir.
    *
-   * Bu yüzden alan `omit` ile şemadan çıkarılıyor — kural YENİDEN YAZILMIYOR
-   * (§7.3), yalnızca hangi tarafta uygulandığı seçiliyor. Diğer bütün alanlar
-   * T-011'in şemasından, tek bir `min`/`max`/`regex` tekrarı olmadan geçiyor.
+   * Şemadan çıkarma İŞARETTEN TÜRETİLİYOR (`toFormSchema`), elle `omit({
+   * website: true })` yazılmıyor. Elle yazılsaydı yeni bir işaretli alan
+   * eklendiğinde burası sessizce eski listeyle çalışmaya devam ederdi.
    */
   const honeypotFilled = typeof raw.website === 'string' && raw.website.trim().length > 0;
   const formToken = typeof raw.formToken === 'string' ? raw.formToken : undefined;
 
-  const parsed = createContactMessageSchema.omit({ website: true }).safeParse(raw);
+  const parsed = contactMessageFormSchema.safeParse(raw);
   if (!parsed.success) {
     // Honeypot dolu OLSA BİLE önce alan hataları döner: `name` boşken
     // kaydedilecek bir mesaj yok. Bot buradan honeypot hakkında bilgi almaz.

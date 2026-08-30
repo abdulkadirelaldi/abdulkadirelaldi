@@ -1,3 +1,4 @@
+import type { UpdateProfileInput } from '@/lib/schemas';
 import { db } from '@/server/db';
 import type { PrismaClient } from '@/server/generated/prisma/client';
 
@@ -89,4 +90,63 @@ export async function fetchProfile(
   }
 
   return toDto(row);
+}
+
+/* ===========================================================================
+ * YAZMA YOLU — T-031
+ * ======================================================================== */
+
+/**
+ * Profili yazar — TEKİL KAYIT, `upsert` (ADR-017).
+ *
+ * NEDEN `create`/`update` AYRIMI YOK: `Profile` dil başına tek satırdır ve
+ * seed ile açılır. Panelde "yeni profil oluştur" diye bir eylem yoktur; kullanıcı
+ * yalnızca kaydeder. İki ayrı eylem sunmak, olmayan bir seçimi kullanıcıya
+ * sorardı — ve "önce oluştur mu güncelle mi" kararını her form gönderiminde
+ * istemciye taşırdı.
+ *
+ * `upsert`in ikinci faydası: seed çalıştırılmamış bir kurulumda kaydetmek
+ * `RecordNotFound` ile patlamak yerine kaydı açar.
+ *
+ * KISMİ GÜNCELLEME: `update` tarafında yalnızca gönderilen alanlar yazılır
+ * (bkz. `updateProject`); `create` tarafında zorunlu alanlar eksikse Prisma
+ * hata verir — bu doğru, çünkü var olmayan bir kaydı kısmi veriyle açmak
+ * yarım bir profil üretirdi.
+ */
+export async function upsertProfile(
+  locale: string,
+  input: UpdateProfileInput,
+  client: ProfileClient = db,
+): Promise<ProfileDto> {
+  const patch = {
+    ...(input.headline !== undefined ? { headline: input.headline } : {}),
+    ...(input.subtitle !== undefined ? { subtitle: input.subtitle ?? null } : {}),
+    ...(input.bio !== undefined ? { bio: input.bio } : {}),
+    ...(input.location !== undefined ? { location: input.location ?? null } : {}),
+    ...(input.availability !== undefined ? { availability: input.availability ?? null } : {}),
+    ...(input.socials !== undefined ? { socials: input.socials } : {}),
+    ...(input.avatarAttachmentId !== undefined
+      ? { avatarAttachmentId: input.avatarAttachmentId ?? null }
+      : {}),
+    ...(input.cvAttachmentId !== undefined ? { cvAttachmentId: input.cvAttachmentId ?? null } : {}),
+  };
+
+  const row = await client.profile.upsert({
+    where: { locale },
+    update: patch,
+    // Yeni kayıt: zorunlu alanlar `patch` içinde yoksa Prisma reddeder.
+    create: { locale, headline: '', bio: '', ...patch },
+    select: PROFILE_SELECT,
+  });
+
+  return toDto(row);
+}
+
+/** Mutasyon öncesi anlık görüntü — `AuditLog` farkı için. Yoksa `null`. */
+export async function findProfileSnapshot(
+  locale: string,
+  client: ProfileClient = db,
+): Promise<ProfileDto | null> {
+  const row = await client.profile.findUnique({ where: { locale }, select: PROFILE_SELECT });
+  return row ? toDto(row) : null;
 }

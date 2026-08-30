@@ -296,6 +296,146 @@ export function partialWithoutDefaults<T extends z.ZodObject>(schema: T) {
   return z.object(shape).partial();
 }
 
+/**
+ * Yalnızca kimlik taşıyan eylemler (arşivle / sil) — T-031.
+ *
+ * §8.8 "her girdi Zod ile doğrulanır — Server Action parametreleri dahil".
+ * `id`yi doğrulamadan servise geçirmek küçük bir adım gibi görünüyor ama
+ * doğrulanmamış bir parametreyi kabul eden İLK eylem, kuralın istisnası olur.
+ */
+export const entityIdSchema = z.object({ id: cuidSchema });
+
+export type EntityIdInput = z.infer<typeof entityIdSchema>;
+
+/* ===========================================================================
+ * SUNUCUDA YORUMLANAN ALANLAR — T-031 konvansiyonu
+ * ======================================================================== */
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * PUBLIC FORM YAZACAK KİŞİYE TEK CÜMLE:
+ * İstemci formunun `resolver`ına `createXSchema`'yı DEĞİL, `toFormSchema(...)`
+ * ile türetilmiş şemayı verin.
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * NEDEN — ÖLÇÜLEN KUSUR (T-026b, Frontend buldu):
+ *
+ * `createContactMessageSchema.website` honeypot alanıydı ve `.max(0)` taşıyordu.
+ * Aynı şema `zodResolver` ile istemcide koşunca dolu honeypot BİR DOĞRULAMA
+ * HATASI oldu ve `handleSubmit` hiç tetiklenmedi. Sonuçlar zincirleme:
+ *
+ *   - Honeypot'lu gönderim sunucuya HİÇ ULAŞMADI → bot kazandı.
+ *   - Spam sinyali kaydedilmedi → ADR-020/C11'in "spam silinmez, ayrılır"
+ *     kuralı fiilen delindi.
+ *   - Yanlış pozitifte (tarayıcı otomatik doldurması) GERÇEK kullanıcı
+ *     "Gönder"e bastı ve hiçbir şey olmadı — hatanın kendisinde olduğunu sandı.
+ *
+ * Frontend bunu kendi dosyasında `createContactMessageSchema.extend({ website:
+ * z.string().optional() })` ile aştı. Yama doğruydu ama BİLGİ TEK BİR FORMUN
+ * İÇİNDE KALDI: bir sonraki form aynı tuzağa düşerdi ve tuzak SESSİZ.
+ *
+ * ÇÖZÜM — işaret + türetme + kapı:
+ *
+ *  1. Kuralı SUNUCU yorumlayan alan `serverInterpreted()` ile İŞARETLENİR.
+ *     İşaret alanın kendisinde durur, uzaktaki bir listede değil.
+ *  2. `toFormSchema()` işaretli alanları ÇIKARIR. İstemci formu bunu kullanır.
+ *  3. `tests/unit/schemas/server-interpreted.test.ts` iki şeyi ZORLAR: işaretli
+ *     alan form şemasında bulunmayacak, VE form şeması o alanların düşmanca
+ *     değerleriyle BAŞARIYLA parse edecek. İkinci assert kusurun kendisini
+ *     yeniden üretir: `.max(0)` geri gelirse test kırılır.
+ *
+ * Yanlış yapmak için ÇABA gerekiyor: işareti koymayı unutan bir alan zaten
+ * istemcide kural koşturur (eski davranış, ama artık kasıtlı bir tercih);
+ * işareti koyup `createXSchema`'yı istemciye verirse kapı testi kırılır.
+ */
+
+/** `.meta()` anahtarı — tek yerde, elle dize yazılmaz. */
+const SERVER_INTERPRETED_KEY = 'serverInterpreted';
+
+/**
+ * TİP DÜZEYİ işaret.
+ *
+ * İşaret İKİ KATMANDA birden duruyor: çalışma zamanında `.meta()`, tip
+ * düzeyinde bu marka. İkisi de TEK çağrıdan (`serverInterpreted`) doğduğu için
+ * birbirinden sapamaz — ve marka olmadan `toFormSchema`'nın dönüş tipi
+ * hesaplanamaz, `z.ZodObject`'e düşerdi. O zaman da `parsed.data` `Record<
+ * string, unknown>` olur ve çağıran taraf her alanı elle daraltmak zorunda
+ * kalırdı; yani konvansiyon tip güvenliğini BOZARAK gelirdi.
+ *
+ * Özellik ZORUNLU (`?` yok) ve bu kasıtlı: opsiyonel olsaydı işaretsiz her şema
+ * da yapısal olarak markaya uyar ve ayırt etme çalışmazdı. Çalışma zamanında
+ * böyle bir özellik YOKTUR — yalnızca tip düzeyinde yaşar.
+ */
+declare const SERVER_INTERPRETED_BRAND: unique symbol;
+
+export type ServerInterpreted<T extends z.ZodType> = T & {
+  readonly [SERVER_INTERPRETED_BRAND]: true;
+};
+
+/** Şekildeki işaretli alan adları — tip düzeyinde. */
+type ServerInterpretedKeys<Shape> = {
+  [K in keyof Shape]-?: Shape[K] extends { readonly [SERVER_INTERPRETED_BRAND]: true } ? K : never;
+}[keyof Shape];
+
+/**
+ * Alanı "kuralını SUNUCU koyar" diye işaretler.
+ *
+ * ŞEMANIN KENDİSİ BU ALANDA KURAL KOŞMAMALI. Honeypot'ta olduğu gibi, kural
+ * genellikle "reddet" değil "işaretle ve kabul et"tir (ADR-020/C11) — ve bunu
+ * Zod ifade edemez, çünkü Zod'un elindeki tek sonuç reddetmektir.
+ *
+ * `reason` zorunlu: işaretin NEDEN konduğu, işaretin yanında dursun.
+ */
+export function serverInterpreted<T extends z.ZodType>(
+  schema: T,
+  reason: string,
+): ServerInterpreted<T> {
+  return schema.meta({ [SERVER_INTERPRETED_KEY]: reason }) as ServerInterpreted<T>;
+}
+
+/** Şemadaki `serverInterpreted` işaretli alan adları — çalışma zamanı. */
+export function serverInterpretedFields(schema: z.ZodObject): string[] {
+  return Object.entries(schema.shape)
+    .filter(([, field]) => typeof field.meta()?.[SERVER_INTERPRETED_KEY] === 'string')
+    .map(([key]) => key);
+}
+
+/** İşaretin gerekçesi — kapı testi bunun boş olmadığını doğruluyor. */
+export function serverInterpretedReason(schema: z.ZodObject, field: string): string | undefined {
+  const meta = schema.shape[field]?.meta()?.[SERVER_INTERPRETED_KEY];
+  return typeof meta === 'string' ? meta : undefined;
+}
+
+/**
+ * İSTEMCİ FORMUNUN KULLANACAĞI şema — işaretli alanlar çıkarılmış.
+ *
+ * `omit` seçildi, "alanı serbest bırak" değil: alan form şemasında HİÇ
+ * OLMAYINCA, `zodResolver` onun için ne kural koşar ne de değerini kırpar;
+ * `register('website')` ile forma bağlanmaya ve gövdede sunucuya gitmeye devam
+ * eder (react-hook-form alanları şemadan değil `register`dan tanır).
+ *
+ * SUNUCU DA BUNU KULLANIR. İki taraf aynı şemayı koşar; fark yalnızca işaretli
+ * alanların AYRICA sunucuda yorumlanmasıdır. "İstemci şeması / sunucu şeması"
+ * diye iki ayrı nesne olsaydı, ikisi zamanla sapardı.
+ */
+export function toFormSchema<T extends z.ZodObject>(
+  schema: T,
+): z.ZodObject<Omit<T['shape'], ServerInterpretedKeys<T['shape']>>> {
+  const gizli = serverInterpretedFields(schema);
+
+  // İşaretsiz şema OLDUĞU GİBİ döner — gereksiz bir kopya, `zodResolver`ın
+  // referans kimliğine güvenen çağıranlarda sessiz yeniden render üretirdi.
+  if (gizli.length === 0) {
+    return schema as z.ZodObject<Omit<T['shape'], ServerInterpretedKeys<T['shape']>>>;
+  }
+
+  const mask = Object.fromEntries(gizli.map((key) => [key, true as const]));
+
+  return schema.omit(mask as never) as z.ZodObject<
+    Omit<T['shape'], ServerInterpretedKeys<T['shape']>>
+  >;
+}
+
 /* ===========================================================================
  * FİLTRE TABANI
  *
