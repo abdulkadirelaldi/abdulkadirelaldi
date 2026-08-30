@@ -232,3 +232,28 @@ export type { ContentStatus };
  * bozuyordu.
  */
 export type { SiteStatsDto } from './_shared/stats';
+
+/* ===========================================================================
+ * YAZMA SONUCU — T-031
+ * ======================================================================== */
+
+/**
+ * Bir içerik mutasyonunun döndürdüğü asgari şekil.
+ *
+ * NEDEN OKUMA DTO'SU DEĞİL: bu şekil Server Action'ın ADR-029 etiketlerini
+ * hesaplamak için ihtiyaç duyduğu ALANLARIN TAMAMIDIR (`locale`, `slug`) artı
+ * yayın durumu. Okuma DTO'ları `status` TAŞIMAZ — public taraf yalnızca
+ * yayındakini görür — oysa panel formunun kaydettiği şeyin durumunu geri
+ * görmesi gerekir.
+ *
+ * Tam kaydı geri döndürmek de bir seçenekti; reddedildi: `content` (MDX) yazma
+ * yanıtında taşınırsa her kaydetme, az önce gönderilen gövdeyi geri taşır.
+ */
+export interface ContentWriteDto {
+  id: string;
+  locale: string;
+  slug: string;
+  status: ContentStatus;
+  /** ISO 8601. */
+  publishedAt: string | null;
+}

@@ -75,6 +75,7 @@ açığın ayrıntısı artık saldırgana bir şey kazandırmaz.
 | 2026-08-12 | T-029a | Lighthouse'a masaüstü + koyu profil (WebGL yolu), üç durumlu WebGL doğrulaması, koşu değişkenliği kararı | **BULGU-010 açıldı**: WebGL yolu hiçbir CI koşusunda ölçülmüyordu. Profil kuruldu ve doğrulandı; ölçüm T-021'in hero'yu bağlamasını bekliyor (kontrol kendi kendine zorunlu hâle geliyor). Değişkenliğin **ilk koşuya** ait olduğu ölçüldü; `numberOfRuns` 5, `aggregationMethod` açıkça medyan. |
 | 2026-08-17 | T-029d | Ölçüm yüzeyi dışındaki SEO/OG rotaları (BULGU-015) | **BULGU-015 kapandı** — `tests/e2e/seo-routes.spec.ts`: robots.txt, sitemap.xml, rss.xml, `/og` ve `/og/proje/<slug>` artık her koşumda isteniyor. PNG imza baytlarından, XML gerçek ayrıştırıcıyla doğrulanıyor. Kapsam iki katmanlı: sözleşme testleri + sitemap taraması (yeni sayfa kendiliğinden kapsanır). Mutasyonla kanıtlandı: düzeltme öncesi font aynı render yolunda BULGU-014'ün `TypeError`'ını veriyor. **BULGU-016 açıldı** — sitemap üç adet 404 adresi bildiriyor. |
 | 2026-08-16 | T-029c | Ölçüm işinin veri kurulumu (BULGU-013) + §8.24 haftalık zamanlayıcı | **BULGU-013 açıldı ve düzeltildi**: `lighthouse` işi ayrı koşucuda `services:` bloğu olmadan koşuyordu; ADR-026 sonrası `/` 500 dönüyor, üç profil düşüyor, artifact üretilmiyordu. Kendi Postgres'i kuruldu (yol **a**). İki yeni nöbet: ölçüm ön koşulu ve ayırt edicide durum kodu kontrolü — ikincisi olmadan arıza "⏳ BEKLEMEDE" diye yeşil görünüyordu. §8.24 artık **haftalık** de koşuyor (`17 6 * * 1`). |
+| 2026-08-29 | T-016b | Rota envanteri × kapı kapsamı; kapsam boşluklarının kapatılması ve kalıcı kapı | 21 rota `src/app`tan **türetildi** (elle liste yok). İki boşluk kapandı: **`/api/v1/health`** §13.6 zarfı hiç doğrulanmıyordu — "durum kodunu bilerek ölçmüyoruz" gerekçesi T-005b'den beri **bayat** (CI'da artık DB var), üstelik §13.7 izlemesi tam o gövdeye bakacak; **`/api/v1/iletisim`** yalnızca birim testliydi, ucun **sunulduğu** hiç ölçülmemişti. Sağlık testi beklentisini **ölçerek seçiyor** (disk < %5 → arıza dalının sözleşmesi) — sabit `200` yerelde haksız kırmızı üretiyordu. Kalıcı kapı: `tests/unit/rota-kapsami.test.ts`, 31 test, yedi kırmızı dalı var; yeni rota beyansız kalırsa `pnpm test` düşer. Yedi mutasyonla doğrulandı (biri gerçek bir `page.tsx` eklenerek). Ters bulgu kayda geçti: `/api/v1/panel/islem` **var olmayan** bir sonda adresi — artık `SANAL_ROTALAR`'da beyanlı. |
 | 2026-08-25 | T-029e | WebGL kontrolünün bayat öncülü (koşum 32828187466) + masaüstü eşiği | Kontrol **dört** koşul biliyordu, T-020c **beşincisini** (yazılım rasterleyici) eklemişti; kontrol doğru çalışıp yanlış şeyi iddia ediyordu. Artık **üç iddia** var: GPU var → `ogl` inmeli (§5.2.2) · GPU yok → **inmemeli** (T-020c, yeni — BULGU-018'in geri gelişini doğrudan yakalar) · mobilde inmemeli (§5.2.5). Koşucunun çizim gücü **ölçülüyor**: LHCI'ın ikilisi + `lighthouserc.json` bayrakları, `gpu-tespit.ts` ile aynı iki sinyal, imza listesi o dosyadan **okunuyor** (sürüklenme koruması). "headless = GPU yok" varsayımı ölçümle çürütüldü — tam Chrome `--headless=new` ile ANGLE Metal, `chrome-headless-shell` ile SwiftShader bildiriyor. Altı dal mutasyonla, ayrıca kırmızı koşumun gerçek raporlarıyla sınandı. **BULGU-018 KAPANDI** (T-020c; CI'da 60 → **100**, yayılım 0) → masaüstü tavanı 0.55 kaldırıldı, üç profil de **0.90**. |
 | 2026-08-24 | T-029 | §9 eşiklerinin `error`'a çevrilmesi, ADR-030 notu, Playwright ikilileri, Docker Hub kesintisi | Eşikler profil başına ve **ölçüye dayalı** kondu: mobil perf **0.90** (ölçülen 94-95), masaüstü perf **0.55** (ölçülen 60), a11y/bp/seo **0.95** (ölçülen 100, yayılım 0). **BULGU-018 açıldı** — masaüstü WebGL profili TBT 9 990 ms / SI 11.9 s ölçüyor (GPU'suz koşucuda `ogl` yazılımla render ediliyor); görev kartındaki "masaüstü 100" rakamı **yerelde** alınmış, bayat. SEO `error` yapıldı: 91'lik yanlış pozitif **detay sayfalarında** ve ölçüm listesinde detay sayfası yok. Dokuz satırlık kırmızı/yeşil matrisi **CI'dan indirilen gerçek raporlara** karşı koşuldu. Playwright: sürüm tam sabit, ikili adımı koşulsuz — değişiklik gerekmedi. Docker Hub: kabul + yeniden koş, yeniden değerlendirme koşuluyla. |
 | 2026-08-22 | T-005d | Derleme adımının `NEXT_PUBLIC_SITE_URL` eksiği (koşum 32386089662) + §8.24'te ikinci advisory | Değişken **iş düzeyinde** verildi (açıkça sahte: `https://ci-test-only.ornek.test`), `DATABASE_URL` adım düzeyinde kaldı. **BULGU-017 açıldı**: env düzelince altından ikinci arıza çıktı — `sitemap.xml`/`rss.xml` ön-render edildiği için derleme yeniden DB'ye bağımlı. **BULGU-002 nöbeti sentetik değil GERÇEK bir gerilemeyle tuttu.** **ADVISORY-002 açıldı** (`deepmerge-ts` GHSA-ggr8-5vv4-36mx): majör atlıyor + üst paket sürümü **tam sabitliyor** → override reddedildi, **katman D**, 2026-11-22'de kendiliğinden sona eren istisna. İstisna kapısının altı kırılma dalı da mutasyonla kanıtlandı. |
@@ -2063,6 +2064,159 @@ sorunu çözmüyor:
 "yeniden koş" bir tıklama. **Yeniden değerlendirme koşulu:** aynı ay içinde
 **ikiden fazla** koşum bu adımda düşerse karar yeniden açılır ve ilk sıradaki
 seçenek "Postgres'i adım içinde, yeniden deneme ile kur" olur.
+
+---
+
+## Rota envanteri × kapı kapsamı (T-016b)
+
+**Tarih:** 2026-08-29 · **Tetikleyen:** T-029d'nin kapanış sorusu — "ölçülmeyen
+başka yüzey var mı?" · **Kalıcı kapı:** `tests/unit/rota-kapsami.test.ts`
+
+### Envanter — elle liste yok
+
+21 rota, `src/app` ağacından **türetildi** (Next kuralları: `(grup)` adrese
+girmez, `[slug]` deseni korunur, `layout`/`error`/`loading` rota değildir,
+`robots.ts` ve `sitemap.ts` kod ürettiği için envanterdedir; `icon.svg` gibi
+statik varlıklar dışarıdadır — gerekçeleri testin başında).
+
+### Kapsam haritası
+
+| Rota | Kapı | Ne ölçülüyor |
+| ---- | ---- | ------------ |
+| `/` | E2E + Lighthouse ×3 + sitemap | Tek `h1`, klavye odağı, başlıklar, üç profil, WebGL yolu |
+| `/giris` | E2E (auth) | Kilitleme, TOTP, kurtarma kodu, yönlendirme |
+| `/panel` | E2E (smoke + auth) | Oturumsuz → `/giris`; oturumlu erişim. **İçerik değil** |
+| `/panel/ayarlar` | E2E (auth) | §8.1 kapısı: 2FA'sız oturum giremiyor |
+| `/panel/ayarlar/guvenlik` | E2E (auth) | Kurulum ekranı; adres `TWO_FACTOR_SETUP_PATH` sabitinden |
+| `/panel/desenler` | **YOK** | — (T-031/T-032 paralel; beyanı yazılı) |
+| `/blog`, `/cv`, `/hakkimda`, `/hizmetler`, `/iletisim`, `/projeler` | sitemap taraması | **Yalnızca 200** |
+| `/blog/[slug]`, `/projeler/[slug]` | sitemap taraması (+ OG temsilci slug) | **Yalnızca 200**; her slug değil, yayındakiler |
+| `/api/auth/[...nextauth]` | E2E (auth) | `csrf` doğrudan; giriş akışının tamamı dolaylı |
+| `/api/v1/health` | E2E (**T-016b'de eklendi**) | §13.6 zarfı + §8.20 sızıntı + matcher sınırı |
+| `/api/v1/iletisim` | E2E (**T-016b'de eklendi**) + birim | Uç sunuluyor, jeton veriyor, geçersizi §7.2 ile reddediyor |
+| `/og/[[...parts]]` | E2E (seo-routes) | PNG imzası + IHDR; bilinmeyen slug bayt bayt |
+| `/robots.txt`, `/rss.xml`, `/sitemap.xml` | E2E (seo-routes) | İçerik: `Disallow: /panel`, geçerli XML, bildirilen her adres 200 |
+
+### Kapatılan iki boşluk
+
+**1. `/api/v1/health` — öncülü bayat bir "bilerek ölçmüyoruz".**
+`security-headers.spec.ts` bu uca istek atıyordu ama yalnızca başlıklara
+bakıyordu; durum kodu ve gövde bilerek dışarıda bırakılmıştı:
+
+> "Durum kodu bilinçli olarak doğrulanmıyor: DB kapalıyken 503 döner ve bu
+> DOĞRU davranıştır (T-003b)."
+
+O cümle **yazıldığı gün doğruydu** — CI'da veritabanı yoktu. T-005b Postgres'i
+kapıya soktuğundan beri öncül bayat. Bu, T-029e'deki WebGL kontrolüyle aynı
+sınıf: *kontrol çalışıyor, öncülü eskimiş.* §13.7'de izleme (Uptime Kuma) bu
+ucun **gövdesine** bakacak; gövdeyi hiçbir kapı doğrulamıyorsa "servis ayakta"
+sinyali doğrulanmamış demektir.
+
+**2. `/api/v1/iletisim` — birim testi ucun SUNULDUĞUNU gösteremez.**
+Kapsamlı birim testleri var ama hepsi işleyiciyi doğrudan çağırıyor. Yanlış
+dışa aktarım adı, yanlış `runtime`, yanlış dizin — üçü de birim testlerini
+yeşil bırakır. Eklenen üç test dar bir soruyu soruyor: uç gerçekten sunuluyor
+mu, jeton veriyor mu (§8.15 zaman tuzağı `AUTH_SECRET` yoksa **sessizce**
+kapanır), geçersiz gövdeyi §7.2 zarfıyla mı reddediyor.
+
+**Başarılı gönderim bilerek E2E dışında:** kayıt yazar ve bildirim yolunu
+tetikler; kuralları (kısıtlama, honeypot, alan doğrulama) birim testlerinde ve
+orası doğru yer. Seçilen istekler sistemi **değiştirmiyor**.
+
+### Sağlık ucunun beklentisi ORTAMA GÖRE seçiliyor
+
+İlk yazımda test sabit `200` bekliyordu ve yerelde **kırmızı** oldu: bu
+makinenin diski %98 dolu, boş oran %2.5 < %5 → uç `503` döndürüyor ve bu
+**doğru davranış** (`DISK_CRITICAL_FREE_RATIO`). Sabit beklenti, kodda hiçbir
+şey bozulmadan kırmızıya dönen bir kapı olurdu — "haksız düşen kapı".
+
+Çözüm T-029e'nin GPU farkındalığıyla aynı: **önce ölç, sonra iddia seç.** Test
+`statfs` ile boş disk oranını ölçüyor; %5 altındaysa **arıza dalının**
+sözleşmesini (503 + `INTERNAL_ERROR` zarfı + ayrıntı sızdırmama) doğruluyor ve
+sağlıklı dalın ölçülmediğini **çıktıya yazıyor**. Yan kazanç: bugüne kadar
+hiçbir kapının uğramadığı arıza dalı, ilk kez gerçek bir 503 üzerinde ölçüldü.
+
+Varsayım yazılı: ölçüm sunucusu testle **aynı makinede** koşuyor
+(`playwright.config.ts` → `webServer`); uzak bir sunucuya taşınırsa bu blok
+gözden geçirilmeli.
+
+### Kapatılmayan boşluklar — gerekçeli
+
+| Boşluk | Risk | Karar |
+| ------ | ---- | ----- |
+| Public sayfaların **içeriği** (`/cv`, `/hakkimda`, `/hizmetler`, `/blog`, …) | Düşük–orta: sayfa 200 döner ama boş/yanlış içerik gösterebilir | **Kapatılmadı.** İçerik iddiaları Frontend'in sayfa görevlerine ait; burada tekrarlamak ikinci bir doğruluk kaynağı yaratır ve sayfa her değiştiğinde iki yerde bakım ister. Kapsam haritası bunu "**yalnızca 200**" diye yazıyor — asıl tehlike kapsamsız rota değil, kapsandığı sanılan rotadır |
+| Panel sayfalarının içeriği | Orta, ama F3'ün konusu | **Kapatılmadı.** T-031/T-032 paralel koşuyor; panel içeriği yazılmadan içerik kapısı yazmak, yazılacak şeyi tahmin etmek olurdu |
+| `/panel/desenler` | Orta | **Kapatılmadı.** Paralel görevin rotası; kapsam kararı o görevin. Kapı satırı "kapsanmıyor + gerekçe" olarak **yazılı** — görünmez değil |
+| `/api/auth/[...nextauth]` alt uçları (`signin`, `callback`, `session`…) | Düşük | **Kapatılmadı.** Uçların tamamı NextAuth'un kendi kodu; bizim kodumuz olan kısım (adapter, callbacks) giriş akışı E2E'siyle zaten koşuyor. Her alt ucu ayrı çağırmak kütüphaneyi test etmek olurdu |
+| Dinamik rotalarda **her** slug | Düşük | **Kapatılmadı.** Sitemap taraması yayındaki tüm slug'ları zaten çekiyor; ek olarak OG testinde bir temsilci slug var. Slug başına test, içerik büyüdükçe koşum süresini doğrusal büyütürdü |
+
+### Ters yöndeki bulgu — var olmayan bir adrese istek atan kapı
+
+`security-headers.spec.ts` ve `auth.spec.ts`, **`/api/v1/panel/islem`** adresine
+istek atıyor. Böyle bir rota **yok ve olmamalı**: ara katman `matcher`'ının
+`/api/v1/panel/*` kolunu sınayan bir sonda. Bu, BULGU-016'nın aynadaki
+görüntüsü — orada sitemap var olmayan adresi *bildiriyordu*, burada kapı var
+olmayan adrese *istek atıyor*. İkisi de bilinçli olduğu sürece sorun değil,
+**yazılı olmadığı sürece tuzak**: bir gün biri o ucu arar, bulamaz ve ya siler
+ya da yazar. Artık `SANAL_ROTALAR` içinde beyan edilmiş durumda ve kapı iki
+yönlü kontrol ediyor: sonda hâlâ kullanılıyor mu, ve o adres bir gün **gerçek**
+olduysa beyan `KAPSAM`'a taşınmalı.
+
+### Kalıcı kapı — `tests/unit/rota-kapsami.test.ts`
+
+Karar: **kurulabilir ve kuruldu.** Backend'in T-030c'deki içe aktarma grafiği
+kapısıyla aynı sınıf — statik, bağımlılıksız, `pnpm test` içinde koşuyor.
+31 test. Kırmızıya dönme dalları:
+
+| Dal | Ne yakalar |
+| --- | ---------- |
+| Beyansız rota | **F3 senaryosu**: yeni panel rotası eklendi, kimse kapsamı düşünmedi |
+| Ölü beyan | Rota silindi, "kapsanıyor" satırı kaldı (ADVISORY-001'in ölü override dersi) |
+| Kanıt kaynakta yok | Test silindi/yeniden yazıldı, harita "kapsanıyor" demeye devam ediyor |
+| Lighthouse beyanı ≠ `lighthouserc.json` | Ölçülen URL listesi değişti, harita eskidi |
+| Gerekçesiz "kapsanmıyor" | Boşluk yazılı ama sebebi yok |
+| Sabit kayması | `TWO_FACTOR_SETUP_PATH` başka bir rotaya çözülüyor |
+| Sanal rota gerçek oldu | `/api/v1/panel/islem` bir gün yazılırsa beyan taşınmalı |
+
+**Neden "kanıt" alanı var:** kapsam haritası kanıtsız olsaydı bir **niyet
+beyanı** olurdu — testi silen kişi haritayı güncellemez, harita "kapsanıyor"
+demeye devam eder ve kapı sessizce yalan söyler. T-019b/K3'teki "vakum hâlinde
+yeşil" tuzağının kapsam haritasındaki karşılığı.
+
+Türetici ayrıca **kendini kanıtlıyor**: geçici bir kurgu ağaçta grup dizini,
+dinamik segment, yakalama-tümü, metadata ve bileşen dosyaları ayırt ediliyor
+(`src/**` dosyalarına dokunmadan).
+
+### Mutasyonla doğrulama
+
+| # | Mutasyon | Sonuç |
+| - | -------- | ----- |
+| 1 | `src/app/(panel)/panel/medya/page.tsx` **gerçekten** eklendi | ❌ "KAPSAM beyanı olmayan rota: `/panel/medya`" — dosya yolunu ve ne yapılacağını yazdı |
+| 2 | Rotası olmayan beyan satırı eklendi | ❌ "Rotası silinmiş KAPSAM satırı" |
+| 3 | Kanıt dizesi kaynakta olmayacak şekilde değiştirildi | ❌ "beyan edilen kanıt kaynaklarda YOK" |
+| 4 | `/cv` satırına `lighthouse` eklendi | ❌ `['/', '/cv']` ≠ `['/']` |
+| 5 | "kapsanmıyor" gerekçesi silindi | ❌ "Gerekçesiz kapsanmıyor" |
+| 6 | Disk eşiği 0.001 yapıldı (sağlıklı dal zorlandı) | ❌ `Expected 200, Received 503` — sağlıklı dal iddiaları canlı |
+| 7 | İletişim ucunun yolu bozuldu | ❌ "uç sunulmuyor ya da beklenmedik durum kodu: 404" |
+
+1 numara gerçek bir dosyayla yapıldı ve geri alındı; 2-5 kapı dosyasında, 6-7
+E2E dosyasında — hepsi geri alındı, `git status` yalnızca eklenen iki test
+dosyasını gösteriyor.
+
+### F3'te yeni panel rotası eklendiğinde ne olur
+
+1. `pnpm test` **kırmızı** olur: *"KAPSAM beyanı olmayan rota: `/panel/medya` →
+   `src/app/(panel)/panel/medya/page.tsx`"*.
+2. Ekleyen kişi `tests/unit/rota-kapsami.test.ts` → `KAPSAM`'a bir satır yazar:
+   hangi kapı dokunuyor, **kanıtı ne**, ne **ölçülmüyor**.
+3. "Hiçbiri" geçerli bir cevaptır — `kapilar: ['kapsanmiyor']` + gerekçe. Boşluk
+   kapanmamış olur ama **görünür** olur; kapsam kararı unutulmuş değil, verilmiş
+   olur.
+4. E2E kapsamı beyan edildiyse kanıt dizesi gerçekten `tests/e2e/**` içinde
+   aranır — beyan tek başına yetmez.
+
+CI değişikliği gerekmedi: `rota-kapsami.test.ts` `pnpm test` içinde,
+`api-routes.spec.ts` `pnpm test:e2e` içinde kendiliğinden koşuyor.
 
 ---
 

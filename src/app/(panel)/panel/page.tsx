@@ -10,6 +10,8 @@ import { Skeleton } from '@/components/ui/skeleton';
 
 export const metadata: Metadata = {
   title: 'Panel',
+  /* §8.7 — sayfa düzeyinde de `noindex`; middleware başlığına ikinci katman. */
+  robots: { index: false, follow: false, nocache: true },
 };
 
 /**
@@ -54,7 +56,7 @@ export default function PanelDashboardPlaceholder() {
             <Card>
               <CardContent className="flex flex-col gap-4">
                 <div className="flex flex-col gap-1">
-                  <CardTitle>Yükleniyor durumu</CardTitle>
+                  <CardTitle seviye="h2">Yükleniyor durumu</CardTitle>
                   <CardDescription>
                     İskelet, yerine geçeceği içerikle aynı ölçüyü tutar — sayfa zıplamaz.
                   </CardDescription>

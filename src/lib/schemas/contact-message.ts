@@ -6,7 +6,9 @@ import {
   longTextSchema,
   paginationSchema,
   searchSchema,
+  serverInterpreted,
   shortTextSchema,
+  toFormSchema,
 } from './common';
 
 /**
@@ -38,9 +40,33 @@ export const createContactMessageSchema = z.object({
     .min(10, { error: 'Mesajınız en az 10 karakter olmalıdır.' })
     .max(5000, { error: 'Mesajınız en fazla 5000 karakter olabilir.' }),
   sourcePage: shortTextSchema.optional(),
-  /** Honeypot — BOŞ gelmeli. Dolu gelirse sunucu spam olarak işaretler. */
-  website: z.string().max(0, { error: 'Doğrulama başarısız.' }).optional(),
+  /**
+   * Honeypot (§8.15). KURALI SUNUCU KOYAR — bu yüzden burada `.max(0)` YOK.
+   *
+   * T-026b'de ölçüldü: `.max(0)` istemcide koşunca dolu honeypot bir doğrulama
+   * hatasına dönüşüyor ve `handleSubmit` hiç tetiklenmiyordu — gönderim sunucuya
+   * ULAŞMIYOR, spam sinyali kaydedilmiyor (ADR-020/C11 deliniyor) ve yanlış
+   * pozitifte gerçek kullanıcı "Gönder"e basınca hiçbir şey olmuyordu.
+   *
+   * Doğru kural Zod'la İFADE EDİLEMEZ zaten: "dolu gelirse REDDET" değil,
+   * "dolu gelirse işaretle ve YİNE KABUL ET". Zod'un elindeki tek sonuç
+   * reddetmek. Bu yüzden alan `serverInterpreted` ile işaretli ve karar
+   * `route.ts`'te (`assessContactSpam`).
+   */
+  website: serverInterpreted(
+    z.string().optional(),
+    'Honeypot — dolu gelirse sunucu spamScore yazar ve mesajı YİNE kaydeder (§8.15, ADR-020/C11). Reddetmez.',
+  ),
 });
+
+/**
+ * İSTEMCİ FORMUNUN KULLANACAĞI ŞEMA. `zodResolver`a BU verilir.
+ *
+ * `createContactMessageSchema` sunucunun şemasıdır; istemcide koşturulursa
+ * honeypot alanı formu kilitler (yukarı bakınız). Ayrım `toFormSchema` ile
+ * TÜRETİLİYOR, elle yazılmıyor — iki liste birbirinden sapamaz.
+ */
+export const contactMessageFormSchema = toFormSchema(createContactMessageSchema);
 
 /** Panelden yapılabilecek tek şey mesajın durumunu değiştirmektir; içeriği değişmez. */
 export const updateContactMessageSchema = z.object({

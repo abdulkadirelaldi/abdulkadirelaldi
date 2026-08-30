@@ -1328,11 +1328,37 @@ ayıklaması en zor sınıf.
 zorundadır. Etiket adlandırmasındaki hiyerarşi okunabilirlik içindir, geçersizleştirme
 mekanizması değildir.
 
-**F3'ün Server Action'ları için bağlayıcı:**
-- İçerik **eklendi/silindi** → `localeTag(entity, locale)` düşürülür (liste ve sayılar değişti)
-- İçerik **düzenlendi** → `localeTag` **ve** `slugTag` birlikte düşürülür
-- **Durum değişti** (`DRAFT`→`PUBLISHED`, →`ARCHIVED`) → `localeTag` **mutlaka** düşürülür.
-  Yalnızca `slugTag` düşürmek `publishedProjects` istatistiğini bayat bırakır.
+**F3'ün Server Action'ları için bağlayıcı** *(tablo T-031'de ölçümle genişletildi)*:
+
+| İşlem | Düşen etiketler |
+|-------|-----------------|
+| Ekleme | `localeTag` **+ `slugTag`(yeni)** |
+| Düzenleme | `localeTag`(yeni+eski) + `slugTag`(yeni+eski) |
+| Durum değişikliği | `localeTag` **mutlaka** + `slugTag` |
+| Arşivleme | `localeTag` + `slugTag` |
+| Silme (slug'sız varlık) | `localeTag` |
+| `entityTag` | **hiçbir zaman** |
+
+**Genişletme 1 — eklemede `slugTag` de düşer (T-031).** Özgün metin "ekleme → `localeTag`"
+diyordu. Ama `getProjectBySlug` **olumsuz sonucu da önbelleğe alıyor**
+(`{ state: 'NOT_FOUND' }`). Biri `/projeler/yeni-slug`'ı kayıt açılmadan ziyaret ettiyse
+404 o slug'ın etiketiyle önbellektedir; yalnızca `localeTag` düşürmek **"listede var,
+tıklayınca yok"** üretir — bir saat sonra kendiliğinden düzelen, tam da bu ADR'nin
+uyardığı sınıftan bir hata.
+
+**Genişletme 2 — `entityTag` hiçbir zaman düşürülmez (T-031).** Her girdi onu taşıdığı
+için düşürmek **her zaman doğru sonucu verirdi** — tehlikeli olan da bu: Türkçe bir
+düzenleme İngilizce listeyi bayatlatırdı. *Doğru olan yerine geniş olanı yapmak,
+önbelleğin varlık sebebini aşındırır.*
+
+**"Durum değişikliğinde `localeTag` mutlaka" için ayrı bir dal yazılmadı:** etiket
+hesaplayıcısı her hâlükârda `localeTag` üretiyor. Koşullu yazılsaydı o koşulu unutmak
+mümkün olurdu; koşulsuz olması ihlali **yapısal olarak imkânsız** kılıyor.
+
+**`revalidatePath` kullanılmıyor (T-031 + T-032 ölçümü).** §7.1 onu anıyor ama public
+okumalar etiketle önbellekli ve **panel rotalarının hepsi dinamik** (`ƒ /panel`,
+`ƒ /panel/ayarlar`, `ƒ /panel/desenler` — derleme çıktısından doğrulandı). Panel sayfaları
+bir gün statik önbelleğe girerse bu karar yeniden açılır.
 
 **Yapısal koruma:** Etiketler sarmalama anında değil, **çağrı argümanlarından** hesaplanır.
 `cachedRead` tek sarmalayıcıdır ve `describe` fonksiyonunu **zorunlu** kılar — sabit etiket

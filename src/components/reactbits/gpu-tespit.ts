@@ -76,8 +76,7 @@ export function cizimGucunuOlc(): CizimGucu {
 
     /* 1) Birincil sinyal — tarayıcı "bu bağlam yavaş olur" diyorsa null döner. */
     const secenekler: WebGLContextAttributes = { failIfMajorPerformanceCaveat: true };
-    const hizli =
-      tuval.getContext('webgl2', secenekler) ?? tuval.getContext('webgl', secenekler);
+    const hizli = tuval.getContext('webgl2', secenekler) ?? tuval.getContext('webgl', secenekler);
 
     if (!hizli) {
       /*

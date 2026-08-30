@@ -20,12 +20,19 @@ import { cn } from '@/lib/utils/cn';
 export function SettingsSection({
   icon: Icon,
   baslik,
+  seviye: Baslik = 'h2',
   aciklama,
   href,
   eylem,
 }: {
   icon: ComponentType<{ className?: string }>;
   baslik: string;
+  /**
+   * Başlık seviyesi. Varsayılan `h2`: bu bölümler doğrudan sayfa `h1`inin
+   * altında duruyor. `h3` idi ve başlık sırasını atlatıyordu — T-032'de
+   * ölçüldü (Lighthouse `heading-order`, erişilebilirlik 98).
+   */
+  seviye?: 'h2' | 'h3';
   aciklama: string;
   href?: string;
   eylem?: ReactNode;
@@ -46,7 +53,7 @@ export function SettingsSection({
 
       <div className="flex min-w-0 flex-1 flex-col gap-1">
         <div className="flex flex-wrap items-center gap-2">
-          <h3 className="text-primary text-base font-semibold">{baslik}</h3>
+          <Baslik className="text-primary text-base font-semibold">{baslik}</Baslik>
           {!hazir && <Badge variant="neutral">Yakında</Badge>}
         </div>
         <p className="text-muted text-sm">{aciklama}</p>
