@@ -38,10 +38,34 @@ type OrnekSatir = {
 };
 
 const ORNEK_SATIRLAR: OrnekSatir[] = [
-  { id: '1', aciklama: 'Kurumsal site — 2. taksit', kategori: 'Gelir', tutar: 18500, tarih: '2026-08-04' },
-  { id: '2', aciklama: 'Sunucu ve alan adı', kategori: 'Gider', tutar: -1249.9, tarih: '2026-08-11' },
-  { id: '3', aciklama: 'Rezervasyon paneli — bakım', kategori: 'Gelir', tutar: 3200, tarih: '2026-08-19' },
-  { id: '4', aciklama: 'Tasarım aracı aboneliği', kategori: 'Gider', tutar: -742.35, tarih: '2026-08-22' },
+  {
+    id: '1',
+    aciklama: 'Kurumsal site — 2. taksit',
+    kategori: 'Gelir',
+    tutar: 18500,
+    tarih: '2026-08-04',
+  },
+  {
+    id: '2',
+    aciklama: 'Sunucu ve alan adı',
+    kategori: 'Gider',
+    tutar: -1249.9,
+    tarih: '2026-08-11',
+  },
+  {
+    id: '3',
+    aciklama: 'Rezervasyon paneli — bakım',
+    kategori: 'Gelir',
+    tutar: 3200,
+    tarih: '2026-08-19',
+  },
+  {
+    id: '4',
+    aciklama: 'Tasarım aracı aboneliği',
+    kategori: 'Gider',
+    tutar: -742.35,
+    tarih: '2026-08-22',
+  },
 ];
 
 const paraBicimi = new Intl.NumberFormat('tr-TR', { minimumFractionDigits: 2 });
@@ -183,8 +207,9 @@ export function DesenGosterimi() {
           <div className="flex flex-col gap-1">
             <CardTitle seviye="h2">Form kabuğu</CardTitle>
             <CardDescription>
-              Başlığa &quot;hata&quot; yazıp kaydet: sunucunun <code className="tabular">fields</code>{' '}
-              yanıtı doğrudan alanın altına düşer, yazdıkların kaybolmaz.
+              Başlığa &quot;hata&quot; yazıp kaydet: sunucunun{' '}
+              <code className="tabular">fields</code> yanıtı doğrudan alanın altına düşer,
+              yazdıkların kaybolmaz.
             </CardDescription>
           </div>
 
@@ -220,7 +245,9 @@ export function DesenGosterimi() {
                   aria-describedby={errors.tutar ? 'desen-tutar-hata' : undefined}
                   {...register('tutar')}
                 />
-                {errors.tutar && <FormError id="desen-tutar-hata">{errors.tutar.message}</FormError>}
+                {errors.tutar && (
+                  <FormError id="desen-tutar-hata">{errors.tutar.message}</FormError>
+                )}
               </div>
             </div>
           </FormKabugu>
@@ -260,9 +287,9 @@ export function DesenGosterimi() {
           <div className="flex flex-col gap-1">
             <CardTitle seviye="h2">Hata durumu</CardTitle>
             <CardDescription>
-              Panelin hata sınırı <code className="tabular">(panel)/error.tsx</code>. Aşağıdaki düğme
-              bilerek bir hata fırlatır; sınır devreye girer ve &quot;Tekrar dene&quot; ile geri
-              dönülür.
+              Panelin hata sınırı <code className="tabular">(panel)/error.tsx</code>. Aşağıdaki
+              düğme bilerek bir hata fırlatır; sınır devreye girer ve &quot;Tekrar dene&quot; ile
+              geri dönülür.
             </CardDescription>
           </div>
 

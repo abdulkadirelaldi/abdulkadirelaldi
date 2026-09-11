@@ -2,7 +2,13 @@ import * as z from 'zod';
 
 import { TransactionType } from '@/types';
 
-import { cuidSchema, paginationSchema, partialWithoutDefaults, shortTextSchema } from './common';
+import {
+  booleanFilterSchema,
+  cuidSchema,
+  paginationSchema,
+  partialWithoutDefaults,
+  shortTextSchema,
+} from './common';
 
 /**
  * `TransactionCategory` (ADR-017) — referans veri.
@@ -31,7 +37,7 @@ export const archiveTransactionCategorySchema = z.object({
 
 export const transactionCategoryFilterSchema = paginationSchema.extend({
   type: z.enum(TransactionType).optional(),
-  isArchived: z.coerce.boolean().optional(),
+  isArchived: booleanFilterSchema.optional(),
 });
 
 export type CreateTransactionCategoryInput = z.infer<typeof createTransactionCategorySchema>;

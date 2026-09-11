@@ -134,6 +134,137 @@ const komutlar: Record<string, (arg?: string) => Promise<unknown>> = {
     return { ok: true };
   },
 
+  /* =========================================================================
+   * §9/6 ve §9/2 — İÇERİK İZLERİ (T-039)
+   *
+   * Bu iki senaryo, auth testlerinden farklı olarak GERÇEK İÇERİK YAZIYOR:
+   * panelden bir proje ekleniyor, ziyaretçi bir iletişim mesajı gönderiyor.
+   * `resetAuthState` bunları temizlemez (adı gereği auth durumuyla ilgili), bu
+   * yüzden her senaryo kendi izini kendisi siliyor ve `globalTeardown` son bir
+   * süpürme yapıyor. Aksi hâlde depo, koşum başına bir çöp proje biriktirirdi
+   * ve `/projeler` sayfası zamanla test verisiyle dolardı.
+   * ====================================================================== */
+
+  /** Slug'ı verilen projenin yayın durumu — action'ın DB'ye ne yazdığını doğrular. */
+  async projeDurumu(arg) {
+    const { slug } = JSON.parse(arg ?? '{}') as { slug: string };
+    const proje = await db.project.findFirst({
+      where: { slug },
+      select: { id: true, status: true, publishedAt: true, locale: true },
+    });
+
+    return proje
+      ? {
+          bulundu: true,
+          status: proje.status,
+          locale: proje.locale,
+          publishedAt: proje.publishedAt?.toISOString() ?? null,
+        }
+      : { bulundu: false };
+  },
+
+  /** Test projelerini siler. Önek zorunlu — geniş bir silme kazası olmasın. */
+  async projeleriTemizle(arg) {
+    const { slugOneki } = JSON.parse(arg ?? '{}') as { slugOneki: string };
+    if (!slugOneki || slugOneki.length < 4) {
+      throw new Error('projeleriTemizle: en az 4 karakterlik bir slug öneki zorunlu.');
+    }
+
+    const { count } = await db.project.deleteMany({ where: { slug: { startsWith: slugOneki } } });
+    return { silinen: count };
+  },
+
+  /**
+   * İletişim mesajının ÖZETİ — §8.20 gereği içerik geri gönderilmez.
+   *
+   * Beklenen değerler ÇAĞIRAN TARAFTAN geliyor ve burada karşılaştırılıyor;
+   * dönen şey yalnızca boolean'lar ve sınıflandırma alanları. Böylece mesaj
+   * gövdesi, e-posta adresi ve IP test çıktısına HİÇ düşmez — bir CI logu
+   * ziyaretçi verisi taşımaz.
+   */
+  async iletisimMesajiOzeti(arg) {
+    const beklenen = JSON.parse(arg ?? '{}') as {
+      subject: string;
+      name?: string;
+      email?: string;
+      message?: string;
+    };
+
+    const mesaj = await db.contactMessage.findFirst({
+      where: { subject: beklenen.subject },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!mesaj) return { bulundu: false };
+
+    return {
+      bulundu: true,
+      // `ContactMessage`te tek bir `status` sütunu YOK: durum üç boolean/damga
+      // alanından okunuyor (`isRead`, `isSpam`, `archivedAt`). Testin
+      // beklentisi de bu alanlar üzerinden yazılmalı — uydurma bir "status"
+      // alanı, ekran yazıldığında panelin gerçekten gösterdiğinden farklı bir
+      // şeyi doğrulardı.
+      isRead: mesaj.isRead,
+      arsivlendi: mesaj.archivedAt !== null,
+      honeypotHit: mesaj.honeypotHit,
+      isSpam: mesaj.isSpam,
+      spamScore: mesaj.spamScore,
+      adEsit: beklenen.name === undefined ? null : mesaj.name === beklenen.name,
+      epostaEsit: beklenen.email === undefined ? null : mesaj.email === beklenen.email,
+      mesajEsit: beklenen.message === undefined ? null : mesaj.message === beklenen.message,
+      // §8.15/ADR-020: kaydın hangi bağlamda geldiği. Değerin KENDİSİ değil,
+      // yazılıp yazılmadığı bildiriliyor.
+      ipYazildi: mesaj.ip !== null,
+      userAgentYazildi: mesaj.userAgent !== null,
+    };
+  },
+
+  /**
+   * Panelin OKUMA YOLU bu mesajı görüyor mu? (T-038'in `fetchContactMessages`i)
+   *
+   * §9/2'nin "panele düşer" yarısı ekran gelene kadar bekliyor; ölçülebilen
+   * son halka bu. Ekran yazıldığında buradaki iddia oraya taşınır.
+   */
+  async mesajKutusuIceriyorMu(arg) {
+    const { subject } = JSON.parse(arg ?? '{}') as { subject: string };
+    const { fetchContactMessages } = await import('@/server/services/contact-message');
+    const { contactMessageFilterSchema } = await import('@/lib/schemas/contact-message');
+
+    /*
+     * Filtre ŞEMADAN geçiriliyor, elle `{ page: 1, perPage: 20 }` yazılmıyor:
+     * panelin ekranı da aynı şemayı kullanacak, yani burada ölçülen varsayılan
+     * filtre panelin göreceği filtredir. Elle yazsaydık, varsayılanlar
+     * değiştiğinde test panelden farklı bir şeyi ölçmeye devam ederdi.
+     */
+    const filtre = contactMessageFilterSchema.parse({});
+    const sayfa = await fetchContactMessages(filtre);
+    const satir = sayfa.items.find((m) => m.subject === subject);
+
+    return {
+      toplam: sayfa.total,
+      okunmamis: sayfa.unreadCount,
+      iceriyor: satir !== undefined,
+      isRead: satir?.isRead ?? null,
+      isSpam: satir?.isSpam ?? null,
+      // Önizleme, ekranın listede göstereceği metin (`toPreview`). Tam gövde
+      // DEĞİL: §8.20 gereği ziyaretçi metni test çıktısına düşmesin diye
+      // yalnızca UZUNLUĞU bildiriliyor.
+      onizlemeUzunlugu: satir?.preview.length ?? null,
+    };
+  },
+
+  async iletisimMesajlariniTemizle(arg) {
+    const { konuOneki } = JSON.parse(arg ?? '{}') as { konuOneki: string };
+    if (!konuOneki || konuOneki.length < 4) {
+      throw new Error('iletisimMesajlariniTemizle: en az 4 karakterlik bir konu öneki zorunlu.');
+    }
+
+    const { count } = await db.contactMessage.deleteMany({
+      where: { subject: { startsWith: konuOneki } },
+    });
+    return { silinen: count };
+  },
+
   /** Kilit denetim kaydı sayısı — ADR-022'nin uçtan uca doğrulanması için. */
   async lockAuditCount() {
     const user = await requireAdmin();

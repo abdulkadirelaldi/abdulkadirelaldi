@@ -3,6 +3,7 @@ import * as z from 'zod';
 import { Currency, PaymentMethod, TransactionType } from '@/types';
 
 import {
+  booleanFilterSchema,
   cuidSchema,
   dayDateSchema,
   fxRateSchema,
@@ -91,7 +92,7 @@ export const transactionFilterSchema = paginationSchema.extend({
   categoryId: cuidSchema.optional(),
   jobId: cuidSchema.optional(),
   clientId: cuidSchema.optional(),
-  isPaid: z.coerce.boolean().optional(),
+  isPaid: booleanFilterSchema.optional(),
   /** Gün aralığı — `@db.Date` alanına uygulanır (ADR-016). */
   from: dayDateSchema.optional(),
   to: dayDateSchema.optional(),

@@ -1,6 +1,7 @@
 import * as z from 'zod';
 
 import {
+  booleanFilterSchema,
   cuidSchema,
   emailSchema,
   longTextSchema,
@@ -77,10 +78,32 @@ export const updateContactMessageSchema = z.object({
   archivedAt: z.iso.datetime().nullable().optional(),
 });
 
+/**
+ * Mesaj kutusu filtresi — §4.2, T-038.
+ *
+ * `honeypotHit` ve `minSpamScore` T-027'nin alanlarını filtreye taşır ve ikisi
+ * `isSpam`ten AYRI durur, çünkü farklı soruları cevaplıyorlar:
+ *
+ *   isSpam        → "sistem bunu spam SAYDI mı" (eşiği aşan puan, ya da panelden
+ *                   elle işaretlenmiş). Kutuyu temizlemek için kullanılır.
+ *   honeypotHit   → "tuzağa TAKILDI mı" — tek başına ve tartışmasız bot kanıtı.
+ *   minSpamScore  → "puanı şu eşiğin üstünde olanlar" — EŞİĞİN ALTINDA KALAN
+ *                   sinyalli mesajları görmek için. `isSpam: false` olan ama
+ *                   puanı 30 olan mesajlar tam da yanlış pozitif avının yapıldığı
+ *                   yerdir (ADR-020/C11: spam silinmez, ayrılır — ayrılanın
+ *                   gözden geçirilebilmesi bu ayrımın varlık sebebi).
+ */
 export const contactMessageFilterSchema = paginationSchema.extend({
-  isRead: z.coerce.boolean().optional(),
-  isSpam: z.coerce.boolean().optional(),
-  archived: z.coerce.boolean().optional(),
+  isRead: booleanFilterSchema.optional(),
+  isSpam: booleanFilterSchema.optional(),
+  archived: booleanFilterSchema.optional(),
+  honeypotHit: booleanFilterSchema.optional(),
+  /** Bu puana EŞİT VE ÜSTÜ. `spamScore` null olan kayıtlar dışarıda kalır. */
+  minSpamScore: z.coerce
+    .number()
+    .int({ error: 'Puan tam sayı olmalıdır.' })
+    .min(0, { error: 'Puan negatif olamaz.' })
+    .optional(),
   q: searchSchema.optional(),
 });
 

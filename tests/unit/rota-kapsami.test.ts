@@ -169,6 +169,16 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     kanit: [],
     not: 'T-031/T-032 ile PARALEL eklendi; kapsamı o görevlerin kararı. Bu satır bilerek "kapsanmıyor" diyor — F3 panel rotaları için ilk örnek: rota var, kapı yok, ve bu artık GÖRÜNÜR. NOT: rota o görevlerle birlikte gelmezse bu satır "ölü beyan" dalını kırmızıya çevirir; doğru tepki satırı SİLMEKTİR.',
   },
+  '/panel/icerik/projeler': {
+    kapilar: ['e2e'],
+    kanit: ["page.goto('/panel/icerik/projeler')", 'selectOption({ label: alanlar.durum })'],
+    not: '§9/6 (T-039): panelden proje yayınlanıyor ve public tarafta göründüğü doğrulanıyor. Ölçülen şey EKLEME akışı + ADR-029 etiket düşürme; düzenleme, arşivleme ve tablo sıralaması ölçülmüyor.',
+  },
+  '/panel/icerik/deneyim': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: "T-034 ile eklendi. Deneyim kaydının public karşılığı bir SAYFA değil, `/hakkimda` ve `/cv` içindeki bölümler; §9'un yedi senaryosundan hiçbiri bu akışı istemiyor. Proje ekranının §9/6 kapsamı aynı `panel-form` + action + ADR-029 zincirini zaten ölçüyor — ikinci bir kopyası, aynı mekanizmayı iki yerde bakım gerektirirdi. Deneyim için ayrı bir senaryo açılırsa (F4) burası e2e'ye çevrilir.",
+  },
   '/blog': {
     kapilar: ['sitemap-taramasi'],
     kanit: ["absoluteUrl('/blog')"],
@@ -195,19 +205,23 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     not: 'YALNIZCA 200.',
   },
   '/iletisim': {
-    kapilar: ['sitemap-taramasi'],
-    kanit: ["absoluteUrl('/iletisim')"],
-    not: 'Sayfa 200 dönüyor; formun GÖNDERME yolu `/api/v1/iletisim` satırında ölçülüyor. Tarayıcıdan uçtan uca gönderim ölçülmüyor (kayıt yazar).',
+    kapilar: ['sitemap-taramasi', 'e2e'],
+    kanit: ["absoluteUrl('/iletisim')", "page.goto('/iletisim')"],
+    not: "§9/2 (T-039): gerçek tarayıcıdan form dolduruluyor, kayıt DB'de ve panelin okuma yolunda doğrulanıyor. Panel mesaj kutusu EKRANI henüz yok — zincirin son halkası açık bekleme (bkz. `iletisim-akisi.spec.ts` başlığı).",
   },
   '/projeler': {
-    kapilar: ['sitemap-taramasi'],
-    kanit: ["absoluteUrl('/projeler')"],
-    not: 'YALNIZCA 200.',
+    kapilar: ['sitemap-taramasi', 'e2e'],
+    kanit: ["absoluteUrl('/projeler')", "request.get('/projeler')"],
+    not: '§9/6 (T-039): yayınlanan projenin listede ANINDA göründüğü, taslağın ise sızmadığı ölçülüyor. Kartların düzeni ve süzgeçler ölçülmüyor.',
   },
   '/projeler/[slug]': {
     kapilar: ['sitemap-taramasi', 'e2e'],
-    kanit: ['`/projeler/${entry.slug}`', "yol.startsWith('/projeler/')"],
-    not: 'Yayındaki her proje sitemap üzerinden 200 kontrolünden geçiyor; ayrıca bir TEMSİLCİ slug OG görselinde kullanılıyor. Sayfa içeriği ölçülmüyor.',
+    kanit: [
+      '`/projeler/${entry.slug}`',
+      "yol.startsWith('/projeler/')",
+      'request.get(`/projeler/${SLUG}`)',
+    ],
+    not: "§9/6 (T-039): yeni yayınlanan kaydın detayı 200 dönüyor ve başlığı gövdede; taslağın detayı 404. Ayrıca sitemap taraması yayındaki her slug'ı çekiyor ve bir temsilci slug OG görselinde kullanılıyor. Sayfa düzeni ölçülmüyor.",
   },
   '/api/auth/[...nextauth]': {
     kapilar: ['e2e'],

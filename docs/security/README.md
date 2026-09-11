@@ -75,6 +75,7 @@ açığın ayrıntısı artık saldırgana bir şey kazandırmaz.
 | 2026-08-12 | T-029a | Lighthouse'a masaüstü + koyu profil (WebGL yolu), üç durumlu WebGL doğrulaması, koşu değişkenliği kararı | **BULGU-010 açıldı**: WebGL yolu hiçbir CI koşusunda ölçülmüyordu. Profil kuruldu ve doğrulandı; ölçüm T-021'in hero'yu bağlamasını bekliyor (kontrol kendi kendine zorunlu hâle geliyor). Değişkenliğin **ilk koşuya** ait olduğu ölçüldü; `numberOfRuns` 5, `aggregationMethod` açıkça medyan. |
 | 2026-08-17 | T-029d | Ölçüm yüzeyi dışındaki SEO/OG rotaları (BULGU-015) | **BULGU-015 kapandı** — `tests/e2e/seo-routes.spec.ts`: robots.txt, sitemap.xml, rss.xml, `/og` ve `/og/proje/<slug>` artık her koşumda isteniyor. PNG imza baytlarından, XML gerçek ayrıştırıcıyla doğrulanıyor. Kapsam iki katmanlı: sözleşme testleri + sitemap taraması (yeni sayfa kendiliğinden kapsanır). Mutasyonla kanıtlandı: düzeltme öncesi font aynı render yolunda BULGU-014'ün `TypeError`'ını veriyor. **BULGU-016 açıldı** — sitemap üç adet 404 adresi bildiriyor. |
 | 2026-08-16 | T-029c | Ölçüm işinin veri kurulumu (BULGU-013) + §8.24 haftalık zamanlayıcı | **BULGU-013 açıldı ve düzeltildi**: `lighthouse` işi ayrı koşucuda `services:` bloğu olmadan koşuyordu; ADR-026 sonrası `/` 500 dönüyor, üç profil düşüyor, artifact üretilmiyordu. Kendi Postgres'i kuruldu (yol **a**). İki yeni nöbet: ölçüm ön koşulu ve ayırt edicide durum kodu kontrolü — ikincisi olmadan arıza "⏳ BEKLEMEDE" diye yeşil görünüyordu. §8.24 artık **haftalık** de koşuyor (`17 6 * * 1`). |
+| 2026-09-09 | T-039 | §9/6 (panelden yayınla → public'te görün) ve §9/2 (ziyaretçi mesajı → panel) uçtan uca | **§9/6 KAPANDI** — `panel-yayin.spec.ts`. Testin geçerliliği ÖNBELLEK ISITMASINA bağlı: ısıtma olmadan etiket düşürme tamamen bozulsa bile yeşil kalırdı. **Üç mutasyonla sınandı** (`tags.ts` geçici bozuldu, md5 ile geri alındı): etiket hiç düşmüyor → kırmızı, yalnızca `slugTag` düşüyor → kırmızı, yalnızca `localeTag` düşüyor → **yeşil**. Üçüncüsü beklentiyi düzeltti: detay önbellek girdisi `localeTag` de taşıdığı için `slugTag` bugün hiçbir yolda gözlemlenebilir değil — `tags.ts`'teki gerekçe fazla iddialı, düzeltmesi Backend'de; katman birim testiyle kapalı. **§9/2 üç halkası kapandı**, dördüncüsü (panel mesaj kutusu EKRANI) **açık bekleme** — `test.skip` kullanılmadı, atlanan test "atlanan test yok" nöbetini kırar. Ekranın besleneceği okuma yolu şemadan üretilen varsayılan filtreyle ölçülüyor. Zaman tuzağı ölçüldü: hızlı gönderim `puan=30 tooFast` üretiyor, beklemeli gönderim **0**. Test izolasyonu iki projede paralel koşum için süreç anahtarına çevrildi. §9: **3 kapalı, 3 kısmi, 1 açık**. |
 | 2026-08-29 | T-016b | Rota envanteri × kapı kapsamı; kapsam boşluklarının kapatılması ve kalıcı kapı | 21 rota `src/app`tan **türetildi** (elle liste yok). İki boşluk kapandı: **`/api/v1/health`** §13.6 zarfı hiç doğrulanmıyordu — "durum kodunu bilerek ölçmüyoruz" gerekçesi T-005b'den beri **bayat** (CI'da artık DB var), üstelik §13.7 izlemesi tam o gövdeye bakacak; **`/api/v1/iletisim`** yalnızca birim testliydi, ucun **sunulduğu** hiç ölçülmemişti. Sağlık testi beklentisini **ölçerek seçiyor** (disk < %5 → arıza dalının sözleşmesi) — sabit `200` yerelde haksız kırmızı üretiyordu. Kalıcı kapı: `tests/unit/rota-kapsami.test.ts`, 31 test, yedi kırmızı dalı var; yeni rota beyansız kalırsa `pnpm test` düşer. Yedi mutasyonla doğrulandı (biri gerçek bir `page.tsx` eklenerek). Ters bulgu kayda geçti: `/api/v1/panel/islem` **var olmayan** bir sonda adresi — artık `SANAL_ROTALAR`'da beyanlı. |
 | 2026-08-25 | T-029e | WebGL kontrolünün bayat öncülü (koşum 32828187466) + masaüstü eşiği | Kontrol **dört** koşul biliyordu, T-020c **beşincisini** (yazılım rasterleyici) eklemişti; kontrol doğru çalışıp yanlış şeyi iddia ediyordu. Artık **üç iddia** var: GPU var → `ogl` inmeli (§5.2.2) · GPU yok → **inmemeli** (T-020c, yeni — BULGU-018'in geri gelişini doğrudan yakalar) · mobilde inmemeli (§5.2.5). Koşucunun çizim gücü **ölçülüyor**: LHCI'ın ikilisi + `lighthouserc.json` bayrakları, `gpu-tespit.ts` ile aynı iki sinyal, imza listesi o dosyadan **okunuyor** (sürüklenme koruması). "headless = GPU yok" varsayımı ölçümle çürütüldü — tam Chrome `--headless=new` ile ANGLE Metal, `chrome-headless-shell` ile SwiftShader bildiriyor. Altı dal mutasyonla, ayrıca kırmızı koşumun gerçek raporlarıyla sınandı. **BULGU-018 KAPANDI** (T-020c; CI'da 60 → **100**, yayılım 0) → masaüstü tavanı 0.55 kaldırıldı, üç profil de **0.90**. |
 | 2026-08-24 | T-029 | §9 eşiklerinin `error`'a çevrilmesi, ADR-030 notu, Playwright ikilileri, Docker Hub kesintisi | Eşikler profil başına ve **ölçüye dayalı** kondu: mobil perf **0.90** (ölçülen 94-95), masaüstü perf **0.55** (ölçülen 60), a11y/bp/seo **0.95** (ölçülen 100, yayılım 0). **BULGU-018 açıldı** — masaüstü WebGL profili TBT 9 990 ms / SI 11.9 s ölçüyor (GPU'suz koşucuda `ogl` yazılımla render ediliyor); görev kartındaki "masaüstü 100" rakamı **yerelde** alınmış, bayat. SEO `error` yapıldı: 91'lik yanlış pozitif **detay sayfalarında** ve ölçüm listesinde detay sayfası yok. Dokuz satırlık kırmızı/yeşil matrisi **CI'dan indirilen gerçek raporlara** karşı koşuldu. Playwright: sürüm tam sabit, ikili adımı koşulsuz — değişiklik gerekmedi. Docker Hub: kabul + yeniden koş, yeniden değerlendirme koşuluyla. |
@@ -2220,9 +2221,157 @@ CI değişikliği gerekmedi: `rota-kapsami.test.ts` `pnpm test` içinde,
 
 ---
 
+## §9/6 ve §9/2 uçtan uca (T-039)
+
+**Tarih:** 2026-09-09 · **Dosyalar:** `tests/e2e/panel-yayin.spec.ts`,
+`tests/e2e/iletisim-akisi.spec.ts` · **Ölçüm:** yerel, gerçek Postgres + üretim
+derlemesi, iki profilde (masaüstü + mobil), tam paket **85/85**.
+
+### §9/6 — panelden yayınla → public'te görün
+
+Zincir: panel formu → `createProjectAction` (auth → Zod → servis → AuditLog →
+`revalidateTag`) → `/projeler` → `/projeler/<slug>`.
+
+**Testin en kritik satırı ölçüm değil, HAZIRLIK:** proje eklenmeden önce iki
+istek atılıyor.
+
+```
+GET /projeler          → liste önbelleğe girer      (content:project:tr)
+GET /projeler/<slug>   → 404 SONUCU önbelleğe girer (content:project:tr:<slug>)
+```
+
+Isıtma olmadan bu test, etiket düşürme **tamamen bozulsa bile** yeşil kalırdı:
+önbellekte girdi yoksa ekleme sonrası ilk okuma zaten veritabanına gider. Yani
+"yeşil" olurdu ama ölçtüğü şey ADR-029 değil, önbelleğin boşluğu olurdu — görev
+kartının uyardığı tuzak birebir bu. Isıtma, testi gerçekten bir kapı yapıyor.
+
+### §9/6 mutasyon kanıtı — `src/server/actions/tags.ts` geçici olarak bozuldu
+
+Üç mutasyon, her biri ayrı bir derleme + koşum. Dosya her seferinde md5 ile
+doğrulanarak geri alındı (`6991fb038d41a089fc47bab18db592c9`, üç kez de eşleşti;
+`git diff src/server/actions/tags.ts` boş).
+
+| # | Mutasyon | Beklenen | Sonuç |
+| - | -------- | -------- | ----- |
+| 1 | `revalidateContent` hiçbir etiketi düşürmüyor | kırmızı | ❌ **kırmızı** — "liste BAYAT kalır ve proje bir saat görünmez" (`Expected true, Received false`) |
+| 2 | `slugTag` unutuldu, `localeTag` düşüyor | kırmızı sanıyordum | ✅ **YEŞİL** — ölçüm beklentiyi düzeltti, aşağıya bak |
+| 3 | `localeTag` unutuldu, `slugTag` düşüyor | kırmızı | ❌ **kırmızı** — liste bayat |
+
+1 ve 3 numara kapının tuttuğunu gösteriyor: **`localeTag` düşürmeyi bozan her
+değişiklik yakalanıyor.** Bir yayın akışının sessizce bir saatlik gecikmeye
+dönüşmesi artık merge kapısına takılır.
+
+### Ölçülen: `slugTag` bu senaryoda GÖZLEMLENEBİLİR DEĞİL
+
+2 numaralı mutasyonun yeşil kalması bir arıza değil, ölçülmüş bir olgu ve sebebi
+`cached.ts`'te yazılı: detay önbellek girdisi **üç etiketi birden** taşıyor.
+
+```ts
+tags: [entityTag('project'), localeTag('project', locale), slugTag('project', locale, slug)]
+```
+
+Yani `localeTag` düşürmek detay girdisini de düşürüyor. `contentTagsToDrop` ise
+her çağrıda `localeTag`i mutlaka üretiyor (`tagTargetsFor` her zaman
+`after.locale` ekliyor). Sonuç: **bugün hiçbir kod yolu `slugTag`i tek başına
+düşürmüyor**, dolayısıyla `slugTag`in kaldırılması davranışı değiştirmiyor ve
+hiçbir E2E bunu göremez.
+
+Bunun iki sonucu var ve ikisi de yazılı olmalı:
+
+1. **`tags.ts`'teki gerekçe fazla iddialı.** Yorum şöyle diyor: *"Yalnızca
+   `localeTag` düşürmek yeni kaydı listede gösterir ama KENDİ SAYFASINDA bir
+   saat boyunca 404 bırakır."* Ölçüm bunun tersini söylüyor — detay girdisi
+   `localeTag` taşıdığı için o 404 kalmıyor. `slugTag` **savunma katmanı**
+   olarak doğru (ileride yalnızca tek kaydı düşüren dar bir işlem yazılırsa
+   gerekecek), ama bugünkü gerekçesi yanlış. Düzeltmesi Backend'in (`src/**`).
+2. **Katman kapısız kalmıyor:** `slugTag`in üretildiğini Backend'in birim testi
+   doğruluyor (`tests/unit/actions/content-tags.test.ts` → `toEqual([localeTag,
+   slugTag])`). E2E'nin göremediğini birim testi görüyor; kapsam haritasının
+   "hangi kapı neyi ölçüyor" ayrımı burada işe yarıyor.
+
+**Ters yön de ölçülüyor:** TASLAK kayıt panelden eklendiğinde `/projeler`
+listesinde görünmüyor ve detayı 404 dönüyor. Bu olmadan "her şeyi gösteren" bir
+uygulama da yukarıdaki testi geçerdi.
+
+### AÇIK BEKLEME — §9/6'nın literal hâli (DRAFT → PUBLISHED)
+
+Senaryo "bir projeyi DRAFT'tan PUBLISHED'a çevir" diyor. **Bugün panelden
+yapılamıyor:** panel listesi `getPublishedProjects` okuyor, yani taslak kayıt
+eklendiği anda listeden kayboluyor ve düzenlenecek satır kalmıyor (Frontend'in
+kendi notu: `panel/icerik/projeler/page.tsx` → ENGEL-1). Bu bir test kısıtı
+değil, **ürün kısıtı**.
+
+Ölçülen yol, aynı zincirden geçen ve bugün yapılabilen yol: panelden doğrudan
+"Yayında" durumunda kayıt açmak. Etiket hesabı ekleme ve güncellemede aynı
+(`revalidateContent` + `tagTargetsFor`), yani sınanan mekanizma değişmiyor.
+**Panel tüm durumları listeleyebildiği gün** eklenecek adım tek satır: listeden
+taslağı aç, durumu "Yayında" yap, aynı üç iddiayı tekrarla.
+
+### §9/2 — ziyaretçi mesajı: üç halka kapalı, dördüncüsü bekliyor
+
+| # | Halka | Durum |
+| - | ----- | ----- |
+| 1 | `/iletisim` formu (gerçek tarayıcı) | ✅ ölçülüyor |
+| 2 | `POST /api/v1/iletisim` | ✅ ölçülüyor |
+| 3 | `ContactMessage` kaydı | ✅ ölçülüyor (ad/e-posta/mesaj birebir, `isSpam=false`, `spamScore=0`, okunmamış, arşivsiz, `userAgent` yazılı) |
+| 4 | Panel mesaj kutusu **EKRANI** | ⏳ **AÇIK BEKLEME — ekran henüz yok** |
+
+Dördüncü halka için **elden gelen son adım ölçülüyor**: ekranın besleneceği
+okuma yolu (`fetchContactMessages`, T-038) mesajı gerçekten görüyor mu? Filtre
+elle yazılmıyor, `contactMessageFilterSchema.parse({})` ile üretiliyor — yani
+ölçülen filtre, ekranın kullanacağı varsayılan filtrenin ta kendisi. Ekran
+yazıldığında geriye tek iddia kalıyor: "liste bu satırı gösteriyor mu".
+
+**Yarım bırakılan kısım TODO DEĞİL:** `test.skip`/`test.fixme` kullanılmadı —
+atlanan test CI'daki "atlanan test yok" nöbetini (T-005b) kırmızıya çevirir ve
+haklı olarak: atlanan test, unutulmuş bir kapıdır. Bekleme bu kayıtta ve spec
+başlığında yazılı.
+
+**Zaman tuzağı testin parçası:** Playwright formu milisaniyelerde doldurur;
+beklemeseydik §8.15'in `tooFast` sinyali tetiklenir ve test gerçek bir
+ziyaretçinin yaşamadığı yolu ölçerdi. Ölçüldü — ilk denemede jetonu alıp anında
+gönderen ikinci istek sunucu logunda `spam sinyali … puan=30, sinyaller=tooFast`
+üretti; bekleme eklendikten sonra puan **0**. `spamScore === 0` iddiası bu
+yüzden değerli: honeypot ya da zaman tuzağı yanlış pozitif üretmeye başlarsa
+kayıt yine açılır ama panelde **spam kutusuna** düşerdi — kapı bunu yakalar.
+
+### Test izolasyonu — iki projede paralel koşan paket
+
+İlk yazımda temizlik ortak `e2e-t039` önekine dayanıyordu. `fullyParallel: true`
+ve yerelde birden çok işçi olduğu için bu, **bir projenin `afterAll`ının diğer
+projenin hâlâ kullandığı kaydı silmesi** demekti — sıraya bağlı, açıklaması zor
+kırılma sınıfı (`clearAllLoginAttempts` notundaki hatanın aynısı). Anahtar
+süreç kimliği + zaman damgasına çevrildi; `globalTeardown` ortak öneke bakan
+emniyet ağı olarak kaldı ve her koşumda `artık proje: 0, mesaj: 0` yazıyor.
+
+Temizlik neden şart: ADR-030 seed'i **ölçüm sözleşmesi** sayıyor. Test verisi
+depoda kalsaydı `/projeler` koşum başına bir çöp kayıt biriktirir ve bir gün
+Lighthouse ölçümünün girdisi olurdu.
+
+### §9'un yedi senaryosu — bugünkü tablo
+
+| # | Senaryo | Durum | Kanıt / eksik |
+| - | ------- | ----- | ------------- |
+| 1 | Ana sayfa → proje → detay → Kıyı Medya CTA | ⚠️ **kısmi** | Ana sayfa (duman) ve detay (sitemap taraması + §9/6) ölçülüyor; **karttan detaya tıklama ve CTA zinciri ölçülmüyor** |
+| 2 | İletişim formu → mesaj panele düşer | ⚠️ **kısmi** | Üç halka kapalı; **panel ekranı bekliyor** |
+| 3 | Yanlış şifre / doğru şifre + 2FA | ✅ kapalı | `auth.spec.ts` (T-016) |
+| 4 | Girişsiz `/panel` → login | ✅ kapalı | `smoke.spec.ts` + `auth.spec.ts` |
+| 5 | Panelden gelir kaydı → dashboard toplamı | ❌ açık | Finans modülü F4/F5'te; ölçülecek akış henüz yok |
+| 6 | Panelden proje yayınla → public'te görün | ✅ **kapalı (T-039)** | `panel-yayin.spec.ts`, üç mutasyonla sınandı |
+| 7 | Mobil görünümde ana sayfa ve panel kullanılabilir | ⚠️ **kısmi** | Ana sayfa mobil profilde ölçülüyor; **panel formu artık mobilde de koşuyor** (§9/6 ve §9/2 `mobile-chrome`'da geçti) ama panelin gezinme/kullanılabilirlik iddiaları yazılmadı |
+
+**Sayı: 3 kapalı, 3 kısmi, 1 açık.** T-039 öncesi 2 kapalıydı (3 ve 4).
+
+---
+
 ## §8 Güvenlik Gereksinimleri — Durum Tablosu
 
-**Ölçüm tarihi:** 2026-08-11 · **Faz:** F1 (kapandı) · **Son görev:** T-005b
+**Ölçüm tarihi:** 2026-09-09 · **Faz:** F3 (sürüyor) · **Son görev:** T-039
+· **Dağılım:** ✅ 10 · ⚠️ 6 · ❌ 0 · ⏳ 9
+
+> T-039'da üç satır **bayat çıktığı için** güncellendi (6, 8 ve 15): ikisi
+> "henüz Server Action yok" diyordu, oysa action'lar T-031'de gelmişti. Tablo
+> da kod gibi eskiyor; her turda dokunulan maddeler yeniden okunuyor.
 
 Durum kodları: ✅ sağlandı · ⚠️ kısmi · ❌ eksik · ⏳ henüz uygulanmadı (fazı gelmedi)
 
@@ -2233,16 +2382,16 @@ Durum kodları: ✅ sağlandı · ⚠️ kısmi · ❌ eksik · ⏳ henüz uygul
 | 3 | Çerez `httpOnly`/`secure`/`sameSite:lax`/7 gün | ⏳ | F1 / T-013 |
 | 4 | Giriş 5/15dk/IP + 15dk kilit + log | ✅ | **Uçtan uca çalışıyor.** "log" → `LoginAttempt` her denemeyi yazıyor (T-013b). "kilit" → politika `src/lib/security/rate-limit.ts` (eşikler tek sabitte: 5 deneme / 15 dk pencere / 15 dk kilit, 20 birim testi), giriş akışına T-013c'de bağlandı, **T-016'da gerçek tarayıcıyla doğrulandı**: 5. yanlış şifrede `lockedUntil` yazılıyor, kilitliyken doğru şifre bile reddediliyor, 4 denemede kilitlenmiyor. BULGU-005 kapandı. |
 | 5 | `middleware.ts` `/panel/*` + `/api/v1/panel/*` korur | ✅ | **T-014 ile gerçek koruma kuruldu.** `/panel/*` oturumsuzken `/giris`'e yönlenir (307), `/api/v1/panel/*` §7.2 zarfıyla **401 JSON** döner. Oturum `getToken` ile **kriptografik olarak doğrulanır** (çerez varlığı yeterli değil), Edge'de çalışır. `AUTH_SECRET` yoksa **kapalı yönde başarısız olur**. 32 test. §8.6 uyarısı için aşağıya bakın. |
-| 6 | Her Server Action ayrıca `auth()` | ⏳ | F1 / T-015 · Henüz Server Action yok |
+| 6 | Her Server Action ayrıca `auth()` | ⚠️ | **Satır bayattı — Server Action'lar T-031'de geldi.** `src/server/actions/*` hepsi `currentActorId()` ile başlıyor ve oturum yoksa servise HİÇ gitmeden `UNAUTHORIZED` dönüyor; Backend'in birim testi bunu TÜM içerik action'ları için tek tek dolaşıyor (`tests/unit/actions/content-actions.test.ts` → "oturum YOKSA hepsi UNAUTHORIZED döner ve servise HİÇ gitmez"). **T-039'da yetkili yol uçtan uca ölçüldü**: gerçek oturumla panelden proje yayınlandı, kayıt DB'ye düştü. ⚠️ kalma sebebi: oturumSUZ bir action çağrısı gerçek tarayıcıyla ölçülmedi — birim testi taklit (`auth` mock'lu) üzerinden konuşuyor. |
 | 7 | Panel `X-Robots-Tag: noindex, nofollow` + robots.txt disallow | ⚠️ | **Başlık ✅** — birim + E2E ile doğrulandı, gerçek sunucu yanıtında ölçüldü. **`robots.txt` ❌** — henüz yok, T-028 (Backend) kapsamında; `/panel` için `Disallow` içermeli. |
-| 8 | Her girdi Zod ile (Server Action parametreleri dahil) | ⏳ | F1 / T-011 · `zod@4.4.3` kurulu |
+| 8 | Her girdi Zod ile (Server Action parametreleri dahil) | ⚠️ | **Satır bayattı.** Action'lar ham girdiyi `parseOrFail(<şema>, raw)` ile geçiriyor (§7.1 sırası: auth → Zod → servis → AuditLog → revalidateTag) ve `/api/v1/iletisim` ucu da aynı şemayı kullanıyor. **T-039'da uçtan uca ölçüldü**: panel formundan geçen kayıt DB'ye doğru alanlarla yazıldı; bozuk gövde `400 VALIDATION_ERROR` ile reddedildi (`api-routes.spec.ts`, T-016b). ⚠️ kalma sebebi: altı varlığın tamamı için şema kapsamı birim testlerinde; E2E yalnızca `Project` ve `ContactMessage` yollarını ölçüyor. |
 | 9 | MDX/HTML `rehype-sanitize` | ⏳ | F2 / T-025 · `rehype-sanitize@6.0.0` kurulu |
 | 10 | Prisma dışı SQL yok; `$queryRaw` onaya tabi | ✅ | El yazımı `$queryRaw`/`$executeRaw`/`*Unsafe` **çağrısı yok** (tarandı; tek eşleşmeler üretilmiş istemcinin tip tanımları ve `db.ts`'teki açıklama satırı). `pingDatabase()` bilinçli olarak `pool.connect()` kullanıyor — ham SQL'e hiç gerek kalmadı (T-003b K2). |
 | 11 | Yükleme doğrulaması, ≤10MB, private R2, imzalı URL | ⏳ | F3 / T-037 |
 | 12 | HTTPS + HSTS | ⚠️ | **Mantık ✅ ve test edildi**: yalnızca üretim + HTTPS'te ekleniyor, yerelde eklenmiyor. `preload` **bilerek YOK** — geri alınamaz ve `panel.` alt alan adı kararı (Q1) verilmedi. F7/T-072'de eklenecek. Gerçek TLS F7. |
 | 13 | CSP nonce tabanlı, script'te `unsafe-inline` yok | ⏳ | **F6 / T-060 — bilinçli erteleme.** React Bits (§5) kurulmadan CSP yazmak F2'de ya çöker ya taviz verdirir (STATUS.md R1). CSP'nin **yokluğu** E2E ile doğrulanıyor; T-060 o beklentiyi tersine çevirecek, yani sessizce unutulamaz. |
 | 14 | `X-Frame-Options` / `nosniff` / `Referrer-Policy` / `Permissions-Policy` | ✅ | Dördü de `src/lib/security/headers.ts` içinde tek noktada; `/` ve `/panel` gerçek yanıtlarında ölçüldü. `X-Powered-By` de kapalı (`next.config.ts`). |
-| 15 | İletişim formu 3/saat + honeypot + zaman tuzağı | ⏳ | F2 / T-027 |
+| 15 | İletişim formu 3/saat + honeypot + zaman tuzağı | ✅ | **Üçü de kurulu ve ölçüldü.** *Honeypot:* `website` alanı dolu gelirse mesaj SAKLANIR ama `honeypotHit`/`isSpam` işaretlenir (birim: `tests/unit/api/iletisim.test.ts`). *Zaman tuzağı:* `CONTACT_TIME_TRAP.minFillSeconds = 3`; **T-039'da canlı ölçüldü** — jetonu alıp anında gönderen istek sunucu logunda `spam sinyali … puan=30, sinyaller=tooFast` üretti, üç saniye bekleyen gerçek ziyaretçi akışında puan **0**. *Saatlik sınır:* IP başına 3 (`CONTACT_RATE_LIMIT`), aşımda `429` + `Retry-After`. **T-039 yanlış pozitif yönünü de ölçtü**: meşru ziyaretçi spam'e düşmüyor (`isSpam=false`, `spamScore=0`) ve ikinci meşru mesaj reddedilmiyor — sınırın gereğinden dar olmadığı gösterildi. **E2E'de ölçülmeyen tek dal:** 429'un kendisi. Ölçmek için üç kayıt daha yazmak gerekirdi; eşik saf politika ve birim testlerinde kapalı — kapıya değeri kadar bedel ödetilmedi. |
 | 16 | Yükleme uçları 10/dk | ⏳ | F3 / T-037 |
 | 17 | `.env` repoya girmez, `.env.example` tam | ✅ | `.gitignore:22-24` — `.env` ve `.env.*` yasaklı, `.env.example` istisna. `.env.example` §12'nin anahtarlarını değersiz listeliyor (T-001 doğrulaması). |
 | 18 | `NEXT_PUBLIC_` içinde sır yok, CI'da taranır | ✅ | **Otomatik tarama kuruldu** (T-005): `tests/unit/public-env.test.ts` — üç katman: (a) `.env.example`, (b) çalışma ortamı `process.env`, (c) `.next/` derleme çıktısı. `pnpm test` içinde koştuğu için hem yerelde hem CI'da otomatik. **Dedektör kendini kanıtlıyor**: 10 ekili sahte sır (GitHub/AWS/Stripe/JWT/argon2/PEM/bağlantı dizesi) yakalanıyor, meşru URL'ler yanlış pozitif vermiyor. Fiilen doğrulandı: `.env.example`'a `NEXT_PUBLIC_GITHUB_TOKEN=ghp_…` ekildi → hat **KIRMIZI**, geri alındı → **YEŞİL**. |

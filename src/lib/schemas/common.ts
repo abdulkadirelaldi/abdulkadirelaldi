@@ -443,6 +443,37 @@ export function toFormSchema<T extends z.ZodObject>(
  * Bu yüzden sayısal alanlarda `z.coerce` kullanılır.
  * ======================================================================== */
 
+/**
+ * URL parametresinden gelen boole filtresi — T-038'de ÖLÇÜLEN KUSURUN düzeltmesi.
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * ⚠️ `z.coerce.boolean()` FİLTRELERDE KULLANILAMAZ
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * `z.coerce.boolean()` JavaScript'in `Boolean(value)` çağrısıdır ve BOŞ OLMAYAN
+ * HER DİZE `true`dur. Ölçüldü (zod 4.4.3):
+ *
+ *   "false" → true      "0" → true      "true" → true      "" → false
+ *
+ * Yani `?isRead=false` "okunmamışları getir" demek isterken TAM TERSİNİ yapıyor
+ * ve hiçbir hata vermiyor. Bu blok başındaki not "değerler DAİMA string'tir"
+ * diyor — yani kusur tam olarak bu şemaların tasarlandığı kullanım biçiminde
+ * ortaya çıkıyor.
+ *
+ * Sessiz olduğu için en kötü sınıftan: filtre çalışıyor GÖRÜNÜR, yalnızca
+ * yanlış kümeyi döndürür.
+ *
+ * BURADA: yalnızca tanınan dizeler kabul edilir, tanınmayan HATA verir. Sessizce
+ * `true`ya düşmek yerine gürültülü başarısızlık — yazım hatası fark edilsin.
+ * Gerçek `boolean` de kabul edilir (Server Action'lar JSON gönderir, URL değil).
+ */
+export const booleanFilterSchema = z.union([
+  z.boolean(),
+  z
+    .enum(['true', 'false', '1', '0'], { error: 'Değer true veya false olmalıdır.' })
+    .transform((value) => value === 'true' || value === '1'),
+]);
+
 export const sortDirectionSchema = z.enum(['asc', 'desc']).default('desc');
 
 export const paginationSchema = z.object({

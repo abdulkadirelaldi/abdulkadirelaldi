@@ -1339,12 +1339,29 @@ mekanizması değildir.
 | Silme (slug'sız varlık) | `localeTag` |
 | `entityTag` | **hiçbir zaman** |
 
-**Genişletme 1 — eklemede `slugTag` de düşer (T-031).** Özgün metin "ekleme → `localeTag`"
-diyordu. Ama `getProjectBySlug` **olumsuz sonucu da önbelleğe alıyor**
-(`{ state: 'NOT_FOUND' }`). Biri `/projeler/yeni-slug`'ı kayıt açılmadan ziyaret ettiyse
-404 o slug'ın etiketiyle önbellektedir; yalnızca `localeTag` düşürmek **"listede var,
-tıklayınca yok"** üretir — bir saat sonra kendiliğinden düzelen, tam da bu ADR'nin
-uyardığı sınıftan bir hata.
+**Genişletme 1 — eklemede `slugTag` de düşer (T-031) — ⚠️ GEREKÇESİ T-039'DA ÇÜRÜTÜLDÜ.**
+Özgün gerekçe şuydu: `getProjectBySlug` olumsuz sonucu da önbelleğe alıyor
+(`{ state: 'NOT_FOUND' }`), dolayısıyla yalnızca `localeTag` düşürmek "listede var,
+tıklayınca yok" üretir.
+
+**Bu gerekçe yanlıştı ve yanlışlığı ölçüldü (T-039, mutasyon 2).** `slugTag` üretimini
+tamamen kaldıran mutasyon E2E'yi **yeşil** bıraktı. Sebep `content-cache.ts`'in kendi
+kuralı: her girdi kendisini düşürebilecek **tüm** etiketleri taşır, yani detay girdisi
+`entityTag + localeTag + slugTag` üçünü birden taşır. `localeTag` düşürmek detay
+girdisini de düşürür. Ayrıca `tagTargetsFor` slug'ları yalnızca `locales`'e zaten
+eklenmiş dillerden topluyor — yani **`slugTag`'siz bir düşürme yolu bugün kodda yok.**
+
+`slugTag` bugün **ispatlanabilir biçimde ölü**: davranışı değiştirmiyor. Kalmasının tek
+gerekçesi ileriye dönük: tek bir kaydı dar biçimde düşüren bir işlem çıkarsa
+(`localeTag`'e dokunmadan) gereken tek etiket odur. **Bu bir ihtimal, ölçülmüş bir
+ihtiyaç değil** — ve "bir şey yapıyormuş gibi duran ölü kod" bu projenin en pahalı
+hata sınıfı. Kararı Backend verecek (T-040); hangi yol seçilirse seçilsin `tags.ts`'teki
+yanlış gerekçe metni düzeltilecek.
+
+**Ders (bu ADR'nin asıl kazancı):** gerekçe kodun kendisinden değil, kodun *olması
+gerektiği* düşünülen hâlinden türetilmişti. Ben bu genişletmeyi Backend'in raporundan
+ölçmeden ADR'ye aldım. Mutasyon testi bunu yakaladı — yeşil kalan bir mutasyon, kırmızı
+olan kadar bilgi taşır.
 
 **Genişletme 2 — `entityTag` hiçbir zaman düşürülmez (T-031).** Her girdi onu taşıdığı
 için düşürmek **her zaman doğru sonucu verirdi** — tehlikeli olan da bu: Türkçe bir
@@ -1516,3 +1533,46 @@ pahalılaştığında yeniden değerlendirilir; T-030d bu eşiği kod yorumunda 
 - **Filtreli okumaları hiç önbelleğe almamak** (T-030'un K4'ü) — Sorunu önlerdi; **reddedildi** çünkü filtreli sayfa her istekte DB'ye giderdi ve ADR-011'in F2 için şart koştuğu korumadan çıkardı.
 - **Filtre değerini anahtara koyup girdi sayısına üst sınır koymak** — Next'te yerleşik bir mekanizma yok; uygulama katmanında LRU yazmak, çözdüğünden fazla karmaşıklık getirirdi.
 - **Kuralı yalnızca kod yorumunda bırakmak** — **reddedildi**: aynı soru F3/F4'te başka bir ajan tarafından sorulacak ve yorum o dosyada kalır.
+
+---
+
+## ADR-033 — URL Filtre Boole'ları `booleanFilterSchema` ile Ayrıştırılır; `z.coerce.boolean()` Yasak
+
+**Tarih:** 2026-09-11 · **Durum:** Kabul edildi · **Kaynak:** T-038 (Backend ölçümü)
+
+### Bağlam
+Sekiz filtre şeması URL arama parametrelerindeki boole alanlarını `z.coerce.boolean()`
+ile ayrıştırıyordu. Bu çağrı JavaScript'in `Boolean(value)` çağrısıdır ve **boş olmayan
+her dize `true`'dur**.
+
+Ölçüldü (zod 4.4.3): `"false"` → `true`, `"0"` → `true`.
+
+Kusur tam da şemaların tasarlandığı kullanımda ortaya çıkıyordu — kendi yorumları
+"değerler DAİMA string'tir" diyor. `?isRead=false` "okunmamışları getir" derken tam
+tersini yapıyor ve **hiçbir hata vermiyordu**. Filtre çalışıyor görünür, yalnızca yanlış
+kümeyi döndürür: bu projede tanınan en pahalı sınıf.
+
+### Karar
+`src/lib/schemas/common.ts` içindeki **`booleanFilterSchema`** tek geçerli yoldur.
+Yalnızca `true` / `false` / `1` / `0` kabul eder; **tanınmayan değer hata verir** —
+sessizce `true`'ya düşmek yerine gürültülü başarısızlık, ki yazım hatası fark edilsin.
+
+`z.coerce.boolean()` filtre şemalarında **kullanılmaz**.
+
+T-038 sekiz şemadaki on bir kullanımın **hepsini** çevirdi. Yalnızca mesaj kutusununki
+düzeltilseydi geri kalan yedi filtre aynı sessiz kusuru taşımaya devam ederdi ve F4/F5
+onları bozuk bulurdu: `project.featured`, `client.isArchived`/`isKiyiMedya`,
+`transaction.isPaid`, `habit.isActive`, `exercise.isArchived`,
+`transaction-category.isArchived`, `recurring-transaction.isActive`.
+
+### Sonuçlar
+- **Olumlu:** Sınıfın tamamı tek turda kapandı; F4/F5 filtreleri düzelmiş bulacak.
+- **Olumlu:** Gürültülü başarısızlık, `?isRad=false` gibi yazım hatalarını da yakalar.
+- **Olumsuz / kabul edilen:** Tanınmayan değer artık 400 üretir. Kabul edildi: sessizce
+  yanlış kümeyi döndürmekten iyidir.
+
+### Alternatifler ve neden reddedildi
+- **Yalnızca mesaj kutusunun şemasını düzeltmek** — **reddedildi**: aynı sınıf kusurun
+  bir örneğini düzeltip yedisini bırakmak, kusurun bilindiği hâlde taşındığı anlamına gelir.
+- **Tanınmayan değeri sessizce `false` saymak** — **reddedildi**: yön değişirdi, sessizlik
+  kalırdı. Sorun yön değil, sessizlikti.

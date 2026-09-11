@@ -49,8 +49,8 @@ import type { ApiResponse } from '@/types';
 
 export type PanelFormDurumu = 'bos' | 'gonderiliyor' | 'basarili';
 
-export type PanelFormSonucu<T extends FieldValues> = {
-  form: UseFormReturn<T>;
+export type PanelFormSonucu<TGiris extends FieldValues, TCikis extends FieldValues = TGiris> = {
+  form: UseFormReturn<TGiris, unknown, TCikis>;
   durum: PanelFormDurumu;
   formHatasi: string | null;
   /** `<form onSubmit={...}>`e verilir. */
@@ -59,39 +59,41 @@ export type PanelFormSonucu<T extends FieldValues> = {
   durumuSifirla: () => void;
 };
 
-export function usePanelForm<T extends FieldValues>({
+export function usePanelForm<TGiris extends FieldValues, TCikis extends FieldValues = TGiris>({
   sema,
   varsayilanDegerler,
   kaydet,
   temizle = false,
 }: {
   /**
-   * `ZodType<T, T>` — girdi ve çıktı AYNI tip.
+   * `ZodType<ÇIKTI, GİRDİ>` — ikisi AYRI olabilir.
    *
-   * Yalnızca `ZodType<T>` yazmak girdiyi `unknown` bırakıyor ve `zodResolver`
-   * "girdi `FieldValues` olmalı" diye reddediyor. Dönüştüren şemalar
-   * (`z.coerce`, `transform`) bu kabuğa doğrudan verilemez; verilecekse
-   * çağıran taraf dönüşümü `kaydet` içinde yapar — form alanları her hâlükârda
-   * kullanıcının GÖRDÜĞÜ tipte kalmalı.
+   * T-034'te ayrıldı: içerik şemaları `.default()` taşıyor (`featured`,
+   * `order`, `status`), yani formun tuttuğu GİRDİ ile şemanın ürettiği ÇIKTI
+   * aynı tip değil. Tek tiple sabitlenseydi bu şemalar kabuğa hiç
+   * verilemezdi ve her ekran kendi kuralını yeniden yazardı — §7.3 ihlali.
+   *
+   * Form alanları GİRDİ tipinde tutuluyor (kullanıcının gördüğü hâl),
+   * `kaydet` ÇIKTI tipini alıyor (şemanın ürettiği, varsayılanları dolmuş hâl).
    */
-  sema: z.ZodType<T, T>;
-  varsayilanDegerler: DefaultValues<T>;
+  sema: z.ZodType<TCikis, TGiris>;
+  varsayilanDegerler: DefaultValues<TGiris>;
   /**
    * Sunucuya yazan çağrı — Server Action ya da route handler `fetch`i.
    * §7.2 zarfı DÖNDÜRMELİ; fırlatırsa ağ hatası dalına düşer.
    */
-  kaydet: (degerler: T) => Promise<ApiResponse<unknown>>;
+  kaydet: (degerler: TCikis) => Promise<ApiResponse<unknown>>;
   /** Başarıda form boşaltılsın mı — "yeni kayıt" ekranlarında `true`. */
   temizle?: boolean;
-}): PanelFormSonucu<T> {
+}): PanelFormSonucu<TGiris, TCikis> {
   /*
    * `as Resolver<T, unknown, T>`: `zodResolver` şemanın GİRDİ ve ÇIKTI tiplerini
    * ayrı jeneriklerle taşıyor; burada ikisi de `T` olduğu hâlde TypeScript
    * eşleştiremiyor. Dönüşüm tip düzeyinde, davranış aynı — şema neyi kabul
    * ediyorsa form da onu kabul ediyor.
    */
-  const form = useForm<T>({
-    resolver: zodResolver(sema) as unknown as Resolver<T, unknown, T>,
+  const form = useForm<TGiris, unknown, TCikis>({
+    resolver: zodResolver(sema) as unknown as Resolver<TGiris, unknown, TCikis>,
     defaultValues: varsayilanDegerler,
   });
 
@@ -107,7 +109,9 @@ export function usePanelForm<T extends FieldValues>({
       sonuc = await kaydet(degerler);
     } catch {
       setDurum('bos');
-      setFormHatasi('Kaydedilemedi — bağlantı kurulamadı. Yazdıkların duruyor, tekrar deneyebilirsin.');
+      setFormHatasi(
+        'Kaydedilemedi — bağlantı kurulamadı. Yazdıkların duruyor, tekrar deneyebilirsin.',
+      );
       return;
     }
 
@@ -124,7 +128,7 @@ export function usePanelForm<T extends FieldValues>({
     if (alanlar) {
       for (const [ad, mesaj] of Object.entries(alanlar)) {
         if (ad in form.getValues()) {
-          form.setError(ad as Path<T>, { message: mesaj });
+          form.setError(ad as Path<TGiris>, { message: mesaj });
           basildi = true;
         }
       }

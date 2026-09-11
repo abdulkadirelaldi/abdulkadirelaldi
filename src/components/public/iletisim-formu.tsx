@@ -9,9 +9,8 @@ import { Button } from '@/components/ui/button';
 import { FormAlert, FormError } from '@/components/ui/form-error';
 import { Input, Textarea } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import * as z from 'zod';
-
 import {
+  contactMessageFormSchema,
   createContactMessageSchema,
   type CreateContactMessageInput,
 } from '@/lib/schemas/contact-message';
@@ -24,7 +23,7 @@ import type { ApiResponse } from '@/types';
  * DOĞRULAMA KURALI YENİDEN YAZILMIYOR (§7.3)
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * `resolver: zodResolver(createContactMessageSchema)` — alan uzunlukları,
+ * `resolver: zodResolver(contactMessageFormSchema)` — alan uzunlukları,
  * e-posta biçimi, telefon deseni ve Türkçe hata metinleri T-011'in şemasından
  * geliyor. Burada tek bir `min`/`max`/`regex` yok. Sunucu AYNI şemayı
  * çalıştırıyor; istemci doğrulaması bir KOLAYLIK, kapı sunucuda.
@@ -55,29 +54,19 @@ import type { ApiResponse } from '@/types';
 /** Sözleşme: gönderim adresi. GET jeton verir, POST mesajı alır. */
 export const ILETISIM_UCU = '/api/v1/iletisim';
 
-/**
- * İSTEMCİ ŞEMASI — tuzağı KURAN kural burada GEVŞETİLİYOR.
+/*
+ * İSTEMCİ ŞEMASI — `contactMessageFormSchema` (T-031 konvansiyonu).
  *
- * ⚠️ ÖLÇÜMLE BULUNAN KUSUR (T-026b): şema `website` alanını `.max(0)` ile
- * taşıyor. Aynı şemayı istemcide de çalıştırınca honeypot'u dolduran bir
- * gönderim `handleSubmit`e HİÇ ULAŞMIYORDU — istek gitmiyor, sunucu tuzağı
- * hiç görmüyor, ekranda da bir şey olmuyordu (alan gizli olduğu için hatası da
- * görünmez). İki ayrı zarar:
+ * T-026b'de burada yerel bir yama vardı: `createContactMessageSchema.extend({
+ * website: z.string().optional() })`. Doğruydu — honeypot kuralı istemcide
+ * koşunca dolu tuzak `handleSubmit`i hiç tetiklemiyor, bot sunucuya
+ * ulaşmıyor ve yanlış pozitifte gerçek kullanıcı sessiz bir duvara çarpıyordu.
  *
- *   1. BOT KAZANIYOR: spam sinyali kaydedilmiyor, mesaj panele hiç düşmüyor.
- *      Oysa ADR-020/C11 "spam silinmez, ayrılır" diyor.
- *   2. YANLIŞ POZİTİFTE GERÇEK KULLANICI SUSUYOR: tarayıcı/parola yöneticisi
- *      gizli alanı doldurursa kullanıcı "Gönder"e basıyor ve HİÇBİR ŞEY
- *      olmuyor — tam olarak kaçındığımız sessiz başarısızlık.
- *
- * Bu yüzden istemci `website`i serbest bırakıyor; kural SUNUCUDA duruyor ve
- * orada 201 + spam işareti üretiyor (Backend'in 3. notu). §7.3 ihlali değil:
- * kullanıcıya ait alanların kuralları hâlâ şemadan geliyor, yalnızca
- * KULLANICIYA AİT OLMAYAN tuzak alanı istemcide zorlanmıyor.
+ * Ama bilgi TEK BİR FORMUN İÇİNDE kalıyordu. Backend kuralı şemaya taşıdı:
+ * sunucuda yorumlanan alan `serverInterpreted()` ile işaretli, `toFormSchema()`
+ * onu çıkarıyor ve bir kapı testi ikisini birden koruyor. Yerel yama artık
+ * gereksiz; kaldırıldı.
  */
-const istemciSemasi = createContactMessageSchema.extend({
-  website: z.string().optional(),
-});
 
 type Durum = 'bos' | 'gonderiliyor' | 'basarili';
 
@@ -118,7 +107,7 @@ export function IletisimFormu({
     reset,
     formState: { errors },
   } = useForm<CreateContactMessageInput>({
-    resolver: zodResolver(istemciSemasi),
+    resolver: zodResolver(contactMessageFormSchema),
     defaultValues: { website: '', sourcePage: kaynakSayfa },
   });
 

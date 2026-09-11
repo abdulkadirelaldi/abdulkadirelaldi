@@ -3,6 +3,7 @@ import * as z from 'zod';
 import { Currency, PaymentMethod, TransactionType } from '@/types';
 
 import {
+  booleanFilterSchema,
   cuidSchema,
   dayDateSchema,
   mediumTextSchema,
@@ -59,7 +60,7 @@ export const updateRecurringTransactionSchema = partialWithoutDefaults(recurring
 export const recurringTransactionFilterSchema = paginationSchema.extend({
   type: z.enum(TransactionType).optional(),
   categoryId: cuidSchema.optional(),
-  isActive: z.coerce.boolean().optional(),
+  isActive: booleanFilterSchema.optional(),
 });
 
 export type RecurrenceRule = z.infer<typeof recurrenceRuleSchema>;

@@ -3,6 +3,7 @@ import * as z from 'zod';
 import { ContentStatus } from '@/types';
 
 import {
+  booleanFilterSchema,
   cuidSchema,
   instantSchema,
   localeSchema,
@@ -69,7 +70,7 @@ export const projectFilterSchema = paginationSchema.extend({
   status: z.enum(ContentStatus).optional(),
   tag: z.string().trim().max(32).optional(),
   stack: z.string().trim().max(32).optional(),
-  featured: z.coerce.boolean().optional(),
+  featured: booleanFilterSchema.optional(),
   locale: z.string().optional(),
   q: searchSchema.optional(),
 });

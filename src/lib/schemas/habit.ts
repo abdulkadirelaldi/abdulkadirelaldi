@@ -1,6 +1,12 @@
 import * as z from 'zod';
 
-import { cuidSchema, paginationSchema, partialWithoutDefaults, shortTextSchema } from './common';
+import {
+  booleanFilterSchema,
+  cuidSchema,
+  paginationSchema,
+  partialWithoutDefaults,
+  shortTextSchema,
+} from './common';
 
 /**
  * `Habit` (ADR-021).
@@ -38,8 +44,8 @@ export const archiveHabitSchema = z.object({
 });
 
 export const habitFilterSchema = paginationSchema.extend({
-  isActive: z.coerce.boolean().optional(),
-  isArchived: z.coerce.boolean().optional(),
+  isActive: booleanFilterSchema.optional(),
+  isArchived: booleanFilterSchema.optional(),
 });
 
 export type CreateHabitInput = z.infer<typeof createHabitSchema>;
