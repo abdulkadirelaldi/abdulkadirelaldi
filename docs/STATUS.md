@@ -123,15 +123,26 @@ Durum kodları: ⚪ Bekliyor · 🔵 Aktif · 🟡 Kısmen · 🟢 Tamamlandı �
 | §9 — Lighthouse | ✅ **merge kapısı**, eşikler `error` |
 | İletişim formu | ✅ §8.15 hız sınırı · honeypot · zaman tuzağı · uçtan uca ölçüldü |
 
-**901 birim + 69 E2E · §8: ✅ 9 · ⚠️ 4 · ⏳ 12**
+**1093 birim + 85 E2E · §8: ✅ 10 · ⚠️ 6 · ❌ 0 · ⏳ 9** *(PR #13 sonrası)*
 
-**F2'den devreden borçlar (F3 boyunca):**
-1. **T-037** — imzalı URL'ler gelmeden tüm kapaklar yer tutucu; `LogoLoop` bölümü kapalı
-2. **`readingMinutes` yazma yolu** — kolon her kayıtta yeniden hesaplanmalı (T-031)
-3. **Rota envanteri ↔ kapı kapsamı** karşılaştırması (T-029d önerisi)
-4. **ADVISORY-002** — 2026-11-22'de kendini hatırlatacak
-5. **Yerel Docker kararsızlığı** — bu turda üçüncü kez düştü; F3'te ölçüm görevleri artacak
-6. **Sunucu-only zorlanan şema alanları** için konvansiyon (T-026b önerisi)
+**§9 senaryoları: 3 kapalı · 3 kısmi · 1 açık** — kapalı: 3 (giriş+2FA), 4 (girişsiz
+/panel → login), **6 (yayınla → public'te görün, T-039, mutasyonla doğrulandı)**.
+Kısmi: 1 (uçlar ölçülü, tıklama zinciri değil), 2 (üç halka kapalı, ekran bekliyor),
+7 (mobilde geçiyor, panel gezinme iddiaları yazılmadı). Açık: 5 (finans, F4/F5).
+
+**Açık borçlar (F3 boyunca):**
+1. **T-037** — imzalı URL'ler gelmeden tüm kapaklar yer tutucu; `LogoLoop` bölümü kapalı.
+   **Beş şey bunu bekliyor:** proje kapakları, galeri, blog kapakları, CV indirme, müşteri logoları
+2. **ENGEL-1 → T-040** — panel yalnızca yayındaki kayıtları okuyor *(ayrıntı F3 tablosunda)*
+3. **`tags.ts` gerekçe metni** — ADR-029 Genişletme 1'in çürütülen gerekçesi kodda duruyor (T-040)
+4. **Arşivlenen adres 410 değil 200 dönüyor** — Next 15.5 sınırı (T-024); panel metni
+   gerçeğe çekildi, engel kalkınca güncellenecek
+5. **ADVISORY-002** — 2026-11-22'de kendini hatırlatacak
+6. **Yerel Docker kararsızlığı** — T-039'un koşumu ortasında yine düştü (dördüncü kez)
+7. **Düzenlemede MDX boş başlıyor** — liste DTO'su MDX taşımıyor; tek kayıt okuma ucu T-035'te
+
+*Kapanan borçlar: `readingMinutes` yazma yolu (T-031) · rota envanteri ↔ kapı kapsamı
+(T-016b) · sunucu-only şema alanı konvansiyonu (T-031, `serverInterpreted`).*
 
 | #     | Görev                                                                      | Ajan     | Bağımlılık   |
 | ----- | -------------------------------------------------------------------------- | -------- | ------------ |
@@ -156,22 +167,34 @@ ederken karşılığında şart koştuğu koruma.
 
 ---
 
-### F3 — Panel Çekirdek ⚪
+### F3 — Panel Çekirdek 🔵
 
-| #     | Görev                                                                             | Ajan               | Bağımlılık   |
-| ----- | --------------------------------------------------------------------------------- | ------------------ | ------------ |
-| T-030 | İçerik servisleri: `Profile`, `Project`, `Post`, `Experience`, `Skill`, `Service` | Backend            | T-015        |
-| T-031 | İçerik Server Actions + `AuditLog` + `revalidatePath`                             | Backend            | T-030        |
-| T-032 | Panel layout: Sidebar, Topbar, breadcrumb, boş/yükleniyor/hata desenleri          | Frontend           | T-002, T-013 |
-| T-033 | Panel dashboard — özet kartlar (`CountUp`), bugünün planı                         | Frontend           | T-032, T-030 |
-| T-034 | `/panel/icerik/projeler` + `/panel/icerik/deneyim` CRUD ekranları                 | Frontend           | T-031, T-032 |
-| T-035 | `/panel/icerik/blog` — MDX editör + önizleme                                      | Frontend           | T-031, T-032 |
-| T-036 | `/panel/icerik/profil` — hero metni, bio, sosyaller, CV dosyası                   | Frontend           | T-031, T-032 |
-| T-037 | R2 yükleme ucu + imzalı URL + dosya doğrulayıcı (§8.11)                           | Backend + Güvenlik | T-015        |
-| T-038 | `/panel/mesajlar` + "işe dönüştür" aksiyonu                                       | Backend + Frontend | T-027, T-032 |
-| T-039 | E2E: senaryo 2 ve 6 (mesaj panele düşer, proje yayınlanır)                        | Güvenlik           | T-034, T-038 |
+| #      | Görev                                                                             | Ajan               | Bağımlılık   |
+| ------ | --------------------------------------------------------------------------------- | ------------------ | ------------ |
+| T-030  | İçerik servisleri: `Profile`, `Project`, `Post`, `Experience`, `Skill`, `Service` | Backend            | T-015        |
+| T-031  | İçerik Server Actions + `AuditLog` + etiket düşürme — 🟢 **Tamam** (PR #12)       | Backend            | T-030        |
+| T-032  | Panel layout: Sidebar, Topbar, breadcrumb, desenler — 🟢 **Tamam** (PR #12)       | Frontend           | T-002, T-013 |
+| T-016b | Rota kapsamı kapısı — 🟢 **Tamam** (PR #12)                                       | Güvenlik           | T-032        |
+| T-034  | `/panel/icerik/{projeler,deneyim}` CRUD — 🟢 **Tamam** (PR #13)                   | Frontend           | T-031, T-032 |
+| T-038  | Mesaj kutusu okuma + durum eylemleri + §6 dönüşümü — 🟢 **Tamam** (PR #13)        | Backend            | T-027, T-032 |
+| T-039  | E2E §9/6 kapandı, §9/2 ekran bekliyor — 🟢 **Tamam** (PR #13)                     | Güvenlik           | T-034, T-038 |
+| T-040  | Panel okuma servisi (tüm durumlar + `status` DTO) + `tags.ts` gerekçe düzeltmesi  | Backend            | T-038        |
+| T-041f | Mesaj kutusu **ekranı** + §9/2'nin son halkası                                    | Frontend           | T-038        |
+| T-035  | `/panel/icerik/blog` — MDX editör + önizleme                                      | Frontend           | T-031, T-040 |
+| T-036b | `/panel/icerik/profil` — hero metni, bio, sosyaller, CV dosyası                   | Frontend           | T-031, T-032 |
+| T-033  | Panel dashboard — özet kartlar (`CountUp`), bugünün planı                         | Frontend           | T-032, T-030 |
+| T-042s | Şifre değiştirme (Q8 kararı: F3'ün maddesi)                                       | Backend + Frontend | T-013b       |
+| T-037  | R2 yükleme ucu + imzalı URL + dosya doğrulayıcı (§8.11) — 🔴 **R2 hesabı bekliyor** | Backend + Güvenlik | T-015        |
 
-**Sıra:** T-030 → T-031 → T-032 → (T-033…T-036) → T-037 → T-038 → T-039
+**Sıra:** T-030 ✅ → T-031 ✅ → T-032 ✅ → (T-034 ✅ ∥ T-038 ✅ ∥ T-039 ✅) →
+(**T-040 ∥ T-041f ∥ T-035**) → (T-036b ∥ T-033 ∥ T-042s) → T-037 → F3 kapanış
+
+**T-040 neden öne alındı (ENGEL-1, T-034):** panel listesi `getPublishedProjects`
+okuyor. Üç sonucu var ve üçüncüsü sessiz: (1) taslak eklenince listede belirmiyor,
+(2) arşivlenen kayıt panelden geri alınamıyor, (3) **düzenleme formunda `status`
+sabit `PUBLISHED` yazılıyor** — servis tüm durumları döndürmeye başladığı gün bir
+taslağı düzenleyip kaydetmek onu sessizce yayına alır. T-035 ve T-033 aynı okuma
+yolunu tüketecek; borç büyümeden kapanmalı.
 
 ---
 
