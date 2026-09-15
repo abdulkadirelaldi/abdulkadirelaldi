@@ -133,13 +133,27 @@ Kısmi: 1 (uçlar ölçülü, tıklama zinciri değil), 2 (üç halka kapalı, e
 **Açık borçlar (F3 boyunca):**
 1. **T-037** — imzalı URL'ler gelmeden tüm kapaklar yer tutucu; `LogoLoop` bölümü kapalı.
    **Beş şey bunu bekliyor:** proje kapakları, galeri, blog kapakları, CV indirme, müşteri logoları
-2. **ENGEL-1 → T-040** — panel yalnızca yayındaki kayıtları okuyor *(ayrıntı F3 tablosunda)*
-3. **`tags.ts` gerekçe metni** — ADR-029 Genişletme 1'in çürütülen gerekçesi kodda duruyor (T-040)
-4. **Arşivlenen adres 410 değil 200 dönüyor** — Next 15.5 sınırı (T-024); panel metni
+2. **Dolu silah → T-043f** — panel okuma yolu yazıldı ama bağlanmadı; sabit `status`
+   hâlâ yerinde *(ayrıntı F3 tablosunda)*
+3. **Arşivlenen adres 410 değil 200 dönüyor** — Next 15.5 sınırı (T-024); panel metni
    gerçeğe çekildi, engel kalkınca güncellenecek
-5. **ADVISORY-002** — 2026-11-22'de kendini hatırlatacak
-6. **Yerel Docker kararsızlığı** — T-039'un koşumu ortasında yine düştü (dördüncü kez)
-7. **Düzenlemede MDX boş başlıyor** — liste DTO'su MDX taşımıyor; tek kayıt okuma ucu T-035'te
+4. **ADVISORY-002** — 2026-11-22'de kendini hatırlatacak; T-042g ölçtü: `@prisma/config@7.10.0`
+   hâlâ `deepmerge-ts@7.1.5` sabitliyor, `prisma@latest` artık `8.0.0-rc.14`
+5. **`latest` etiketi kararlı değil** — `prisma` → 8.0.0-rc.14, `vitest` → 5.0.0,
+   `next` → 16.3.4 (biz 15.5.25). `nanoid` → 6.0.1 ile aynı sınıf tuzak. F6'nın
+   Prisma 8 / Next 16 görevlerinden önce yazılı olmalı (T-043g)
+6. **Yerel Docker kararsızlığı** — bu turda **beşinci** kez düştü; `colima` Mac uykuya
+   geçince duruyor. Ölçüm görevlerinin başında `colima start && pnpm db:up` refleks olmalı
+7. **Gizli alana düşen `fields` anahtarı sessiz kalıyor** — `usePanelForm` görünmez
+   alana basılan hatayı "gösterildi" sayıyor. T-041f ekran düzeyinde çözdü; **ikinci
+   örnek çıkarsa desene taşınacak** (T-043f'te `projeler-ekrani` de gizli `id` taşıyor)
+8. **KVKK / RSC yükü** — `ip`/`userAgent` detay sayfasının RSC yükünde "Gizle"
+   durumunda da duruyor; düğme perde, yetki sınırı değil. Gerçek sınır liste/detay
+   ayrımı ve o Backend'in `LIST_SELECT`'inde kurulu. Değerlendirme T-043g'de
+
+*Kapanan borçlar: `readingMinutes` yazma yolu (T-031) · rota envanteri ↔ kapı kapsamı
+(T-016b) · sunucu-only şema alanı konvansiyonu (T-031) · ENGEL-1 sunucu yarısı (T-040) ·
+`tags.ts` yanlış gerekçesi (T-040) · düzenlemede boş MDX (T-040, tek kayıt okuma).*
 
 *Kapanan borçlar: `readingMinutes` yazma yolu (T-031) · rota envanteri ↔ kapı kapsamı
 (T-016b) · sunucu-only şema alanı konvansiyonu (T-031, `serverInterpreted`).*
@@ -178,23 +192,40 @@ ederken karşılığında şart koştuğu koruma.
 | T-034  | `/panel/icerik/{projeler,deneyim}` CRUD — 🟢 **Tamam** (PR #13)                   | Frontend           | T-031, T-032 |
 | T-038  | Mesaj kutusu okuma + durum eylemleri + §6 dönüşümü — 🟢 **Tamam** (PR #13)        | Backend            | T-027, T-032 |
 | T-039  | E2E §9/6 kapandı, §9/2 ekran bekliyor — 🟢 **Tamam** (PR #13)                     | Güvenlik           | T-034, T-038 |
-| T-040  | Panel okuma servisi (tüm durumlar + `status` DTO) + `tags.ts` gerekçe düzeltmesi  | Backend            | T-038        |
-| T-041f | Mesaj kutusu **ekranı** + §9/2'nin son halkası                                    | Frontend           | T-038        |
-| T-035  | `/panel/icerik/blog` — MDX editör + önizleme                                      | Frontend           | T-031, T-040 |
+| T-040  | Panel okuma servisi (tüm durumlar + `status` DTO) — 🟢 **Tamam** (PR #13)         | Backend            | T-038        |
+| T-041f | Mesaj kutusu **ekranı** + dönüşüm — 🟢 **Tamam** (PR #13)                         | Frontend           | T-038        |
+| T-042g | §8.24: üç yeni yüksek danışma kapatıldı — 🟢 **Tamam** (PR #13)                   | Güvenlik           | —            |
+| T-043g | Rota kapsamı beyanları + §9/2'nin dördüncü halkası — 🔴 **PR #13'ü blokluyor**    | Güvenlik           | T-041f       |
+| T-043f | Panel ekranlarını yeni okuma yoluna bağla — **dolu silah**                         | Frontend           | T-040        |
+| T-042s | Şifre değiştirme — sunucu yarısı (Q8 kararı)                                      | Backend            | T-013b       |
+| T-035  | `/panel/icerik/blog` — MDX editör + önizleme                                      | Frontend           | T-043f       |
 | T-036b | `/panel/icerik/profil` — hero metni, bio, sosyaller, CV dosyası                   | Frontend           | T-031, T-032 |
-| T-033  | Panel dashboard — özet kartlar (`CountUp`), bugünün planı                         | Frontend           | T-032, T-030 |
-| T-042s | Şifre değiştirme (Q8 kararı: F3'ün maddesi)                                       | Backend + Frontend | T-013b       |
+| T-033  | Panel dashboard — özet kartlar (`CountUp`), bugünün planı                         | Frontend           | T-040        |
+| T-042f | Şifre değiştirme ekranı                                                           | Frontend           | T-042s       |
 | T-037  | R2 yükleme ucu + imzalı URL + dosya doğrulayıcı (§8.11) — 🔴 **R2 hesabı bekliyor** | Backend + Güvenlik | T-015        |
+| T-045  | Önbellek granülasyonu: detay girdilerinden `localeTag` çıkarma — **F3 sonrası**    | Backend            | T-040        |
 
 **Sıra:** T-030 ✅ → T-031 ✅ → T-032 ✅ → (T-034 ✅ ∥ T-038 ✅ ∥ T-039 ✅) →
-(**T-040 ∥ T-041f ∥ T-035**) → (T-036b ∥ T-033 ∥ T-042s) → T-037 → F3 kapanış
+(T-040 ✅ ∥ T-041f ✅ ∥ T-042g ✅) → (**T-043g ∥ T-043f ∥ T-042s**) →
+(T-035 ∥ T-042f ∥ T-033 ∥ T-036b) → T-037 → F3 kapanış → T-045
 
-**T-040 neden öne alındı (ENGEL-1, T-034):** panel listesi `getPublishedProjects`
-okuyor. Üç sonucu var ve üçüncüsü sessiz: (1) taslak eklenince listede belirmiyor,
-(2) arşivlenen kayıt panelden geri alınamıyor, (3) **düzenleme formunda `status`
-sabit `PUBLISHED` yazılıyor** — servis tüm durumları döndürmeye başladığı gün bir
-taslağı düzenleyip kaydetmek onu sessizce yayına alır. T-035 ve T-033 aynı okuma
-yolunu tüketecek; borç büyümeden kapanmalı.
+**T-043f neden P0 — "dolu silah" (Orkestra Şefi ölçümü, 2026-09-15):**
+Depoda bugün canlı bir hata **yok** ve tehlike tam olarak bu.
+`panel/icerik/projeler/page.tsx:5` hâlâ `getPublishedProjects` okuyor;
+`projeler-ekrani.tsx:184` hâlâ `status: ContentStatus.PUBLISHED` **sabit yazıyor**.
+İkisi birbiriyle tutarlı, kimse zarar görmüyor.
+
+T-040 `fetchProjectsForPanel`'i yazdı. **İmportu değiştirmek tek satırlık, apaçık
+doğru görünen bir değişiklik** — ve o satır tek başına değiştiği anda bir taslağı
+düzenleyip kaydetmek onu sessizce yayına alır. Hiçbir test kırmızıya dönmez.
+Bu yüzden iki yarı **aynı görevde ve aynı turda**; bölünürse arada kalan tur
+sessiz veri kaybının penceresi olur.
+
+**T-045 (Backend'in önerisi, kabul edildi, ertelendi):** `cached.ts`'te detay
+girdilerinden `localeTag`'i çıkarmak aşırı geçersizleştirmeyi giderir (A'yı
+düzenlemek B'nin sayfasını düşürmez) ve `slugTag`'i yük taşıyan hâle getirir.
+Public önbellek davranışını değiştirdiği için **kendi ölçüm görevini hak ediyor**
+ve bu turda Frontend'in ölçüm görevi var (ADR-023: iki ölçüm görevi paralel koşamaz).
 
 ---
 
