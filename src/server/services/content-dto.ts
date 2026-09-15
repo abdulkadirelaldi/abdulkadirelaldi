@@ -257,3 +257,86 @@ export interface ContentWriteDto {
   /** ISO 8601. */
   publishedAt: string | null;
 }
+
+/* ===========================================================================
+ * PANEL OKUMA DTO'LARI — T-040 (ENGEL-1)
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * NEDEN PUBLIC DTO'LARINDAN AYRI
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Public DTO'lar `status` TAŞIMAZ ve bu doğruydu: public taraf yalnızca
+ * yayındakini görür, durumu göstermesi gereksiz ve sızdırıcı olurdu.
+ *
+ * Ama panel düzenleme formu durumu GÖRMEK ZORUNDA. Taşımadığı için Frontend
+ * forma sabit `PUBLISHED` yazmak zorunda kaldı (ENGEL-1/3) — ve servis tüm
+ * durumları döndürmeye başladığı gün bu satır bir TASLAĞI SESSİZCE YAYINA
+ * ALACAKTI. Public DTO'ya `status` eklemek sorunu çözerdi ama public sözleşmeyi
+ * panelin ihtiyacıyla kirletirdi; iki ayrı okuyucunun iki ayrı DTO'su var.
+ * ======================================================================== */
+
+/**
+ * Panel listesi satırı — `status` VE `updatedAt` taşır.
+ *
+ * `updatedAt` public listelerde YOK (sayfada gösterilmiyor, DTO'yu şişirir) ama
+ * panelde hem sütun hem SIRALAMA anahtarı: taslakların `publishedAt`i `null`
+ * olduğu için public sıralama anahtarı panelde kullanılamaz (bkz. servisler).
+ */
+export interface ProjectPanelListItemDto {
+  id: string;
+  locale: string;
+  slug: string;
+  title: string;
+  status: ContentStatus;
+  featured: boolean;
+  order: number;
+  /** ISO 8601. `DRAFT` kayıtlarda `null`. */
+  publishedAt: string | null;
+  /** ISO 8601 — panel sıralaması bunun üzerinden. */
+  updatedAt: string;
+}
+
+/**
+ * Panel TEK KAYIT — düzenleme formunun ihtiyaç duyduğu TAM alan kümesi.
+ *
+ * MDX (`content`) DAHİL. Liste DTO'sunun MDX taşımaması T-030/K3'ün doğru
+ * kararıydı (20 projelik ızgara 20 MDX gövdesi taşımasın, K1/LCP), ama TEK
+ * KAYIT farklı bir soru: form içeriği düzenleyecekse onu almak zorunda.
+ *
+ * `coverAttachmentId` HAM FK olarak var: form alanı bunu gönderiyor
+ * (`updateProjectSchema.coverAttachmentId`). `cover` ise çözülmüş referans —
+ * mevcut kapağın önizlemesi için. İkisi birden gerekiyor; yalnızca `cover`
+ * verilse form hangi kimliği göndereceğini bilemezdi.
+ */
+export interface ProjectPanelDto extends ProjectPanelListItemDto {
+  summary: string;
+  content: string;
+  coverAttachmentId: string | null;
+  cover: AttachmentRefDto | null;
+  tags: string[];
+  stack: string[];
+  liveUrl: string | null;
+  repoUrl: string | null;
+  clientName: string | null;
+}
+
+export interface PostPanelListItemDto {
+  id: string;
+  locale: string;
+  slug: string;
+  title: string;
+  status: ContentStatus;
+  /** Sunucuda türetiliyor (T-031) — formda salt okunur gösterilir. */
+  readingMinutes: number;
+  publishedAt: string | null;
+  updatedAt: string;
+}
+
+/** Bkz. `ProjectPanelDto` — MDX ve ham FK aynı gerekçelerle burada. */
+export interface PostPanelDto extends PostPanelListItemDto {
+  excerpt: string;
+  content: string;
+  coverAttachmentId: string | null;
+  cover: AttachmentRefDto | null;
+  tags: string[];
+}

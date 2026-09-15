@@ -1,4 +1,4 @@
-import type { CreatePostInput, UpdatePostInput } from '@/lib/schemas';
+import type { CreatePostInput, PostFilterInput, UpdatePostInput } from '@/lib/schemas';
 import { db } from '@/server/db';
 import type { PrismaClient } from '@/server/generated/prisma/client';
 import type { ContentStatus } from '@/types';
@@ -7,15 +7,21 @@ import {
   ATTACHMENT_SELECT,
   calculateReadingMinutes,
   DEFAULT_LOCALE,
+  panelContentWhere,
+  panelSkipTake,
   publishedWhere,
   toAttachmentRef,
+  toPagedResult,
   type AttachmentRow,
 } from './_shared';
 import type {
   ContentLookup,
   ContentWriteDto,
+  PagedResult,
   PostDto,
   PostListItemDto,
+  PostPanelDto,
+  PostPanelListItemDto,
   SitemapEntryDto,
 } from './content-dto';
 
@@ -297,4 +303,117 @@ export async function archivePost(id: string, client: PostClient = db): Promise<
     select: SNAPSHOT_SELECT,
   });
   return toWriteDto(row);
+}
+
+/* ===========================================================================
+ * PANEL OKUMA YOLU — T-040 (ENGEL-1)
+ *
+ * ⚠️ `fetchPublishedPosts` DEĞİŞMEDİ: yalnızca `PUBLISHED` döndürüyor. Ayrımın
+ * gerekçesi `_shared/panel-query.ts` başında.
+ * ======================================================================== */
+
+const PANEL_LIST_SELECT = {
+  id: true,
+  locale: true,
+  slug: true,
+  title: true,
+  status: true,
+  readingMinutes: true,
+  publishedAt: true,
+  updatedAt: true,
+} as const;
+
+const PANEL_DETAIL_SELECT = {
+  ...PANEL_LIST_SELECT,
+  excerpt: true,
+  content: true,
+  coverAttachmentId: true,
+  tags: true,
+  cover: { select: ATTACHMENT_SELECT },
+} as const;
+
+interface PostPanelListRow {
+  id: string;
+  locale: string;
+  slug: string;
+  title: string;
+  status: ContentStatus;
+  readingMinutes: number;
+  publishedAt: Date | null;
+  updatedAt: Date;
+}
+
+interface PostPanelDetailRow extends PostPanelListRow {
+  excerpt: string;
+  content: string;
+  coverAttachmentId: string | null;
+  tags: string[];
+  cover: AttachmentRow | null;
+}
+
+function toPanelListDto(row: PostPanelListRow): PostPanelListItemDto {
+  return {
+    id: row.id,
+    locale: row.locale,
+    slug: row.slug,
+    title: row.title,
+    status: row.status,
+    // Okuma tarafı TEK KAYNAĞA bakar ve düzeltmeye çalışmaz (T-028d) — ama
+    // `Math.max(1, …)` public listede kalıyor çünkü orada okuyucuya "0 dakika"
+    // göstermek anlamsız. Panelde ham değer gösterilir: bozuk bir kolon
+    // panelde GÖRÜLEBİLMELİ, maskelenmemeli.
+    readingMinutes: row.readingMinutes,
+    publishedAt: row.publishedAt?.toISOString() ?? null,
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+/** TÜM DURUMLARDAKİ yazılar — panel listesi. Sıralama gerekçesi `project.ts`'te. */
+export async function fetchPostsForPanel(
+  filter: PostFilterInput,
+  client: PostClient = db,
+): Promise<PagedResult<PostPanelListItemDto>> {
+  const where = panelContentWhere({
+    locale: filter.locale,
+    status: filter.status,
+    q: filter.q,
+    searchFields: ['title', 'excerpt', 'slug'],
+  });
+  if (filter.tag) where.tags = { has: filter.tag };
+
+  const { skip, take } = panelSkipTake(filter);
+
+  const [rows, total] = await Promise.all([
+    client.post.findMany({
+      where,
+      select: PANEL_LIST_SELECT,
+      orderBy: [{ updatedAt: 'desc' }],
+      skip,
+      take,
+    }),
+    client.post.count({ where }),
+  ]);
+
+  return toPagedResult(rows, total, filter, toPanelListDto);
+}
+
+/** Panel TEK KAYIT — `id` ile, tüm durumlar, MDX dahil. Gerekçe `project.ts`'te. */
+export async function fetchPostForPanel(
+  id: string,
+  client: PostClient = db,
+): Promise<PostPanelDto | null> {
+  const row: PostPanelDetailRow | null = await client.post.findUnique({
+    where: { id },
+    select: PANEL_DETAIL_SELECT,
+  });
+  if (!row) return null;
+
+  return {
+    ...toPanelListDto(row),
+    excerpt: row.excerpt,
+    content: row.content,
+    coverAttachmentId: row.coverAttachmentId,
+    cover: toAttachmentRef(row.cover),
+    tags: row.tags,
+  };
 }

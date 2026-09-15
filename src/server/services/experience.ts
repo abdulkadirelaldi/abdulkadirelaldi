@@ -1,10 +1,20 @@
-import type { CreateExperienceInput, UpdateExperienceInput } from '@/lib/schemas';
+import type {
+  CreateExperienceInput,
+  ExperienceFilterInput,
+  UpdateExperienceInput,
+} from '@/lib/schemas';
 import { db } from '@/server/db';
 import type { PrismaClient } from '@/server/generated/prisma/client';
 import type { ExperienceType } from '@/types';
 
-import { appDayToDate, dateToAppDay, DEFAULT_LOCALE } from './_shared';
-import type { ExperienceDto } from './content-dto';
+import {
+  appDayToDate,
+  dateToAppDay,
+  DEFAULT_LOCALE,
+  panelSkipTake,
+  toPagedResult,
+} from './_shared';
+import type { ExperienceDto, PagedResult } from './content-dto';
 
 /** `Experience` servisi — §4.1 /hakkimda zaman çizelgesi. */
 
@@ -131,4 +141,76 @@ export async function deleteExperience(
   client: ExperienceClient = db,
 ): Promise<ExperienceDto> {
   return toDto(await client.experience.delete({ where: { id } }));
+}
+
+/* ===========================================================================
+ * PANEL OKUMA YOLU — T-040
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * ⚠️ ENGEL-1'İN DURUM KISMI `Experience`'TA YOK — ÖLÇÜLDÜ
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * `Experience` modeli `ContentStatus` TAŞIMIYOR (şema tarandı: `status` kolonu
+ * yok). Yani "panel yalnızca yayındakileri görüyor" sorunu burada HİÇ YOKTU —
+ * `fetchExperience` zaten `publishedWhere` uygulamıyor, yalnızca dile süzüyor
+ * ve tüm kayıtları döndürüyor.
+ *
+ * "Üç varlık için de aynısını yap" kriterini körü körüne uygulayıp buraya bir
+ * durum filtresi eklemek, OLMAYAN bir kolona göre süzen ölü bir dal bırakırdı.
+ * Panelin buradaki gerçek eksiği farklıydı ve ikisi kapatıldı:
+ *   1. SAYFALAMA — `fetchExperience` tüm kayıtları tek seferde döndürüyor.
+ *   2. `id` ile TEK KAYIT okuma — düzenleme formunun ihtiyacı.
+ *
+ * `ExperienceDto` ZATEN düzenleme formunun tam alan kümesini taşıyor (MDX yok,
+ * çünkü bu varlıkta MDX alanı da yok), bu yüzden ayrı bir panel DTO'su
+ * GEREKMİYOR. Simetri uğruna `ExperiencePanelDto` diye bir kopya açmak, aynı
+ * şekli iki yerde tutmak olurdu.
+ * ======================================================================== */
+
+/**
+ * TÜM deneyim kayıtları — panel listesi, sayfalı.
+ *
+ * SIRALAMA public tarafla AYNI (`startDate desc`) ve bu bilinçli: `Project`/`Post`
+ * panelinde `updatedAt desc` seçildi çünkü taslakların `publishedAt`i `null`du
+ * ve public anahtar panelde kullanılamıyordu. Burada böyle bir sorun yok —
+ * `startDate` her kayıtta dolu ve zaman çizelgesi sırası düzenlerken de en
+ * anlaşılır sıra.
+ */
+export async function fetchExperienceForPanel(
+  filter: ExperienceFilterInput,
+  client: ExperienceClient = db,
+): Promise<PagedResult<ExperienceDto>> {
+  const where: Record<string, unknown> = {};
+  if (filter.locale) where.locale = filter.locale;
+  if (filter.type) where.type = filter.type;
+
+  const { skip, take } = panelSkipTake(filter);
+
+  const [rows, total] = await Promise.all([
+    client.experience.findMany({
+      where,
+      orderBy: [{ startDate: 'desc' }, { order: 'asc' }],
+      skip,
+      take,
+    }),
+    client.experience.count({ where }),
+  ]);
+
+  return toPagedResult(rows, total, filter, toDto);
+}
+
+/**
+ * Panel TEK KAYIT — `id` ile. Yoksa `null`.
+ *
+ * `findExperienceSnapshot` ile AYNI okumayı yapıyor ve bu kasıtlı bir ikinci
+ * İSİM, ikinci bir uygulama değil: o ad mutasyon tarafının (`AuditLog` farkı)
+ * sözlüğünden, bu ad okuma tarafının sözlüğünden geliyor. Frontend'e
+ * "snapshot al" demek, ne yaptığını yanlış anlatırdı. Gövde tek yerde durduğu
+ * için ikisi sapamaz.
+ */
+export async function fetchExperienceForPanelById(
+  id: string,
+  client: ExperienceClient = db,
+): Promise<ExperienceDto | null> {
+  return findExperienceSnapshot(id, client);
 }

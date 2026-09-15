@@ -77,9 +77,11 @@ export async function createProjectAction(raw: unknown): Promise<ApiResponse<Con
     );
 
     /*
-     * EKLEMEDE SLUG ETİKETİ DE DÜŞÜYOR — bkz. `contentTagsToDrop`.
-     * `getProjectBySlug` olumsuz sonucu (404) da önbelleğe alır; yeni slug
-     * daha önce ziyaret edildiyse "listede var, tıklayınca yok" üretirdi.
+     * `localeTag` DÜŞÜYOR; `slugTag` de düşüyor ama BUGÜN SONUCU DEĞİŞTİRMİYOR.
+     *
+     * Buradaki eski yorum, olumsuz önbellek (404) yüzünden slug etiketinin
+     * ŞART olduğunu söylüyordu. Yanlıştı: o 404 girdisi de `localeTag` taşıyor
+     * (T-039 mutasyonuyla ölçüldü). Tam gerekçe `tags.ts`'te.
      */
     revalidateContent('project', tagTargetsFor(null, dto));
 
@@ -130,8 +132,10 @@ export async function updateProjectAction(raw: unknown): Promise<ApiResponse<Con
      * DURUM DEĞİŞİKLİĞİ DE BURADAN GEÇER (DRAFT→PUBLISHED, →ARCHIVED).
      * `tagTargetsFor` her hâlükârda `localeTag` düşürüyor — ADR-029'un
      * "durum değişikliğinde localeTag MUTLAKA" maddesi bu yüzden ayrı bir dal
-     * gerektirmiyor. Yalnızca `slugTag` düşürmek listeyi VE `getSiteStats`i
-     * bayat bırakırdı; ikisi de `localeTag` taşıyor.
+     * gerektirmiyor. Bu madde AYAKTA: liste, `getSiteStats` ve sitemap girdileri
+     * yalnızca `localeTag` taşıyor, `slugTag` taşımıyor — yani onlara ulaşan tek
+     * etiket `localeTag`. (Çürütülen şey tersiydi: slug'lı girdilere `localeTag`
+     * ULAŞMIYOR sanılmasıydı.)
      */
     revalidateContent('project', tagTargetsFor(before, dto));
 

@@ -55,8 +55,12 @@ export interface ContentTagTargets {
   /**
    * Etkilenen slug'lar — ESKİ VE YENİ.
    *
-   * Slug değişince eski slug'ın önbellek girdisi, artık var olmayan bir sayfayı
-   * sunmaya devam eder.
+   * ⚠️ BU ALAN BUGÜN SONUCU DEĞİŞTİRMİYOR: ürettiği her `slugTag`in dili zaten
+   * `locales`te olduğu için aynı girdiler `localeTag` ile de düşüyor. Ölçüm ve
+   * neden yine de durduğu `contentTagsToDrop`un başında.
+   *
+   * Eski slug'ın burada olması gerektiği inancı doğru sezgiydi ama yanlış
+   * mekanizmaya dayanıyordu; sezgi `localeTag` tarafından zaten karşılanıyor.
    */
   slugs?: readonly { locale: string; slug: string }[];
 }
@@ -64,12 +68,54 @@ export interface ContentTagTargets {
 /**
  * Düşürülecek etiketleri hesaplar. SAF — bu yüzden ayrı ayrı sınanabiliyor.
  *
- * EKLEMEDE DE `slugTag` DÜŞÜRÜLÜR ve bu ADR-029'un tablosunu genişletir:
- * `getProjectBySlug` OLUMSUZ SONUCU DA ÖNBELLEKLER (`{ state: 'NOT_FOUND' }`).
- * Biri `/projeler/yeni-slug` adresini kayıt açılmadan önce ziyaret ettiyse,
- * 404 sonucu o slug'ın etiketiyle önbelleğe girmiştir. Yalnızca `localeTag`
- * düşürmek yeni kaydı listede gösterir ama KENDİ SAYFASINDA bir saat boyunca
- * 404 bırakır — "listede var, tıklayınca yok".
+ * ═══════════════════════════════════════════════════════════════════════════
+ * `slugTag` BUGÜN GEREKSİZ — ÖLÇÜLDÜ (T-039 mutasyonu, T-040'ta doğrulandı)
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * BURADA ESKİDEN YANLIŞ BİR GEREKÇE YAZIYORDU: "yalnızca `localeTag` düşürmek
+ * yeni kaydı listede gösterir ama kendi sayfasında bir saat 404 bırakır."
+ * Bu YANLIŞ ve T-039'un 2 numaralı mutasyonu kanıtladı: `slugTag` üretimi
+ * TAMAMEN kaldırıldı ve E2E yeşil kaldı. ADR-029'un o genişletmesi çürütüldü.
+ *
+ * SEBEBİ ÜÇ PARÇALI ve üçü de kodda ölçülebilir:
+ *
+ *  1. `content-cache.ts`'in KENDİ KURALI gereği her önbellek girdisi kendisini
+ *     düşürebilecek TÜM etiketleri taşır. Slug'lı iki girdi
+ *     (`getProjectBySlug`, `getPostBySlug`) `entityTag + localeTag + slugTag`
+ *     üçünü BİRDEN taşıyor — yani `localeTag` onlara da ulaşıyor.
+ *  2. `contentTagsToDrop` HER çağrıda `localeTag` üretiyor (aşağıda, koşulsuz).
+ *  3. `tagTargetsFor` slug'ları yalnızca `locales`'e ZATEN eklenmiş dillerden
+ *     topluyor — yani "slug'ı düşen ama dili düşmeyen" bir hedef kümesi
+ *     kurulamıyor.
+ *
+ * Bunun bir sonucu da ölçüldü: `localeTag('project','tr')` düşürmek o dildeki
+ * HER projenin detay girdisini düşürüyor — A projesini düzenlemek B'nin
+ * sayfasını da geçersizleştiriyor. Yani bugünkü geçersizleştirme dil
+ * granülasyonunda; slug granülasyonu KULLANILMIYOR.
+ *
+ * ───────────────────────────────────────────────────────────────────────────
+ * NEDEN YİNE DE KALDI — "gereksiz" ile "ölü" farkı
+ * ───────────────────────────────────────────────────────────────────────────
+ *
+ * ÖLÜ kod hiç çalışmaz ya da hiçbir bağlamda etkisi yoktur. `slugTag` çalışıyor
+ * ve girdilerin GERÇEKTEN taşıdığı bir etiketi düşürüyor; GEREKSİZ olmasının
+ * sebebi BAŞKA BİR DOSYADAKİ bir tercih — detay girdilerinin `localeTag`i de
+ * taşıması. Yani gereksizlik burada değil, o eşleşmede yaşıyor.
+ *
+ * Kaldırsaydım: (1) ölçülmüş tek fayda 1–2 `revalidateTag` çağrısı; (2) buna
+ * karşılık, detay girdileri bir gün DARALTILIRSA (yukarıdaki aşırı
+ * geçersizleştirmeyi düzeltmek için — gerçek ve değerli bir iyileştirme)
+ * geçersizleştirme SESSİZCE kırılır ve hiçbir test kırmızıya dönmez. ADR-029'un
+ * var olma sebebi tam olarak bu hata sınıfı.
+ *
+ * Kalmasının bedeli, gerekçe doğru yazıldığı sürece sıfır: mutasyon başına
+ * bir-iki fazladan çağrı. `tests/unit/actions/content-tags.test.ts` bu
+ * gereksizliği AÇIK BİR DEĞİŞMEZLİK olarak sabitliyor, böylece bir daha yanlış
+ * bir mekanizma anlatısına dönüşemez.
+ *
+ * SLUG GRANÜLASYONUNU GERÇEKTEN İSTEYEN DEĞİŞİKLİK: `cached.ts`'te detay
+ * girdilerinden `localeTag`i çıkarmak. O ayrı bir ölçüm görevi — burada
+ * yapılmadı, çünkü public önbellek davranışını değiştirir.
  */
 export function contentTagsToDrop(entity: ContentEntity, targets: ContentTagTargets): string[] {
   const tags = new Set<string>();

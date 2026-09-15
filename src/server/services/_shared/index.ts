@@ -29,6 +29,7 @@ export * from './content-query';
 export * from './decimal';
 export * from './money';
 export * from './notification';
+export * from './panel-query';
 export * from './period-key';
 export * from './personal-record';
 export * from './reading-time';

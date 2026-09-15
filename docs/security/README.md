@@ -75,6 +75,7 @@ açığın ayrıntısı artık saldırgana bir şey kazandırmaz.
 | 2026-08-12 | T-029a | Lighthouse'a masaüstü + koyu profil (WebGL yolu), üç durumlu WebGL doğrulaması, koşu değişkenliği kararı | **BULGU-010 açıldı**: WebGL yolu hiçbir CI koşusunda ölçülmüyordu. Profil kuruldu ve doğrulandı; ölçüm T-021'in hero'yu bağlamasını bekliyor (kontrol kendi kendine zorunlu hâle geliyor). Değişkenliğin **ilk koşuya** ait olduğu ölçüldü; `numberOfRuns` 5, `aggregationMethod` açıkça medyan. |
 | 2026-08-17 | T-029d | Ölçüm yüzeyi dışındaki SEO/OG rotaları (BULGU-015) | **BULGU-015 kapandı** — `tests/e2e/seo-routes.spec.ts`: robots.txt, sitemap.xml, rss.xml, `/og` ve `/og/proje/<slug>` artık her koşumda isteniyor. PNG imza baytlarından, XML gerçek ayrıştırıcıyla doğrulanıyor. Kapsam iki katmanlı: sözleşme testleri + sitemap taraması (yeni sayfa kendiliğinden kapsanır). Mutasyonla kanıtlandı: düzeltme öncesi font aynı render yolunda BULGU-014'ün `TypeError`'ını veriyor. **BULGU-016 açıldı** — sitemap üç adet 404 adresi bildiriyor. |
 | 2026-08-16 | T-029c | Ölçüm işinin veri kurulumu (BULGU-013) + §8.24 haftalık zamanlayıcı | **BULGU-013 açıldı ve düzeltildi**: `lighthouse` işi ayrı koşucuda `services:` bloğu olmadan koşuyordu; ADR-026 sonrası `/` 500 dönüyor, üç profil düşüyor, artifact üretilmiyordu. Kendi Postgres'i kuruldu (yol **a**). İki yeni nöbet: ölçüm ön koşulu ve ayırt edicide durum kodu kontrolü — ikincisi olmadan arıza "⏳ BEKLEMEDE" diye yeşil görünüyordu. §8.24 artık **haftalık** de koşuyor (`17 6 * * 1`). |
+| 2026-09-13 | T-042g | §8.24 üçüncü kez gerçek olayda tetiklendi: `mysql2`, `fast-uri` (×4), `js-yaml` | **Üçü de kapandı, kapı EXIT 0.** Katmanlar ölçümle seçildi: `fast-uri` ve `js-yaml` **A** (üst paket aralığı yamayı zaten kapsıyor → 3.1.7 ve 4.3.2, override YOK), `mysql2` **B** (`prisma` `"3.15.3"` diye TAM SABİTLİYOR, A imkânsız; kararlı `prisma@7.10.0` da aynı pini taşıyor, C etkisiz → `">=3.23.1 <4.0.0"` ile 3.24.4). **Maruziyet dört ölçümle belirlendi**, varsayılmadı: `Module._load` izleyicisi `generate`/`migrate`/`seed` akışlarında hiçbirini yüklemiyor, taze derlemenin `.next` çıktısında 0 dosya. `@hookform/resolvers → ajv → fast-uri` yolu görev kartında yoktu, denetim çıktısının tamamı okununca çıktı — ölçüldü, `/zod` giriş noktası `ajv`ye ulaşmıyor. **İki sessiz tuzak oyunkitabına işlendi:** `pnpm update --recursive` geçişli pakette EXIT 0 döndürüp HİÇBİR ŞEY yapmıyor (`--depth Infinity` gerekiyor), ve `">=x"` sınırsız override bir kısıttır, yükseltme emri değil — `sharp` 0.35.3'te bu yüzden donmuştu. `postcss` aynı durumdaydı, iki sınırlıya çevrildi. ADVISORY-002 istisnası doğrulandı (70 gün kaldı, kaldırma koşulu hâlâ sağlanmadı) ve kapının altı kırmızı dalı yeniden mutasyonla sınandı. |
 | 2026-09-09 | T-039 | §9/6 (panelden yayınla → public'te görün) ve §9/2 (ziyaretçi mesajı → panel) uçtan uca | **§9/6 KAPANDI** — `panel-yayin.spec.ts`. Testin geçerliliği ÖNBELLEK ISITMASINA bağlı: ısıtma olmadan etiket düşürme tamamen bozulsa bile yeşil kalırdı. **Üç mutasyonla sınandı** (`tags.ts` geçici bozuldu, md5 ile geri alındı): etiket hiç düşmüyor → kırmızı, yalnızca `slugTag` düşüyor → kırmızı, yalnızca `localeTag` düşüyor → **yeşil**. Üçüncüsü beklentiyi düzeltti: detay önbellek girdisi `localeTag` de taşıdığı için `slugTag` bugün hiçbir yolda gözlemlenebilir değil — `tags.ts`'teki gerekçe fazla iddialı, düzeltmesi Backend'de; katman birim testiyle kapalı. **§9/2 üç halkası kapandı**, dördüncüsü (panel mesaj kutusu EKRANI) **açık bekleme** — `test.skip` kullanılmadı, atlanan test "atlanan test yok" nöbetini kırar. Ekranın besleneceği okuma yolu şemadan üretilen varsayılan filtreyle ölçülüyor. Zaman tuzağı ölçüldü: hızlı gönderim `puan=30 tooFast` üretiyor, beklemeli gönderim **0**. Test izolasyonu iki projede paralel koşum için süreç anahtarına çevrildi. §9: **3 kapalı, 3 kısmi, 1 açık**. |
 | 2026-08-29 | T-016b | Rota envanteri × kapı kapsamı; kapsam boşluklarının kapatılması ve kalıcı kapı | 21 rota `src/app`tan **türetildi** (elle liste yok). İki boşluk kapandı: **`/api/v1/health`** §13.6 zarfı hiç doğrulanmıyordu — "durum kodunu bilerek ölçmüyoruz" gerekçesi T-005b'den beri **bayat** (CI'da artık DB var), üstelik §13.7 izlemesi tam o gövdeye bakacak; **`/api/v1/iletisim`** yalnızca birim testliydi, ucun **sunulduğu** hiç ölçülmemişti. Sağlık testi beklentisini **ölçerek seçiyor** (disk < %5 → arıza dalının sözleşmesi) — sabit `200` yerelde haksız kırmızı üretiyordu. Kalıcı kapı: `tests/unit/rota-kapsami.test.ts`, 31 test, yedi kırmızı dalı var; yeni rota beyansız kalırsa `pnpm test` düşer. Yedi mutasyonla doğrulandı (biri gerçek bir `page.tsx` eklenerek). Ters bulgu kayda geçti: `/api/v1/panel/islem` **var olmayan** bir sonda adresi — artık `SANAL_ROTALAR`'da beyanlı. |
 | 2026-08-25 | T-029e | WebGL kontrolünün bayat öncülü (koşum 32828187466) + masaüstü eşiği | Kontrol **dört** koşul biliyordu, T-020c **beşincisini** (yazılım rasterleyici) eklemişti; kontrol doğru çalışıp yanlış şeyi iddia ediyordu. Artık **üç iddia** var: GPU var → `ogl` inmeli (§5.2.2) · GPU yok → **inmemeli** (T-020c, yeni — BULGU-018'in geri gelişini doğrudan yakalar) · mobilde inmemeli (§5.2.5). Koşucunun çizim gücü **ölçülüyor**: LHCI'ın ikilisi + `lighthouserc.json` bayrakları, `gpu-tespit.ts` ile aynı iki sinyal, imza listesi o dosyadan **okunuyor** (sürüklenme koruması). "headless = GPU yok" varsayımı ölçümle çürütüldü — tam Chrome `--headless=new` ile ANGLE Metal, `chrome-headless-shell` ile SwiftShader bildiriyor. Altı dal mutasyonla, ayrıca kırmızı koşumun gerçek raporlarıyla sınandı. **BULGU-018 KAPANDI** (T-020c; CI'da 60 → **100**, yayılım 0) → masaüstü tavanı 0.55 kaldırıldı, üç profil de **0.90**. |
@@ -1228,7 +1229,204 @@ artık `pnpm audit --json` çıktısını okuyan bir betikten geçiyor
 şu an rc.7 — kararlı 8.0.0 bu pencerede beklenir; beklenmezse kararı yeniden
 vermek gerekir, sessizce sürüklemek değil.
 
-**Son gözden geçirme:** 2026-08-22 · **Sonraki:** 2026-11-22 (istisnanın bitişi)
+**Son gözden geçirme:** 2026-09-13 (T-042g) · **Sonraki:** 2026-11-22 (istisnanın bitişi)
+
+> **T-042g kontrolü — kaldırma koşulu HÂLÂ SAĞLANMADI.** Kararlı `prisma` hattı
+> 7.10.0'a çıktı ama `@prisma/config@7.10.0` `deepmerge-ts`i yine **`7.1.5`**
+> diye sabitliyor (ölçüldü: `npm view @prisma/config@7.10.0 dependencies…`).
+> `prisma@latest` etiketi artık **8.0.0-rc.14**'ü gösteriyor — kararlı değil,
+> ADVISORY-002'nin 1. kaldırma koşulu için beklenen sürüm o hattın **kararlı**
+> yayını. İstisna geçerli, kapı onu tolere etmeye devam ediyor (70 gün kaldı).
+
+---
+
+## ADVISORY-003 — `mysql2` <3.23.1 (GHSA-3f6p-5ww8-9rcr Yüksek + GHSA-rgwj-5xj2-c3m3 Orta)
+
+**Tarih:** 2026-09-13 · **Görev:** T-042g · **Durum:** KAPANDI (override)
+**Katman:** **B** · **Bulan:** §8.24 kapısı (kod değişmeden kırmızı)
+
+```
+mysql2 3.15.3 → 3.24.4 · 3 yol, hepsi aynı zincir:
+  . > prisma@7.9.1 > mysql2@3.15.3            (+ @prisma/client ve @auth/prisma-adapter üzerinden aynı CLI)
+Yüksek: kimlik doğrulama eklentisi düşürme → `mysql_clear_password` (yama >=3.22.0)
+Orta:   yama >=3.23.1
+```
+
+### Maruziyet — ÖLÇÜLDÜ, varsayılmadı
+
+"PostgreSQL kullanıyoruz" makul bir hipotezdi; katman D "maruziyet **ölçülmüş
+biçimde** yok" dediği için hipotez yeterli değildi. Dört ölçüm:
+
+| Ölçüm | Yöntem | Sonuç |
+| ----- | ------ | ----- |
+| Çağrı yeri | `prisma/build/cli.js` okundu | `mysql: { async createExecutor(){ await import("mysql2/promise") } }` — **sağlayıcı dallanmasının içinde, dinamik import** |
+| Şema sağlayıcısı | `prisma/schema.prisma` | `provider = "postgresql"` → o dal hiç çalışmaz |
+| Gerçekten yükleniyor mu | `Module._load` izleyicisi + `prisma generate`, `prisma migrate status`, `pnpm db:seed` | **HİÇBİRİ** — mysql2 tek seferde bile yüklenmedi |
+| Üretim paketinde var mı | taze `pnpm build` sonrası `.next/server` + `.next/static` taraması | **0 dosya** |
+
+Ek olarak `prisma` bizde **`devDependencies`** içinde (`@prisma/client`'ın
+*isteğe bağlı* peer'ı). Üretim kurulumunda CLI hiç inmiyor, yani mysql2 üretim
+ağacında **yok**.
+
+**Pratik maruziyet: yok.** Yine de düzeltildi — §8.24 sert kapıdır ve
+ADVISORY-001'in dersi geçerli: bedeli olmayan bir düzeltme varken kapı
+tartışılmaz.
+
+### Neden B — ve neden ADVISORY-002'den farklı
+
+| Katman | Değerlendirme |
+| ------ | ------------- |
+| A | **İmkânsız, ölçüldü.** `prisma` `"mysql2": "3.15.3"` diye **tam sabitliyor**; `pnpm update mysql2 --depth Infinity` sürümü kıpırdatmadı. |
+| C | **Etkisiz, ölçüldü.** Kararlı en yeni `prisma@7.10.0` da `mysql2@3.15.3` sabitliyor. `prisma@8` ise RC. |
+| D | Gereksiz — B'nin bedeli ölçülebilir biçimde sıfır. |
+| **B** | ✅ `">=3.23.1 <4.0.0"` — iki danışmayı birden kapatır, majör sınırında durur. |
+
+ADVISORY-002'de (deepmerge-ts) tam sabit pine rağmen override **reddedilmişti**;
+burada kabul ediliyor ve fark ölçülebilir:
+
+- `deepmerge-ts` @prisma/config'in **her CLI çağrısında** yüklenen bir
+  birleştirme semantiğiydi; kırılma sessiz ve config'i bozacak türdendi.
+- `mysql2` **hiçbir çağrıda yüklenmiyor** (yukarıdaki dört ölçüm). Override'ın
+  değiştirdiği kod yolu, bizim asla çalıştırmadığımız bir dal.
+
+Yani ölçüt "tam sabit pin var mı" değil, **"pin edilen kod bizde çalışıyor mu"**.
+Çalışıyorsa sözleşmeyi çiğnemek risklidir; çalışmıyorsa risk yoktur.
+
+### Doğrulama
+
+```
+pnpm why mysql2 → 3.24.4 (3 yolun ÜÇÜ de, tek sürüm)
+pnpm audit --audit-level high → mysql2 satırı kalmadı (orta seviye dahil)
+lint ✓ typecheck ✓ test 1093/1093 ✓ build ✓ e2e 85/85 ✓
+```
+
+### Kaldırma koşulu
+
+`prisma` (ya da `@prisma/config`) `mysql2`yi `>=3.23.1` ilan eden bir **kararlı**
+sürüm yayınladığında override silinir. Kontrol:
+
+```bash
+npm view prisma@latest dependencies.mysql2     # >=3.23.1 ilan ediyorsa
+# override satırı çıkarılır → pnpm install --lockfile-only → pnpm why mysql2
+```
+
+**Sonraki gözden geçirme:** 2027-02-14 (oyunkitabı §4 — altı aylık override
+taraması).
+
+---
+
+## ADVISORY-004 — `fast-uri` <3.1.6 (dört danışma, hepsi Yüksek)
+
+**Tarih:** 2026-09-13 · **Görev:** T-042g · **Durum:** KAPANDI
+**Katman:** **A** (kilit tazeleme — override YOK) · **Bulan:** §8.24 kapısı
+
+```
+GHSA-5jgf-p345-68v8 · GHSA-f65p-4m7j-42xc · GHSA-fph4-wmhf-6fwf · GHSA-jqff-g426-hqxp
+fast-uri 3.1.5 → 3.1.7 · SSRF + host confusion · dört yol, iki farklı üst paket:
+  . > prisma > @prisma/dev > @prisma/streams-local > ajv@8.20.0 > fast-uri
+  . > @hookform/resolvers@5.7.1 > ajv@8.20.0 > fast-uri
+```
+
+### Maruziyet — ikinci yol görev kartında yoktu, ölçüm ortaya çıkardı
+
+Görev kartı yalnızca `@prisma/dev` zincirini bildiriyordu. Denetim çıktısının
+tamamı okununca ikinci bir yol göründü: **`@hookform/resolvers`** — ve o, `prisma`
+gibi dev-only değil, **çalışma zamanı bağımlılığımız** (formlar).
+
+| Ölçüm | Sonuç |
+| ----- | ----- |
+| Hangi giriş noktasını kullanıyoruz | `grep -rn "@hookform/resolvers" src/` → üç dosyanın üçü de **`@hookform/resolvers/zod`** |
+| `ajv` ayrı bir giriş noktası mı | Paket her doğrulayıcı için ayrı klasör yayınlıyor (`ajv/`, `zod/`, `joi/`…); `ajv`ye yalnızca `@hookform/resolvers/ajv` içe aktarımı ulaşır |
+| Üretim paketinde `ajv`/`fast-uri` izi | taze `pnpm build` → `.next/server` + `.next/static` taramasında **0 dosya** |
+| `pnpm lint` sırasında yüklenen `ajv` | İzleyici: **ajv@6.15.0** (`@eslint/eslintrc`'nin bağımlılığı) — ajv 6 `fast-uri` kullanmaz |
+| `prisma generate/migrate/seed` | İzleyici: `fast-uri` **hiç yüklenmedi** |
+
+**Pratik maruziyet: yok** — ne üretim paketinde, ne CLI akışlarında.
+
+### Neden A
+
+`ajv@8.20.0` `fast-uri`yi **`^3.0.1`** diye ilan ediyor; 3.1.7 bu aralığın
+içinde. Yani üst paket zaten bu sürümle çalışacağını beyan etmiş — override
+yazmak gereksiz bir kalıcı kısıt bırakırdı. Düzeltme tek komut:
+
+```bash
+pnpm update fast-uri --depth Infinity      # --recursive DEĞİL (aşağıda gerekçe)
+```
+
+`--recursive` ile denendi ve **hiçbir şey yapmadı** (EXIT 0, boş kilit deltası) —
+bu tuzak oyunkitabına işlendi.
+
+**Majör tuzağı burada kendiliğinden kapalı:** `fast-uri`nin en yenisi **4.1.4**
+ama A, `ajv`nin aralığı yüzünden 3.1.7'de durdu. Override yazsaydık o aralığı
+devre dışı bırakır ve üst sınırı elle koymak zorunda kalırdık.
+
+### Kaldırma koşulu
+
+Yok — override yazılmadı. Kilit yeniden sabitlenirse (`pnpm install --force`,
+lockfile silinmesi) sürüm geri düşebilir; koruma §8.24 kapısının kendisi ve
+haftalık koşumdur.
+
+---
+
+## ADVISORY-005 — `js-yaml` <4.3.2 (GHSA-2883-xcg3-v3hh, Yüksek)
+
+**Tarih:** 2026-09-13 · **Görev:** T-042g · **Durum:** KAPANDI
+**Katman:** **A** (kilit tazeleme — override YOK) · **Bulan:** §8.24 kapısı
+
+```
+js-yaml 4.3.1 → 4.3.2 · `maxTotalMergeKeys` CPU tüketimini sınırlamıyor (DoS)
+28 yol, hepsi tek zincirde birleşiyor: eslint@9.39.5 > @eslint/eslintrc > js-yaml
+```
+
+### Maruziyet — ölçüldü
+
+| Ölçüm | Sonuç |
+| ----- | ----- |
+| Bağımlılık türü | Yalnızca `devDependencies` (eslint zinciri) — üretim ağacında yok |
+| Üretim paketinde | `.next` taraması → **0 dosya** |
+| `pnpm lint` (tüm depo) sırasında yükleniyor mu | `Module._load` izleyicisi → **HİÇBİRİ**; yüklenen tek hedef `ajv@6.15.0` |
+| Neden yüklenmiyor | `@eslint/eslintrc` `js-yaml`ı YAML biçimli eski config dosyaları için çağırıyor; bizde **düz config** var (`eslint.config.mjs`) |
+| Tetikleyici girdi | Kötü niyetli YAML gerekiyor; bizim YAML'larımız `.github/workflows/*.yml` ve onları eslint okumuyor |
+
+**Pratik maruziyet: yok.** Düzeltildi, çünkü bedeli bir komut.
+
+### Neden A
+
+`@eslint/eslintrc@3.3.6` `js-yaml`ı **`^4.3.0`** ilan ediyor; 4.3.2 içeride.
+`pnpm update js-yaml --depth Infinity` → 4.3.2. En yeni `js-yaml` **5.4.2**
+olmasına rağmen üst paketin aralığı 4.x'te tuttu — A'nın majör bağışıklığı.
+
+### Kaldırma koşulu
+
+Yok — override yazılmadı.
+
+---
+
+## `pnpm.overrides` bloğunun bugünkü hâli (T-042g)
+
+Dört satır, dördü de **iki sınırlı**. Altı aylık taramanın (2027-02-14) bakacağı
+liste bu:
+
+| Paket | Aralık | Çözülen | Kayıt | Kaldırma koşulu |
+| ----- | ------ | ------- | ----- | --------------- |
+| `postcss` | `>=8.5.28 <9.0.0` | 8.5.28 | T-005 · **T-042g'de sınırlandı** | Üst paketler (Tailwind/Next) yamalı tabanı zaten kapsıyorsa satır silinir |
+| `sharp` | `>=0.35.4 <0.36.0` | 0.35.4 | Orkestra Şefi (libheif danışması) | Aynı |
+| `nanoid` | `>=3.3.18 <4.0.0` | 3.3.19 | ADVISORY-001 | `postcss` `>=3.3.18` çözer hâle gelince |
+| `mysql2` | `>=3.23.1 <4.0.0` | 3.24.4 | **ADVISORY-003** | `prisma` kararlı bir sürümde `>=3.23.1` ilan edince |
+
+**`postcss` T-042g'de neden değişti:** satır `">=8.5.23"` idi — üst sınırsız ve
+tabanı bayat. `sharp`ın 0.35.3'te donmasına yol açan kalıbın aynısı: kilitteki
+8.5.25 kısıtı zaten sağlıyordu, dolayısıyla override hiçbir şeyi yukarı
+çekmiyordu. Taban bugünkü yamalı sürüme (8.5.28) çekildi ve majör sınırı kondu.
+Bu bir danışma düzeltmesi değil, **etkisiz bir override'ın onarımı** — bugün
+temiz, ama yarın 8.5.23–8.5.30 aralığını kapsayan bir danışma çıksaydı satır
+"düzeltilmiş" görünürken kapıyı kırmızıya bırakırdı.
+
+**`nanoid` 3.3.18 → 3.3.19 kendiliğinden geldi:** iki sınırlı bir override,
+yeniden çözüm tetiklendiğinde yamaları izler. Sınırsız olan izlemiyor — iki
+satırın davranış farkı bu turda yan yana ölçüldü.
+
+---
 
 ---
 
@@ -1256,7 +1454,7 @@ bir sonraki gerçek açık için de gevşetir.
 
 | Katman | Koşul | Yapılacak |
 | ------ | ----- | --------- |
-| **A · Kilit tazeleme** | Üst paketin ilan ettiği aralık yamalı sürümü **zaten kapsıyor** (ör. `^3.3.17` ⊇ 3.3.18) | `pnpm update <paket> --recursive`. Override'a gerek yok. Tek risk: kilit yeniden sabitlenince geri gelmesi — bu yüzden `pnpm audit` CI'da koşmalı (koşuyor). |
+| **A · Kilit tazeleme** | Üst paketin ilan ettiği aralık yamalı sürümü **zaten kapsıyor** (ör. `^3.0.1` ⊇ 3.1.6) | `pnpm update <paket> --depth Infinity` — **`--recursive` DEĞİL** (T-042g'de ölçüldü, aşağıya bak). Override'a gerek yok. Tek risk: kilit yeniden sabitlenince geri gelmesi — bu yüzden `pnpm audit` CI'da koşmalı (koşuyor). |
 | **B · Override** | Üst paket **yamasız bir aralık** ilan ediyor ve yamalı sürüm **aynı majör** içinde | `pnpm.overrides` → `">=<yamalı> <sonrakiMajör>"`. **ÜST SINIR ZORUNLU** (ADVISORY-001'in tuzağı). |
 | **C · Üst paketi yükselt** | Yamalı sürüm **majör sınırının ötesinde** — override ara paketin sözleşmesini bozar | Üst paketi yükselt (ör. `postcss` yeni majör). ADR gerekir: majör yükseltme davranış değiştirir. |
 | **D · Bekle + kaydet** | C mümkün değil (üst paket henüz yayınlamadı) **ve** maruziyet ölçülmüş biçimde yok | Bulgu kaydı aç, üst paketin issue'suna bağlan, `bagimlilik-denetimi` işine **süreli** istisna. Süresiz istisna yazılmaz. **Mekanizma ADVISORY-002'de kuruldu**: `ci.yml` → "pnpm audit … süreli istisnalarla". `pnpm.auditConfig` KULLANILMAZ — süresizdir. |
@@ -1269,6 +1467,57 @@ majör sınırından önce üst paketin `package.json`ı okunur:
 - **Tam sabit sürüm** (`"deepmerge-ts": "7.1.5"`) → override, açık bir
   sözleşmenin üstünden geçmektir. Majör atlamıyor olsa bile burada durulur ve
   gerekçe yazılır.
+
+**T-042g'nin eklediği ölçüt — TAM SABİT SÜRÜM KATMAN A'YI İMKÂNSIZ KILAR.**
+ADVISORY-002 tam sabit pini "dur ve gerekçe yaz" işareti saymıştı; T-042g bunun
+ölçülebilir sonucunu gösterdi: `prisma` `mysql2`'yi `"3.15.3"` diye sabitlediği
+için `pnpm update mysql2 --depth Infinity` **hiçbir şey yapmıyor** (ölçüldü:
+sürüm 3.15.3'te kaldı, kilit değişmedi). Yani üst paket aralık değil tek sürüm
+ilan ediyorsa A denenip geçilecek bir katman değil, **elenen** bir katmandır.
+
+---
+
+#### ⚠️ İKİ SESSİZ TUZAK — ikisi de "düzelttim" sanısı üretir (T-042g)
+
+**1. `pnpm update <paket> --recursive` geçişli pakette HİÇBİR ŞEY YAPMAZ.**
+Ölçüldü: `pnpm update fast-uri js-yaml --recursive` → `Done in 2s`, **EXIT 0**,
+sürümler 3.1.5 ve 4.3.1'de kaldı, `pnpm-lock.yaml` deltası **boş**. Sebep:
+`--recursive` çalışma alanı paketlerinde *ilan edilmiş* bağımlılıkları günceller;
+`fast-uri` bizim `package.json`ımızda hiç yazmıyor. Doğru komut
+**`--depth Infinity`** — aynı paketlerde 3.1.7 ve 4.3.2'ye çözdü.
+
+Bu, oyunkitabının kendi §3 kuralının neden var olduğunun kanıtı: komut EXIT 0
+döndü, hiçbir uyarı basmadı ve **hiçbir şeyi değiştirmedi.** Yalnızca
+`pnpm why` bunu gösterdi.
+
+**2. `">=x"` biçimli SINIRSIZ override yükseltmez — sadece taban koyar.**
+Override bir *kısıt*tır, bir *yükseltme emri* değil. Kilitteki sürüm kısıtı
+zaten sağlıyorsa pnpm'in yeniden çözmek için sebebi yoktur. `sharp` override'ı
+`">=0.35.0"` iken kilitteki 0.35.3 bu kısıtı sağlıyordu — ve tam da bu yüzden
+danışmanın altındaki sürümde **donup kaldı**. `postcss` de aynı durumdaydı
+(`">=8.5.23"`, kilitte 8.5.25).
+
+**Kural (iki sınır birden):**
+
+```jsonc
+"paket": ">=<YAMALI sürüm> <sonrakiMajör>"   // ör. ">=3.23.1 <4.0.0"
+```
+
+- **Alt sınır = yamalı sürüm**, "bugün kurulu olan" değil. Yamalı sürümü taban
+  yapmak, kilitteki eski sürümü kısıt dışı bırakır ve pnpm'i yeniden çözmeye
+  **zorlar**. Tabanı eski bırakmak, override'ı sessizce etkisiz kılar.
+- **Üst sınır = sonraki majör** (ADVISORY-001'in `nanoid` tuzağı).
+- Yazdıktan sonra `pnpm why` ile çözülen sürüm okunur. Okumadan "düzeltildi"
+  denmez.
+
+**Katman A'nın bu tuzağa karşı doğal bağışıklığı var** ve bu, A'yı tercih
+etmenin üçüncü sebebi: çözümü **üst paketin ilan ettiği aralık** sınırlar.
+Ölçüldü — `fast-uri`nin en yenisi 4.1.4, `js-yaml`ınki 5.4.2 olmasına rağmen A
+sırasıyla 3.1.7 ve 4.3.2'de durdu, çünkü `ajv` `^3.0.1`, `@eslint/eslintrc`
+`^4.3.0` diyor. Override ise o aralığı **devre dışı bırakır**; majör sınırını
+elle yazmak zorunda kalmamızın sebebi budur.
+
+---
 
 **Üst paketi beklemek mi, override mı?** Ölçüt maruziyet değil, **majör sınırı**.
 Aynı majör içindeyse override (B) doğru cevaptır — ucuz, tersine çevrilebilir ve
@@ -1284,6 +1533,15 @@ pnpm why <paket>                    # TÜM yollar yamalı sürümü mü çözdü
 pnpm audit --audit-level high       # EXIT 0
 pnpm lint && pnpm typecheck && pnpm test
 git diff pnpm-lock.yaml             # delta beklenenden BÜYÜKSE dur ve incele
+```
+
+`git diff pnpm-lock.yaml` adımı iki yöne birden bakar (T-042g): delta
+**beklenenden büyükse** yan etki vardır, **boşsa düzeltme hiç uygulanmamıştır.**
+Boş delta, EXIT 0 ile birlikte gelirse en tehlikeli hâldir — komut başarılı
+göründü, hiçbir şey değişmedi. Değişen sürümleri tek bakışta görmek için:
+
+```bash
+git diff pnpm-lock.yaml | grep -E "^[-+]  [a-z@][^:]*:$" | sort | uniq -c
 ```
 
 `pnpm why` adımı atlanamaz: `pnpm audit`'in temiz olması sürümün *beklediğin*
@@ -2366,7 +2624,7 @@ Lighthouse ölçümünün girdisi olurdu.
 
 ## §8 Güvenlik Gereksinimleri — Durum Tablosu
 
-**Ölçüm tarihi:** 2026-09-09 · **Faz:** F3 (sürüyor) · **Son görev:** T-039
+**Ölçüm tarihi:** 2026-09-13 · **Faz:** F3 (sürüyor) · **Son görev:** T-042g
 · **Dağılım:** ✅ 10 · ⚠️ 6 · ❌ 0 · ⏳ 9
 
 > T-039'da üç satır **bayat çıktığı için** güncellendi (6, 8 ve 15): ikisi
@@ -2400,7 +2658,7 @@ Durum kodları: ✅ sağlandı · ⚠️ kısmi · ❌ eksik · ⏳ henüz uygul
 | 21 | Gece 03:00 şifreli `pg_dump` → R2, 30 gün | ⏳ | T-066 / T-073 · **Uyarı:** yol haritası F6/F7 diyor; gerçek muhasebe verisi F4'te girilmeye başlıyor. Yedeksiz geçen her F4 günü, başka kopyası olmayan mali veri riski. |
 | 22 | `restore.md` + en az bir prova | ⏳ | T-066 |
 | 23 | Yedek checksum doğrulaması | ⏳ | T-066 |
-| 24 | `npm audit` merge kapısı | ✅ | **Kuruldu** (T-005): `.github/workflows/ci.yml` → `bagimlilik-denetimi` işi, `pnpm audit --audit-level high` (ADR-003 gereği `npm` değil `pnpm`). Yüksek **ve** kritik kapsanır. Depo şu an temiz (her seviyede 0 açık). Kapının kırmızıya döndüğü ayrı bir izole projede kanıtlandı: `lodash@4.17.11` + `minimist@1.2.0` → 9 açık (2 kritik, 3 yüksek) → **EXIT 1**. Ayrıca yabancı kilit dosyası kontrolü de aynı işte. **T-005c — kapı gerçek bir advisory'de tetiklendi ve tuttu:** `nanoid` GHSA-2v37-7h3g-55p8 (Yüksek, geçişli, 9 yol) kodda hiçbir değişiklik yokken hattı kırmızıya çevirdi; `pnpm.overrides` ile kapandı, EXIT 0. Artık yalnızca izole projede değil, **kendi deposunda** kanıtlı. Tekrarlayan advisory'ler için oyunkitabı yazıldı (kaldırma koşulu + altı aylık gözden geçirme dahil). **T-029c — kapı artık HAFTALIK da koşuyor** (`schedule: '17 6 * * 1'`, Pazartesi 09:17 TRT): advisory'ler kod değişmeden yayınlandığı için yalnızca push/PR'da koşan bir denetim, sessiz geçen bir hafta boyunca yüksek bir açığı fark etmez. Zamanlanmış koşumda diğer iki iş `if: github.event_name != 'schedule'` ile atlanır. **T-005d — kapı ikinci kez tetiklendi ve bu kez düzeltilemedi:** `deepmerge-ts` GHSA-ggr8-5vv4-36mx (Yüksek, geçişli, 3 yol, hepsi `prisma` CLI zinciri). Yama majör sınırının ötesinde ve üst paket sürümü tam sabitliyor → oyunkitabı **katman D**. Kapı artık `pnpm audit --json` çıktısını okuyan bir betikten geçiyor: yalnızca **süreli ve kayıtlı** istisnalar tolere ediliyor (ADVISORY-002, bitiş **2026-11-22**), süre dolunca / yol değişince / istisna gereksizleşince kapı **kırmızı**. Altı kırılma dalının hepsi mutasyonla ayrı ayrı doğrulandı. `pnpm.auditConfig` bilerek kullanılmadı — süresizdir. |
+| 24 | `npm audit` merge kapısı | ✅ | **Kuruldu** (T-005): `.github/workflows/ci.yml` → `bagimlilik-denetimi` işi, `pnpm audit --audit-level high` (ADR-003 gereği `npm` değil `pnpm`). Yüksek **ve** kritik kapsanır. Depo şu an temiz (her seviyede 0 açık). Kapının kırmızıya döndüğü ayrı bir izole projede kanıtlandı: `lodash@4.17.11` + `minimist@1.2.0` → 9 açık (2 kritik, 3 yüksek) → **EXIT 1**. Ayrıca yabancı kilit dosyası kontrolü de aynı işte. **T-005c — kapı gerçek bir advisory'de tetiklendi ve tuttu:** `nanoid` GHSA-2v37-7h3g-55p8 (Yüksek, geçişli, 9 yol) kodda hiçbir değişiklik yokken hattı kırmızıya çevirdi; `pnpm.overrides` ile kapandı, EXIT 0. Artık yalnızca izole projede değil, **kendi deposunda** kanıtlı. Tekrarlayan advisory'ler için oyunkitabı yazıldı (kaldırma koşulu + altı aylık gözden geçirme dahil). **T-029c — kapı artık HAFTALIK da koşuyor** (`schedule: '17 6 * * 1'`, Pazartesi 09:17 TRT): advisory'ler kod değişmeden yayınlandığı için yalnızca push/PR'da koşan bir denetim, sessiz geçen bir hafta boyunca yüksek bir açığı fark etmez. Zamanlanmış koşumda diğer iki iş `if: github.event_name != 'schedule'` ile atlanır. **T-005d — kapı ikinci kez tetiklendi ve bu kez düzeltilemedi:** `deepmerge-ts` GHSA-ggr8-5vv4-36mx (Yüksek, geçişli, 3 yol, hepsi `prisma` CLI zinciri). Yama majör sınırının ötesinde ve üst paket sürümü tam sabitliyor → oyunkitabı **katman D**. Kapı artık `pnpm audit --json` çıktısını okuyan bir betikten geçiyor: yalnızca **süreli ve kayıtlı** istisnalar tolere ediliyor (ADVISORY-002, bitiş **2026-11-22**), süre dolunca / yol değişince / istisna gereksizleşince kapı **kırmızı**. Altı kırılma dalının hepsi mutasyonla ayrı ayrı doğrulandı. `pnpm.auditConfig` bilerek kullanılmadı — süresizdir. **T-042g — kapı ÜÇÜNCÜ kez gerçek bir olayda tetiklendi ve üçünde de doğru davrandı:** iki günlük boşlukta yayımlanan danışmalar (`mysql2`, `fast-uri`×4, `js-yaml`; ayrıca Orkestra Şefi'nin kapattığı iki KRİTİK `next` RCE'si) kod değişmeden hattı kırmızıya çevirdi. Üçü de kapatıldı (A/A/B), kapı **EXIT 0**. Mekanizmanın kendisi de sınandı: `deepmerge-ts` istisnası tolere edildi (70 gün kaldı) ve altı kırmızı dal (istisnasız advisory · süresi dolmuş istisna · ölü istisna · değişmiş yol · yanlış paket · ayrıştırılamayan çıktı) mutasyonla yeniden doğrulandı. |
 | 25 | Yeni bağımlılık onay + DECISIONS kaydı | ✅ | T-004'ün 9 paketi görev kartında adı adına onaylı. **T-005 ve T-006b `package.json`'a hiçbir paket eklemedi** — `@lhci/cli` bilinçli olarak `pnpm dlx @lhci/cli@0.15.1` ile ephemeral çağrılıyor (yalnızca CI aracı, uygulama bağımlılığı değil; sürüm sabit, `latest` kullanılmıyor). **T-006b:** tüm GitHub eylemleri Node 24 hedefleyen güncel kararlı majora taşındı — `checkout@v7`, `setup-node@v7`, `cache@v6`, `upload-artifact@v7`, `pnpm/action-setup@v6`. Yamasız çalışma zamanı bırakmama gerekçesi ADR-008 ile aynı hat. |
 
 **Özet:** ✅ 9 · ⚠️ 4 · ❌ 0 · ⏳ 12
