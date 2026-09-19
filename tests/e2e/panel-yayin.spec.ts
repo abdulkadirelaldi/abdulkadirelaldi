@@ -45,21 +45,22 @@ import { applySessionCookie } from './_helpers/session';
  * tıklayınca yok".
  *
  * ═══════════════════════════════════════════════════════════════════════════
- * NEDEN "YENİ KAYIT PUBLISHED" — DRAFT → PUBLISHED DEĞİL (ENGEL)
+ * DRAFT → PUBLISHED — T-039'un AÇIK BEKLEMESİ, T-044g'de KAPANDI
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * Senaryonun sözü "bir projeyi DRAFT'tan PUBLISHED'a çevir" idi. BUGÜN PANELDEN
- * YAPILAMIYOR: panel listesi `getPublishedProjects` okuyor, yani taslak kayıt
- * eklendiği anda listeden kayboluyor ve düzenlenecek bir satır kalmıyor
- * (`src/app/(panel)/panel/icerik/projeler/page.tsx` → ENGEL-1, Frontend'in
- * kendi notu). Bu bir test kısıtı değil, ÜRÜN kısıtı: bugün panelden bir
- * taslağı yayına almanın yolu yok.
+ * T-039'da senaryonun literal hâli ("bir projeyi DRAFT'tan PUBLISHED'a çevir")
+ * ölçülememişti ve sebebi bir test kısıtı değil ÜRÜN kısıtıydı: panel listesi
+ * `getPublishedProjects` okuduğu için taslak kayıt eklendiği anda listeden
+ * kayboluyordu (ENGEL-1). O turda yazılan şey şuydu: "panel tüm durumları
+ * listeleyebildiği gün buraya eklenecek".
  *
- * Ölçülen yol, aynı ADR-029 zincirinden geçen ve bugün GERÇEKTEN yapılabilen
- * yol: panelden doğrudan "Yayında" durumunda kayıt açmak. Etiket hesabı
- * (`revalidateContent` + `tagTargetsFor`) ekleme ve güncellemede AYNI; sınanan
- * mekanizma değişmiyor. Taslağın yayına alınması, panel tüm durumları
- * listeleyebildiği gün buraya eklenecek — raporda AÇIK BEKLEME olarak yazılı.
+ * T-043f o günü getirdi — liste artık `fetchProjectsForPanel` (ham, önbeleksiz,
+ * tüm durumlar) okuyor ve düzenleme ayrı bir rotada. Aşağıdaki ÜÇÜNCÜ test
+ * bekleyen iddiayı bağlıyor: taslak panelde görünüyor, `/panel/icerik/projeler/
+ * <id>` üzerinden yayına alınıyor ve public taraf ANINDA görüyor.
+ *
+ * Bekleme "unutulmuş TODO" olarak değil, kapının kendi kaydında durdu ve
+ * kapanma koşulu gerçekleştiğinde kapandı.
  */
 
 /**
@@ -82,7 +83,17 @@ async function paneldenProjeEkle(
   alanlar: { slug: string; baslik: string; durum: 'Taslak' | 'Yayında'; yayinTarihi?: string },
 ): Promise<void> {
   await page.goto('/panel/icerik/projeler');
-  await page.getByRole('button', { name: 'Yeni proje' }).click();
+
+  /*
+   * T-043f'te "Yeni proje" LİSTE İÇİ FORM olmaktan çıkıp AYRI ROTAYA
+   * (`/panel/icerik/projeler/yeni`) taşındı; artık `button` değil `link`.
+   * Bu paket o değişiklikte kırıldı ve kırılması DOĞRU: ekleme akışının
+   * nereden başladığı senaryonun parçası. Rol adını güncellemek, testi
+   * "yeni gerçeğe" bağlamak demek — seçiciyi gevşetip iki hâli birden kabul
+   * etmek, akışın değiştiğini gizlerdi.
+   */
+  await page.getByRole('link', { name: 'Yeni proje' }).click();
+  await expect(page).toHaveURL(/\/panel\/icerik\/projeler\/yeni$/);
 
   await page.locator('#slug').fill(alanlar.slug);
   await page.locator('#title').fill(alanlar.baslik);
@@ -95,6 +106,10 @@ async function paneldenProjeEkle(
   }
 
   await page.getByRole('button', { name: 'Ekle', exact: true }).click();
+
+  // Ekleme başarılıysa form listeye dönüyor (`router.push`). Bekleme burada,
+  // çağıran tarafta değil: her senaryonun aynı satırı tekrar etmesi gerekmesin.
+  await expect(page).toHaveURL(/\/panel\/icerik\/projeler$/);
 }
 
 /**
@@ -154,13 +169,7 @@ test.describe('§9/6 · panelden yayınla → public sayfada görün (ADR-011 + 
       yayinTarihi: '2026-01-15T09:00',
     });
 
-    // `exact: true` — sayfada iki düğüm var: formun kendi başarı satırı ve
-    // ekranın bildirimi ("Proje eklendi. Taslak olarak kaydedildiyse…").
-    // Gevşek desen ikisine birden uyup strict mode ihlali veriyor; daha
-    // önemlisi, hangi bileşenin doğrulandığı belirsiz kalırdı (T-019b/K3).
-    await expect(page.getByText('Proje eklendi.', { exact: true })).toBeVisible();
-
-    // Action'ın DB'ye ne yazdığı — UI mesajı tek başına kanıt değil.
+    // Action'ın DB'ye ne yazdığı — UI akışı tek başına kanıt değil.
     const durum = await projeDurumu(SLUG);
     expect(durum.bulundu, "proje DB'ye yazılmalı").toBe(true);
     expect(durum.status).toBe('PUBLISHED');
@@ -204,8 +213,6 @@ test.describe('§9/6 · panelden yayınla → public sayfada görün (ADR-011 + 
       durum: 'Taslak',
     });
 
-    await expect(page.getByText('Proje eklendi.', { exact: true })).toBeVisible();
-
     const durum = await projeDurumu(taslakSlug);
     expect(durum.bulundu).toBe(true);
     expect(durum.status).toBe('DRAFT');
@@ -215,5 +222,80 @@ test.describe('§9/6 · panelden yayınla → public sayfada görün (ADR-011 + 
       (await request.get(`/projeler/${taslakSlug}`)).status(),
       'taslak detayı 404 olmalı',
     ).toBe(404);
+  });
+
+  /**
+   * §9/6'NIN LİTERAL HÂLİ — taslağı panelden yayına al.
+   *
+   * İkinci testten farkı YALNIZCA geçiş: orada kayıt doğrudan "Yayında"
+   * açılıyor (`createProjectAction`), burada önce taslak açılıp sonra
+   * `updateProjectAction` ile yayına alınıyor. ADR-029 açısından ikisi ayrı
+   * yollar: ekleme `tagTargetsFor(null, dto)`, güncelleme `tagTargetsFor(
+   * before, dto)` çağırıyor ve ikincisi ESKİ durumu da hesaba katmak zorunda.
+   * Yani bu test "aynı şeyin tekrarı" değil, ikinci bir etiket hesabının sınavı.
+   */
+  test('TASLAK → YAYINDA: panelden yayına alınıyor, public ANINDA görüyor', async ({
+    page,
+    context,
+    request,
+    baseURL,
+  }) => {
+    const gecisSlug = `${KOSUM}-gecis`;
+    const gecisBaslik = `E2E Geçiş Senaryosu ${gecisSlug.slice(-6)}`;
+    const { email } = adminCredentials();
+    const yonetici = await findAdminUser();
+
+    await applySessionCookie(
+      context,
+      { userId: yonetici.id, email, twoFactorEnabled: true },
+      baseURL ?? 'http://127.0.0.1:3100',
+    );
+
+    /* ---- 1) Taslak olarak aç ------------------------------------------- */
+    await paneldenProjeEkle(page, {
+      slug: gecisSlug,
+      baslik: gecisBaslik,
+      durum: 'Taslak',
+      // Yayın tarihi ŞİMDİDEN veriliyor: geçişte ölçmek istediğimiz şey durum
+      // değişikliğinin etkisi. Tarih o anda girilseydi, kayıt public'te
+      // görünmediğinde sebebin hangisi olduğu (durum mu tarih mi) belirsiz
+      // kalırdı — iki değişkeni aynı anda oynatmamak için.
+      yayinTarihi: '2026-01-15T09:00',
+    });
+
+    expect((await projeDurumu(gecisSlug)).status).toBe('DRAFT');
+
+    /* ---- 2) ÖNBELLEĞİ ISIT (taslak hâliyle) ----------------------------- */
+    expect(await listedeVarMi(request, gecisSlug), 'taslak public listede olmamalı').toBe(false);
+    expect((await request.get(`/projeler/${gecisSlug}`)).status(), 'taslak detayı 404').toBe(404);
+
+    /* ---- 3) Panelde TASLAK GÖRÜNÜYOR — ENGEL-1 kapandı ------------------ */
+    await page.goto('/panel/icerik/projeler?durum=taslak');
+
+    const satir = page.getByRole('row', { name: new RegExp(gecisBaslik) });
+    await expect(satir, 'taslak panel listesinde görünmeli (ENGEL-1)').toBeVisible();
+
+    /* ---- 4) Düzenleme rotasında yayına al ------------------------------- */
+    await satir.getByRole('link', { name: 'Düzenle' }).click();
+    await expect(page).toHaveURL(/\/panel\/icerik\/projeler\/[a-z0-9]+$/);
+
+    await page.locator('#status').selectOption({ label: 'Yayında' });
+    await page.getByRole('button', { name: 'Kaydet', exact: true }).click();
+    await expect(page.getByText(/Kaydedildi/)).toBeVisible();
+
+    expect((await projeDurumu(gecisSlug)).status, 'DB durumu PUBLISHED olmalı').toBe('PUBLISHED');
+
+    /* ---- 5) Public taraf ANINDA görüyor mu ------------------------------ */
+    expect(
+      await listedeVarMi(request, gecisSlug),
+      'ADR-029: güncelleme yolunda `content:project:tr` düşürülmediyse liste BAYAT kalır',
+    ).toBe(true);
+
+    const detay = await request.get(`/projeler/${gecisSlug}`);
+    expect(
+      detay.status(),
+      'ADR-029: güncellemede slug etiketi düşürülmediyse ÖNBELLEKLENMİŞ 404 servis edilir',
+    ).toBe(200);
+    expect(await detay.text()).toContain(gecisBaslik);
   });
 });

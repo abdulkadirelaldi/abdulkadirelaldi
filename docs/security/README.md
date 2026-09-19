@@ -75,6 +75,7 @@ açığın ayrıntısı artık saldırgana bir şey kazandırmaz.
 | 2026-08-12 | T-029a | Lighthouse'a masaüstü + koyu profil (WebGL yolu), üç durumlu WebGL doğrulaması, koşu değişkenliği kararı | **BULGU-010 açıldı**: WebGL yolu hiçbir CI koşusunda ölçülmüyordu. Profil kuruldu ve doğrulandı; ölçüm T-021'in hero'yu bağlamasını bekliyor (kontrol kendi kendine zorunlu hâle geliyor). Değişkenliğin **ilk koşuya** ait olduğu ölçüldü; `numberOfRuns` 5, `aggregationMethod` açıkça medyan. |
 | 2026-08-17 | T-029d | Ölçüm yüzeyi dışındaki SEO/OG rotaları (BULGU-015) | **BULGU-015 kapandı** — `tests/e2e/seo-routes.spec.ts`: robots.txt, sitemap.xml, rss.xml, `/og` ve `/og/proje/<slug>` artık her koşumda isteniyor. PNG imza baytlarından, XML gerçek ayrıştırıcıyla doğrulanıyor. Kapsam iki katmanlı: sözleşme testleri + sitemap taraması (yeni sayfa kendiliğinden kapsanır). Mutasyonla kanıtlandı: düzeltme öncesi font aynı render yolunda BULGU-014'ün `TypeError`'ını veriyor. **BULGU-016 açıldı** — sitemap üç adet 404 adresi bildiriyor. |
 | 2026-08-16 | T-029c | Ölçüm işinin veri kurulumu (BULGU-013) + §8.24 haftalık zamanlayıcı | **BULGU-013 açıldı ve düzeltildi**: `lighthouse` işi ayrı koşucuda `services:` bloğu olmadan koşuyordu; ADR-026 sonrası `/` 500 dönüyor, üç profil düşüyor, artifact üretilmiyordu. Kendi Postgres'i kuruldu (yol **a**). İki yeni nöbet: ölçüm ön koşulu ve ayırt edicide durum kodu kontrolü — ikincisi olmadan arıza "⏳ BEKLEMEDE" diye yeşil görünüyordu. §8.24 artık **haftalık** de koşuyor (`17 6 * * 1`). |
+| 2026-09-19 | T-044g | Dört rota beyanı, ADR-034 taraması, iki karar (şifre hız sınırı + oturum geçersizleştirme), §9/1 | **Kapı yeşil** — dört rota beyan edildi; ikisi (`projeler/yeni`, `projeler/[id]`) GERÇEK e2e kapsamı kazandı çünkü §9/6 paketi yeni UI'ya taşındı. **§9/6'nın LİTERAL hâli kapandı**: T-043f ENGEL-1'i kaldırınca taslak→yayın geçişi panelden ölçülebilir oldu; `updateProjectAction` yolunun ADR-029 hesabı AYRI mutasyonla sınandı (ekleme yolundan farklı: `tagTargetsFor(before, dto)`). **ADR-034 taraması:** on bir `buildDiff` + yedi elle yazılmış `diff` okundu — bugün sızıntı YOK; emniyet ağının kapsamı üçüncü kez bağımsız ölçüldü ve YENİ bilgi çıktı: iç içe/dizi içindeki BİLİNEN adlar maskeleniyor, yani sınır özyineleme değil **ad bilgisi**. **BULGU-019 açıldı**: üç silme eylemi `diff: { deleted: before }` ile satırın tamamını yazıyor — bugün public içerik, yarın eklenecek hassas bir sütun sessizce girer. **Şifre hız sınırı: GEREKLİ** — asıl gerekçe brute-force değil kaynak tüketimi (ölçüldü: argon2 doğrulaması p50 **31 ms**, ~33 deneme/sn/çekirdek, her deneme **19 MiB**). **BULGU-020 + T-046 önerisi**: ara katmanın Edge'de DB okuyamadığı derleme hatasıyla doğrulandı; panel SAYFALARININ `auth()` çağırmadığı ölçüldü (tek istisna `ayarlar/guvenlik`) — yani `auth()` içindeki bir kontrol yazmaları kapatır, **okumaları kapatmaz**. Kontrolün maliyeti p50 **0.49 ms**. Üç katmanlı öneri yazıldı. **§9/1 kapandı** → sayaç **5 kapalı / 1 kısmi / 1 açık**. |
 | 2026-09-15 | T-043g | İki mesaj rotasının kapsam beyanı, §9/2'nin dördüncü halkası, KVKK sınırı, `latest` uyarısı | **§9/2 TAM KAPANDI** — T-039'da açık bekleme olarak işaretlenen tek iddia bağlandı: ziyaretçi mesajı panelde satır olarak görünüyor, liste yalnızca `preview` taşıyor (mesaj bilerek 160 karakterden uzun, kuyruk imzası listede YOK detayda VAR), rozet sayıyor. İki mutasyonla sınandı. **KVKK kararı: kabul edilebilir** — 'Göster/Gizle' bir perde, yetki sınırı değil; asıl sınır liste/detay ayrımı ve bağımsız ölçümüm onu doğruladı (liste ham gövdesinde `ip`/`userAgent` işaretleri YOK, detayda VAR). Sızıntı kontrolü mutasyonla sınandı. **Kendi testimde iki vakum yakalandı ve kayda geçti:** `request` fixture'ı çerez taşımıyor, `page.request` yönlendirme izliyor — ikisinde de 'işaret yok' sonucu giriş sayfasından geliyordu; ham gövde artık gezinme yanıtından okunuyor ve 'doğru sayfa' kontrolüyle birlikte. İki rota beyan edildi (ölçülmeyen satırlarıyla), §9 sayacı **4 kapalı / 2 kısmi / 1 açık**. `latest` etiketi uyarısı kayda geçti: `prisma@latest` → 8.0.0-rc.14 (RC!), `vitest` → 5.0.0, `next` → 16.3.4. |
 | 2026-09-13 | T-042g | §8.24 üçüncü kez gerçek olayda tetiklendi: `mysql2`, `fast-uri` (×4), `js-yaml` | **Üçü de kapandı, kapı EXIT 0.** Katmanlar ölçümle seçildi: `fast-uri` ve `js-yaml` **A** (üst paket aralığı yamayı zaten kapsıyor → 3.1.7 ve 4.3.2, override YOK), `mysql2` **B** (`prisma` `"3.15.3"` diye TAM SABİTLİYOR, A imkânsız; kararlı `prisma@7.10.0` da aynı pini taşıyor, C etkisiz → `">=3.23.1 <4.0.0"` ile 3.24.4). **Maruziyet dört ölçümle belirlendi**, varsayılmadı: `Module._load` izleyicisi `generate`/`migrate`/`seed` akışlarında hiçbirini yüklemiyor, taze derlemenin `.next` çıktısında 0 dosya. `@hookform/resolvers → ajv → fast-uri` yolu görev kartında yoktu, denetim çıktısının tamamı okununca çıktı — ölçüldü, `/zod` giriş noktası `ajv`ye ulaşmıyor. **İki sessiz tuzak oyunkitabına işlendi:** `pnpm update --recursive` geçişli pakette EXIT 0 döndürüp HİÇBİR ŞEY yapmıyor (`--depth Infinity` gerekiyor), ve `">=x"` sınırsız override bir kısıttır, yükseltme emri değil — `sharp` 0.35.3'te bu yüzden donmuştu. `postcss` aynı durumdaydı, iki sınırlıya çevrildi. ADVISORY-002 istisnası doğrulandı (70 gün kaldı, kaldırma koşulu hâlâ sağlanmadı) ve kapının altı kırmızı dalı yeniden mutasyonla sınandı. |
 | 2026-09-09 | T-039 | §9/6 (panelden yayınla → public'te görün) ve §9/2 (ziyaretçi mesajı → panel) uçtan uca | **§9/6 KAPANDI** — `panel-yayin.spec.ts`. Testin geçerliliği ÖNBELLEK ISITMASINA bağlı: ısıtma olmadan etiket düşürme tamamen bozulsa bile yeşil kalırdı. **Üç mutasyonla sınandı** (`tags.ts` geçici bozuldu, md5 ile geri alındı): etiket hiç düşmüyor → kırmızı, yalnızca `slugTag` düşüyor → kırmızı, yalnızca `localeTag` düşüyor → **yeşil**. Üçüncüsü beklentiyi düzeltti: detay önbellek girdisi `localeTag` de taşıdığı için `slugTag` bugün hiçbir yolda gözlemlenebilir değil — `tags.ts`'teki gerekçe fazla iddialı, düzeltmesi Backend'de; katman birim testiyle kapalı. **§9/2 üç halkası kapandı**, dördüncüsü (panel mesaj kutusu EKRANI) **açık bekleme** — `test.skip` kullanılmadı, atlanan test "atlanan test yok" nöbetini kırar. Ekranın besleneceği okuma yolu şemadan üretilen varsayılan filtreyle ölçülüyor. Zaman tuzağı ölçüldü: hızlı gönderim `puan=30 tooFast` üretiyor, beklemeli gönderim **0**. Test izolasyonu iki projede paralel koşum için süreç anahtarına çevrildi. §9: **3 kapalı, 3 kısmi, 1 açık**. |
@@ -2552,7 +2553,13 @@ Bunun iki sonucu var ve ikisi de yazılı olmalı:
 listesinde görünmüyor ve detayı 404 dönüyor. Bu olmadan "her şeyi gösteren" bir
 uygulama da yukarıdaki testi geçerdi.
 
-### AÇIK BEKLEME — §9/6'nın literal hâli (DRAFT → PUBLISHED)
+### AÇIK BEKLEME — §9/6'nın literal hâli (DRAFT → PUBLISHED) → **T-044g'de KAPANDI**
+
+> **Kapanış (2026-09-19):** T-043f panel listesini `fetchProjectsForPanel`e
+> (ham, önbeleksiz, tüm durumlar) çevirdi — ENGEL-1 ortadan kalktı. Bekleyen
+> iddia `panel-yayin.spec.ts`e eklendi ve `updateProjectAction` yolunun etiket
+> hesabı AYRI bir mutasyonla sınandı. Aşağıdaki özgün metin, beklemenin neden
+> açıldığını anlatmak için duruyor.
 
 Senaryo "bir projeyi DRAFT'tan PUBLISHED'a çevir" diyor. **Bugün panelden
 yapılamıyor:** panel listesi `getPublishedProjects` okuyor, yani taslak kayıt
@@ -2733,7 +2740,7 @@ taşınıyor. Ham gövdede düz metin aramak yanıltıcı; kimlik (ASCII) doğru
 
 | # | Senaryo | Durum | Kanıt / eksik |
 | - | ------- | ----- | ------------- |
-| 1 | Ana sayfa → proje → detay → Kıyı Medya CTA | ⚠️ kısmi | Uçlar ölçülüyor; **tıklama zinciri ve CTA ölçülmüyor** |
+| 1 | Ana sayfa → proje → detay → Kıyı Medya CTA | ✅ **kapalı (T-044g)** | `ziyaretci-akisi.spec.ts` — zincir + CTA sözleşmesi, mutasyonla sınandı |
 | 2 | İletişim formu → mesaj panele düşer | ✅ **kapalı (T-043g)** | `iletisim-akisi.spec.ts` — dört halka, iki mutasyon |
 | 3 | Yanlış şifre / doğru şifre + 2FA | ✅ kapalı | `auth.spec.ts` |
 | 4 | Girişsiz `/panel` → login | ✅ kapalı | `smoke.spec.ts` + `auth.spec.ts` |
@@ -2742,6 +2749,7 @@ taşınıyor. Ham gövdede düz metin aramak yanıltıcı; kimlik (ASCII) doğru
 | 7 | Mobil görünümde ana sayfa ve panel kullanılabilir | ⚠️ kısmi | §9/2 ve §9/6 `mobile-chrome`'da da koşuyor; panelin gezinme/kullanılabilirlik iddiaları yazılmadı |
 
 **Sayı: 4 kapalı, 2 kısmi, 1 açık.** (T-039 sonrası 3 kapalıydı.)
+*(T-044g bu tabloyu güncelledi — güncel sayaç aşağıda.)*
 
 ### ⚠️ `latest` etiketi "kararlı" demek DEĞİL — üç canlı örnek
 
@@ -2768,9 +2776,250 @@ sayılabilirdi.
 
 ---
 
+## ADR-034 taraması: `buildDiff` başka nereden sızabilir (T-044g)
+
+**Tarih:** 2026-09-19 · **Sonuç:** bugün sızıntı **yok**; bir risk kalıbı var
+(**BULGU-019**) · **Yöntem:** on bir `buildDiff` çağrı yeri + `buildDiff`
+kullanmayan yedi elle yazılmış `diff` tek tek okundu, sonra emniyet ağının
+davranışı **çalıştırılarak** ölçüldü.
+
+### Emniyet ağının gerçek kapsamı — üçüncü bağımsız ölçüm
+
+Backend ve Orkestra Şefi ayrı ayrı ölçtü; ben de kendi sondamla ölçtüm.
+Yeni bilgi: **iç içe ve dizi içindeki BİLİNEN adlar maskeleniyor** (özyineleme
+çalışıyor, döngü koruması var) — yani ADR-034'ün sınırı "yalnızca en üst
+seviye" değil, tam olarak **ad bilgisi**:
+
+| Girdi | Çıktı | Yorum |
+| ----- | ----- | ----- |
+| `{ password, passwordHash }` | `[REDACTED]` ×2 | bilinen ad ✓ |
+| `{ deleted: { passwordHash } }` | `{"deleted":{"passwordHash":"[REDACTED]"}}` | **iç içe de maskeleniyor** ✓ |
+| `{ rows: [{ token }] }` | `[REDACTED]` | dizi içinde de ✓ |
+| `{ yeniSifre, pass }` | **sızıyor** | bilinmeyen ad ✗ |
+| `{ note: 'sifre: …' }` | **sızıyor** | değere gömülü ✗ |
+| `{ deleted: { yeniSifre } }` | **sızıyor** | iç içe + bilinmeyen ad ✗ |
+| döngüsel yapı | `[REDACTED]` | sonsuz döngüye girmiyor ✓ |
+
+Bu ölçüm ADR-034'ü **doğruluyor ve daraltıyor**: sorun özyineleme eksikliği
+değil, adın bilinmesi gerekliliği. `REDACTED_KEYS` listesine bakmadan alan adı
+seçen herkes, farkında olmadan ağın dışına çıkabiliyor.
+
+### Bugünkü çağrı yerleri — hiçbiri sır taşımıyor
+
+| Yol | Diff'e giren | Değerlendirme |
+| --- | ------------ | ------------- |
+| `project` / `post` (create/update/archive) | `slug`, `locale`, `title`, `status` | Kimlik alanları; MDX içeriği **bilerek dışarıda** |
+| `experience` / `service` / `skill` (create/update) | `organization`/`role`/tarihler, `title`/`ctaUrl`/`order`, `name`/`category`/`level` | Public içerik |
+| `contact-message` (durum eylemleri) | `isRead`, `isSpam`, `repliedAt`, `archivedAt` | **Yalnızca durum** — gövde/e-posta girmiyor ✓ |
+| `job` (dönüşüm) | `contactMessageId`, `jobTitle`, `jobStatus`, `clientId`, `clientCreated` | Ad/e-posta **açık gerekçeyle** dışarıda ✓ |
+| `totp` (üç eylem) | `context`, sayaçlar | Secret/kod girmiyor ✓ |
+| `password` | `{ context: 'CHANGE_PASSWORD', changed: 'passwordHash' }` | `buildDiff` **bilerek kullanılmamış** ✓ |
+| `profile` | `headline`, `location`, **`socials`** | ⚠️ `socials` serbest biçimli JSON — bkz. BULGU-019 |
+
+---
+
+## BULGU-019 — Silme denetimlerinde `diff: { deleted: before }` satırın TAMAMINI yazıyor
+
+**Önem:** Düşük (bugün sızıntı yok, gelecek riski) · **Görev:** T-044g (bulan)
+**Durum:** AÇIK — düzeltme sahibi **Backend** · **İlgili:** ADR-034
+
+`experience`, `skill` ve `service` silme eylemleri denetim kaydına **silinen
+satırın tamamını** yazıyor:
+
+```ts
+diff: { deleted: before }
+```
+
+Gerekçesi yazılı ve **makul**: "`buildDiff(before, {})` boş bir fark üretirdi;
+burada saklanmak istenen 'ne değişti' değil 'ne kayboldu' — denetim kaydı bu
+eylemde kaydın TEK kalan izi." Aynı şekilde `profile` eyleminde serbest biçimli
+`socials` alanı diff'e giriyor.
+
+**Bugün sorun değil:** üç model de public içerik taşıyor (yetenek adı, hizmet
+başlığı, deneyim kaydı) ve ölçüm iç içe bilinen adların maskelendiğini gösterdi.
+
+**Riskin kendisi gelecekte:** bu kalıp, ADR-034'ün "sır diff'e hiç konmaz"
+kuralını **alan seçimini modele devrederek** uyguluyor. Bu modellerden birine
+yarın bir `apiAnahtari`, `webhookSecret` ya da serbest metin `not` alanı
+eklendiğinde:
+
+- yeni alan `REDACTED_KEYS` listesinde **olmayacak** (ada bağlılık),
+- silme diff'i onu **otomatik olarak** taşıyacak (alan listesi yok, tüm satır var),
+- ve hiçbir test bunu görmeyecek — tip sistemi de görmez, çünkü `before` zaten
+  o modelin tipinde.
+
+Yani ADR-034'ün "iki kez kuruldu" dediği varsayım burada **üçüncü kez**
+kurulmaya hazır duruyor.
+
+**Öneri (düzeltme Backend'in):** silme diff'i de tıpkı create/update yolları
+gibi **alanları tek tek** saysın (`{ deleted: { id, name, category, level } }`).
+Aynı gerekçeyi ("ne kayboldu") korur, ama alan seçimini **açık** hâle getirir —
+yeni bir sütun eklendiğinde denetim kaydına sessizce girmez. `profile.socials`
+için de aynı soru sorulmalı: serbest JSON diff'e girmeli mi, yoksa yalnızca
+anahtar adları mı yazılmalı?
+
+---
+
+## Şifre değiştirme hız sınırı — KARAR: GEREKLİ (T-044g)
+
+**Karar:** evet, sınır konmalı. **Ama asıl gerekçe brute-force değil.**
+
+### Tehdit modeli — neyin sınırlandığı önemli
+
+Bu uç kimliği doğrulanmış oturum ister; saldırgan zaten paneldeyse "şifreyi
+tahmin etmesi" yeni bir yetki kazandırmaz. İki gerçek gerekçe var:
+
+**1. KAYNAK TÜKETİMİ — ölçüldü.** §8.2 gereği `argon2id` bilerek pahalı
+(`memoryCost` 19 MiB, `timeCost` 3). Yanlış şifre doğrulamasının maliyeti:
+
+```
+p50 = 31 ms/deneme   →  ~33 deneme/saniye/çekirdek
+her deneme 19 MiB bellek ayırıyor  →  50 eşzamanlı istek ≈ 1 GB
+```
+
+Tek bir oturum, sınırsız döngüyle üretim kutusunun (Coolify, birkaç vCPU)
+CPU'sunu ve belleğini doyurabilir. §8.15'in iletişim formuna hız sınırı koyma
+gerekçesi **birebir aynıdır** ve orada saldırgan kimliksizdi bile.
+
+**2. Yetki yükseltme.** Çalınmış bir oturumla mevcut şifre tahmin edilirse
+saldırgan şifreyi değiştirir ve **asıl sahibi kilitler**. "Oturumu var, zaten her
+şeyi yapabilir" doğru değil: hesabın kalıcı kontrolü ayrı bir eşik.
+
+### Önerilen politika
+
+| Boyut | Değer | Gerekçe |
+| ----- | ----- | ------- |
+| Sayaç anahtarı | **kullanıcı** (IP değil) | `LoginAttempt` IP başına §8.4'ün kaynağı; kullanıcı kendi girişinden kilitlenmemeli (Backend'in notu doğru) |
+| Kaynak | `AuditLog`: `LOGIN_FAILED` + `diff.context = 'CHANGE_PASSWORD'` | Backend zaten yazıyor; yeni tablo/kolon gerekmiyor |
+| Eşik / pencere | **5 başarısız / 15 dk** | `TOTP_SETUP_RATE_LIMIT` ile aynı kalıp — üçüncü bir eşik sayısı icat etmemek |
+| Aşımda | §7.2 zarfı + `RATE_LIMITED`, denetim kaydı | Sessiz başarısızlık teşhisi zorlaştırır |
+| Sıfırlama | Başarılı değişiklikten sonra pencere temizlenir | Meşru kullanıcı hata yapıp sonra doğrusunu girdiğinde cezalandırılmasın |
+
+**Sınırın kendisi de ölçülmeli:** eşiğin 6. denemede tuttuğunu ve 5.'de
+tutmadığını gösteren bir sınır testi (§8.4'ün "dört deneme kilitlemez" testinin
+kardeşi) — o test olmadan eşik bir temenni olur.
+
+**Uygulama Backend'in** (`src/**` bu görevin kapsamı dışında).
+
+---
+
+## BULGU-020 — Şifre değişikliği ele geçirilmiş oturumu KAPATMIYOR
+
+**Önem:** Orta · **Görev:** T-044g (ölçen) · **Durum:** AÇIK — **T-046'nın gövdesi**
+**PROGRAM.md:** §8.3 · **İlgili ADR:** 013 (JWT), 011
+
+Şifre değiştirmek, dağıtılmış JWT'leri geçersiz kılmıyor: sunucuda oturum kaydı
+yok, jeton kendi kendini doğruluyor. Çalınan bir çerez, şifre değişse bile
+**ömrü dolana kadar (7 gün) geçerli.**
+
+Backend kolon **eklemedi** ve bu doğruydu: hiçbir şeyin okumadığı bir
+`sessionsValidFrom` kolonu, oturumların kapatıldığı **yanılsamasını** üretirdi —
+bu depoda tekrar eden en pahalı hata sınıfı (T-018 `NavItem.hazir`, BULGU-010'un
+"vakumda yeşil" dalı).
+
+### Ölçümler — öneriyi bunlar şekillendiriyor
+
+**1. Ara katman Edge'de ve veritabanını GERÇEKTEN okuyamıyor.** Geçici olarak
+`src/middleware.ts` içine `db` içe aktarıldı ve derleme denendi:
+
+```
+Module build failed: UnhandledSchemeError: Reading from "node:crypto" …
+Module build failed: UnhandledSchemeError: Reading from "node:fs" …   (os, path, module)
+> Build failed because of webpack errors
+```
+
+T-014/K1 doğrulandı (mutasyon geri alındı, md5 eşleşiyor). Ara katmanda
+`sessionsValidFrom` kontrolü **mümkün değil**; `middleware.ts`te `runtime` beyanı
+da yok, yani Edge varsayılanı geçerli.
+
+**2. Panel SAYFALARI `auth()` çağırmıyor.** Ölçüldü: tüm depoda üç `await auth()`
+var (`actions/_shared.ts` → `currentActorId`, `actions/totp.ts`, bir de örnek
+kod bloğu). `(panel)` altındaki **tek** çağıran `ayarlar/guvenlik`. Panel düzeni
+de çağırmıyor.
+
+> **Bunun sonucu, Backend'in "kısmi" dediği şeyin tam tanımı:** `auth()` içine
+> konacak bir kontrol **YAZMALARI** kapatır (tüm Server Action'lar
+> `currentActorId`den geçiyor), **OKUMALARI kapatmaz** — panel sayfaları
+> yalnızca ara katmanla korunuyor ve ara katman DB okuyamıyor. Çalınan jetonla
+> panel **okunmaya devam eder**.
+
+**3. Kontrolün maliyeti küçük ama mimari özelliği değiştiriyor.** Gerekecek
+asgari sorgu yerel olarak ölçüldü (200 koşu, ısınma hariç):
+
+```
+p50 = 0.49 ms   p95 = 0.92 ms   p99 = 1.29 ms
+```
+
+Mutlak maliyet düşük; asıl bedel "normal istek yolu veritabanına gitmez"
+özelliğinin (ADR-011/ADR-013) kaybı.
+
+### T-046 için öneri — üç katman, ikisi hemen
+
+**(A) Oturum ömrünü kısalt — HEMEN, en ucuz.** §8.3'ü 7 günden **24 saate**
+çekmek maruziyet penceresini 7×24 saatten 24 saate indirir; kod değişikliği tek
+sabit, ölçüm gerektirmez, hiçbir yeni sorgu getirmez. Tek bedeli: kullanıcı daha
+sık giriş yapar — **tek kullanıcılı bir panelde** kabul edilebilir. Bu, tek
+başına bile boşluğu %85 daraltır.
+
+**(B) `sessionsValidFrom` + `auth()` kontrolü — DÜRÜSTÇE "KISMİ".** Kolon
+eklenir, jeton `iat`i ondan eskiyse `currentActorId` `null` döner. **Kapsamı
+yazılı olmalı:** yazmalar kapanır, okumalar kapanmaz. Kolonun adı bile bunu
+söylemeli (`writesValidFrom` gibi) ya da kayıt bunu açıkça yazmalı — aksi hâlde
+Backend'in kaçındığı yanılsama geri gelir.
+
+**(C) Okumaları da kapatmak — pahalı, F6'ya.** İki yolu var ve ikisi de bedelli:
+panel sayfalarının her birine `auth()` eklemek (unutulabilir, kapı gerekir), ya
+da ara katmanı Node çalışma zamanına almak (Next 15.5'te deneysel). İkincisi
+seçilirse kontrol **yalnızca `isPanelPath` için** koşmalı: matcher neredeyse tüm
+yolları kapsıyor ve public sayfalara istek başına bir sorgu eklemek ADR-011'in
+tüm önbellekleme çabasını geri alırdı.
+
+**Sıra önerisi:** (A) bu turdan sonraki ilk fırsatta · (B) T-046'da, kapsamı
+yazılı olarak · (C) F6/T-060 civarında, CSP işiyle birlikte.
+
+**Ölçülmeyen:** üretim kutusunda sorgu gecikmesi (yerel ölçüm 0.49 ms; Coolify
+iç ağında farklı olabilir) ve Node ara katmanının soğuk başlatma maliyeti.
+
+---
+
+## §9 sayacı — T-044g sonrası: **5 kapalı · 1 kısmi · 1 açık**
+
+| # | Senaryo | Durum | Kanıt / eksik |
+| - | ------- | ----- | ------------- |
+| 1 | Ana sayfa → proje → detay → Kıyı Medya CTA | ✅ **kapalı (T-044g)** | `ziyaretci-akisi.spec.ts`; kart slug'ı seed'den okunuyor, CTA `data-proje` ile tıklanan projeye bağlanıyor, `target`/`rel` sözleşmesi ve gerçek tıklama ölçülüyor |
+| 2 | İletişim formu → mesaj panele düşer | ✅ kapalı (T-043g) | `iletisim-akisi.spec.ts`, dört halka |
+| 3 | Yanlış şifre / doğru şifre + 2FA | ✅ kapalı | `auth.spec.ts` |
+| 4 | Girişsiz `/panel` → login | ✅ kapalı | `smoke.spec.ts` + `auth.spec.ts` |
+| 5 | Panelden gelir kaydı → dashboard toplamı | ❌ açık | Finans modülü F4/F5'te |
+| 6 | Panelden proje yayınla → public'te görün | ✅ kapalı (T-039) + **literal hâli T-044g** | `panel-yayin.spec.ts`: ekleme yolu, taslak sızıntısı, **ve artık DRAFT→PUBLISHED geçişi** |
+| 7 | Mobil görünümde ana sayfa ve panel kullanılabilir | ⚠️ kısmi | §9/1, §9/2 ve §9/6 `mobile-chrome`'da da geçiyor; panelin gezinme/kullanılabilirlik iddiaları hâlâ yazılmadı |
+
+### §9/1 — dış bağlantı ölçülürken üçüncü tarafa istek atılmıyor
+
+CTA gerçekten tıklanıyor (öznitelik doğru olup bağlantının tıklanamaz olması
+mümkün: üstte bir katman, `pointer-events: none`), ama `kiyimedya.com`a giden
+istek yerel bir taslak yanıtla karşılanıyor. İki sebep: üçüncü tarafın sitesini
+her CI koşumunda yoklamak doğru değil, ve o site yavaşladığında **bizim
+kapımız** kırmızıya dönerdi.
+
+`abort()` önce denendi ve yetmedi — iptal edilen gezinme sekmeyi
+`chrome-error://chromewebdata/` adresinde bırakıyor, yani istenen adres
+kayboluyor ve iddia ölçemeyeceği bir şeye bakıyordu. Bunun yerine **isteğin
+kendisi kaydediliyor** (tarayıcının gerçekten o adrese gittiğinin kanıtı).
+
+`rel="noopener"` iddiası biçimsel değil güvenlik iddiasıdır: `target="_blank"`
+ile açılan sayfa `window.opener` üzerinden bizi başka bir adrese yönlendirebilir
+(tabnabbing). Öznitelik silindiğinde hiçbir şey görünür biçimde bozulmaz — tam
+da kapıya yazılması gereken sınıf.
+
+**Mutasyon:** kart seçicisi "Tüm projeler" bağlantısına çevrildi → ❌ kırmızı
+("kart kendi projesinin detayına gitmeli"), yani zincir gerçekten ölçülüyor.
+
+---
+
 ## §8 Güvenlik Gereksinimleri — Durum Tablosu
 
-**Ölçüm tarihi:** 2026-09-15 · **Faz:** F3 (sürüyor) · **Son görev:** T-043g
+**Ölçüm tarihi:** 2026-09-19 · **Faz:** F3 (sürüyor) · **Son görev:** T-044g
 · **Dağılım:** ✅ 10 · ⚠️ 6 · ❌ 0 · ⏳ 9
 
 > T-039'da üç satır **bayat çıktığı için** güncellendi (6, 8 ve 15): ikisi
@@ -2799,8 +3048,8 @@ Durum kodları: ✅ sağlandı · ⚠️ kısmi · ❌ eksik · ⏳ henüz uygul
 | 16 | Yükleme uçları 10/dk | ⏳ | F3 / T-037 |
 | 17 | `.env` repoya girmez, `.env.example` tam | ✅ | `.gitignore:22-24` — `.env` ve `.env.*` yasaklı, `.env.example` istisna. `.env.example` §12'nin anahtarlarını değersiz listeliyor (T-001 doğrulaması). |
 | 18 | `NEXT_PUBLIC_` içinde sır yok, CI'da taranır | ✅ | **Otomatik tarama kuruldu** (T-005): `tests/unit/public-env.test.ts` — üç katman: (a) `.env.example`, (b) çalışma ortamı `process.env`, (c) `.next/` derleme çıktısı. `pnpm test` içinde koştuğu için hem yerelde hem CI'da otomatik. **Dedektör kendini kanıtlıyor**: 10 ekili sahte sır (GitHub/AWS/Stripe/JWT/argon2/PEM/bağlantı dizesi) yakalanıyor, meşru URL'ler yanlış pozitif vermiyor. Fiilen doğrulandı: `.env.example`'a `NEXT_PUBLIC_GITHUB_TOKEN=ghp_…` ekildi → hat **KIRMIZI**, geri alındı → **YEŞİL**. |
-| 19 | Panel mutasyonları `AuditLog`'a | ⚠️ | **Merkezî yardımcı geldi** (T-015): `src/server/services/_shared/audit.ts` → `writeAuditLog`, `diff` üzerinde otomatik redaksiyonla (§8.20). Kullananlar: 2FA eylemleri (`actions/totp.ts`) ve hesap kilidi (ADR-022 — denemeler `LoginAttempt`'e, sonuçlar `AuditLog`'a). Kilit kaydı T-016'da üretim yolunda **fiilen tetiklendi**. ⚠️ kalma sebebi: içerik/muhasebe mutasyonları henüz yazılmadı (F3–F5), yani "tüm mutasyonlar" ölçülemiyor. |
-| 20 | Loglarda şifre/token/TOTP/tam e-posta yok | ⚠️ | Sağlık ucu §8.20'ye uyuyor (T-003b'de tarandı: altyapı izi 0 eşleşme) ve bu T-016b'de **kapıya bağlandı** (`api-routes.spec.ts` → bağlantı dizesi / yığın izi / dosya yolu / ortam değişkeni adı desenleri). `writeAuditLog` `diff` üzerinde otomatik redaksiyon yapıyor (T-015). **T-043g — YANIT YÜKÜ de artık ölçülüyor:** KVKK kapsamındaki `ip`/`userAgent` yalnızca detay rotasının yükünde; liste rotasının ham gövdesinde ikisi de YOK (`panel-mesaj-kvkk.spec.ts`, bağımsız ikinci ölçüm, mutasyonla sınandı). ⚠️ kalma sebebi: LOG tarafı için merkezî redaksiyon yardımcısı hâlâ yok — ölçülen şey yanıt gövdeleri, uygulama logları değil. |
+| 19 | Panel mutasyonları `AuditLog`'a | ⚠️ | **Merkezî yardımcı geldi** (T-015): `src/server/services/_shared/audit.ts` → `writeAuditLog`, `diff` üzerinde otomatik redaksiyonla (§8.20). Kullananlar: 2FA eylemleri (`actions/totp.ts`), hesap kilidi (ADR-022) ve F3'ten beri tüm içerik/mesaj/iş eylemleri. Kilit kaydı T-016'da üretim yolunda **fiilen tetiklendi**. ⚠️ **ADR-034 (T-044g):** `redactAuditDiff` bir **EMNİYET AĞI**, koruma değil — ada bağlı çalışır. Asıl kural: sır `diff`e HİÇ KONMAZ. T-044g taraması: `buildDiff` kullanan on bir çağrı yerinin hiçbiri bugün sır taşımıyor, ama üç silme eylemi SİLİNEN SATIRIN TAMAMINI yazıyor (**BULGU-019**). ⚠️ kalma sebebi: muhasebe mutasyonları henüz yazılmadı (F4–F5). |
+| 20 | Loglarda şifre/token/TOTP/tam e-posta yok | ⚠️ | Sağlık ucu §8.20'ye uyuyor (T-003b'de tarandı: altyapı izi 0 eşleşme) ve bu T-016b'de **kapıya bağlandı** (`api-routes.spec.ts` → bağlantı dizesi / yığın izi / dosya yolu / ortam değişkeni adı desenleri). `writeAuditLog` `diff` üzerinde otomatik redaksiyon yapıyor (T-015) — ama **ADR-034'ten sonra bu bir KORUMA değil EMNİYET AĞIDIR** ve belgede artık öyle anılıyor: ada bağlı çalıştığı için bilmediği adı ({`yeniSifre`}, {`pass`}) ve masum bir anahtarın DEĞERİNE gömülü sırrı geçirir (üç ayrı ajan ölçtü, aynı sonuç). **T-043g — YANIT YÜKÜ de artık ölçülüyor:** KVKK kapsamındaki `ip`/`userAgent` yalnızca detay rotasının yükünde; liste rotasının ham gövdesinde ikisi de YOK (`panel-mesaj-kvkk.spec.ts`, bağımsız ikinci ölçüm, mutasyonla sınandı). ⚠️ kalma sebebinin GÜNCEL hâli (T-044g): T-043g'de "merkezî redaksiyon yardımcısı yok" yazmıştım; yardımcı aslında var (`redactAuditDiff`) ve asıl gerekçe **ADR-034**: redaksiyon **ada bağlı**, yani bilinmeyen alan adlarını ve değere gömülü sırları yakalayamaz. Bunu bir "koruma" saymak, tam da ADR-034'ün yasakladığı güven. Ayrıca uygulama loglarının (`console.error` vb.) kendisi için hâlâ merkezî bir redaksiyon yok. |
 | 21 | Gece 03:00 şifreli `pg_dump` → R2, 30 gün | ⏳ | T-066 / T-073 · **Uyarı:** yol haritası F6/F7 diyor; gerçek muhasebe verisi F4'te girilmeye başlıyor. Yedeksiz geçen her F4 günü, başka kopyası olmayan mali veri riski. |
 | 22 | `restore.md` + en az bir prova | ⏳ | T-066 |
 | 23 | Yedek checksum doğrulaması | ⏳ | T-066 |
