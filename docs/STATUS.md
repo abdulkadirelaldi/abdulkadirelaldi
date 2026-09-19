@@ -144,12 +144,13 @@ Kısmi: 1 (uçlar ölçülü, tıklama zinciri değil), 2 (üç halka kapalı, e
    Prisma 8 / Next 16 görevlerinden önce yazılı olmalı (T-043g)
 6. **Yerel Docker kararsızlığı** — bu turda **beşinci** kez düştü; `colima` Mac uykuya
    geçince duruyor. Ölçüm görevlerinin başında `colima start && pnpm db:up` refleks olmalı
-7. **Gizli alana düşen `fields` anahtarı sessiz kalıyor** — `usePanelForm` görünmez
-   alana basılan hatayı "gösterildi" sayıyor. T-041f ekran düzeyinde çözdü; **ikinci
-   örnek çıkarsa desene taşınacak** (T-043f'te `projeler-ekrani` de gizli `id` taşıyor)
-8. **KVKK / RSC yükü** — `ip`/`userAgent` detay sayfasının RSC yükünde "Gizle"
-   durumunda da duruyor; düğme perde, yetki sınırı değil. Gerçek sınır liste/detay
-   ayrımı ve o Backend'in `LIST_SELECT`'inde kurulu. Değerlendirme T-043g'de
+7. **Şifre değiştirmek ele geçirilmiş oturumu KAPATMIYOR** — ADR-013 JWT seçti,
+   sunucuda oturum kaydı yok. Ara katman Edge'de DB okuyamadığı için (T-014/K1) orada
+   zorlanamıyor. **Bugün panelin tek hesabı için açık duran en somut güvenlik sınırı.**
+   → T-044g ölçüp önerecek, T-046 uygulayacak. **F6'ya bırakılmadı.**
+8. **`redactAuditDiff` ada bağlı** (ADR-034) — farklı adla veya masum anahtarın
+   değerine gömülü sırlar sızıyor; iki bağımsız ölçümle sabitlendi. Emniyet ağı,
+   koruma değil. `buildDiff` kullanan başka hassas yol var mı → T-044g tarayacak
 
 *Kapanan borçlar: `readingMinutes` yazma yolu (T-031) · rota envanteri ↔ kapı kapsamı
 (T-016b) · sunucu-only şema alanı konvansiyonu (T-031) · ENGEL-1 sunucu yarısı (T-040) ·
@@ -195,9 +196,11 @@ ederken karşılığında şart koştuğu koruma.
 | T-040  | Panel okuma servisi (tüm durumlar + `status` DTO) — 🟢 **Tamam** (PR #13)         | Backend            | T-038        |
 | T-041f | Mesaj kutusu **ekranı** + dönüşüm — 🟢 **Tamam** (PR #13)                         | Frontend           | T-038        |
 | T-042g | §8.24: üç yeni yüksek danışma kapatıldı — 🟢 **Tamam** (PR #13)                   | Güvenlik           | —            |
-| T-043g | Rota kapsamı beyanları + §9/2'nin dördüncü halkası — 🔴 **PR #13'ü blokluyor**    | Güvenlik           | T-041f       |
-| T-043f | Panel ekranlarını yeni okuma yoluna bağla — **dolu silah**                         | Frontend           | T-040        |
-| T-042s | Şifre değiştirme — sunucu yarısı (Q8 kararı)                                      | Backend            | T-013b       |
+| T-043g | Rota kapsamı + §9/2'nin dördüncü halkası — 🟢 **Tamam** (PR #13)                  | Güvenlik           | T-041f       |
+| T-043f | Panel ekranları bağlandı, dolu silah boşaltıldı — 🟢 **Tamam** (PR #13)           | Frontend           | T-040        |
+| T-042s | Şifre değiştirme sunucu yarısı — 🟢 **Tamam** (PR #13)                            | Backend            | T-013b       |
+| T-044g | Dört rota beyanı + ADR-034 yayılımı + oturum boşluğu — 🔴 **PR #13'ü blokluyor**  | Güvenlik           | T-043f       |
+| T-046  | Oturum geçersizleştirme — T-044g'nin önerisinden yazılacak                         | Güvenlik + Backend | T-044g       |
 | T-035  | `/panel/icerik/blog` — MDX editör + önizleme                                      | Frontend           | T-043f       |
 | T-036b | `/panel/icerik/profil` — hero metni, bio, sosyaller, CV dosyası                   | Frontend           | T-031, T-032 |
 | T-033  | Panel dashboard — özet kartlar (`CountUp`), bugünün planı                         | Frontend           | T-040        |

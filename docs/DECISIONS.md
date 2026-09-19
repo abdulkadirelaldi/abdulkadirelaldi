@@ -1576,3 +1576,63 @@ onları bozuk bulurdu: `project.featured`, `client.isArchived`/`isKiyiMedya`,
   bir örneğini düzeltip yedisini bırakmak, kusurun bilindiği hâlde taşındığı anlamına gelir.
 - **Tanınmayan değeri sessizce `false` saymak** — **reddedildi**: yön değişirdi, sessizlik
   kalırdı. Sorun yön değil, sessizlikti.
+
+---
+
+## ADR-034 — `redactAuditDiff` Bir Emniyet Ağıdır, Korumanın Kendisi Değil
+
+**Tarih:** 2026-09-19 · **Durum:** Kabul edildi · **Kaynak:** T-042s (Backend), Orkestra Şefi tarafından bağımsız doğrulandı
+
+### Bağlam
+§8.20 hassas verinin denetim kaydına ve loglara yazılmamasını şart koşuyor.
+`redactAuditDiff` bu koruma diye anılıyordu. T-042s kapsamını ölçtü; ben bağımsız
+bir sonda ile tekrar ölçtüm. İkisi aynı sonucu verdi:
+
+| Girdi | Sonuç |
+|-------|-------|
+| `password`, `newPassword`, `currentPassword`, `passwordHash` | ✅ maskelendi |
+| iç içe (`after.newPassword`) ve dizi içinde | ✅ maskelendi |
+| **farklı ad** — `{ yeniSifre: '…' }`, `{ pass: '…' }`, `{ secret_value: '…' }` | ❌ **sızıyor** |
+| **masum anahtarın değerine gömülü** — `{ note: 'şifre: …' }` | ❌ **sızıyor** |
+
+Ham çıktı: `{"yeniSifre":"SIZAN_DEGER_1","pass":"SIZAN_DEGER_2"}` ·
+`{"note":"sifre: SIZAN_DEGER_3"}`
+
+Redaksiyon **alan adı bazlıdır**. Bilinen bir ad listesine bakar; adı bilmediği
+hiçbir şeyi koruyamaz — ve bir alanın adını seçen kişi, o adın listede olup
+olmadığını düşünmek zorunda kalmaz. Koruma, hatırlamayı gerektirdiği anda koruma
+olmaktan çıkar.
+
+### Karar
+**Tek güvenilir koruma sırrı diff'e hiç koymamaktır.**
+
+Hassas veri taşıyan bir işlemde `buildDiff` **kullanılmaz**. Denetim kaydına neyin
+değiştiğinin **adı** yazılır, değeri değil — T-042s'in kalıbı:
+`{ context: 'CHANGE_PASSWORD', changed: 'passwordHash' }`.
+
+`redactAuditDiff` kaldırılmıyor: bilinen adları yakalamaya devam ediyor ve ikinci
+savunma hattı olarak değerli. Ama **hiçbir görev kartı, hiçbir kod yorumu ve hiçbir
+ADR onu "koruma" diye anmayacak.** Adı emniyet ağı.
+
+**Bağlayıcı kural:** Hassas veri yazan her yol, yazılan satırda sırrın bulunmadığını
+**`writeAuditLog` taklit edilmeden, gerçek koduyla** ölçen bir test taşır. "Redaksiyon
+var, o hâlde güvendeyiz" çıkarımı bir daha kurulamaz — T-042s ağın sınırını kaydeden
+ayrı bir test de yazdı ve o test bu ADR'nin kodda duran hâli.
+
+### Sonuçlar
+- **Olumlu:** Sınıf bir kez ölçüldü ve iki bağımsız ölçümle sabitlendi.
+- **Olumlu:** Kural mekanik — "buildDiff kullanma" denetlenebilir, "dikkatli ol" değil.
+- **Olumsuz / kabul edilen:** Hassas yollarda denetim kaydı daha az bilgi taşır.
+  Kabul edildi: §8.21 yedeklerine sızan bir sır geri alınamaz, eksik bir denetim
+  satırı ise yalnızca eksiktir.
+
+### Alternatifler ve neden reddedildi
+- **Redaksiyon listesini genişletmek** (`yeniSifre`, `pass`, `secret`, …) —
+  **reddedildi**: liste her zaman bir adım geride kalır ve genişletmek, ağın koruma
+  olduğu yanılsamasını **güçlendirir**. Kusurun kaynağı listenin kısalığı değil,
+  ada bağlı olması.
+- **Değer bazlı tarama** (entropi, `$argon2id$` deseni) — **reddedildi**: yanlış
+  pozitifler denetim kaydını okunamaz kılar, ve gömülü serbest metni yine kaçırır.
+- **Kuralı yalnızca kod yorumunda bırakmak** — **reddedildi**: aynı varsayım bu
+  projede **iki kez** kuruldu (T-038'de mesaj gövdesi, T-042s'de şifre). Üçüncüsünü
+  ADR engellesin.
