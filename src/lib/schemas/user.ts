@@ -42,22 +42,6 @@ export const updateUserSchema = z.object({
   name: shortTextSchema.min(1, { error: 'Ad zorunludur.' }).optional(),
 });
 
-/** Şifre değiştirme — mevcut şifre zorunlu, yeni şifre iki kez. */
-export const changePasswordSchema = z
-  .object({
-    currentPassword: z.string().min(1, { error: 'Mevcut şifre zorunludur.' }),
-    newPassword: passwordSchema,
-    newPasswordConfirm: z.string(),
-  })
-  .refine((value) => value.newPassword === value.newPasswordConfirm, {
-    error: 'Şifreler eşleşmiyor.',
-    path: ['newPasswordConfirm'],
-  })
-  .refine((value) => value.currentPassword !== value.newPassword, {
-    error: 'Yeni şifre mevcut şifreyle aynı olamaz.',
-    path: ['newPassword'],
-  });
-
 /**
  * Giriş formundaki ikinci adım kodu — TOTP **veya** kurtarma kodu (ADR-013).
  *
@@ -99,6 +83,52 @@ export const loginSchema = z.object({
    */
   totpCode: z.preprocess((value) => (value === '' ? undefined : value), loginCodeSchema.optional()),
 });
+
+/**
+ * Şifre değiştirme (§8.1, T-042s) — mevcut şifre zorunlu, yeni şifre iki kez.
+ *
+ * `passwordSchema` TÜKETİLİYOR, yeniden yazılmıyor: uzunluk kuralı (§8.2) tek
+ * yerde durur. `currentPassword` bilerek `passwordSchema`'dan GEÇMİYOR —
+ * mevcut şifre bugünkü kurala uymayan, seed'den kalma eski bir şifre olabilir
+ * ve "mevcut şifreniz en az 12 karakter olmalı" demek saçma olurdu. Onun tek
+ * kuralı boş olmaması; gerçek doğrulama argon2 karşılaştırmasıdır.
+ *
+ * ⚠️ `totpCode` OPSİYONEL ve bu kasıtlı: ZORUNLU OLUP OLMADIĞINA SUNUCU KARAR
+ * VERİR, çünkü karar hesabın `totpConfirmedAt` durumuna bağlı ve şema bunu
+ * bilemez. Zorunlu yazılsaydı 2FA kurulumunu henüz tamamlamamış bir kullanıcı
+ * şifresini hiç değiştiremezdi.
+ *
+ * Bu alan `serverInterpreted` ile İŞARETLENMEDİ ve bu bilinçli: o konvansiyon
+ * (T-031), Zod'un istemcide koşan bir kuralının gönderimi YANLIŞLIKLA
+ * ENGELLEDİĞİ alanlar içindir. Opsiyonel bir alan hiçbir gönderimi engellemez;
+ * burada istemcide koşan biçim kuralı (6 hane ya da kurtarma kodu) DOĞRU ve
+ * yararlıdır. Sunucuya taşınan şey kuralın kendisi değil, YALNIZCA gerekliliği.
+ *
+ * Boş dize `undefined`a çevriliyor — gerekçe `loginSchema.totpCode`'da ölçüldü
+ * (T-013c): HTML formu görünmeyen alanı bile `""` olarak gönderir.
+ */
+const changePasswordBase = z.object({
+  currentPassword: z.string().min(1, { error: 'Mevcut şifre zorunludur.' }),
+  newPassword: passwordSchema,
+  newPasswordConfirm: z.string(),
+  totpCode: z.preprocess((value) => (value === '' ? undefined : value), loginCodeSchema.optional()),
+});
+
+export const changePasswordSchema = changePasswordBase
+  .refine((value) => value.newPassword === value.newPasswordConfirm, {
+    error: 'Şifreler eşleşmiyor.',
+    path: ['newPasswordConfirm'],
+  })
+  /**
+   * Bu kural bir KOLAYLIK, kapı DEĞİL: yalnızca kullanıcının iki alana aynı
+   * dizeyi yazdığı hâli yakalar ve hatayı doğru alanın altına basar. Asıl kapı
+   * sunucuda, yeni şifrenin SAKLANAN HASH'e karşı doğrulanmasıdır — istemcide
+   * koşan bir kurala güvenilemez (`change-password.ts`).
+   */
+  .refine((value) => value.currentPassword !== value.newPassword, {
+    error: 'Yeni şifre mevcut şifreyle aynı olamaz.',
+    path: ['newPassword'],
+  });
 
 export const userFilterSchema = z.object({});
 

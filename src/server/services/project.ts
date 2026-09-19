@@ -1,4 +1,4 @@
-import type { CreateProjectInput, UpdateProjectInput } from '@/lib/schemas';
+import type { CreateProjectInput, ProjectFilterInput, UpdateProjectInput } from '@/lib/schemas';
 import { db } from '@/server/db';
 import type { PrismaClient } from '@/server/generated/prisma/client';
 import type { ContentStatus } from '@/types';
@@ -6,15 +6,21 @@ import type { ContentStatus } from '@/types';
 import {
   ATTACHMENT_SELECT,
   DEFAULT_LOCALE,
+  panelContentWhere,
+  panelSkipTake,
   publishedWhere,
   toAttachmentRef,
+  toPagedResult,
   type AttachmentRow,
 } from './_shared';
 import type {
   ContentLookup,
   ContentWriteDto,
+  PagedResult,
   ProjectDto,
   ProjectListItemDto,
+  ProjectPanelDto,
+  ProjectPanelListItemDto,
   SitemapEntryDto,
 } from './content-dto';
 
@@ -362,4 +368,153 @@ export async function archiveProject(
     select: SNAPSHOT_SELECT,
   });
   return toWriteDto(row);
+}
+
+/* ===========================================================================
+ * PANEL OKUMA YOLU — T-040 (ENGEL-1)
+ *
+ * ⚠️ `fetchPublishedProjects` DEĞİŞMEDİ ve DEĞİŞMEYECEK: yalnızca `PUBLISHED`
+ * döndürmeye devam ediyor. Panel bu yolu KULLANMAZ; aşağıdaki ayrı yolu
+ * kullanır. Ayrımın gerekçesi `_shared/panel-query.ts` başında — özet: ortak
+ * bir `includeUnpublished` bayrağının varsayılanını bir gün yanlış yazan biri
+ * taslakları public'e sızdırır ve o gün hiçbir test kırmızıya dönmez.
+ * ======================================================================== */
+
+/** Panel listesi seçimi — MDX YOK (liste hafif kalsın), `status` VAR. */
+const PANEL_LIST_SELECT = {
+  id: true,
+  locale: true,
+  slug: true,
+  title: true,
+  status: true,
+  featured: true,
+  order: true,
+  publishedAt: true,
+  updatedAt: true,
+} as const;
+
+/** Panel tek kayıt seçimi — düzenleme formunun TAM alan kümesi, MDX dahil. */
+const PANEL_DETAIL_SELECT = {
+  ...PANEL_LIST_SELECT,
+  summary: true,
+  content: true,
+  coverAttachmentId: true,
+  tags: true,
+  stack: true,
+  liveUrl: true,
+  repoUrl: true,
+  clientName: true,
+  cover: { select: ATTACHMENT_SELECT },
+} as const;
+
+interface ProjectPanelListRow {
+  id: string;
+  locale: string;
+  slug: string;
+  title: string;
+  status: ContentStatus;
+  featured: boolean;
+  order: number;
+  publishedAt: Date | null;
+  updatedAt: Date;
+}
+
+interface ProjectPanelDetailRow extends ProjectPanelListRow {
+  summary: string;
+  content: string;
+  coverAttachmentId: string | null;
+  tags: string[];
+  stack: string[];
+  liveUrl: string | null;
+  repoUrl: string | null;
+  clientName: string | null;
+  cover: AttachmentRow | null;
+}
+
+function toPanelListDto(row: ProjectPanelListRow): ProjectPanelListItemDto {
+  return {
+    id: row.id,
+    locale: row.locale,
+    slug: row.slug,
+    title: row.title,
+    status: row.status,
+    featured: row.featured,
+    order: row.order,
+    publishedAt: row.publishedAt?.toISOString() ?? null,
+    updatedAt: row.updatedAt.toISOString(),
+  };
+}
+
+/**
+ * TÜM DURUMLARDAKİ projeler — panel listesi (§4.2).
+ *
+ * `publishedWhere` UYGULANMIYOR: `DRAFT`, `SCHEDULED`, `PUBLISHED`, `ARCHIVED`
+ * hepsi döner. `filter.status` verilirse ona süzülür; verilmezse hepsi gelir.
+ *
+ * SIRALAMA `updatedAt desc`, public tarafın `publishedAt desc`i DEĞİL. Sebep
+ * ölçülebilir: `DRAFT` kayıtların `publishedAt`i `null`dur, dolayısıyla public
+ * anahtar panelde bütün taslakları bir uca yığar ve aralarındaki sırayı
+ * belirsiz bırakır. `updatedAt` her kayıtta dolu ve düzenleme yüzeyinde en
+ * yararlı sıra: en son dokunulan en üstte.
+ */
+export async function fetchProjectsForPanel(
+  filter: ProjectFilterInput,
+  client: ProjectClient = db,
+): Promise<PagedResult<ProjectPanelListItemDto>> {
+  const where = panelContentWhere({
+    locale: filter.locale,
+    status: filter.status,
+    q: filter.q,
+    searchFields: ['title', 'summary', 'slug'],
+  });
+  if (filter.featured !== undefined) where.featured = filter.featured;
+  if (filter.tag) where.tags = { has: filter.tag };
+  if (filter.stack) where.stack = { has: filter.stack };
+
+  const { skip, take } = panelSkipTake(filter);
+
+  const [rows, total] = await Promise.all([
+    client.project.findMany({
+      where,
+      select: PANEL_LIST_SELECT,
+      orderBy: [{ updatedAt: 'desc' }],
+      skip,
+      take,
+    }),
+    client.project.count({ where }),
+  ]);
+
+  return toPagedResult(rows, total, filter, toPanelListDto);
+}
+
+/**
+ * Panel TEK KAYIT — `id` ile, tüm durumlar, MDX dahil. Yoksa `null`.
+ *
+ * `slug` DEĞİL `id` ile aranıyor: panel düzenleme formu slug'ı DEĞİŞTİREBİLİR,
+ * yani slug kararlı bir adres değil. Ayrıca `fetchProjectBySlug`'ın
+ * `ContentLookup` zarfı (FOUND/GONE/NOT_FOUND) burada anlamsız — arşivlenmiş
+ * kayıt panelde 410 değil, DÜZENLENEBİLİR bir kayıttır.
+ */
+export async function fetchProjectForPanel(
+  id: string,
+  client: ProjectClient = db,
+): Promise<ProjectPanelDto | null> {
+  const row: ProjectPanelDetailRow | null = await client.project.findUnique({
+    where: { id },
+    select: PANEL_DETAIL_SELECT,
+  });
+  if (!row) return null;
+
+  return {
+    ...toPanelListDto(row),
+    summary: row.summary,
+    content: row.content,
+    coverAttachmentId: row.coverAttachmentId,
+    cover: toAttachmentRef(row.cover),
+    tags: row.tags,
+    stack: row.stack,
+    liveUrl: row.liveUrl,
+    repoUrl: row.repoUrl,
+    clientName: row.clientName,
+  };
 }

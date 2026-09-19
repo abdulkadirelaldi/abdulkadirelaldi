@@ -4,6 +4,7 @@ import {
   Dumbbell,
   FileText,
   LayoutDashboard,
+  GraduationCap,
   LayoutTemplate,
   Mail,
   Settings,
@@ -58,7 +59,7 @@ export const PANEL_GRUPLARI: ReadonlyArray<{
       { href: '/panel/muhasebe', label: 'Muhasebe', icon: Wallet },
       { href: '/panel/isler', label: 'İşler', icon: Briefcase },
       { href: '/panel/musteriler', label: 'Müşteriler', icon: Users },
-      { href: '/panel/mesajlar', label: 'Mesajlar', icon: Mail },
+      { href: '/panel/mesajlar', label: 'Mesajlar', icon: Mail, hazir: true },
     ],
   },
   {
@@ -72,7 +73,8 @@ export const PANEL_GRUPLARI: ReadonlyArray<{
   {
     title: 'Site',
     items: [
-      { href: '/panel/icerik/projeler', label: 'İçerik', icon: FileText },
+      { href: '/panel/icerik/projeler', label: 'Projeler', icon: FileText, hazir: true },
+      { href: '/panel/icerik/deneyim', label: 'Deneyim', icon: GraduationCap, hazir: true },
       { href: '/panel/ayarlar', label: 'Ayarlar', icon: Settings, hazir: true },
     ],
   },
@@ -81,6 +83,7 @@ export const PANEL_GRUPLARI: ReadonlyArray<{
 /** Menüde tanımlı olmayan ama kırıntıda görünen alt yollar. */
 const EK_ETIKETLER: Record<string, string> = {
   '/panel/ayarlar/guvenlik': 'Güvenlik',
+  /* `/panel/icerik` bir sayfa DEĞİL, yalnızca kırıntı yolundaki ara segment. */
   '/panel/icerik': 'İçerik',
 };
 

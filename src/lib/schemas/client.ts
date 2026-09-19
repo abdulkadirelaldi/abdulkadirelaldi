@@ -1,6 +1,7 @@
 import * as z from 'zod';
 
 import {
+  booleanFilterSchema,
   cuidSchema,
   emailSchema,
   mediumTextSchema,
@@ -43,8 +44,8 @@ export const archiveClientSchema = z.object({
 });
 
 export const clientFilterSchema = paginationSchema.extend({
-  isArchived: z.coerce.boolean().optional(),
-  isKiyiMedya: z.coerce.boolean().optional(),
+  isArchived: booleanFilterSchema.optional(),
+  isKiyiMedya: booleanFilterSchema.optional(),
   q: searchSchema.optional(),
 });
 

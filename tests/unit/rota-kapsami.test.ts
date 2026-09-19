@@ -169,6 +169,54 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     kanit: [],
     not: 'T-031/T-032 ile PARALEL eklendi; kapsamı o görevlerin kararı. Bu satır bilerek "kapsanmıyor" diyor — F3 panel rotaları için ilk örnek: rota var, kapı yok, ve bu artık GÖRÜNÜR. NOT: rota o görevlerle birlikte gelmezse bu satır "ölü beyan" dalını kırmızıya çevirir; doğru tepki satırı SİLMEKTİR.',
   },
+  '/panel/icerik/projeler': {
+    kapilar: ['e2e'],
+    kanit: ["page.goto('/panel/icerik/projeler')", 'selectOption({ label: alanlar.durum })'],
+    not: "§9/6: panelden proje yayınlanıyor ve public tarafta göründüğü doğrulanıyor; T-044g'de liste artık TÜM DURUMLARI okuduğu için (ENGEL-1 kapandı) taslak satırı da bu listede görülüyor. ÖLÇÜLMEYEN: sayfa boyutu SABİT 25, adresten verilemiyor — kaynak tüketimi denenmedi; arşivleme düğmesi, tablo sıralaması ve `?durum=` sekmelerinin süzme doğruluğu (birim testlerinde).",
+  },
+  '/panel/icerik/deneyim': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: "T-034 ile eklendi. Deneyim kaydının public karşılığı bir SAYFA değil, `/hakkimda` ve `/cv` içindeki bölümler; §9'un yedi senaryosundan hiçbiri bu akışı istemiyor. Proje ekranının §9/6 kapsamı aynı `panel-form` + action + ADR-029 zincirini zaten ölçüyor — ikinci bir kopyası, aynı mekanizmayı iki yerde bakım gerektirirdi. Deneyim için ayrı bir senaryo açılırsa (F4) burası e2e'ye çevrilir.",
+  },
+  '/panel/mesajlar': {
+    kapilar: ['e2e'],
+    kanit: ["page.goto('/panel/mesajlar?gorunum=hepsi')", '[data-mesaj-satir]'],
+    not: "§9/2'nin DÖRDÜNCÜ HALKASI (T-043g): ziyaretçinin gönderdiği mesaj bu listede satır olarak görünüyor, satır `preview` taşıyor ve tam gövdeyi TAŞIMIYOR, okunmamış rozeti sayıyor. Ayrıca §8.20/ADR-020 sınırı: liste yükünde `ip`/`userAgent` YOK — bağımsız olarak ölçüldü (`panel-mesaj-kvkk.spec.ts`). Adres `?gorunum=hepsi` seçildi: süzmeyen görünüm, iddiayı spam puanına bağlamaktan kurtarıyor. ÖLÇÜLMEYEN: `perPage` adresten verilemiyor (sabit 25), sayfa boyutu üzerinden kaynak tüketimi denenmedi; altı görünümün (`gelen`/`okunmamis`/`spam`/`supheli`/`arsiv`/`hepsi`) süzme doğruluğu birim testlerinde, burada değil; sıralama ve sayfalama ölçülmüyor.",
+  },
+  '/panel/mesajlar/[id]': {
+    kapilar: ['e2e'],
+    kanit: ['/panel/mesajlar/${mesajId}', 'E2E-KVKK-SONDA-UA-4B71'],
+    not: "Tam gövde burada görünüyor (listede yalnızca 160 karakterlik `preview`) ve §8.20/ADR-020 sınırının ÖLÇÜLEN hâli kayıtlı: `ip`/`userAgent` bu rotanın RSC yükünde 'Göster/Gizle' düğmesi KAPALIYKEN de var — düğme bir yetki sınırı değil, perde. ÖLÇÜLMEYEN: var olmayan kimlikle 404 dışındaki davranış; kimlik numaralandırma (cuid tahmin edilemez VARSAYILDI, sınanmadı); yazma eylemleri (`markRead`/`markSpam`/`archive`/`unarchive`/`convertMessageToJob`) — yetki ve denetim kaydı Backend'in birim testlerinde, E2E'de tetiklenmiyor.",
+  },
+  '/panel/icerik/projeler/yeni': {
+    kapilar: ['e2e'],
+    kanit: [
+      "getByRole('link', { name: 'Yeni proje' })",
+      // Regex kaçışlı hâliyle aranıyor: kanıt, kaynakta GERÇEKTEN geçen dize
+      // olmak zorunda — "olması gereken" hâli değil.
+      String.raw`projeler\/yeni$`,
+    ],
+    not: "T-043f'te ekleme LİSTE İÇİ FORM olmaktan çıkıp bu rotaya taşındı; §9/6 paketi artık buradan geçiyor (liste → 'Yeni proje' bağlantısı → form → `createProjectAction` → listeye dönüş). Kimlik zinciri: `(panel)` düzeni + ara katman, çerezsiz istek 307 → /giris. ÖLÇÜLMEYEN: slug çakışmasının BU ROTADAKİ hâli (T-034'te liste içi formda ölçülmüştü, taşınmadan sonra tekrarlanmadı); kapak eki (`coverAttachmentId`) seçimi; MDX içeriğinin render doğruluğu.",
+  },
+  '/panel/icerik/projeler/[id]': {
+    kapilar: ['e2e'],
+    kanit: [
+      "selectOption({ label: 'Yayında' })",
+      "getByRole('button', { name: 'Kaydet', exact: true })",
+    ],
+    not: "§9/6'NIN LİTERAL HÂLİ burada ölçülüyor (T-044g): taslak panelden açılıp yayına alınıyor ve public taraf ANINDA görüyor — `updateProjectAction` yolunun ADR-029 etiket hesabı, ekleme yolundan AYRI olarak mutasyonla sınandı. Okuma `fetchProjectForPanel` (önbeleksiz, tüm durumlar). ÖLÇÜLMEYEN: var olmayan kimlikte 404 dışındaki davranış; kimlik numaralandırma (cuid tahmin edilemez VARSAYILDI, sınanmadı — F6/T-062'ye not); arşivlenmiş kaydın 410 yerine DÜZENLENEBİLİR olması bilinçli (T-040, panelde `ContentLookup` zarfı yok) ve bu davranışın kendisi ölçülmüyor.",
+  },
+  '/panel/icerik/deneyim/yeni': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: "T-043f ile eklendi. Aynı `panel-form` + Server Action + ADR-029 zinciri `projeler/yeni` tarafında ölçülüyor; ikinci bir kopya aynı mekanizmayı iki yerde bakım gerektirirdi. Deneyim kaydının public karşılığı bir SAYFA değil (`/hakkimda` ve `/cv` içindeki bölümler) ve §9'un yedi senaryosundan hiçbiri bu akışı istemiyor. Deneyim için ayrı bir senaryo açılırsa (F4) burası e2e'ye çevrilir.",
+  },
+  '/panel/icerik/deneyim/[id]': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: 'T-043f ile eklendi; gerekçe `deneyim/yeni` satırıyla aynı. Bu modelde `status` YOK — yani `projeler/[id]`de ölçülen taslak→yayın geçişinin karşılığı burada bulunmuyor, kopyalanacak senaryo da yok. Silme (`deleteExperienceAction`) liste rotasından tetikleniyor ve denetim kaydı SİLİNEN SATIRIN TAMAMINI taşıyor — bkz. BULGU-019.',
+  },
   '/blog': {
     kapilar: ['sitemap-taramasi'],
     kanit: ["absoluteUrl('/blog')"],
@@ -195,19 +243,23 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     not: 'YALNIZCA 200.',
   },
   '/iletisim': {
-    kapilar: ['sitemap-taramasi'],
-    kanit: ["absoluteUrl('/iletisim')"],
-    not: 'Sayfa 200 dönüyor; formun GÖNDERME yolu `/api/v1/iletisim` satırında ölçülüyor. Tarayıcıdan uçtan uca gönderim ölçülmüyor (kayıt yazar).',
+    kapilar: ['sitemap-taramasi', 'e2e'],
+    kanit: ["absoluteUrl('/iletisim')", "page.goto('/iletisim')"],
+    not: "§9/2 (T-039): gerçek tarayıcıdan form dolduruluyor, kayıt DB'de ve panelin okuma yolunda doğrulanıyor. Panel mesaj kutusu EKRANI henüz yok — zincirin son halkası açık bekleme (bkz. `iletisim-akisi.spec.ts` başlığı).",
   },
   '/projeler': {
-    kapilar: ['sitemap-taramasi'],
-    kanit: ["absoluteUrl('/projeler')"],
-    not: 'YALNIZCA 200.',
+    kapilar: ['sitemap-taramasi', 'e2e'],
+    kanit: ["absoluteUrl('/projeler')", "request.get('/projeler')"],
+    not: '§9/6 (T-039): yayınlanan projenin listede ANINDA göründüğü, taslağın ise sızmadığı ölçülüyor. Kartların düzeni ve süzgeçler ölçülmüyor.',
   },
   '/projeler/[slug]': {
     kapilar: ['sitemap-taramasi', 'e2e'],
-    kanit: ['`/projeler/${entry.slug}`', "yol.startsWith('/projeler/')"],
-    not: 'Yayındaki her proje sitemap üzerinden 200 kontrolünden geçiyor; ayrıca bir TEMSİLCİ slug OG görselinde kullanılıyor. Sayfa içeriği ölçülmüyor.',
+    kanit: [
+      '`/projeler/${entry.slug}`',
+      "yol.startsWith('/projeler/')",
+      'request.get(`/projeler/${SLUG}`)',
+    ],
+    not: "§9/6 (T-039): yeni yayınlanan kaydın detayı 200 dönüyor ve başlığı gövdede; taslağın detayı 404. Ayrıca sitemap taraması yayındaki her slug'ı çekiyor ve bir temsilci slug OG görselinde kullanılıyor. Sayfa düzeni ölçülmüyor.",
   },
   '/api/auth/[...nextauth]': {
     kapilar: ['e2e'],

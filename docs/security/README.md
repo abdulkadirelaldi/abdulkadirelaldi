@@ -75,6 +75,10 @@ açığın ayrıntısı artık saldırgana bir şey kazandırmaz.
 | 2026-08-12 | T-029a | Lighthouse'a masaüstü + koyu profil (WebGL yolu), üç durumlu WebGL doğrulaması, koşu değişkenliği kararı | **BULGU-010 açıldı**: WebGL yolu hiçbir CI koşusunda ölçülmüyordu. Profil kuruldu ve doğrulandı; ölçüm T-021'in hero'yu bağlamasını bekliyor (kontrol kendi kendine zorunlu hâle geliyor). Değişkenliğin **ilk koşuya** ait olduğu ölçüldü; `numberOfRuns` 5, `aggregationMethod` açıkça medyan. |
 | 2026-08-17 | T-029d | Ölçüm yüzeyi dışındaki SEO/OG rotaları (BULGU-015) | **BULGU-015 kapandı** — `tests/e2e/seo-routes.spec.ts`: robots.txt, sitemap.xml, rss.xml, `/og` ve `/og/proje/<slug>` artık her koşumda isteniyor. PNG imza baytlarından, XML gerçek ayrıştırıcıyla doğrulanıyor. Kapsam iki katmanlı: sözleşme testleri + sitemap taraması (yeni sayfa kendiliğinden kapsanır). Mutasyonla kanıtlandı: düzeltme öncesi font aynı render yolunda BULGU-014'ün `TypeError`'ını veriyor. **BULGU-016 açıldı** — sitemap üç adet 404 adresi bildiriyor. |
 | 2026-08-16 | T-029c | Ölçüm işinin veri kurulumu (BULGU-013) + §8.24 haftalık zamanlayıcı | **BULGU-013 açıldı ve düzeltildi**: `lighthouse` işi ayrı koşucuda `services:` bloğu olmadan koşuyordu; ADR-026 sonrası `/` 500 dönüyor, üç profil düşüyor, artifact üretilmiyordu. Kendi Postgres'i kuruldu (yol **a**). İki yeni nöbet: ölçüm ön koşulu ve ayırt edicide durum kodu kontrolü — ikincisi olmadan arıza "⏳ BEKLEMEDE" diye yeşil görünüyordu. §8.24 artık **haftalık** de koşuyor (`17 6 * * 1`). |
+| 2026-09-19 | T-044g | Dört rota beyanı, ADR-034 taraması, iki karar (şifre hız sınırı + oturum geçersizleştirme), §9/1 | **Kapı yeşil** — dört rota beyan edildi; ikisi (`projeler/yeni`, `projeler/[id]`) GERÇEK e2e kapsamı kazandı çünkü §9/6 paketi yeni UI'ya taşındı. **§9/6'nın LİTERAL hâli kapandı**: T-043f ENGEL-1'i kaldırınca taslak→yayın geçişi panelden ölçülebilir oldu; `updateProjectAction` yolunun ADR-029 hesabı AYRI mutasyonla sınandı (ekleme yolundan farklı: `tagTargetsFor(before, dto)`). **ADR-034 taraması:** on bir `buildDiff` + yedi elle yazılmış `diff` okundu — bugün sızıntı YOK; emniyet ağının kapsamı üçüncü kez bağımsız ölçüldü ve YENİ bilgi çıktı: iç içe/dizi içindeki BİLİNEN adlar maskeleniyor, yani sınır özyineleme değil **ad bilgisi**. **BULGU-019 açıldı**: üç silme eylemi `diff: { deleted: before }` ile satırın tamamını yazıyor — bugün public içerik, yarın eklenecek hassas bir sütun sessizce girer. **Şifre hız sınırı: GEREKLİ** — asıl gerekçe brute-force değil kaynak tüketimi (ölçüldü: argon2 doğrulaması p50 **31 ms**, ~33 deneme/sn/çekirdek, her deneme **19 MiB**). **BULGU-020 + T-046 önerisi**: ara katmanın Edge'de DB okuyamadığı derleme hatasıyla doğrulandı; panel SAYFALARININ `auth()` çağırmadığı ölçüldü (tek istisna `ayarlar/guvenlik`) — yani `auth()` içindeki bir kontrol yazmaları kapatır, **okumaları kapatmaz**. Kontrolün maliyeti p50 **0.49 ms**. Üç katmanlı öneri yazıldı. **§9/1 kapandı** → sayaç **5 kapalı / 1 kısmi / 1 açık**. |
+| 2026-09-15 | T-043g | İki mesaj rotasının kapsam beyanı, §9/2'nin dördüncü halkası, KVKK sınırı, `latest` uyarısı | **§9/2 TAM KAPANDI** — T-039'da açık bekleme olarak işaretlenen tek iddia bağlandı: ziyaretçi mesajı panelde satır olarak görünüyor, liste yalnızca `preview` taşıyor (mesaj bilerek 160 karakterden uzun, kuyruk imzası listede YOK detayda VAR), rozet sayıyor. İki mutasyonla sınandı. **KVKK kararı: kabul edilebilir** — 'Göster/Gizle' bir perde, yetki sınırı değil; asıl sınır liste/detay ayrımı ve bağımsız ölçümüm onu doğruladı (liste ham gövdesinde `ip`/`userAgent` işaretleri YOK, detayda VAR). Sızıntı kontrolü mutasyonla sınandı. **Kendi testimde iki vakum yakalandı ve kayda geçti:** `request` fixture'ı çerez taşımıyor, `page.request` yönlendirme izliyor — ikisinde de 'işaret yok' sonucu giriş sayfasından geliyordu; ham gövde artık gezinme yanıtından okunuyor ve 'doğru sayfa' kontrolüyle birlikte. İki rota beyan edildi (ölçülmeyen satırlarıyla), §9 sayacı **4 kapalı / 2 kısmi / 1 açık**. `latest` etiketi uyarısı kayda geçti: `prisma@latest` → 8.0.0-rc.14 (RC!), `vitest` → 5.0.0, `next` → 16.3.4. |
+| 2026-09-13 | T-042g | §8.24 üçüncü kez gerçek olayda tetiklendi: `mysql2`, `fast-uri` (×4), `js-yaml` | **Üçü de kapandı, kapı EXIT 0.** Katmanlar ölçümle seçildi: `fast-uri` ve `js-yaml` **A** (üst paket aralığı yamayı zaten kapsıyor → 3.1.7 ve 4.3.2, override YOK), `mysql2` **B** (`prisma` `"3.15.3"` diye TAM SABİTLİYOR, A imkânsız; kararlı `prisma@7.10.0` da aynı pini taşıyor, C etkisiz → `">=3.23.1 <4.0.0"` ile 3.24.4). **Maruziyet dört ölçümle belirlendi**, varsayılmadı: `Module._load` izleyicisi `generate`/`migrate`/`seed` akışlarında hiçbirini yüklemiyor, taze derlemenin `.next` çıktısında 0 dosya. `@hookform/resolvers → ajv → fast-uri` yolu görev kartında yoktu, denetim çıktısının tamamı okununca çıktı — ölçüldü, `/zod` giriş noktası `ajv`ye ulaşmıyor. **İki sessiz tuzak oyunkitabına işlendi:** `pnpm update --recursive` geçişli pakette EXIT 0 döndürüp HİÇBİR ŞEY yapmıyor (`--depth Infinity` gerekiyor), ve `">=x"` sınırsız override bir kısıttır, yükseltme emri değil — `sharp` 0.35.3'te bu yüzden donmuştu. `postcss` aynı durumdaydı, iki sınırlıya çevrildi. ADVISORY-002 istisnası doğrulandı (70 gün kaldı, kaldırma koşulu hâlâ sağlanmadı) ve kapının altı kırmızı dalı yeniden mutasyonla sınandı. |
+| 2026-09-09 | T-039 | §9/6 (panelden yayınla → public'te görün) ve §9/2 (ziyaretçi mesajı → panel) uçtan uca | **§9/6 KAPANDI** — `panel-yayin.spec.ts`. Testin geçerliliği ÖNBELLEK ISITMASINA bağlı: ısıtma olmadan etiket düşürme tamamen bozulsa bile yeşil kalırdı. **Üç mutasyonla sınandı** (`tags.ts` geçici bozuldu, md5 ile geri alındı): etiket hiç düşmüyor → kırmızı, yalnızca `slugTag` düşüyor → kırmızı, yalnızca `localeTag` düşüyor → **yeşil**. Üçüncüsü beklentiyi düzeltti: detay önbellek girdisi `localeTag` de taşıdığı için `slugTag` bugün hiçbir yolda gözlemlenebilir değil — `tags.ts`'teki gerekçe fazla iddialı, düzeltmesi Backend'de; katman birim testiyle kapalı. **§9/2 üç halkası kapandı**, dördüncüsü (panel mesaj kutusu EKRANI) **açık bekleme** — `test.skip` kullanılmadı, atlanan test "atlanan test yok" nöbetini kırar. Ekranın besleneceği okuma yolu şemadan üretilen varsayılan filtreyle ölçülüyor. Zaman tuzağı ölçüldü: hızlı gönderim `puan=30 tooFast` üretiyor, beklemeli gönderim **0**. Test izolasyonu iki projede paralel koşum için süreç anahtarına çevrildi. §9: **3 kapalı, 3 kısmi, 1 açık**. |
 | 2026-08-29 | T-016b | Rota envanteri × kapı kapsamı; kapsam boşluklarının kapatılması ve kalıcı kapı | 21 rota `src/app`tan **türetildi** (elle liste yok). İki boşluk kapandı: **`/api/v1/health`** §13.6 zarfı hiç doğrulanmıyordu — "durum kodunu bilerek ölçmüyoruz" gerekçesi T-005b'den beri **bayat** (CI'da artık DB var), üstelik §13.7 izlemesi tam o gövdeye bakacak; **`/api/v1/iletisim`** yalnızca birim testliydi, ucun **sunulduğu** hiç ölçülmemişti. Sağlık testi beklentisini **ölçerek seçiyor** (disk < %5 → arıza dalının sözleşmesi) — sabit `200` yerelde haksız kırmızı üretiyordu. Kalıcı kapı: `tests/unit/rota-kapsami.test.ts`, 31 test, yedi kırmızı dalı var; yeni rota beyansız kalırsa `pnpm test` düşer. Yedi mutasyonla doğrulandı (biri gerçek bir `page.tsx` eklenerek). Ters bulgu kayda geçti: `/api/v1/panel/islem` **var olmayan** bir sonda adresi — artık `SANAL_ROTALAR`'da beyanlı. |
 | 2026-08-25 | T-029e | WebGL kontrolünün bayat öncülü (koşum 32828187466) + masaüstü eşiği | Kontrol **dört** koşul biliyordu, T-020c **beşincisini** (yazılım rasterleyici) eklemişti; kontrol doğru çalışıp yanlış şeyi iddia ediyordu. Artık **üç iddia** var: GPU var → `ogl` inmeli (§5.2.2) · GPU yok → **inmemeli** (T-020c, yeni — BULGU-018'in geri gelişini doğrudan yakalar) · mobilde inmemeli (§5.2.5). Koşucunun çizim gücü **ölçülüyor**: LHCI'ın ikilisi + `lighthouserc.json` bayrakları, `gpu-tespit.ts` ile aynı iki sinyal, imza listesi o dosyadan **okunuyor** (sürüklenme koruması). "headless = GPU yok" varsayımı ölçümle çürütüldü — tam Chrome `--headless=new` ile ANGLE Metal, `chrome-headless-shell` ile SwiftShader bildiriyor. Altı dal mutasyonla, ayrıca kırmızı koşumun gerçek raporlarıyla sınandı. **BULGU-018 KAPANDI** (T-020c; CI'da 60 → **100**, yayılım 0) → masaüstü tavanı 0.55 kaldırıldı, üç profil de **0.90**. |
 | 2026-08-24 | T-029 | §9 eşiklerinin `error`'a çevrilmesi, ADR-030 notu, Playwright ikilileri, Docker Hub kesintisi | Eşikler profil başına ve **ölçüye dayalı** kondu: mobil perf **0.90** (ölçülen 94-95), masaüstü perf **0.55** (ölçülen 60), a11y/bp/seo **0.95** (ölçülen 100, yayılım 0). **BULGU-018 açıldı** — masaüstü WebGL profili TBT 9 990 ms / SI 11.9 s ölçüyor (GPU'suz koşucuda `ogl` yazılımla render ediliyor); görev kartındaki "masaüstü 100" rakamı **yerelde** alınmış, bayat. SEO `error` yapıldı: 91'lik yanlış pozitif **detay sayfalarında** ve ölçüm listesinde detay sayfası yok. Dokuz satırlık kırmızı/yeşil matrisi **CI'dan indirilen gerçek raporlara** karşı koşuldu. Playwright: sürüm tam sabit, ikili adımı koşulsuz — değişiklik gerekmedi. Docker Hub: kabul + yeniden koş, yeniden değerlendirme koşuluyla. |
@@ -1227,7 +1231,204 @@ artık `pnpm audit --json` çıktısını okuyan bir betikten geçiyor
 şu an rc.7 — kararlı 8.0.0 bu pencerede beklenir; beklenmezse kararı yeniden
 vermek gerekir, sessizce sürüklemek değil.
 
-**Son gözden geçirme:** 2026-08-22 · **Sonraki:** 2026-11-22 (istisnanın bitişi)
+**Son gözden geçirme:** 2026-09-13 (T-042g) · **Sonraki:** 2026-11-22 (istisnanın bitişi)
+
+> **T-042g kontrolü — kaldırma koşulu HÂLÂ SAĞLANMADI.** Kararlı `prisma` hattı
+> 7.10.0'a çıktı ama `@prisma/config@7.10.0` `deepmerge-ts`i yine **`7.1.5`**
+> diye sabitliyor (ölçüldü: `npm view @prisma/config@7.10.0 dependencies…`).
+> `prisma@latest` etiketi artık **8.0.0-rc.14**'ü gösteriyor — kararlı değil,
+> ADVISORY-002'nin 1. kaldırma koşulu için beklenen sürüm o hattın **kararlı**
+> yayını. İstisna geçerli, kapı onu tolere etmeye devam ediyor (70 gün kaldı).
+
+---
+
+## ADVISORY-003 — `mysql2` <3.23.1 (GHSA-3f6p-5ww8-9rcr Yüksek + GHSA-rgwj-5xj2-c3m3 Orta)
+
+**Tarih:** 2026-09-13 · **Görev:** T-042g · **Durum:** KAPANDI (override)
+**Katman:** **B** · **Bulan:** §8.24 kapısı (kod değişmeden kırmızı)
+
+```
+mysql2 3.15.3 → 3.24.4 · 3 yol, hepsi aynı zincir:
+  . > prisma@7.9.1 > mysql2@3.15.3            (+ @prisma/client ve @auth/prisma-adapter üzerinden aynı CLI)
+Yüksek: kimlik doğrulama eklentisi düşürme → `mysql_clear_password` (yama >=3.22.0)
+Orta:   yama >=3.23.1
+```
+
+### Maruziyet — ÖLÇÜLDÜ, varsayılmadı
+
+"PostgreSQL kullanıyoruz" makul bir hipotezdi; katman D "maruziyet **ölçülmüş
+biçimde** yok" dediği için hipotez yeterli değildi. Dört ölçüm:
+
+| Ölçüm | Yöntem | Sonuç |
+| ----- | ------ | ----- |
+| Çağrı yeri | `prisma/build/cli.js` okundu | `mysql: { async createExecutor(){ await import("mysql2/promise") } }` — **sağlayıcı dallanmasının içinde, dinamik import** |
+| Şema sağlayıcısı | `prisma/schema.prisma` | `provider = "postgresql"` → o dal hiç çalışmaz |
+| Gerçekten yükleniyor mu | `Module._load` izleyicisi + `prisma generate`, `prisma migrate status`, `pnpm db:seed` | **HİÇBİRİ** — mysql2 tek seferde bile yüklenmedi |
+| Üretim paketinde var mı | taze `pnpm build` sonrası `.next/server` + `.next/static` taraması | **0 dosya** |
+
+Ek olarak `prisma` bizde **`devDependencies`** içinde (`@prisma/client`'ın
+*isteğe bağlı* peer'ı). Üretim kurulumunda CLI hiç inmiyor, yani mysql2 üretim
+ağacında **yok**.
+
+**Pratik maruziyet: yok.** Yine de düzeltildi — §8.24 sert kapıdır ve
+ADVISORY-001'in dersi geçerli: bedeli olmayan bir düzeltme varken kapı
+tartışılmaz.
+
+### Neden B — ve neden ADVISORY-002'den farklı
+
+| Katman | Değerlendirme |
+| ------ | ------------- |
+| A | **İmkânsız, ölçüldü.** `prisma` `"mysql2": "3.15.3"` diye **tam sabitliyor**; `pnpm update mysql2 --depth Infinity` sürümü kıpırdatmadı. |
+| C | **Etkisiz, ölçüldü.** Kararlı en yeni `prisma@7.10.0` da `mysql2@3.15.3` sabitliyor. `prisma@8` ise RC. |
+| D | Gereksiz — B'nin bedeli ölçülebilir biçimde sıfır. |
+| **B** | ✅ `">=3.23.1 <4.0.0"` — iki danışmayı birden kapatır, majör sınırında durur. |
+
+ADVISORY-002'de (deepmerge-ts) tam sabit pine rağmen override **reddedilmişti**;
+burada kabul ediliyor ve fark ölçülebilir:
+
+- `deepmerge-ts` @prisma/config'in **her CLI çağrısında** yüklenen bir
+  birleştirme semantiğiydi; kırılma sessiz ve config'i bozacak türdendi.
+- `mysql2` **hiçbir çağrıda yüklenmiyor** (yukarıdaki dört ölçüm). Override'ın
+  değiştirdiği kod yolu, bizim asla çalıştırmadığımız bir dal.
+
+Yani ölçüt "tam sabit pin var mı" değil, **"pin edilen kod bizde çalışıyor mu"**.
+Çalışıyorsa sözleşmeyi çiğnemek risklidir; çalışmıyorsa risk yoktur.
+
+### Doğrulama
+
+```
+pnpm why mysql2 → 3.24.4 (3 yolun ÜÇÜ de, tek sürüm)
+pnpm audit --audit-level high → mysql2 satırı kalmadı (orta seviye dahil)
+lint ✓ typecheck ✓ test 1093/1093 ✓ build ✓ e2e 85/85 ✓
+```
+
+### Kaldırma koşulu
+
+`prisma` (ya da `@prisma/config`) `mysql2`yi `>=3.23.1` ilan eden bir **kararlı**
+sürüm yayınladığında override silinir. Kontrol:
+
+```bash
+npm view prisma@latest dependencies.mysql2     # >=3.23.1 ilan ediyorsa
+# override satırı çıkarılır → pnpm install --lockfile-only → pnpm why mysql2
+```
+
+**Sonraki gözden geçirme:** 2027-02-14 (oyunkitabı §4 — altı aylık override
+taraması).
+
+---
+
+## ADVISORY-004 — `fast-uri` <3.1.6 (dört danışma, hepsi Yüksek)
+
+**Tarih:** 2026-09-13 · **Görev:** T-042g · **Durum:** KAPANDI
+**Katman:** **A** (kilit tazeleme — override YOK) · **Bulan:** §8.24 kapısı
+
+```
+GHSA-5jgf-p345-68v8 · GHSA-f65p-4m7j-42xc · GHSA-fph4-wmhf-6fwf · GHSA-jqff-g426-hqxp
+fast-uri 3.1.5 → 3.1.7 · SSRF + host confusion · dört yol, iki farklı üst paket:
+  . > prisma > @prisma/dev > @prisma/streams-local > ajv@8.20.0 > fast-uri
+  . > @hookform/resolvers@5.7.1 > ajv@8.20.0 > fast-uri
+```
+
+### Maruziyet — ikinci yol görev kartında yoktu, ölçüm ortaya çıkardı
+
+Görev kartı yalnızca `@prisma/dev` zincirini bildiriyordu. Denetim çıktısının
+tamamı okununca ikinci bir yol göründü: **`@hookform/resolvers`** — ve o, `prisma`
+gibi dev-only değil, **çalışma zamanı bağımlılığımız** (formlar).
+
+| Ölçüm | Sonuç |
+| ----- | ----- |
+| Hangi giriş noktasını kullanıyoruz | `grep -rn "@hookform/resolvers" src/` → üç dosyanın üçü de **`@hookform/resolvers/zod`** |
+| `ajv` ayrı bir giriş noktası mı | Paket her doğrulayıcı için ayrı klasör yayınlıyor (`ajv/`, `zod/`, `joi/`…); `ajv`ye yalnızca `@hookform/resolvers/ajv` içe aktarımı ulaşır |
+| Üretim paketinde `ajv`/`fast-uri` izi | taze `pnpm build` → `.next/server` + `.next/static` taramasında **0 dosya** |
+| `pnpm lint` sırasında yüklenen `ajv` | İzleyici: **ajv@6.15.0** (`@eslint/eslintrc`'nin bağımlılığı) — ajv 6 `fast-uri` kullanmaz |
+| `prisma generate/migrate/seed` | İzleyici: `fast-uri` **hiç yüklenmedi** |
+
+**Pratik maruziyet: yok** — ne üretim paketinde, ne CLI akışlarında.
+
+### Neden A
+
+`ajv@8.20.0` `fast-uri`yi **`^3.0.1`** diye ilan ediyor; 3.1.7 bu aralığın
+içinde. Yani üst paket zaten bu sürümle çalışacağını beyan etmiş — override
+yazmak gereksiz bir kalıcı kısıt bırakırdı. Düzeltme tek komut:
+
+```bash
+pnpm update fast-uri --depth Infinity      # --recursive DEĞİL (aşağıda gerekçe)
+```
+
+`--recursive` ile denendi ve **hiçbir şey yapmadı** (EXIT 0, boş kilit deltası) —
+bu tuzak oyunkitabına işlendi.
+
+**Majör tuzağı burada kendiliğinden kapalı:** `fast-uri`nin en yenisi **4.1.4**
+ama A, `ajv`nin aralığı yüzünden 3.1.7'de durdu. Override yazsaydık o aralığı
+devre dışı bırakır ve üst sınırı elle koymak zorunda kalırdık.
+
+### Kaldırma koşulu
+
+Yok — override yazılmadı. Kilit yeniden sabitlenirse (`pnpm install --force`,
+lockfile silinmesi) sürüm geri düşebilir; koruma §8.24 kapısının kendisi ve
+haftalık koşumdur.
+
+---
+
+## ADVISORY-005 — `js-yaml` <4.3.2 (GHSA-2883-xcg3-v3hh, Yüksek)
+
+**Tarih:** 2026-09-13 · **Görev:** T-042g · **Durum:** KAPANDI
+**Katman:** **A** (kilit tazeleme — override YOK) · **Bulan:** §8.24 kapısı
+
+```
+js-yaml 4.3.1 → 4.3.2 · `maxTotalMergeKeys` CPU tüketimini sınırlamıyor (DoS)
+28 yol, hepsi tek zincirde birleşiyor: eslint@9.39.5 > @eslint/eslintrc > js-yaml
+```
+
+### Maruziyet — ölçüldü
+
+| Ölçüm | Sonuç |
+| ----- | ----- |
+| Bağımlılık türü | Yalnızca `devDependencies` (eslint zinciri) — üretim ağacında yok |
+| Üretim paketinde | `.next` taraması → **0 dosya** |
+| `pnpm lint` (tüm depo) sırasında yükleniyor mu | `Module._load` izleyicisi → **HİÇBİRİ**; yüklenen tek hedef `ajv@6.15.0` |
+| Neden yüklenmiyor | `@eslint/eslintrc` `js-yaml`ı YAML biçimli eski config dosyaları için çağırıyor; bizde **düz config** var (`eslint.config.mjs`) |
+| Tetikleyici girdi | Kötü niyetli YAML gerekiyor; bizim YAML'larımız `.github/workflows/*.yml` ve onları eslint okumuyor |
+
+**Pratik maruziyet: yok.** Düzeltildi, çünkü bedeli bir komut.
+
+### Neden A
+
+`@eslint/eslintrc@3.3.6` `js-yaml`ı **`^4.3.0`** ilan ediyor; 4.3.2 içeride.
+`pnpm update js-yaml --depth Infinity` → 4.3.2. En yeni `js-yaml` **5.4.2**
+olmasına rağmen üst paketin aralığı 4.x'te tuttu — A'nın majör bağışıklığı.
+
+### Kaldırma koşulu
+
+Yok — override yazılmadı.
+
+---
+
+## `pnpm.overrides` bloğunun bugünkü hâli (T-042g)
+
+Dört satır, dördü de **iki sınırlı**. Altı aylık taramanın (2027-02-14) bakacağı
+liste bu:
+
+| Paket | Aralık | Çözülen | Kayıt | Kaldırma koşulu |
+| ----- | ------ | ------- | ----- | --------------- |
+| `postcss` | `>=8.5.28 <9.0.0` | 8.5.28 | T-005 · **T-042g'de sınırlandı** | Üst paketler (Tailwind/Next) yamalı tabanı zaten kapsıyorsa satır silinir |
+| `sharp` | `>=0.35.4 <0.36.0` | 0.35.4 | Orkestra Şefi (libheif danışması) | Aynı |
+| `nanoid` | `>=3.3.18 <4.0.0` | 3.3.19 | ADVISORY-001 | `postcss` `>=3.3.18` çözer hâle gelince |
+| `mysql2` | `>=3.23.1 <4.0.0` | 3.24.4 | **ADVISORY-003** | `prisma` kararlı bir sürümde `>=3.23.1` ilan edince |
+
+**`postcss` T-042g'de neden değişti:** satır `">=8.5.23"` idi — üst sınırsız ve
+tabanı bayat. `sharp`ın 0.35.3'te donmasına yol açan kalıbın aynısı: kilitteki
+8.5.25 kısıtı zaten sağlıyordu, dolayısıyla override hiçbir şeyi yukarı
+çekmiyordu. Taban bugünkü yamalı sürüme (8.5.28) çekildi ve majör sınırı kondu.
+Bu bir danışma düzeltmesi değil, **etkisiz bir override'ın onarımı** — bugün
+temiz, ama yarın 8.5.23–8.5.30 aralığını kapsayan bir danışma çıksaydı satır
+"düzeltilmiş" görünürken kapıyı kırmızıya bırakırdı.
+
+**`nanoid` 3.3.18 → 3.3.19 kendiliğinden geldi:** iki sınırlı bir override,
+yeniden çözüm tetiklendiğinde yamaları izler. Sınırsız olan izlemiyor — iki
+satırın davranış farkı bu turda yan yana ölçüldü.
+
+---
 
 ---
 
@@ -1255,7 +1456,7 @@ bir sonraki gerçek açık için de gevşetir.
 
 | Katman | Koşul | Yapılacak |
 | ------ | ----- | --------- |
-| **A · Kilit tazeleme** | Üst paketin ilan ettiği aralık yamalı sürümü **zaten kapsıyor** (ör. `^3.3.17` ⊇ 3.3.18) | `pnpm update <paket> --recursive`. Override'a gerek yok. Tek risk: kilit yeniden sabitlenince geri gelmesi — bu yüzden `pnpm audit` CI'da koşmalı (koşuyor). |
+| **A · Kilit tazeleme** | Üst paketin ilan ettiği aralık yamalı sürümü **zaten kapsıyor** (ör. `^3.0.1` ⊇ 3.1.6) | `pnpm update <paket> --depth Infinity` — **`--recursive` DEĞİL** (T-042g'de ölçüldü, aşağıya bak). Override'a gerek yok. Tek risk: kilit yeniden sabitlenince geri gelmesi — bu yüzden `pnpm audit` CI'da koşmalı (koşuyor). |
 | **B · Override** | Üst paket **yamasız bir aralık** ilan ediyor ve yamalı sürüm **aynı majör** içinde | `pnpm.overrides` → `">=<yamalı> <sonrakiMajör>"`. **ÜST SINIR ZORUNLU** (ADVISORY-001'in tuzağı). |
 | **C · Üst paketi yükselt** | Yamalı sürüm **majör sınırının ötesinde** — override ara paketin sözleşmesini bozar | Üst paketi yükselt (ör. `postcss` yeni majör). ADR gerekir: majör yükseltme davranış değiştirir. |
 | **D · Bekle + kaydet** | C mümkün değil (üst paket henüz yayınlamadı) **ve** maruziyet ölçülmüş biçimde yok | Bulgu kaydı aç, üst paketin issue'suna bağlan, `bagimlilik-denetimi` işine **süreli** istisna. Süresiz istisna yazılmaz. **Mekanizma ADVISORY-002'de kuruldu**: `ci.yml` → "pnpm audit … süreli istisnalarla". `pnpm.auditConfig` KULLANILMAZ — süresizdir. |
@@ -1268,6 +1469,57 @@ majör sınırından önce üst paketin `package.json`ı okunur:
 - **Tam sabit sürüm** (`"deepmerge-ts": "7.1.5"`) → override, açık bir
   sözleşmenin üstünden geçmektir. Majör atlamıyor olsa bile burada durulur ve
   gerekçe yazılır.
+
+**T-042g'nin eklediği ölçüt — TAM SABİT SÜRÜM KATMAN A'YI İMKÂNSIZ KILAR.**
+ADVISORY-002 tam sabit pini "dur ve gerekçe yaz" işareti saymıştı; T-042g bunun
+ölçülebilir sonucunu gösterdi: `prisma` `mysql2`'yi `"3.15.3"` diye sabitlediği
+için `pnpm update mysql2 --depth Infinity` **hiçbir şey yapmıyor** (ölçüldü:
+sürüm 3.15.3'te kaldı, kilit değişmedi). Yani üst paket aralık değil tek sürüm
+ilan ediyorsa A denenip geçilecek bir katman değil, **elenen** bir katmandır.
+
+---
+
+#### ⚠️ İKİ SESSİZ TUZAK — ikisi de "düzelttim" sanısı üretir (T-042g)
+
+**1. `pnpm update <paket> --recursive` geçişli pakette HİÇBİR ŞEY YAPMAZ.**
+Ölçüldü: `pnpm update fast-uri js-yaml --recursive` → `Done in 2s`, **EXIT 0**,
+sürümler 3.1.5 ve 4.3.1'de kaldı, `pnpm-lock.yaml` deltası **boş**. Sebep:
+`--recursive` çalışma alanı paketlerinde *ilan edilmiş* bağımlılıkları günceller;
+`fast-uri` bizim `package.json`ımızda hiç yazmıyor. Doğru komut
+**`--depth Infinity`** — aynı paketlerde 3.1.7 ve 4.3.2'ye çözdü.
+
+Bu, oyunkitabının kendi §3 kuralının neden var olduğunun kanıtı: komut EXIT 0
+döndü, hiçbir uyarı basmadı ve **hiçbir şeyi değiştirmedi.** Yalnızca
+`pnpm why` bunu gösterdi.
+
+**2. `">=x"` biçimli SINIRSIZ override yükseltmez — sadece taban koyar.**
+Override bir *kısıt*tır, bir *yükseltme emri* değil. Kilitteki sürüm kısıtı
+zaten sağlıyorsa pnpm'in yeniden çözmek için sebebi yoktur. `sharp` override'ı
+`">=0.35.0"` iken kilitteki 0.35.3 bu kısıtı sağlıyordu — ve tam da bu yüzden
+danışmanın altındaki sürümde **donup kaldı**. `postcss` de aynı durumdaydı
+(`">=8.5.23"`, kilitte 8.5.25).
+
+**Kural (iki sınır birden):**
+
+```jsonc
+"paket": ">=<YAMALI sürüm> <sonrakiMajör>"   // ör. ">=3.23.1 <4.0.0"
+```
+
+- **Alt sınır = yamalı sürüm**, "bugün kurulu olan" değil. Yamalı sürümü taban
+  yapmak, kilitteki eski sürümü kısıt dışı bırakır ve pnpm'i yeniden çözmeye
+  **zorlar**. Tabanı eski bırakmak, override'ı sessizce etkisiz kılar.
+- **Üst sınır = sonraki majör** (ADVISORY-001'in `nanoid` tuzağı).
+- Yazdıktan sonra `pnpm why` ile çözülen sürüm okunur. Okumadan "düzeltildi"
+  denmez.
+
+**Katman A'nın bu tuzağa karşı doğal bağışıklığı var** ve bu, A'yı tercih
+etmenin üçüncü sebebi: çözümü **üst paketin ilan ettiği aralık** sınırlar.
+Ölçüldü — `fast-uri`nin en yenisi 4.1.4, `js-yaml`ınki 5.4.2 olmasına rağmen A
+sırasıyla 3.1.7 ve 4.3.2'de durdu, çünkü `ajv` `^3.0.1`, `@eslint/eslintrc`
+`^4.3.0` diyor. Override ise o aralığı **devre dışı bırakır**; majör sınırını
+elle yazmak zorunda kalmamızın sebebi budur.
+
+---
 
 **Üst paketi beklemek mi, override mı?** Ölçüt maruziyet değil, **majör sınırı**.
 Aynı majör içindeyse override (B) doğru cevaptır — ucuz, tersine çevrilebilir ve
@@ -1283,6 +1535,15 @@ pnpm why <paket>                    # TÜM yollar yamalı sürümü mü çözdü
 pnpm audit --audit-level high       # EXIT 0
 pnpm lint && pnpm typecheck && pnpm test
 git diff pnpm-lock.yaml             # delta beklenenden BÜYÜKSE dur ve incele
+```
+
+`git diff pnpm-lock.yaml` adımı iki yöne birden bakar (T-042g): delta
+**beklenenden büyükse** yan etki vardır, **boşsa düzeltme hiç uygulanmamıştır.**
+Boş delta, EXIT 0 ile birlikte gelirse en tehlikeli hâldir — komut başarılı
+göründü, hiçbir şey değişmedi. Değişen sürümleri tek bakışta görmek için:
+
+```bash
+git diff pnpm-lock.yaml | grep -E "^[-+]  [a-z@][^:]*:$" | sort | uniq -c
 ```
 
 `pnpm why` adımı atlanamaz: `pnpm audit`'in temiz olması sürümün *beklediğin*
@@ -2220,9 +2481,550 @@ CI değişikliği gerekmedi: `rota-kapsami.test.ts` `pnpm test` içinde,
 
 ---
 
+## §9/6 ve §9/2 uçtan uca (T-039)
+
+**Tarih:** 2026-09-09 · **Dosyalar:** `tests/e2e/panel-yayin.spec.ts`,
+`tests/e2e/iletisim-akisi.spec.ts` · **Ölçüm:** yerel, gerçek Postgres + üretim
+derlemesi, iki profilde (masaüstü + mobil), tam paket **85/85**.
+
+### §9/6 — panelden yayınla → public'te görün
+
+Zincir: panel formu → `createProjectAction` (auth → Zod → servis → AuditLog →
+`revalidateTag`) → `/projeler` → `/projeler/<slug>`.
+
+**Testin en kritik satırı ölçüm değil, HAZIRLIK:** proje eklenmeden önce iki
+istek atılıyor.
+
+```
+GET /projeler          → liste önbelleğe girer      (content:project:tr)
+GET /projeler/<slug>   → 404 SONUCU önbelleğe girer (content:project:tr:<slug>)
+```
+
+Isıtma olmadan bu test, etiket düşürme **tamamen bozulsa bile** yeşil kalırdı:
+önbellekte girdi yoksa ekleme sonrası ilk okuma zaten veritabanına gider. Yani
+"yeşil" olurdu ama ölçtüğü şey ADR-029 değil, önbelleğin boşluğu olurdu — görev
+kartının uyardığı tuzak birebir bu. Isıtma, testi gerçekten bir kapı yapıyor.
+
+### §9/6 mutasyon kanıtı — `src/server/actions/tags.ts` geçici olarak bozuldu
+
+Üç mutasyon, her biri ayrı bir derleme + koşum. Dosya her seferinde md5 ile
+doğrulanarak geri alındı (`6991fb038d41a089fc47bab18db592c9`, üç kez de eşleşti;
+`git diff src/server/actions/tags.ts` boş).
+
+| # | Mutasyon | Beklenen | Sonuç |
+| - | -------- | -------- | ----- |
+| 1 | `revalidateContent` hiçbir etiketi düşürmüyor | kırmızı | ❌ **kırmızı** — "liste BAYAT kalır ve proje bir saat görünmez" (`Expected true, Received false`) |
+| 2 | `slugTag` unutuldu, `localeTag` düşüyor | kırmızı sanıyordum | ✅ **YEŞİL** — ölçüm beklentiyi düzeltti, aşağıya bak |
+| 3 | `localeTag` unutuldu, `slugTag` düşüyor | kırmızı | ❌ **kırmızı** — liste bayat |
+
+1 ve 3 numara kapının tuttuğunu gösteriyor: **`localeTag` düşürmeyi bozan her
+değişiklik yakalanıyor.** Bir yayın akışının sessizce bir saatlik gecikmeye
+dönüşmesi artık merge kapısına takılır.
+
+### Ölçülen: `slugTag` bu senaryoda GÖZLEMLENEBİLİR DEĞİL
+
+2 numaralı mutasyonun yeşil kalması bir arıza değil, ölçülmüş bir olgu ve sebebi
+`cached.ts`'te yazılı: detay önbellek girdisi **üç etiketi birden** taşıyor.
+
+```ts
+tags: [entityTag('project'), localeTag('project', locale), slugTag('project', locale, slug)]
+```
+
+Yani `localeTag` düşürmek detay girdisini de düşürüyor. `contentTagsToDrop` ise
+her çağrıda `localeTag`i mutlaka üretiyor (`tagTargetsFor` her zaman
+`after.locale` ekliyor). Sonuç: **bugün hiçbir kod yolu `slugTag`i tek başına
+düşürmüyor**, dolayısıyla `slugTag`in kaldırılması davranışı değiştirmiyor ve
+hiçbir E2E bunu göremez.
+
+Bunun iki sonucu var ve ikisi de yazılı olmalı:
+
+1. **`tags.ts`'teki gerekçe fazla iddialı.** Yorum şöyle diyor: *"Yalnızca
+   `localeTag` düşürmek yeni kaydı listede gösterir ama KENDİ SAYFASINDA bir
+   saat boyunca 404 bırakır."* Ölçüm bunun tersini söylüyor — detay girdisi
+   `localeTag` taşıdığı için o 404 kalmıyor. `slugTag` **savunma katmanı**
+   olarak doğru (ileride yalnızca tek kaydı düşüren dar bir işlem yazılırsa
+   gerekecek), ama bugünkü gerekçesi yanlış. Düzeltmesi Backend'in (`src/**`).
+2. **Katman kapısız kalmıyor:** `slugTag`in üretildiğini Backend'in birim testi
+   doğruluyor (`tests/unit/actions/content-tags.test.ts` → `toEqual([localeTag,
+   slugTag])`). E2E'nin göremediğini birim testi görüyor; kapsam haritasının
+   "hangi kapı neyi ölçüyor" ayrımı burada işe yarıyor.
+
+**Ters yön de ölçülüyor:** TASLAK kayıt panelden eklendiğinde `/projeler`
+listesinde görünmüyor ve detayı 404 dönüyor. Bu olmadan "her şeyi gösteren" bir
+uygulama da yukarıdaki testi geçerdi.
+
+### AÇIK BEKLEME — §9/6'nın literal hâli (DRAFT → PUBLISHED) → **T-044g'de KAPANDI**
+
+> **Kapanış (2026-09-19):** T-043f panel listesini `fetchProjectsForPanel`e
+> (ham, önbeleksiz, tüm durumlar) çevirdi — ENGEL-1 ortadan kalktı. Bekleyen
+> iddia `panel-yayin.spec.ts`e eklendi ve `updateProjectAction` yolunun etiket
+> hesabı AYRI bir mutasyonla sınandı. Aşağıdaki özgün metin, beklemenin neden
+> açıldığını anlatmak için duruyor.
+
+Senaryo "bir projeyi DRAFT'tan PUBLISHED'a çevir" diyor. **Bugün panelden
+yapılamıyor:** panel listesi `getPublishedProjects` okuyor, yani taslak kayıt
+eklendiği anda listeden kayboluyor ve düzenlenecek satır kalmıyor (Frontend'in
+kendi notu: `panel/icerik/projeler/page.tsx` → ENGEL-1). Bu bir test kısıtı
+değil, **ürün kısıtı**.
+
+Ölçülen yol, aynı zincirden geçen ve bugün yapılabilen yol: panelden doğrudan
+"Yayında" durumunda kayıt açmak. Etiket hesabı ekleme ve güncellemede aynı
+(`revalidateContent` + `tagTargetsFor`), yani sınanan mekanizma değişmiyor.
+**Panel tüm durumları listeleyebildiği gün** eklenecek adım tek satır: listeden
+taslağı aç, durumu "Yayında" yap, aynı üç iddiayı tekrarla.
+
+### §9/2 — ziyaretçi mesajı: üç halka kapalı, dördüncüsü bekliyor
+
+| # | Halka | Durum |
+| - | ----- | ----- |
+| 1 | `/iletisim` formu (gerçek tarayıcı) | ✅ ölçülüyor |
+| 2 | `POST /api/v1/iletisim` | ✅ ölçülüyor |
+| 3 | `ContactMessage` kaydı | ✅ ölçülüyor (ad/e-posta/mesaj birebir, `isSpam=false`, `spamScore=0`, okunmamış, arşivsiz, `userAgent` yazılı) |
+| 4 | Panel mesaj kutusu **EKRANI** | ⏳ AÇIK BEKLEME (T-039'da) → **T-043g'de KAPANDI**, bkz. aşağıdaki T-043g bölümü |
+
+Dördüncü halka için **elden gelen son adım ölçülüyor**: ekranın besleneceği
+okuma yolu (`fetchContactMessages`, T-038) mesajı gerçekten görüyor mu? Filtre
+elle yazılmıyor, `contactMessageFilterSchema.parse({})` ile üretiliyor — yani
+ölçülen filtre, ekranın kullanacağı varsayılan filtrenin ta kendisi. Ekran
+yazıldığında geriye tek iddia kalıyor: "liste bu satırı gösteriyor mu".
+
+**Yarım bırakılan kısım TODO DEĞİL:** `test.skip`/`test.fixme` kullanılmadı —
+atlanan test CI'daki "atlanan test yok" nöbetini (T-005b) kırmızıya çevirir ve
+haklı olarak: atlanan test, unutulmuş bir kapıdır. Bekleme bu kayıtta ve spec
+başlığında yazılı.
+
+**Zaman tuzağı testin parçası:** Playwright formu milisaniyelerde doldurur;
+beklemeseydik §8.15'in `tooFast` sinyali tetiklenir ve test gerçek bir
+ziyaretçinin yaşamadığı yolu ölçerdi. Ölçüldü — ilk denemede jetonu alıp anında
+gönderen ikinci istek sunucu logunda `spam sinyali … puan=30, sinyaller=tooFast`
+üretti; bekleme eklendikten sonra puan **0**. `spamScore === 0` iddiası bu
+yüzden değerli: honeypot ya da zaman tuzağı yanlış pozitif üretmeye başlarsa
+kayıt yine açılır ama panelde **spam kutusuna** düşerdi — kapı bunu yakalar.
+
+### Test izolasyonu — iki projede paralel koşan paket
+
+İlk yazımda temizlik ortak `e2e-t039` önekine dayanıyordu. `fullyParallel: true`
+ve yerelde birden çok işçi olduğu için bu, **bir projenin `afterAll`ının diğer
+projenin hâlâ kullandığı kaydı silmesi** demekti — sıraya bağlı, açıklaması zor
+kırılma sınıfı (`clearAllLoginAttempts` notundaki hatanın aynısı). Anahtar
+süreç kimliği + zaman damgasına çevrildi; `globalTeardown` ortak öneke bakan
+emniyet ağı olarak kaldı ve her koşumda `artık proje: 0, mesaj: 0` yazıyor.
+
+Temizlik neden şart: ADR-030 seed'i **ölçüm sözleşmesi** sayıyor. Test verisi
+depoda kalsaydı `/projeler` koşum başına bir çöp kayıt biriktirir ve bir gün
+Lighthouse ölçümünün girdisi olurdu.
+
+### §9'un yedi senaryosu — bugünkü tablo
+
+| # | Senaryo | Durum | Kanıt / eksik |
+| - | ------- | ----- | ------------- |
+| 1 | Ana sayfa → proje → detay → Kıyı Medya CTA | ⚠️ **kısmi** | Ana sayfa (duman) ve detay (sitemap taraması + §9/6) ölçülüyor; **karttan detaya tıklama ve CTA zinciri ölçülmüyor** |
+| 2 | İletişim formu → mesaj panele düşer | ⚠️ **kısmi** | Üç halka kapalı; **panel ekranı bekliyor** |
+| 3 | Yanlış şifre / doğru şifre + 2FA | ✅ kapalı | `auth.spec.ts` (T-016) |
+| 4 | Girişsiz `/panel` → login | ✅ kapalı | `smoke.spec.ts` + `auth.spec.ts` |
+| 5 | Panelden gelir kaydı → dashboard toplamı | ❌ açık | Finans modülü F4/F5'te; ölçülecek akış henüz yok |
+| 6 | Panelden proje yayınla → public'te görün | ✅ **kapalı (T-039)** | `panel-yayin.spec.ts`, üç mutasyonla sınandı |
+| 7 | Mobil görünümde ana sayfa ve panel kullanılabilir | ⚠️ **kısmi** | Ana sayfa mobil profilde ölçülüyor; **panel formu artık mobilde de koşuyor** (§9/6 ve §9/2 `mobile-chrome`'da geçti) ama panelin gezinme/kullanılabilirlik iddiaları yazılmadı |
+
+**Sayı: 3 kapalı, 3 kısmi, 1 açık.** T-039 öncesi 2 kapalıydı (3 ve 4).
+*(T-043g bu tabloyu güncelledi — güncel sayaç aşağıdaki T-043g bölümünde.)*
+
+---
+
+## §9/2'nin dördüncü halkası kapandı + KVKK sınırı (T-043g)
+
+**Tarih:** 2026-09-15 · **Dosyalar:** `tests/e2e/iletisim-akisi.spec.ts` (genişletildi),
+`tests/e2e/panel-mesaj-kvkk.spec.ts` (yeni) · **Ölçüm:** yerel, gerçek Postgres +
+üretim derlemesi, iki profilde.
+
+### Zincirin son halkası
+
+T-039'da **açık bekleme** olarak işaretlenen tek iddia bağlandı: ziyaretçinin
+gönderdiği mesaj artık panelde **görüldüğü** için kapalı sayılıyor.
+
+| Ne | Nasıl ölçülüyor |
+| -- | --------------- |
+| Satır DOM'da | `[data-mesaj-satir][data-mesaj-id="<id>"]` — **bileşik** seçici |
+| Liste yalnızca önizleme taşıyor | Mesaj bilerek 160 karakterden uzun; kuyruğundaki imza listede **yok**, detayda **var** |
+| Okunmamış rozeti | `/\d+ okunmamış/` görünür |
+| Tam gövde | Satıra tıklanıp `/panel/mesajlar/<id>`'ye gidiliyor |
+
+**Bileşik seçici bilinçli:** `[data-mesaj-satir]` ve `[data-mesaj-id]` ayrı ayrı
+sorulsaydı, kimliği taşıyan başka bir düğüm (ileride bir önizleme kartı) testi
+yanlışlıkla yeşil tutabilirdi. İkisinin **aynı düğümde** olması iddianın kendisi.
+
+**Mesaj neden uzatıldı:** kısa bir gövdede `preview` ile tam metin aynı dizeye
+eşit olurdu; "listede önizleme, detayda tam gövde" iddiası iki farklı sözleşmeyi
+aynı veriyle doğrulamış, yani hiçbir şey ölçmemiş olurdu.
+
+**`?gorunum=hepsi` — Frontend'in önerisi, kabul edildi.** `gelen` görünümü spam
+olmayanları süzüyor; iddia oraya bağlansaydı `spamScore` hesabı bozulduğunda
+**iki** kırmızı çıkardı ("mesaj listede yok" + "spamScore ≠ 0") ve asıl sebep
+ikinci satırda kalırdı. Süzmeyen görünüm iki arızayı iki ayrı yerde tutuyor.
+`spamScore === 0` iddiası T-039'daki gerekçesiyle korunuyor.
+
+**Mutasyonla doğrulandı:**
+
+| # | Mutasyon | Sonuç |
+| - | -------- | ----- |
+| 1 | Liste `?gorunum=arsiv`'e çevrildi (mesaj orada değil) | ❌ kırmızı — "gönderilen mesaj panel listesinde görünmeli" |
+| 2 | "Liste tam gövdeyi taşımalı" diye ters çevrildi | ❌ kırmızı — `preview` sözleşmesi iddiası canlı |
+
+### KVKK / RSC yükü — Frontend'in düzeltmesi hakkındaki karar
+
+Frontend kendi yorumunun yanlış olduğunu ölçüp raporladı: "Göster/Gizle" düğmesi
+bir **yetki sınırı değil**; veri prop olarak geçtiği için `ip`/`userAgent` detay
+rotasının RSC yükünde düğme kapalıyken de duruyor.
+
+**Kendi ölçümüm (ikinci ölçüm, `panel-mesaj-kvkk.spec.ts`):**
+
+| Nerede | `userAgent` işareti | `ip` işareti |
+| ------ | ------------------- | ------------ |
+| Liste rotasının ham gövdesi (`?gorunum=hepsi`) | **yok** | **yok** |
+| Detay rotasının ham gövdesi (düğme KAPALI) | **var** | var |
+| Detay ekranı, düğme kapalı | görünmüyor | görünmüyor |
+| Detay ekranı, "Göster" sonrası | görünüyor | görünüyor |
+
+Ölçüm gerçek kişisel veriyle yapılmıyor: mesaj `User-Agent: E2E-KVKK-SONDA-…` ve
+`X-Forwarded-For: 203.0.113.42` (RFC 5737 belgeleme bloğu) başlıklarıyla
+gönderiliyor, aranan dizeler testin ürettiği uydurma değerler. `127.0.0.1`
+seçilmedi — temel adres olduğu için sayfada başka sebeple geçerdi.
+
+**KARAR: kabul edilebilir.** Gerekçe üç maddede:
+
+1. **Yetki sınırı doğru yerde.** Detay rotası kimliği doğrulanmış + 2FA geçmiş
+   tek kullanıcıya açık; o kullanıcı veriyi görmeye zaten yetkili. §8.20'nin
+   konusu yetkisiz tarafa sızıntıdır ve burada yetkisiz taraf yok.
+2. **Asıl sınır liste/detay ayrımı ve o GERÇEKTEN duruyor** — `LIST_SELECT` iki
+   sütunu hiç çekmiyor, bağımsız ölçümüm bunu doğruladı. Yüzlerce satırlık bir
+   listede KVKK alanlarını taşımamak, veri minimizasyonunun uygulandığı yer.
+3. **Düğmenin işi perde olmak ve bunu yapıyor.** Omuz üstünden bakış / ekran
+   paylaşımı gerçek bir risk; çözümü de ekranda göstermemek.
+
+**Ama bir şart var ve kapıya yazıldı:** düğmeye "veriyi getirir" anlamı
+yüklenemez. Testteki iddia bu yüzden "detay yükünde **BEKLENİYOR**" diye yazıldı
+— ölçülen gerçeği kapıya yazmak, uygulamanın yapmadığı bir sözü kapıya yazmanın
+yerine geçiyor. Biri yarın veriyi gerçekten sunucuda tutmak isterse (ayrı bir
+Server Action ile istek üzerine getirmek) bu satır kırmızıya döner ve kararın
+yeniden verilmesi gerektiğini söyler.
+
+**Kapıya bağlanan asıl şey:** Backend bir gün `LIST_SELECT`e `ip` eklerse liste
+yükünde sızıntı başlar ve **hiçbir birim testi bunu görmezdi** — DTO tipleri
+derlenmeye devam ederdi. Artık E2E görüyor.
+
+**Mutasyonla doğrulandı (sızıntı kontrolünün gerçekten gördüğü):** liste
+kontrolü, işaretin GERÇEKTEN bulunduğu gövdeye (detay) çevrildiğinde ❌ kırmızı
+— "LİSTE yükünde userAgent var — `LIST_SELECT` sınırı delinmiş".
+
+### Kendi testimde yakalanan vakum — iki yanlış deneme kayda geçiyor
+
+Sızıntı kontrolü ilk iki yazımda **vakumda yeşildi** ve bunu ancak "bu gövde
+gerçekten bizim satırımızı içeriyor mu" kontrolü ortaya çıkardı:
+
+| Deneme | Neden hiçbir şey ölçmüyordu |
+| ------ | --------------------------- |
+| `request` fixture'ı ile ham istek | Tarayıcının çerezlerini taşımıyor → panel isteği `/giris`e yönleniyor, "işaret yok" sonucu **giriş sayfasından** geliyordu |
+| `page.request` ile ham istek | Yönlendirmeleri İZLİYOR → oturum geçmese bile `/giris` gövdesiyle **200** dönüyor; durum kodu kontrolü bu yüzden yetmiyor |
+
+Çözüm: ham gövde **gezinme yanıtından** okunuyor (`response.text()`), üstüne iki
+kontrol daha — `page.url()` hâlâ `/panel/mesajlar` mı, ve gövde mesaj kimliğini
+içeriyor mu. "Aranan şeyin bulunmaması" ancak doğru sayfaya bakıldığında
+anlamlı; kişisel veri sızıntısını ölçtüğünü sanan ama giriş sayfasına bakan bir
+kapı, olmamasından daha kötüdür.
+
+Yan not: ilk "doğru sayfa" işareti olarak ekrandaki bir metin ("okunmamış")
+denendi ve tutmadı — RSC yükünde Türkçe karakterler `\uXXXX` kaçışlarıyla
+taşınıyor. Ham gövdede düz metin aramak yanıltıcı; kimlik (ASCII) doğru işaret.
+
+### §9'un yedi senaryosu — T-043g sonrası
+
+| # | Senaryo | Durum | Kanıt / eksik |
+| - | ------- | ----- | ------------- |
+| 1 | Ana sayfa → proje → detay → Kıyı Medya CTA | ✅ **kapalı (T-044g)** | `ziyaretci-akisi.spec.ts` — zincir + CTA sözleşmesi, mutasyonla sınandı |
+| 2 | İletişim formu → mesaj panele düşer | ✅ **kapalı (T-043g)** | `iletisim-akisi.spec.ts` — dört halka, iki mutasyon |
+| 3 | Yanlış şifre / doğru şifre + 2FA | ✅ kapalı | `auth.spec.ts` |
+| 4 | Girişsiz `/panel` → login | ✅ kapalı | `smoke.spec.ts` + `auth.spec.ts` |
+| 5 | Panelden gelir kaydı → dashboard toplamı | ❌ açık | Finans modülü F4/F5'te |
+| 6 | Panelden proje yayınla → public'te görün | ✅ kapalı (T-039) | `panel-yayin.spec.ts`, üç mutasyon |
+| 7 | Mobil görünümde ana sayfa ve panel kullanılabilir | ⚠️ kısmi | §9/2 ve §9/6 `mobile-chrome`'da da koşuyor; panelin gezinme/kullanılabilirlik iddiaları yazılmadı |
+
+**Sayı: 4 kapalı, 2 kısmi, 1 açık.** (T-039 sonrası 3 kapalıydı.)
+*(T-044g bu tabloyu güncelledi — güncel sayaç aşağıda.)*
+
+### ⚠️ `latest` etiketi "kararlı" demek DEĞİL — üç canlı örnek
+
+`pnpm.overrides` tablosunun yanında duran bu uyarı, ADVISORY-001'in `nanoid`
+tuzağının genelleştirilmiş hâli: orada açık uçlu bir aralık **6.0.1**'e
+çözülmüştü (üç majör atlama, ESM-only). Aynı sınıf tuzak bugün **dist-tag**
+üzerinden karşımızda — 2026-09-13 ölçümü:
+
+| Paket | Bizde | `latest` | Not |
+| ----- | ----- | -------- | --- |
+| `prisma` | 7.9.1 | **8.0.0-rc.14** | `latest` bir **RC**'yi gösteriyor; kararlı hat `prev: 7.10.0` |
+| `vitest` | 4.1.11 | **5.0.0** | T-042g'de Orkestra Şefi yamalı yama sürümüne sabitledi |
+| `next` | 15.5.25 | **16.3.4** | 16'ya geçiş ayrı bir görev (F6) |
+
+**Kural:** `pnpm add <paket>@latest` / `pnpm update <paket>` bir güvenlik
+düzeltmesi için yazılmaz. Danışma kapatılırken hedef sürüm **yamalı sürümdür**,
+`latest` değil; ve yazıldıktan sonra `pnpm why` ile çözülen sürüm okunur.
+`prisma@latest`in bir RC'yi göstermesi bunun neden kural olması gerektiğini tek
+başına anlatıyor: tek bir komut, üretim veri katmanını yayın öncesi koda taşırdı.
+
+Bu uyarı ADVISORY-002'nin kaldırma koşuluyla da doğrudan ilgili: oradaki "kararlı
+Prisma 8" beklentisi, `latest` etiketine bakarak **yanlışlıkla sağlanmış**
+sayılabilirdi.
+
+---
+
+## ADR-034 taraması: `buildDiff` başka nereden sızabilir (T-044g)
+
+**Tarih:** 2026-09-19 · **Sonuç:** bugün sızıntı **yok**; bir risk kalıbı var
+(**BULGU-019**) · **Yöntem:** on bir `buildDiff` çağrı yeri + `buildDiff`
+kullanmayan yedi elle yazılmış `diff` tek tek okundu, sonra emniyet ağının
+davranışı **çalıştırılarak** ölçüldü.
+
+### Emniyet ağının gerçek kapsamı — üçüncü bağımsız ölçüm
+
+Backend ve Orkestra Şefi ayrı ayrı ölçtü; ben de kendi sondamla ölçtüm.
+Yeni bilgi: **iç içe ve dizi içindeki BİLİNEN adlar maskeleniyor** (özyineleme
+çalışıyor, döngü koruması var) — yani ADR-034'ün sınırı "yalnızca en üst
+seviye" değil, tam olarak **ad bilgisi**:
+
+| Girdi | Çıktı | Yorum |
+| ----- | ----- | ----- |
+| `{ password, passwordHash }` | `[REDACTED]` ×2 | bilinen ad ✓ |
+| `{ deleted: { passwordHash } }` | `{"deleted":{"passwordHash":"[REDACTED]"}}` | **iç içe de maskeleniyor** ✓ |
+| `{ rows: [{ token }] }` | `[REDACTED]` | dizi içinde de ✓ |
+| `{ yeniSifre, pass }` | **sızıyor** | bilinmeyen ad ✗ |
+| `{ note: 'sifre: …' }` | **sızıyor** | değere gömülü ✗ |
+| `{ deleted: { yeniSifre } }` | **sızıyor** | iç içe + bilinmeyen ad ✗ |
+| döngüsel yapı | `[REDACTED]` | sonsuz döngüye girmiyor ✓ |
+
+Bu ölçüm ADR-034'ü **doğruluyor ve daraltıyor**: sorun özyineleme eksikliği
+değil, adın bilinmesi gerekliliği. `REDACTED_KEYS` listesine bakmadan alan adı
+seçen herkes, farkında olmadan ağın dışına çıkabiliyor.
+
+### Bugünkü çağrı yerleri — hiçbiri sır taşımıyor
+
+| Yol | Diff'e giren | Değerlendirme |
+| --- | ------------ | ------------- |
+| `project` / `post` (create/update/archive) | `slug`, `locale`, `title`, `status` | Kimlik alanları; MDX içeriği **bilerek dışarıda** |
+| `experience` / `service` / `skill` (create/update) | `organization`/`role`/tarihler, `title`/`ctaUrl`/`order`, `name`/`category`/`level` | Public içerik |
+| `contact-message` (durum eylemleri) | `isRead`, `isSpam`, `repliedAt`, `archivedAt` | **Yalnızca durum** — gövde/e-posta girmiyor ✓ |
+| `job` (dönüşüm) | `contactMessageId`, `jobTitle`, `jobStatus`, `clientId`, `clientCreated` | Ad/e-posta **açık gerekçeyle** dışarıda ✓ |
+| `totp` (üç eylem) | `context`, sayaçlar | Secret/kod girmiyor ✓ |
+| `password` | `{ context: 'CHANGE_PASSWORD', changed: 'passwordHash' }` | `buildDiff` **bilerek kullanılmamış** ✓ |
+| `profile` | `headline`, `location`, **`socials`** | ⚠️ `socials` serbest biçimli JSON — bkz. BULGU-019 |
+
+---
+
+## BULGU-019 — Silme denetimlerinde `diff: { deleted: before }` satırın TAMAMINI yazıyor
+
+**Önem:** Düşük (bugün sızıntı yok, gelecek riski) · **Görev:** T-044g (bulan)
+**Durum:** AÇIK — düzeltme sahibi **Backend** · **İlgili:** ADR-034
+
+`experience`, `skill` ve `service` silme eylemleri denetim kaydına **silinen
+satırın tamamını** yazıyor:
+
+```ts
+diff: { deleted: before }
+```
+
+Gerekçesi yazılı ve **makul**: "`buildDiff(before, {})` boş bir fark üretirdi;
+burada saklanmak istenen 'ne değişti' değil 'ne kayboldu' — denetim kaydı bu
+eylemde kaydın TEK kalan izi." Aynı şekilde `profile` eyleminde serbest biçimli
+`socials` alanı diff'e giriyor.
+
+**Bugün sorun değil:** üç model de public içerik taşıyor (yetenek adı, hizmet
+başlığı, deneyim kaydı) ve ölçüm iç içe bilinen adların maskelendiğini gösterdi.
+
+**Riskin kendisi gelecekte:** bu kalıp, ADR-034'ün "sır diff'e hiç konmaz"
+kuralını **alan seçimini modele devrederek** uyguluyor. Bu modellerden birine
+yarın bir `apiAnahtari`, `webhookSecret` ya da serbest metin `not` alanı
+eklendiğinde:
+
+- yeni alan `REDACTED_KEYS` listesinde **olmayacak** (ada bağlılık),
+- silme diff'i onu **otomatik olarak** taşıyacak (alan listesi yok, tüm satır var),
+- ve hiçbir test bunu görmeyecek — tip sistemi de görmez, çünkü `before` zaten
+  o modelin tipinde.
+
+Yani ADR-034'ün "iki kez kuruldu" dediği varsayım burada **üçüncü kez**
+kurulmaya hazır duruyor.
+
+**Öneri (düzeltme Backend'in):** silme diff'i de tıpkı create/update yolları
+gibi **alanları tek tek** saysın (`{ deleted: { id, name, category, level } }`).
+Aynı gerekçeyi ("ne kayboldu") korur, ama alan seçimini **açık** hâle getirir —
+yeni bir sütun eklendiğinde denetim kaydına sessizce girmez. `profile.socials`
+için de aynı soru sorulmalı: serbest JSON diff'e girmeli mi, yoksa yalnızca
+anahtar adları mı yazılmalı?
+
+---
+
+## Şifre değiştirme hız sınırı — KARAR: GEREKLİ (T-044g)
+
+**Karar:** evet, sınır konmalı. **Ama asıl gerekçe brute-force değil.**
+
+### Tehdit modeli — neyin sınırlandığı önemli
+
+Bu uç kimliği doğrulanmış oturum ister; saldırgan zaten paneldeyse "şifreyi
+tahmin etmesi" yeni bir yetki kazandırmaz. İki gerçek gerekçe var:
+
+**1. KAYNAK TÜKETİMİ — ölçüldü.** §8.2 gereği `argon2id` bilerek pahalı
+(`memoryCost` 19 MiB, `timeCost` 3). Yanlış şifre doğrulamasının maliyeti:
+
+```
+p50 = 31 ms/deneme   →  ~33 deneme/saniye/çekirdek
+her deneme 19 MiB bellek ayırıyor  →  50 eşzamanlı istek ≈ 1 GB
+```
+
+Tek bir oturum, sınırsız döngüyle üretim kutusunun (Coolify, birkaç vCPU)
+CPU'sunu ve belleğini doyurabilir. §8.15'in iletişim formuna hız sınırı koyma
+gerekçesi **birebir aynıdır** ve orada saldırgan kimliksizdi bile.
+
+**2. Yetki yükseltme.** Çalınmış bir oturumla mevcut şifre tahmin edilirse
+saldırgan şifreyi değiştirir ve **asıl sahibi kilitler**. "Oturumu var, zaten her
+şeyi yapabilir" doğru değil: hesabın kalıcı kontrolü ayrı bir eşik.
+
+### Önerilen politika
+
+| Boyut | Değer | Gerekçe |
+| ----- | ----- | ------- |
+| Sayaç anahtarı | **kullanıcı** (IP değil) | `LoginAttempt` IP başına §8.4'ün kaynağı; kullanıcı kendi girişinden kilitlenmemeli (Backend'in notu doğru) |
+| Kaynak | `AuditLog`: `LOGIN_FAILED` + `diff.context = 'CHANGE_PASSWORD'` | Backend zaten yazıyor; yeni tablo/kolon gerekmiyor |
+| Eşik / pencere | **5 başarısız / 15 dk** | `TOTP_SETUP_RATE_LIMIT` ile aynı kalıp — üçüncü bir eşik sayısı icat etmemek |
+| Aşımda | §7.2 zarfı + `RATE_LIMITED`, denetim kaydı | Sessiz başarısızlık teşhisi zorlaştırır |
+| Sıfırlama | Başarılı değişiklikten sonra pencere temizlenir | Meşru kullanıcı hata yapıp sonra doğrusunu girdiğinde cezalandırılmasın |
+
+**Sınırın kendisi de ölçülmeli:** eşiğin 6. denemede tuttuğunu ve 5.'de
+tutmadığını gösteren bir sınır testi (§8.4'ün "dört deneme kilitlemez" testinin
+kardeşi) — o test olmadan eşik bir temenni olur.
+
+**Uygulama Backend'in** (`src/**` bu görevin kapsamı dışında).
+
+---
+
+## BULGU-020 — Şifre değişikliği ele geçirilmiş oturumu KAPATMIYOR
+
+**Önem:** Orta · **Görev:** T-044g (ölçen) · **Durum:** AÇIK — **T-046'nın gövdesi**
+**PROGRAM.md:** §8.3 · **İlgili ADR:** 013 (JWT), 011
+
+Şifre değiştirmek, dağıtılmış JWT'leri geçersiz kılmıyor: sunucuda oturum kaydı
+yok, jeton kendi kendini doğruluyor. Çalınan bir çerez, şifre değişse bile
+**ömrü dolana kadar (7 gün) geçerli.**
+
+Backend kolon **eklemedi** ve bu doğruydu: hiçbir şeyin okumadığı bir
+`sessionsValidFrom` kolonu, oturumların kapatıldığı **yanılsamasını** üretirdi —
+bu depoda tekrar eden en pahalı hata sınıfı (T-018 `NavItem.hazir`, BULGU-010'un
+"vakumda yeşil" dalı).
+
+### Ölçümler — öneriyi bunlar şekillendiriyor
+
+**1. Ara katman Edge'de ve veritabanını GERÇEKTEN okuyamıyor.** Geçici olarak
+`src/middleware.ts` içine `db` içe aktarıldı ve derleme denendi:
+
+```
+Module build failed: UnhandledSchemeError: Reading from "node:crypto" …
+Module build failed: UnhandledSchemeError: Reading from "node:fs" …   (os, path, module)
+> Build failed because of webpack errors
+```
+
+T-014/K1 doğrulandı (mutasyon geri alındı, md5 eşleşiyor). Ara katmanda
+`sessionsValidFrom` kontrolü **mümkün değil**; `middleware.ts`te `runtime` beyanı
+da yok, yani Edge varsayılanı geçerli.
+
+**2. Panel SAYFALARI `auth()` çağırmıyor.** Ölçüldü: tüm depoda üç `await auth()`
+var (`actions/_shared.ts` → `currentActorId`, `actions/totp.ts`, bir de örnek
+kod bloğu). `(panel)` altındaki **tek** çağıran `ayarlar/guvenlik`. Panel düzeni
+de çağırmıyor.
+
+> **Bunun sonucu, Backend'in "kısmi" dediği şeyin tam tanımı:** `auth()` içine
+> konacak bir kontrol **YAZMALARI** kapatır (tüm Server Action'lar
+> `currentActorId`den geçiyor), **OKUMALARI kapatmaz** — panel sayfaları
+> yalnızca ara katmanla korunuyor ve ara katman DB okuyamıyor. Çalınan jetonla
+> panel **okunmaya devam eder**.
+
+**3. Kontrolün maliyeti küçük ama mimari özelliği değiştiriyor.** Gerekecek
+asgari sorgu yerel olarak ölçüldü (200 koşu, ısınma hariç):
+
+```
+p50 = 0.49 ms   p95 = 0.92 ms   p99 = 1.29 ms
+```
+
+Mutlak maliyet düşük; asıl bedel "normal istek yolu veritabanına gitmez"
+özelliğinin (ADR-011/ADR-013) kaybı.
+
+### T-046 için öneri — üç katman, ikisi hemen
+
+**(A) Oturum ömrünü kısalt — HEMEN, en ucuz.** §8.3'ü 7 günden **24 saate**
+çekmek maruziyet penceresini 7×24 saatten 24 saate indirir; kod değişikliği tek
+sabit, ölçüm gerektirmez, hiçbir yeni sorgu getirmez. Tek bedeli: kullanıcı daha
+sık giriş yapar — **tek kullanıcılı bir panelde** kabul edilebilir. Bu, tek
+başına bile boşluğu %85 daraltır.
+
+**(B) `sessionsValidFrom` + `auth()` kontrolü — DÜRÜSTÇE "KISMİ".** Kolon
+eklenir, jeton `iat`i ondan eskiyse `currentActorId` `null` döner. **Kapsamı
+yazılı olmalı:** yazmalar kapanır, okumalar kapanmaz. Kolonun adı bile bunu
+söylemeli (`writesValidFrom` gibi) ya da kayıt bunu açıkça yazmalı — aksi hâlde
+Backend'in kaçındığı yanılsama geri gelir.
+
+**(C) Okumaları da kapatmak — pahalı, F6'ya.** İki yolu var ve ikisi de bedelli:
+panel sayfalarının her birine `auth()` eklemek (unutulabilir, kapı gerekir), ya
+da ara katmanı Node çalışma zamanına almak (Next 15.5'te deneysel). İkincisi
+seçilirse kontrol **yalnızca `isPanelPath` için** koşmalı: matcher neredeyse tüm
+yolları kapsıyor ve public sayfalara istek başına bir sorgu eklemek ADR-011'in
+tüm önbellekleme çabasını geri alırdı.
+
+**Sıra önerisi:** (A) bu turdan sonraki ilk fırsatta · (B) T-046'da, kapsamı
+yazılı olarak · (C) F6/T-060 civarında, CSP işiyle birlikte.
+
+**Ölçülmeyen:** üretim kutusunda sorgu gecikmesi (yerel ölçüm 0.49 ms; Coolify
+iç ağında farklı olabilir) ve Node ara katmanının soğuk başlatma maliyeti.
+
+---
+
+## §9 sayacı — T-044g sonrası: **5 kapalı · 1 kısmi · 1 açık**
+
+| # | Senaryo | Durum | Kanıt / eksik |
+| - | ------- | ----- | ------------- |
+| 1 | Ana sayfa → proje → detay → Kıyı Medya CTA | ✅ **kapalı (T-044g)** | `ziyaretci-akisi.spec.ts`; kart slug'ı seed'den okunuyor, CTA `data-proje` ile tıklanan projeye bağlanıyor, `target`/`rel` sözleşmesi ve gerçek tıklama ölçülüyor |
+| 2 | İletişim formu → mesaj panele düşer | ✅ kapalı (T-043g) | `iletisim-akisi.spec.ts`, dört halka |
+| 3 | Yanlış şifre / doğru şifre + 2FA | ✅ kapalı | `auth.spec.ts` |
+| 4 | Girişsiz `/panel` → login | ✅ kapalı | `smoke.spec.ts` + `auth.spec.ts` |
+| 5 | Panelden gelir kaydı → dashboard toplamı | ❌ açık | Finans modülü F4/F5'te |
+| 6 | Panelden proje yayınla → public'te görün | ✅ kapalı (T-039) + **literal hâli T-044g** | `panel-yayin.spec.ts`: ekleme yolu, taslak sızıntısı, **ve artık DRAFT→PUBLISHED geçişi** |
+| 7 | Mobil görünümde ana sayfa ve panel kullanılabilir | ⚠️ kısmi | §9/1, §9/2 ve §9/6 `mobile-chrome`'da da geçiyor; panelin gezinme/kullanılabilirlik iddiaları hâlâ yazılmadı |
+
+### §9/1 — dış bağlantı ölçülürken üçüncü tarafa istek atılmıyor
+
+CTA gerçekten tıklanıyor (öznitelik doğru olup bağlantının tıklanamaz olması
+mümkün: üstte bir katman, `pointer-events: none`), ama `kiyimedya.com`a giden
+istek yerel bir taslak yanıtla karşılanıyor. İki sebep: üçüncü tarafın sitesini
+her CI koşumunda yoklamak doğru değil, ve o site yavaşladığında **bizim
+kapımız** kırmızıya dönerdi.
+
+`abort()` önce denendi ve yetmedi — iptal edilen gezinme sekmeyi
+`chrome-error://chromewebdata/` adresinde bırakıyor, yani istenen adres
+kayboluyor ve iddia ölçemeyeceği bir şeye bakıyordu. Bunun yerine **isteğin
+kendisi kaydediliyor** (tarayıcının gerçekten o adrese gittiğinin kanıtı).
+
+`rel="noopener"` iddiası biçimsel değil güvenlik iddiasıdır: `target="_blank"`
+ile açılan sayfa `window.opener` üzerinden bizi başka bir adrese yönlendirebilir
+(tabnabbing). Öznitelik silindiğinde hiçbir şey görünür biçimde bozulmaz — tam
+da kapıya yazılması gereken sınıf.
+
+**Mutasyon:** kart seçicisi "Tüm projeler" bağlantısına çevrildi → ❌ kırmızı
+("kart kendi projesinin detayına gitmeli"), yani zincir gerçekten ölçülüyor.
+
+---
+
 ## §8 Güvenlik Gereksinimleri — Durum Tablosu
 
-**Ölçüm tarihi:** 2026-08-11 · **Faz:** F1 (kapandı) · **Son görev:** T-005b
+**Ölçüm tarihi:** 2026-09-19 · **Faz:** F3 (sürüyor) · **Son görev:** T-044g
+· **Dağılım:** ✅ 10 · ⚠️ 6 · ❌ 0 · ⏳ 9
+
+> T-039'da üç satır **bayat çıktığı için** güncellendi (6, 8 ve 15): ikisi
+> "henüz Server Action yok" diyordu, oysa action'lar T-031'de gelmişti. Tablo
+> da kod gibi eskiyor; her turda dokunulan maddeler yeniden okunuyor.
 
 Durum kodları: ✅ sağlandı · ⚠️ kısmi · ❌ eksik · ⏳ henüz uygulanmadı (fazı gelmedi)
 
@@ -2233,25 +3035,25 @@ Durum kodları: ✅ sağlandı · ⚠️ kısmi · ❌ eksik · ⏳ henüz uygul
 | 3 | Çerez `httpOnly`/`secure`/`sameSite:lax`/7 gün | ⏳ | F1 / T-013 |
 | 4 | Giriş 5/15dk/IP + 15dk kilit + log | ✅ | **Uçtan uca çalışıyor.** "log" → `LoginAttempt` her denemeyi yazıyor (T-013b). "kilit" → politika `src/lib/security/rate-limit.ts` (eşikler tek sabitte: 5 deneme / 15 dk pencere / 15 dk kilit, 20 birim testi), giriş akışına T-013c'de bağlandı, **T-016'da gerçek tarayıcıyla doğrulandı**: 5. yanlış şifrede `lockedUntil` yazılıyor, kilitliyken doğru şifre bile reddediliyor, 4 denemede kilitlenmiyor. BULGU-005 kapandı. |
 | 5 | `middleware.ts` `/panel/*` + `/api/v1/panel/*` korur | ✅ | **T-014 ile gerçek koruma kuruldu.** `/panel/*` oturumsuzken `/giris`'e yönlenir (307), `/api/v1/panel/*` §7.2 zarfıyla **401 JSON** döner. Oturum `getToken` ile **kriptografik olarak doğrulanır** (çerez varlığı yeterli değil), Edge'de çalışır. `AUTH_SECRET` yoksa **kapalı yönde başarısız olur**. 32 test. §8.6 uyarısı için aşağıya bakın. |
-| 6 | Her Server Action ayrıca `auth()` | ⏳ | F1 / T-015 · Henüz Server Action yok |
+| 6 | Her Server Action ayrıca `auth()` | ⚠️ | **Satır bayattı — Server Action'lar T-031'de geldi.** `src/server/actions/*` hepsi `currentActorId()` ile başlıyor ve oturum yoksa servise HİÇ gitmeden `UNAUTHORIZED` dönüyor; Backend'in birim testi bunu TÜM içerik action'ları için tek tek dolaşıyor (`tests/unit/actions/content-actions.test.ts` → "oturum YOKSA hepsi UNAUTHORIZED döner ve servise HİÇ gitmez"). **T-039'da yetkili yol uçtan uca ölçüldü**: gerçek oturumla panelden proje yayınlandı, kayıt DB'ye düştü. ⚠️ kalma sebebi: oturumSUZ bir action çağrısı gerçek tarayıcıyla ölçülmedi — birim testi taklit (`auth` mock'lu) üzerinden konuşuyor. |
 | 7 | Panel `X-Robots-Tag: noindex, nofollow` + robots.txt disallow | ⚠️ | **Başlık ✅** — birim + E2E ile doğrulandı, gerçek sunucu yanıtında ölçüldü. **`robots.txt` ❌** — henüz yok, T-028 (Backend) kapsamında; `/panel` için `Disallow` içermeli. |
-| 8 | Her girdi Zod ile (Server Action parametreleri dahil) | ⏳ | F1 / T-011 · `zod@4.4.3` kurulu |
+| 8 | Her girdi Zod ile (Server Action parametreleri dahil) | ⚠️ | **Satır bayattı.** Action'lar ham girdiyi `parseOrFail(<şema>, raw)` ile geçiriyor (§7.1 sırası: auth → Zod → servis → AuditLog → revalidateTag) ve `/api/v1/iletisim` ucu da aynı şemayı kullanıyor. **T-039'da uçtan uca ölçüldü**: panel formundan geçen kayıt DB'ye doğru alanlarla yazıldı; bozuk gövde `400 VALIDATION_ERROR` ile reddedildi (`api-routes.spec.ts`, T-016b). ⚠️ kalma sebebi: altı varlığın tamamı için şema kapsamı birim testlerinde; E2E yalnızca `Project` ve `ContactMessage` yollarını ölçüyor. |
 | 9 | MDX/HTML `rehype-sanitize` | ⏳ | F2 / T-025 · `rehype-sanitize@6.0.0` kurulu |
 | 10 | Prisma dışı SQL yok; `$queryRaw` onaya tabi | ✅ | El yazımı `$queryRaw`/`$executeRaw`/`*Unsafe` **çağrısı yok** (tarandı; tek eşleşmeler üretilmiş istemcinin tip tanımları ve `db.ts`'teki açıklama satırı). `pingDatabase()` bilinçli olarak `pool.connect()` kullanıyor — ham SQL'e hiç gerek kalmadı (T-003b K2). |
 | 11 | Yükleme doğrulaması, ≤10MB, private R2, imzalı URL | ⏳ | F3 / T-037 |
 | 12 | HTTPS + HSTS | ⚠️ | **Mantık ✅ ve test edildi**: yalnızca üretim + HTTPS'te ekleniyor, yerelde eklenmiyor. `preload` **bilerek YOK** — geri alınamaz ve `panel.` alt alan adı kararı (Q1) verilmedi. F7/T-072'de eklenecek. Gerçek TLS F7. |
 | 13 | CSP nonce tabanlı, script'te `unsafe-inline` yok | ⏳ | **F6 / T-060 — bilinçli erteleme.** React Bits (§5) kurulmadan CSP yazmak F2'de ya çöker ya taviz verdirir (STATUS.md R1). CSP'nin **yokluğu** E2E ile doğrulanıyor; T-060 o beklentiyi tersine çevirecek, yani sessizce unutulamaz. |
 | 14 | `X-Frame-Options` / `nosniff` / `Referrer-Policy` / `Permissions-Policy` | ✅ | Dördü de `src/lib/security/headers.ts` içinde tek noktada; `/` ve `/panel` gerçek yanıtlarında ölçüldü. `X-Powered-By` de kapalı (`next.config.ts`). |
-| 15 | İletişim formu 3/saat + honeypot + zaman tuzağı | ⏳ | F2 / T-027 |
+| 15 | İletişim formu 3/saat + honeypot + zaman tuzağı | ✅ | **Üçü de kurulu ve ölçüldü.** *Honeypot:* `website` alanı dolu gelirse mesaj SAKLANIR ama `honeypotHit`/`isSpam` işaretlenir (birim: `tests/unit/api/iletisim.test.ts`). *Zaman tuzağı:* `CONTACT_TIME_TRAP.minFillSeconds = 3`; **T-039'da canlı ölçüldü** — jetonu alıp anında gönderen istek sunucu logunda `spam sinyali … puan=30, sinyaller=tooFast` üretti, üç saniye bekleyen gerçek ziyaretçi akışında puan **0**. *Saatlik sınır:* IP başına 3 (`CONTACT_RATE_LIMIT`), aşımda `429` + `Retry-After`. **T-039 yanlış pozitif yönünü de ölçtü**: meşru ziyaretçi spam'e düşmüyor (`isSpam=false`, `spamScore=0`) ve ikinci meşru mesaj reddedilmiyor — sınırın gereğinden dar olmadığı gösterildi. **E2E'de ölçülmeyen tek dal:** 429'un kendisi. Ölçmek için üç kayıt daha yazmak gerekirdi; eşik saf politika ve birim testlerinde kapalı — kapıya değeri kadar bedel ödetilmedi. |
 | 16 | Yükleme uçları 10/dk | ⏳ | F3 / T-037 |
 | 17 | `.env` repoya girmez, `.env.example` tam | ✅ | `.gitignore:22-24` — `.env` ve `.env.*` yasaklı, `.env.example` istisna. `.env.example` §12'nin anahtarlarını değersiz listeliyor (T-001 doğrulaması). |
 | 18 | `NEXT_PUBLIC_` içinde sır yok, CI'da taranır | ✅ | **Otomatik tarama kuruldu** (T-005): `tests/unit/public-env.test.ts` — üç katman: (a) `.env.example`, (b) çalışma ortamı `process.env`, (c) `.next/` derleme çıktısı. `pnpm test` içinde koştuğu için hem yerelde hem CI'da otomatik. **Dedektör kendini kanıtlıyor**: 10 ekili sahte sır (GitHub/AWS/Stripe/JWT/argon2/PEM/bağlantı dizesi) yakalanıyor, meşru URL'ler yanlış pozitif vermiyor. Fiilen doğrulandı: `.env.example`'a `NEXT_PUBLIC_GITHUB_TOKEN=ghp_…` ekildi → hat **KIRMIZI**, geri alındı → **YEŞİL**. |
-| 19 | Panel mutasyonları `AuditLog`'a | ⚠️ | **Merkezî yardımcı geldi** (T-015): `src/server/services/_shared/audit.ts` → `writeAuditLog`, `diff` üzerinde otomatik redaksiyonla (§8.20). Kullananlar: 2FA eylemleri (`actions/totp.ts`) ve hesap kilidi (ADR-022 — denemeler `LoginAttempt`'e, sonuçlar `AuditLog`'a). Kilit kaydı T-016'da üretim yolunda **fiilen tetiklendi**. ⚠️ kalma sebebi: içerik/muhasebe mutasyonları henüz yazılmadı (F3–F5), yani "tüm mutasyonlar" ölçülemiyor. |
-| 20 | Loglarda şifre/token/TOTP/tam e-posta yok | ⚠️ | Sağlık ucu §8.20'ye uyuyor (T-003b'de tarandı: altyapı izi 0 eşleşme). Merkezî bir redaksiyon yardımcısı **henüz yok** — F1'de `src/lib/security/` altına yazılacak. |
+| 19 | Panel mutasyonları `AuditLog`'a | ⚠️ | **Merkezî yardımcı geldi** (T-015): `src/server/services/_shared/audit.ts` → `writeAuditLog`, `diff` üzerinde otomatik redaksiyonla (§8.20). Kullananlar: 2FA eylemleri (`actions/totp.ts`), hesap kilidi (ADR-022) ve F3'ten beri tüm içerik/mesaj/iş eylemleri. Kilit kaydı T-016'da üretim yolunda **fiilen tetiklendi**. ⚠️ **ADR-034 (T-044g):** `redactAuditDiff` bir **EMNİYET AĞI**, koruma değil — ada bağlı çalışır. Asıl kural: sır `diff`e HİÇ KONMAZ. T-044g taraması: `buildDiff` kullanan on bir çağrı yerinin hiçbiri bugün sır taşımıyor, ama üç silme eylemi SİLİNEN SATIRIN TAMAMINI yazıyor (**BULGU-019**). ⚠️ kalma sebebi: muhasebe mutasyonları henüz yazılmadı (F4–F5). |
+| 20 | Loglarda şifre/token/TOTP/tam e-posta yok | ⚠️ | Sağlık ucu §8.20'ye uyuyor (T-003b'de tarandı: altyapı izi 0 eşleşme) ve bu T-016b'de **kapıya bağlandı** (`api-routes.spec.ts` → bağlantı dizesi / yığın izi / dosya yolu / ortam değişkeni adı desenleri). `writeAuditLog` `diff` üzerinde otomatik redaksiyon yapıyor (T-015) — ama **ADR-034'ten sonra bu bir KORUMA değil EMNİYET AĞIDIR** ve belgede artık öyle anılıyor: ada bağlı çalıştığı için bilmediği adı ({`yeniSifre`}, {`pass`}) ve masum bir anahtarın DEĞERİNE gömülü sırrı geçirir (üç ayrı ajan ölçtü, aynı sonuç). **T-043g — YANIT YÜKÜ de artık ölçülüyor:** KVKK kapsamındaki `ip`/`userAgent` yalnızca detay rotasının yükünde; liste rotasının ham gövdesinde ikisi de YOK (`panel-mesaj-kvkk.spec.ts`, bağımsız ikinci ölçüm, mutasyonla sınandı). ⚠️ kalma sebebinin GÜNCEL hâli (T-044g): T-043g'de "merkezî redaksiyon yardımcısı yok" yazmıştım; yardımcı aslında var (`redactAuditDiff`) ve asıl gerekçe **ADR-034**: redaksiyon **ada bağlı**, yani bilinmeyen alan adlarını ve değere gömülü sırları yakalayamaz. Bunu bir "koruma" saymak, tam da ADR-034'ün yasakladığı güven. Ayrıca uygulama loglarının (`console.error` vb.) kendisi için hâlâ merkezî bir redaksiyon yok. |
 | 21 | Gece 03:00 şifreli `pg_dump` → R2, 30 gün | ⏳ | T-066 / T-073 · **Uyarı:** yol haritası F6/F7 diyor; gerçek muhasebe verisi F4'te girilmeye başlıyor. Yedeksiz geçen her F4 günü, başka kopyası olmayan mali veri riski. |
 | 22 | `restore.md` + en az bir prova | ⏳ | T-066 |
 | 23 | Yedek checksum doğrulaması | ⏳ | T-066 |
-| 24 | `npm audit` merge kapısı | ✅ | **Kuruldu** (T-005): `.github/workflows/ci.yml` → `bagimlilik-denetimi` işi, `pnpm audit --audit-level high` (ADR-003 gereği `npm` değil `pnpm`). Yüksek **ve** kritik kapsanır. Depo şu an temiz (her seviyede 0 açık). Kapının kırmızıya döndüğü ayrı bir izole projede kanıtlandı: `lodash@4.17.11` + `minimist@1.2.0` → 9 açık (2 kritik, 3 yüksek) → **EXIT 1**. Ayrıca yabancı kilit dosyası kontrolü de aynı işte. **T-005c — kapı gerçek bir advisory'de tetiklendi ve tuttu:** `nanoid` GHSA-2v37-7h3g-55p8 (Yüksek, geçişli, 9 yol) kodda hiçbir değişiklik yokken hattı kırmızıya çevirdi; `pnpm.overrides` ile kapandı, EXIT 0. Artık yalnızca izole projede değil, **kendi deposunda** kanıtlı. Tekrarlayan advisory'ler için oyunkitabı yazıldı (kaldırma koşulu + altı aylık gözden geçirme dahil). **T-029c — kapı artık HAFTALIK da koşuyor** (`schedule: '17 6 * * 1'`, Pazartesi 09:17 TRT): advisory'ler kod değişmeden yayınlandığı için yalnızca push/PR'da koşan bir denetim, sessiz geçen bir hafta boyunca yüksek bir açığı fark etmez. Zamanlanmış koşumda diğer iki iş `if: github.event_name != 'schedule'` ile atlanır. **T-005d — kapı ikinci kez tetiklendi ve bu kez düzeltilemedi:** `deepmerge-ts` GHSA-ggr8-5vv4-36mx (Yüksek, geçişli, 3 yol, hepsi `prisma` CLI zinciri). Yama majör sınırının ötesinde ve üst paket sürümü tam sabitliyor → oyunkitabı **katman D**. Kapı artık `pnpm audit --json` çıktısını okuyan bir betikten geçiyor: yalnızca **süreli ve kayıtlı** istisnalar tolere ediliyor (ADVISORY-002, bitiş **2026-11-22**), süre dolunca / yol değişince / istisna gereksizleşince kapı **kırmızı**. Altı kırılma dalının hepsi mutasyonla ayrı ayrı doğrulandı. `pnpm.auditConfig` bilerek kullanılmadı — süresizdir. |
+| 24 | `npm audit` merge kapısı | ✅ | **Kuruldu** (T-005): `.github/workflows/ci.yml` → `bagimlilik-denetimi` işi, `pnpm audit --audit-level high` (ADR-003 gereği `npm` değil `pnpm`). Yüksek **ve** kritik kapsanır. Depo şu an temiz (her seviyede 0 açık). Kapının kırmızıya döndüğü ayrı bir izole projede kanıtlandı: `lodash@4.17.11` + `minimist@1.2.0` → 9 açık (2 kritik, 3 yüksek) → **EXIT 1**. Ayrıca yabancı kilit dosyası kontrolü de aynı işte. **T-005c — kapı gerçek bir advisory'de tetiklendi ve tuttu:** `nanoid` GHSA-2v37-7h3g-55p8 (Yüksek, geçişli, 9 yol) kodda hiçbir değişiklik yokken hattı kırmızıya çevirdi; `pnpm.overrides` ile kapandı, EXIT 0. Artık yalnızca izole projede değil, **kendi deposunda** kanıtlı. Tekrarlayan advisory'ler için oyunkitabı yazıldı (kaldırma koşulu + altı aylık gözden geçirme dahil). **T-029c — kapı artık HAFTALIK da koşuyor** (`schedule: '17 6 * * 1'`, Pazartesi 09:17 TRT): advisory'ler kod değişmeden yayınlandığı için yalnızca push/PR'da koşan bir denetim, sessiz geçen bir hafta boyunca yüksek bir açığı fark etmez. Zamanlanmış koşumda diğer iki iş `if: github.event_name != 'schedule'` ile atlanır. **T-005d — kapı ikinci kez tetiklendi ve bu kez düzeltilemedi:** `deepmerge-ts` GHSA-ggr8-5vv4-36mx (Yüksek, geçişli, 3 yol, hepsi `prisma` CLI zinciri). Yama majör sınırının ötesinde ve üst paket sürümü tam sabitliyor → oyunkitabı **katman D**. Kapı artık `pnpm audit --json` çıktısını okuyan bir betikten geçiyor: yalnızca **süreli ve kayıtlı** istisnalar tolere ediliyor (ADVISORY-002, bitiş **2026-11-22**), süre dolunca / yol değişince / istisna gereksizleşince kapı **kırmızı**. Altı kırılma dalının hepsi mutasyonla ayrı ayrı doğrulandı. `pnpm.auditConfig` bilerek kullanılmadı — süresizdir. **T-042g — kapı ÜÇÜNCÜ kez gerçek bir olayda tetiklendi ve üçünde de doğru davrandı:** iki günlük boşlukta yayımlanan danışmalar (`mysql2`, `fast-uri`×4, `js-yaml`; ayrıca Orkestra Şefi'nin kapattığı iki KRİTİK `next` RCE'si) kod değişmeden hattı kırmızıya çevirdi. Üçü de kapatıldı (A/A/B), kapı **EXIT 0**. Mekanizmanın kendisi de sınandı: `deepmerge-ts` istisnası tolere edildi (70 gün kaldı) ve altı kırmızı dal (istisnasız advisory · süresi dolmuş istisna · ölü istisna · değişmiş yol · yanlış paket · ayrıştırılamayan çıktı) mutasyonla yeniden doğrulandı. |
 | 25 | Yeni bağımlılık onay + DECISIONS kaydı | ✅ | T-004'ün 9 paketi görev kartında adı adına onaylı. **T-005 ve T-006b `package.json`'a hiçbir paket eklemedi** — `@lhci/cli` bilinçli olarak `pnpm dlx @lhci/cli@0.15.1` ile ephemeral çağrılıyor (yalnızca CI aracı, uygulama bağımlılığı değil; sürüm sabit, `latest` kullanılmıyor). **T-006b:** tüm GitHub eylemleri Node 24 hedefleyen güncel kararlı majora taşındı — `checkout@v7`, `setup-node@v7`, `cache@v6`, `upload-artifact@v7`, `pnpm/action-setup@v6`. Yamasız çalışma zamanı bırakmama gerekçesi ADR-008 ile aynı hat. |
 
 **Özet:** ✅ 9 · ⚠️ 4 · ❌ 0 · ⏳ 12

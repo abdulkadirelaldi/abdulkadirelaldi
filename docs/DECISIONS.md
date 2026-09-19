@@ -1339,12 +1339,29 @@ mekanizması değildir.
 | Silme (slug'sız varlık) | `localeTag` |
 | `entityTag` | **hiçbir zaman** |
 
-**Genişletme 1 — eklemede `slugTag` de düşer (T-031).** Özgün metin "ekleme → `localeTag`"
-diyordu. Ama `getProjectBySlug` **olumsuz sonucu da önbelleğe alıyor**
-(`{ state: 'NOT_FOUND' }`). Biri `/projeler/yeni-slug`'ı kayıt açılmadan ziyaret ettiyse
-404 o slug'ın etiketiyle önbellektedir; yalnızca `localeTag` düşürmek **"listede var,
-tıklayınca yok"** üretir — bir saat sonra kendiliğinden düzelen, tam da bu ADR'nin
-uyardığı sınıftan bir hata.
+**Genişletme 1 — eklemede `slugTag` de düşer (T-031) — ⚠️ GEREKÇESİ T-039'DA ÇÜRÜTÜLDÜ.**
+Özgün gerekçe şuydu: `getProjectBySlug` olumsuz sonucu da önbelleğe alıyor
+(`{ state: 'NOT_FOUND' }`), dolayısıyla yalnızca `localeTag` düşürmek "listede var,
+tıklayınca yok" üretir.
+
+**Bu gerekçe yanlıştı ve yanlışlığı ölçüldü (T-039, mutasyon 2).** `slugTag` üretimini
+tamamen kaldıran mutasyon E2E'yi **yeşil** bıraktı. Sebep `content-cache.ts`'in kendi
+kuralı: her girdi kendisini düşürebilecek **tüm** etiketleri taşır, yani detay girdisi
+`entityTag + localeTag + slugTag` üçünü birden taşır. `localeTag` düşürmek detay
+girdisini de düşürür. Ayrıca `tagTargetsFor` slug'ları yalnızca `locales`'e zaten
+eklenmiş dillerden topluyor — yani **`slugTag`'siz bir düşürme yolu bugün kodda yok.**
+
+`slugTag` bugün **ispatlanabilir biçimde ölü**: davranışı değiştirmiyor. Kalmasının tek
+gerekçesi ileriye dönük: tek bir kaydı dar biçimde düşüren bir işlem çıkarsa
+(`localeTag`'e dokunmadan) gereken tek etiket odur. **Bu bir ihtimal, ölçülmüş bir
+ihtiyaç değil** — ve "bir şey yapıyormuş gibi duran ölü kod" bu projenin en pahalı
+hata sınıfı. Kararı Backend verecek (T-040); hangi yol seçilirse seçilsin `tags.ts`'teki
+yanlış gerekçe metni düzeltilecek.
+
+**Ders (bu ADR'nin asıl kazancı):** gerekçe kodun kendisinden değil, kodun *olması
+gerektiği* düşünülen hâlinden türetilmişti. Ben bu genişletmeyi Backend'in raporundan
+ölçmeden ADR'ye aldım. Mutasyon testi bunu yakaladı — yeşil kalan bir mutasyon, kırmızı
+olan kadar bilgi taşır.
 
 **Genişletme 2 — `entityTag` hiçbir zaman düşürülmez (T-031).** Her girdi onu taşıdığı
 için düşürmek **her zaman doğru sonucu verirdi** — tehlikeli olan da bu: Türkçe bir
@@ -1516,3 +1533,106 @@ pahalılaştığında yeniden değerlendirilir; T-030d bu eşiği kod yorumunda 
 - **Filtreli okumaları hiç önbelleğe almamak** (T-030'un K4'ü) — Sorunu önlerdi; **reddedildi** çünkü filtreli sayfa her istekte DB'ye giderdi ve ADR-011'in F2 için şart koştuğu korumadan çıkardı.
 - **Filtre değerini anahtara koyup girdi sayısına üst sınır koymak** — Next'te yerleşik bir mekanizma yok; uygulama katmanında LRU yazmak, çözdüğünden fazla karmaşıklık getirirdi.
 - **Kuralı yalnızca kod yorumunda bırakmak** — **reddedildi**: aynı soru F3/F4'te başka bir ajan tarafından sorulacak ve yorum o dosyada kalır.
+
+---
+
+## ADR-033 — URL Filtre Boole'ları `booleanFilterSchema` ile Ayrıştırılır; `z.coerce.boolean()` Yasak
+
+**Tarih:** 2026-09-11 · **Durum:** Kabul edildi · **Kaynak:** T-038 (Backend ölçümü)
+
+### Bağlam
+Sekiz filtre şeması URL arama parametrelerindeki boole alanlarını `z.coerce.boolean()`
+ile ayrıştırıyordu. Bu çağrı JavaScript'in `Boolean(value)` çağrısıdır ve **boş olmayan
+her dize `true`'dur**.
+
+Ölçüldü (zod 4.4.3): `"false"` → `true`, `"0"` → `true`.
+
+Kusur tam da şemaların tasarlandığı kullanımda ortaya çıkıyordu — kendi yorumları
+"değerler DAİMA string'tir" diyor. `?isRead=false` "okunmamışları getir" derken tam
+tersini yapıyor ve **hiçbir hata vermiyordu**. Filtre çalışıyor görünür, yalnızca yanlış
+kümeyi döndürür: bu projede tanınan en pahalı sınıf.
+
+### Karar
+`src/lib/schemas/common.ts` içindeki **`booleanFilterSchema`** tek geçerli yoldur.
+Yalnızca `true` / `false` / `1` / `0` kabul eder; **tanınmayan değer hata verir** —
+sessizce `true`'ya düşmek yerine gürültülü başarısızlık, ki yazım hatası fark edilsin.
+
+`z.coerce.boolean()` filtre şemalarında **kullanılmaz**.
+
+T-038 sekiz şemadaki on bir kullanımın **hepsini** çevirdi. Yalnızca mesaj kutusununki
+düzeltilseydi geri kalan yedi filtre aynı sessiz kusuru taşımaya devam ederdi ve F4/F5
+onları bozuk bulurdu: `project.featured`, `client.isArchived`/`isKiyiMedya`,
+`transaction.isPaid`, `habit.isActive`, `exercise.isArchived`,
+`transaction-category.isArchived`, `recurring-transaction.isActive`.
+
+### Sonuçlar
+- **Olumlu:** Sınıfın tamamı tek turda kapandı; F4/F5 filtreleri düzelmiş bulacak.
+- **Olumlu:** Gürültülü başarısızlık, `?isRad=false` gibi yazım hatalarını da yakalar.
+- **Olumsuz / kabul edilen:** Tanınmayan değer artık 400 üretir. Kabul edildi: sessizce
+  yanlış kümeyi döndürmekten iyidir.
+
+### Alternatifler ve neden reddedildi
+- **Yalnızca mesaj kutusunun şemasını düzeltmek** — **reddedildi**: aynı sınıf kusurun
+  bir örneğini düzeltip yedisini bırakmak, kusurun bilindiği hâlde taşındığı anlamına gelir.
+- **Tanınmayan değeri sessizce `false` saymak** — **reddedildi**: yön değişirdi, sessizlik
+  kalırdı. Sorun yön değil, sessizlikti.
+
+---
+
+## ADR-034 — `redactAuditDiff` Bir Emniyet Ağıdır, Korumanın Kendisi Değil
+
+**Tarih:** 2026-09-19 · **Durum:** Kabul edildi · **Kaynak:** T-042s (Backend), Orkestra Şefi tarafından bağımsız doğrulandı
+
+### Bağlam
+§8.20 hassas verinin denetim kaydına ve loglara yazılmamasını şart koşuyor.
+`redactAuditDiff` bu koruma diye anılıyordu. T-042s kapsamını ölçtü; ben bağımsız
+bir sonda ile tekrar ölçtüm. İkisi aynı sonucu verdi:
+
+| Girdi | Sonuç |
+|-------|-------|
+| `password`, `newPassword`, `currentPassword`, `passwordHash` | ✅ maskelendi |
+| iç içe (`after.newPassword`) ve dizi içinde | ✅ maskelendi |
+| **farklı ad** — `{ yeniSifre: '…' }`, `{ pass: '…' }`, `{ secret_value: '…' }` | ❌ **sızıyor** |
+| **masum anahtarın değerine gömülü** — `{ note: 'şifre: …' }` | ❌ **sızıyor** |
+
+Ham çıktı: `{"yeniSifre":"SIZAN_DEGER_1","pass":"SIZAN_DEGER_2"}` ·
+`{"note":"sifre: SIZAN_DEGER_3"}`
+
+Redaksiyon **alan adı bazlıdır**. Bilinen bir ad listesine bakar; adı bilmediği
+hiçbir şeyi koruyamaz — ve bir alanın adını seçen kişi, o adın listede olup
+olmadığını düşünmek zorunda kalmaz. Koruma, hatırlamayı gerektirdiği anda koruma
+olmaktan çıkar.
+
+### Karar
+**Tek güvenilir koruma sırrı diff'e hiç koymamaktır.**
+
+Hassas veri taşıyan bir işlemde `buildDiff` **kullanılmaz**. Denetim kaydına neyin
+değiştiğinin **adı** yazılır, değeri değil — T-042s'in kalıbı:
+`{ context: 'CHANGE_PASSWORD', changed: 'passwordHash' }`.
+
+`redactAuditDiff` kaldırılmıyor: bilinen adları yakalamaya devam ediyor ve ikinci
+savunma hattı olarak değerli. Ama **hiçbir görev kartı, hiçbir kod yorumu ve hiçbir
+ADR onu "koruma" diye anmayacak.** Adı emniyet ağı.
+
+**Bağlayıcı kural:** Hassas veri yazan her yol, yazılan satırda sırrın bulunmadığını
+**`writeAuditLog` taklit edilmeden, gerçek koduyla** ölçen bir test taşır. "Redaksiyon
+var, o hâlde güvendeyiz" çıkarımı bir daha kurulamaz — T-042s ağın sınırını kaydeden
+ayrı bir test de yazdı ve o test bu ADR'nin kodda duran hâli.
+
+### Sonuçlar
+- **Olumlu:** Sınıf bir kez ölçüldü ve iki bağımsız ölçümle sabitlendi.
+- **Olumlu:** Kural mekanik — "buildDiff kullanma" denetlenebilir, "dikkatli ol" değil.
+- **Olumsuz / kabul edilen:** Hassas yollarda denetim kaydı daha az bilgi taşır.
+  Kabul edildi: §8.21 yedeklerine sızan bir sır geri alınamaz, eksik bir denetim
+  satırı ise yalnızca eksiktir.
+
+### Alternatifler ve neden reddedildi
+- **Redaksiyon listesini genişletmek** (`yeniSifre`, `pass`, `secret`, …) —
+  **reddedildi**: liste her zaman bir adım geride kalır ve genişletmek, ağın koruma
+  olduğu yanılsamasını **güçlendirir**. Kusurun kaynağı listenin kısalığı değil,
+  ada bağlı olması.
+- **Değer bazlı tarama** (entropi, `$argon2id$` deseni) — **reddedildi**: yanlış
+  pozitifler denetim kaydını okunamaz kılar, ve gömülü serbest metni yine kaçırır.
+- **Kuralı yalnızca kod yorumunda bırakmak** — **reddedildi**: aynı varsayım bu
+  projede **iki kez** kuruldu (T-038'de mesaj gövdesi, T-042s'de şifre). Üçüncüsünü
+  ADR engellesin.

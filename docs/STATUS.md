@@ -123,15 +123,50 @@ Durum kodları: ⚪ Bekliyor · 🔵 Aktif · 🟡 Kısmen · 🟢 Tamamlandı �
 | §9 — Lighthouse | ✅ **merge kapısı**, eşikler `error` |
 | İletişim formu | ✅ §8.15 hız sınırı · honeypot · zaman tuzağı · uçtan uca ölçüldü |
 
-**901 birim + 69 E2E · §8: ✅ 9 · ⚠️ 4 · ⏳ 12**
+**1093 birim + 85 E2E · §8: ✅ 10 · ⚠️ 6 · ❌ 0 · ⏳ 9** *(PR #13 sonrası)*
 
-**F2'den devreden borçlar (F3 boyunca):**
-1. **T-037** — imzalı URL'ler gelmeden tüm kapaklar yer tutucu; `LogoLoop` bölümü kapalı
-2. **`readingMinutes` yazma yolu** — kolon her kayıtta yeniden hesaplanmalı (T-031)
-3. **Rota envanteri ↔ kapı kapsamı** karşılaştırması (T-029d önerisi)
-4. **ADVISORY-002** — 2026-11-22'de kendini hatırlatacak
-5. **Yerel Docker kararsızlığı** — bu turda üçüncü kez düştü; F3'te ölçüm görevleri artacak
-6. **Sunucu-only zorlanan şema alanları** için konvansiyon (T-026b önerisi)
+**§9 senaryoları: 5 kapalı · 1 kısmi · 1 açık** *(T-044g sonrası; F3 başında 2 kapalıydı)*
+Kapalı: **1** (ana sayfa → kart → detay → CTA, T-044g) · **2** (form → panel, T-043g) ·
+3 (giriş+2FA) · 4 (girişsiz /panel → login) · **6** (yayınla → public'te görün —
+T-039 mutasyonla, **literal DRAFT→PUBLISHED hâli T-044g'de**).
+Kısmi: **7** (mobilde geçiyor, panel gezinme iddiaları yazılmadı — tek specle kapanır,
+sayacı 6'ya çıkarır). Açık: **5** (finans, F4/F5).
+
+**Açık borçlar (F3 boyunca):**
+1. **T-037** — imzalı URL'ler gelmeden tüm kapaklar yer tutucu; `LogoLoop` bölümü kapalı.
+   **Beş şey bunu bekliyor:** proje kapakları, galeri, blog kapakları, CV indirme, müşteri logoları
+2. **Dolu silah → T-043f** — panel okuma yolu yazıldı ama bağlanmadı; sabit `status`
+   hâlâ yerinde *(ayrıntı F3 tablosunda)*
+3. **Arşivlenen adres 410 değil 200 dönüyor** — Next 15.5 sınırı (T-024); panel metni
+   gerçeğe çekildi, engel kalkınca güncellenecek
+4. **ADVISORY-002** — 2026-11-22'de kendini hatırlatacak; T-042g ölçtü: `@prisma/config@7.10.0`
+   hâlâ `deepmerge-ts@7.1.5` sabitliyor, `prisma@latest` artık `8.0.0-rc.14`
+5. **`latest` etiketi kararlı değil** — `prisma` → 8.0.0-rc.14, `vitest` → 5.0.0,
+   `next` → 16.3.4 (biz 15.5.25). `nanoid` → 6.0.1 ile aynı sınıf tuzak. F6'nın
+   Prisma 8 / Next 16 görevlerinden önce yazılı olmalı (T-043g)
+6. **Yerel Docker kararsızlığı** — bu turda **beşinci** kez düştü; `colima` Mac uykuya
+   geçince duruyor. Ölçüm görevlerinin başında `colima start && pnpm db:up` refleks olmalı
+7. **Şifre değiştirmek ele geçirilmiş oturumu KAPATMIYOR** (BULGU-020) — ADR-013 JWT
+   seçti. T-044g ölçtü: ara katmana `db` eklenince build **EXIT 1**
+   (`UnhandledSchemeError`); depoda **üç** `await auth()` var ve `(panel)` altındaki
+   tek çağıran `ayarlar/guvenlik` — **panel düzeni çağırmıyor.** Yani `auth()` kontrolü
+   yazmaları kapatır, **okumaları kapatmaz**. Kontrolün sorgu maliyeti p50 0,49 ms;
+   asıl bedel "normal istek yolu DB'ye gitmez" özelliğinin kaybı.
+   → **T-046** (A: ömür 7g→24s hemen · B: `writesValidFrom`, yazmalar · C: okumalar F6'ya)
+8. **`redactAuditDiff` ada bağlı** (ADR-034) — üç bağımsız ölçümle sabitlendi.
+   Sınırı "yalnızca üst seviye" değil, **tam olarak ad bilgisi**:
+   `{deleted:{passwordHash}}` maskeleniyor, `{deleted:{yeniSifre}}` sızıyor.
+9. **BULGU-019** — silme eylemleri `diff: { deleted: before }` ile satırın tamamını
+   yazıyor. Bugün sızıntı yok; kalıp **alan seçimini modele devrediyor**, yarınki bir
+   sütun diff'e otomatik girer ve tip sistemi göremez → T-046
+10. **§9/7 kısmi** — panelin mobil gezinme iddiaları yazılmadı; tek specle kapanır
+
+*Kapanan borçlar: `readingMinutes` yazma yolu (T-031) · rota envanteri ↔ kapı kapsamı
+(T-016b) · sunucu-only şema alanı konvansiyonu (T-031) · ENGEL-1 sunucu yarısı (T-040) ·
+`tags.ts` yanlış gerekçesi (T-040) · düzenlemede boş MDX (T-040, tek kayıt okuma).*
+
+*Kapanan borçlar: `readingMinutes` yazma yolu (T-031) · rota envanteri ↔ kapı kapsamı
+(T-016b) · sunucu-only şema alanı konvansiyonu (T-031, `serverInterpreted`).*
 
 | #     | Görev                                                                      | Ajan     | Bağımlılık   |
 | ----- | -------------------------------------------------------------------------- | -------- | ------------ |
@@ -156,22 +191,53 @@ ederken karşılığında şart koştuğu koruma.
 
 ---
 
-### F3 — Panel Çekirdek ⚪
+### F3 — Panel Çekirdek 🔵
 
-| #     | Görev                                                                             | Ajan               | Bağımlılık   |
-| ----- | --------------------------------------------------------------------------------- | ------------------ | ------------ |
-| T-030 | İçerik servisleri: `Profile`, `Project`, `Post`, `Experience`, `Skill`, `Service` | Backend            | T-015        |
-| T-031 | İçerik Server Actions + `AuditLog` + `revalidatePath`                             | Backend            | T-030        |
-| T-032 | Panel layout: Sidebar, Topbar, breadcrumb, boş/yükleniyor/hata desenleri          | Frontend           | T-002, T-013 |
-| T-033 | Panel dashboard — özet kartlar (`CountUp`), bugünün planı                         | Frontend           | T-032, T-030 |
-| T-034 | `/panel/icerik/projeler` + `/panel/icerik/deneyim` CRUD ekranları                 | Frontend           | T-031, T-032 |
-| T-035 | `/panel/icerik/blog` — MDX editör + önizleme                                      | Frontend           | T-031, T-032 |
-| T-036 | `/panel/icerik/profil` — hero metni, bio, sosyaller, CV dosyası                   | Frontend           | T-031, T-032 |
-| T-037 | R2 yükleme ucu + imzalı URL + dosya doğrulayıcı (§8.11)                           | Backend + Güvenlik | T-015        |
-| T-038 | `/panel/mesajlar` + "işe dönüştür" aksiyonu                                       | Backend + Frontend | T-027, T-032 |
-| T-039 | E2E: senaryo 2 ve 6 (mesaj panele düşer, proje yayınlanır)                        | Güvenlik           | T-034, T-038 |
+| #      | Görev                                                                             | Ajan               | Bağımlılık   |
+| ------ | --------------------------------------------------------------------------------- | ------------------ | ------------ |
+| T-030  | İçerik servisleri: `Profile`, `Project`, `Post`, `Experience`, `Skill`, `Service` | Backend            | T-015        |
+| T-031  | İçerik Server Actions + `AuditLog` + etiket düşürme — 🟢 **Tamam** (PR #12)       | Backend            | T-030        |
+| T-032  | Panel layout: Sidebar, Topbar, breadcrumb, desenler — 🟢 **Tamam** (PR #12)       | Frontend           | T-002, T-013 |
+| T-016b | Rota kapsamı kapısı — 🟢 **Tamam** (PR #12)                                       | Güvenlik           | T-032        |
+| T-034  | `/panel/icerik/{projeler,deneyim}` CRUD — 🟢 **Tamam** (PR #13)                   | Frontend           | T-031, T-032 |
+| T-038  | Mesaj kutusu okuma + durum eylemleri + §6 dönüşümü — 🟢 **Tamam** (PR #13)        | Backend            | T-027, T-032 |
+| T-039  | E2E §9/6 kapandı, §9/2 ekran bekliyor — 🟢 **Tamam** (PR #13)                     | Güvenlik           | T-034, T-038 |
+| T-040  | Panel okuma servisi (tüm durumlar + `status` DTO) — 🟢 **Tamam** (PR #13)         | Backend            | T-038        |
+| T-041f | Mesaj kutusu **ekranı** + dönüşüm — 🟢 **Tamam** (PR #13)                         | Frontend           | T-038        |
+| T-042g | §8.24: üç yeni yüksek danışma kapatıldı — 🟢 **Tamam** (PR #13)                   | Güvenlik           | —            |
+| T-043g | Rota kapsamı + §9/2'nin dördüncü halkası — 🟢 **Tamam** (PR #13)                  | Güvenlik           | T-041f       |
+| T-043f | Panel ekranları bağlandı, dolu silah boşaltıldı — 🟢 **Tamam** (PR #13)           | Frontend           | T-040        |
+| T-042s | Şifre değiştirme sunucu yarısı — 🟢 **Tamam** (PR #13)                            | Backend            | T-013b       |
+| T-044g | Dört rota beyanı + ADR-034 yayılımı + §9/1 — 🟢 **Tamam** (PR #13)                | Güvenlik           | T-043f       |
+| T-046  | Oturum geçersizleştirme (A/B) + şifre hız sınırı + BULGU-019 — **P0**              | Backend            | T-044g       |
+| T-035  | `/panel/icerik/blog` — MDX editör + önizleme                                      | Frontend           | T-043f       |
+| T-036b | `/panel/icerik/profil` — hero metni, bio, sosyaller, CV dosyası                   | Frontend           | T-031, T-032 |
+| T-033  | Panel dashboard — özet kartlar (`CountUp`), bugünün planı                         | Frontend           | T-040        |
+| T-042f | Şifre değiştirme ekranı                                                           | Frontend           | T-042s       |
+| T-037  | R2 yükleme ucu + imzalı URL + dosya doğrulayıcı (§8.11) — 🔴 **R2 hesabı bekliyor** | Backend + Güvenlik | T-015        |
+| T-045  | Önbellek granülasyonu: detay girdilerinden `localeTag` çıkarma — **F3 sonrası**    | Backend            | T-040        |
 
-**Sıra:** T-030 → T-031 → T-032 → (T-033…T-036) → T-037 → T-038 → T-039
+**Sıra:** T-030 ✅ → T-031 ✅ → T-032 ✅ → (T-034 ✅ ∥ T-038 ✅ ∥ T-039 ✅) →
+(T-040 ✅ ∥ T-041f ✅ ∥ T-042g ✅) → (**T-043g ∥ T-043f ∥ T-042s**) →
+(T-035 ∥ T-042f ∥ T-033 ∥ T-036b) → T-037 → F3 kapanış → T-045
+
+**T-043f neden P0 — "dolu silah" (Orkestra Şefi ölçümü, 2026-09-15):**
+Depoda bugün canlı bir hata **yok** ve tehlike tam olarak bu.
+`panel/icerik/projeler/page.tsx:5` hâlâ `getPublishedProjects` okuyor;
+`projeler-ekrani.tsx:184` hâlâ `status: ContentStatus.PUBLISHED` **sabit yazıyor**.
+İkisi birbiriyle tutarlı, kimse zarar görmüyor.
+
+T-040 `fetchProjectsForPanel`'i yazdı. **İmportu değiştirmek tek satırlık, apaçık
+doğru görünen bir değişiklik** — ve o satır tek başına değiştiği anda bir taslağı
+düzenleyip kaydetmek onu sessizce yayına alır. Hiçbir test kırmızıya dönmez.
+Bu yüzden iki yarı **aynı görevde ve aynı turda**; bölünürse arada kalan tur
+sessiz veri kaybının penceresi olur.
+
+**T-045 (Backend'in önerisi, kabul edildi, ertelendi):** `cached.ts`'te detay
+girdilerinden `localeTag`'i çıkarmak aşırı geçersizleştirmeyi giderir (A'yı
+düzenlemek B'nin sayfasını düşürmez) ve `slugTag`'i yük taşıyan hâle getirir.
+Public önbellek davranışını değiştirdiği için **kendi ölçüm görevini hak ediyor**
+ve bu turda Frontend'in ölçüm görevi var (ADR-023: iki ölçüm görevi paralel koşamaz).
 
 ---
 

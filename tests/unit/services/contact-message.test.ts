@@ -37,14 +37,27 @@ function istemci(): {
   client: ContactMessageClient;
   create: ReturnType<typeof vi.fn>;
   count: ReturnType<typeof vi.fn>;
+  findMany: ReturnType<typeof vi.fn>;
+  findUnique: ReturnType<typeof vi.fn>;
+  update: ReturnType<typeof vi.fn>;
 } {
   const create = vi.fn().mockResolvedValue({ id: 'msj_1', createdAt: AN });
   const count = vi.fn().mockResolvedValue(2);
-  // Cast YOK: `ContactMessageClient` dar bir arayüz olduğu için taklit ona
-  // doğrudan oturuyor. Servis yeni bir Prisma metodu kullanmaya başlarsa bu
-  // satır derlenmez — test sessizce eski yüzeyi doğrulamaya devam edemez.
-  const client: ContactMessageClient = { contactMessage: { create, count } };
-  return { client, create, count };
+  const findMany = vi.fn().mockResolvedValue([]);
+  const findUnique = vi.fn().mockResolvedValue(null);
+  const update = vi.fn().mockResolvedValue(null);
+  /*
+   * Cast YOK: `ContactMessageClient` dar bir arayüz olduğu için taklit ona
+   * doğrudan oturuyor. Servis yeni bir Prisma metodu kullanmaya başlarsa bu
+   * satır derlenmez — test sessizce eski yüzeyi doğrulamaya devam edemez.
+   *
+   * T-038'de KAPI ÇALIŞTI: mesaj kutusu `findMany`/`findUnique`/`update`
+   * eklediğinde burası derlenmedi ve üç metodu eklemek zorunda kaldım.
+   */
+  const client: ContactMessageClient = {
+    contactMessage: { create, count, findMany, findUnique, update },
+  };
+  return { client, create, count, findMany, findUnique, update };
 }
 
 /* ============================== SAYAÇ — §8.15 =========================== */

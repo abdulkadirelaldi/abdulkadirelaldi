@@ -3,6 +3,7 @@ import * as z from 'zod';
 import { Equipment, MuscleGroup } from '@/types';
 
 import {
+  booleanFilterSchema,
   cuidSchema,
   paginationSchema,
   partialWithoutDefaults,
@@ -28,7 +29,7 @@ export const archiveExerciseSchema = z.object({
 export const exerciseFilterSchema = paginationSchema.extend({
   muscleGroup: z.enum(MuscleGroup).optional(),
   equipment: z.enum(Equipment).optional(),
-  isArchived: z.coerce.boolean().optional(),
+  isArchived: booleanFilterSchema.optional(),
   q: searchSchema.optional(),
 });
 

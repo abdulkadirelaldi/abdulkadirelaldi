@@ -130,3 +130,82 @@ export async function clearLoginAttempts(): Promise<void> {
 export async function resetAuthState(since?: Date): Promise<void> {
   await runTask('resetAuthState', since?.toISOString());
 }
+
+/* ===========================================================================
+ * §9/6 ve §9/2 — içerik izleri (T-039)
+ * ======================================================================== */
+
+/** E2E'nin ürettiği kayıtların ortak öneki — temizlik bu öneke dayanıyor. */
+export const E2E_ICERIK_ONEKI = 'e2e-t039';
+
+export interface ProjeDurumu {
+  bulundu: boolean;
+  status?: string;
+  locale?: string;
+  publishedAt?: string | null;
+}
+
+/** Slug'ı verilen projenin DB'deki yayın durumu. */
+export async function projeDurumu(slug: string): Promise<ProjeDurumu> {
+  return runTask<ProjeDurumu>('projeDurumu', JSON.stringify({ slug }));
+}
+
+/** Test projelerini siler (slug öneki zorunlu). */
+export async function projeleriTemizle(slugOneki: string): Promise<number> {
+  const { silinen } = await runTask<{ silinen: number }>(
+    'projeleriTemizle',
+    JSON.stringify({ slugOneki }),
+  );
+  return silinen;
+}
+
+export interface IletisimMesajiOzeti {
+  bulundu: boolean;
+  /** Opak cuid — panelde satırı bulmak için (`[data-mesaj-id]`). */
+  id?: string;
+  isRead?: boolean;
+  arsivlendi?: boolean;
+  honeypotHit?: boolean;
+  isSpam?: boolean;
+  spamScore?: number | null;
+  adEsit?: boolean | null;
+  epostaEsit?: boolean | null;
+  mesajEsit?: boolean | null;
+  ipYazildi?: boolean;
+  userAgentYazildi?: boolean;
+}
+
+/**
+ * Gönderilen mesajın DB'deki ÖZETİ.
+ *
+ * Beklenen değerler argüman olarak gidiyor ve karşılaştırma alt süreçte
+ * yapılıyor: mesaj gövdesi, e-posta ve IP test çıktısına HİÇ düşmesin (§8.20).
+ */
+export async function iletisimMesajiOzeti(beklenen: {
+  subject: string;
+  name?: string;
+  email?: string;
+  message?: string;
+}): Promise<IletisimMesajiOzeti> {
+  return runTask<IletisimMesajiOzeti>('iletisimMesajiOzeti', JSON.stringify(beklenen));
+}
+
+/** Panelin okuma yolu (`fetchContactMessages`) bu mesajı görüyor mu? */
+export async function mesajKutusuIceriyorMu(subject: string): Promise<{
+  toplam: number;
+  okunmamis: number;
+  iceriyor: boolean;
+  isRead: boolean | null;
+  isSpam: boolean | null;
+  onizlemeUzunlugu: number | null;
+}> {
+  return runTask('mesajKutusuIceriyorMu', JSON.stringify({ subject }));
+}
+
+export async function iletisimMesajlariniTemizle(konuOneki: string): Promise<number> {
+  const { silinen } = await runTask<{ silinen: number }>(
+    'iletisimMesajlariniTemizle',
+    JSON.stringify({ konuOneki }),
+  );
+  return silinen;
+}

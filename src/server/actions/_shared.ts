@@ -58,15 +58,27 @@ function prismaErrorCode(error: unknown): string | null {
  *
  * Diğer her şey `internalError`dan geçer: ayrıntı loga, kullanıcıya sabit mesaj
  * (§8.20 — yığın izi ve veritabanı metni yanıta GİRMEZ).
+ *
+ * `conflict` PARAMETRESİ (T-038): P2002'nin varsayılan metni slug'a özeldir,
+ * çünkü içerik varlıklarında benzersizlik ihlali daima `@@unique([slug, locale])`
+ * demekti. Mesaj→iş dönüşümünde ise `Job.contactMessageId @unique` ihlal olur ve
+ * kullanıcıya "slug zaten kullanılıyor" demek ANLAMSIZDIR — ortada slug yok.
+ * Varsayılanı bozmadan, çağıranın kendi metnini vermesine izin veriliyor.
  */
-export function toFailure(context: string, error: unknown): ApiFailure {
+export function toFailure(
+  context: string,
+  error: unknown,
+  conflict?: { message: string; fields?: Record<string, string> },
+): ApiFailure {
   switch (prismaErrorCode(error)) {
     case 'P2002':
-      return fail(
-        'CONFLICT',
-        'Bu adres (slug) aynı dilde zaten kullanılıyor. Farklı bir slug girin.',
-        { slug: 'Bu slug zaten kullanılıyor.' },
-      );
+      return conflict
+        ? fail('CONFLICT', conflict.message, conflict.fields)
+        : fail(
+            'CONFLICT',
+            'Bu adres (slug) aynı dilde zaten kullanılıyor. Farklı bir slug girin.',
+            { slug: 'Bu slug zaten kullanılıyor.' },
+          );
     case 'P2025':
       return fail('NOT_FOUND', 'Kayıt bulunamadı. Başka bir yerden silinmiş olabilir.');
     default:
