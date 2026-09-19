@@ -125,10 +125,12 @@ Durum kodları: ⚪ Bekliyor · 🔵 Aktif · 🟡 Kısmen · 🟢 Tamamlandı �
 
 **1093 birim + 85 E2E · §8: ✅ 10 · ⚠️ 6 · ❌ 0 · ⏳ 9** *(PR #13 sonrası)*
 
-**§9 senaryoları: 3 kapalı · 3 kısmi · 1 açık** — kapalı: 3 (giriş+2FA), 4 (girişsiz
-/panel → login), **6 (yayınla → public'te görün, T-039, mutasyonla doğrulandı)**.
-Kısmi: 1 (uçlar ölçülü, tıklama zinciri değil), 2 (üç halka kapalı, ekran bekliyor),
-7 (mobilde geçiyor, panel gezinme iddiaları yazılmadı). Açık: 5 (finans, F4/F5).
+**§9 senaryoları: 5 kapalı · 1 kısmi · 1 açık** *(T-044g sonrası; F3 başında 2 kapalıydı)*
+Kapalı: **1** (ana sayfa → kart → detay → CTA, T-044g) · **2** (form → panel, T-043g) ·
+3 (giriş+2FA) · 4 (girişsiz /panel → login) · **6** (yayınla → public'te görün —
+T-039 mutasyonla, **literal DRAFT→PUBLISHED hâli T-044g'de**).
+Kısmi: **7** (mobilde geçiyor, panel gezinme iddiaları yazılmadı — tek specle kapanır,
+sayacı 6'ya çıkarır). Açık: **5** (finans, F4/F5).
 
 **Açık borçlar (F3 boyunca):**
 1. **T-037** — imzalı URL'ler gelmeden tüm kapaklar yer tutucu; `LogoLoop` bölümü kapalı.
@@ -144,13 +146,20 @@ Kısmi: 1 (uçlar ölçülü, tıklama zinciri değil), 2 (üç halka kapalı, e
    Prisma 8 / Next 16 görevlerinden önce yazılı olmalı (T-043g)
 6. **Yerel Docker kararsızlığı** — bu turda **beşinci** kez düştü; `colima` Mac uykuya
    geçince duruyor. Ölçüm görevlerinin başında `colima start && pnpm db:up` refleks olmalı
-7. **Şifre değiştirmek ele geçirilmiş oturumu KAPATMIYOR** — ADR-013 JWT seçti,
-   sunucuda oturum kaydı yok. Ara katman Edge'de DB okuyamadığı için (T-014/K1) orada
-   zorlanamıyor. **Bugün panelin tek hesabı için açık duran en somut güvenlik sınırı.**
-   → T-044g ölçüp önerecek, T-046 uygulayacak. **F6'ya bırakılmadı.**
-8. **`redactAuditDiff` ada bağlı** (ADR-034) — farklı adla veya masum anahtarın
-   değerine gömülü sırlar sızıyor; iki bağımsız ölçümle sabitlendi. Emniyet ağı,
-   koruma değil. `buildDiff` kullanan başka hassas yol var mı → T-044g tarayacak
+7. **Şifre değiştirmek ele geçirilmiş oturumu KAPATMIYOR** (BULGU-020) — ADR-013 JWT
+   seçti. T-044g ölçtü: ara katmana `db` eklenince build **EXIT 1**
+   (`UnhandledSchemeError`); depoda **üç** `await auth()` var ve `(panel)` altındaki
+   tek çağıran `ayarlar/guvenlik` — **panel düzeni çağırmıyor.** Yani `auth()` kontrolü
+   yazmaları kapatır, **okumaları kapatmaz**. Kontrolün sorgu maliyeti p50 0,49 ms;
+   asıl bedel "normal istek yolu DB'ye gitmez" özelliğinin kaybı.
+   → **T-046** (A: ömür 7g→24s hemen · B: `writesValidFrom`, yazmalar · C: okumalar F6'ya)
+8. **`redactAuditDiff` ada bağlı** (ADR-034) — üç bağımsız ölçümle sabitlendi.
+   Sınırı "yalnızca üst seviye" değil, **tam olarak ad bilgisi**:
+   `{deleted:{passwordHash}}` maskeleniyor, `{deleted:{yeniSifre}}` sızıyor.
+9. **BULGU-019** — silme eylemleri `diff: { deleted: before }` ile satırın tamamını
+   yazıyor. Bugün sızıntı yok; kalıp **alan seçimini modele devrediyor**, yarınki bir
+   sütun diff'e otomatik girer ve tip sistemi göremez → T-046
+10. **§9/7 kısmi** — panelin mobil gezinme iddiaları yazılmadı; tek specle kapanır
 
 *Kapanan borçlar: `readingMinutes` yazma yolu (T-031) · rota envanteri ↔ kapı kapsamı
 (T-016b) · sunucu-only şema alanı konvansiyonu (T-031) · ENGEL-1 sunucu yarısı (T-040) ·
@@ -199,8 +208,8 @@ ederken karşılığında şart koştuğu koruma.
 | T-043g | Rota kapsamı + §9/2'nin dördüncü halkası — 🟢 **Tamam** (PR #13)                  | Güvenlik           | T-041f       |
 | T-043f | Panel ekranları bağlandı, dolu silah boşaltıldı — 🟢 **Tamam** (PR #13)           | Frontend           | T-040        |
 | T-042s | Şifre değiştirme sunucu yarısı — 🟢 **Tamam** (PR #13)                            | Backend            | T-013b       |
-| T-044g | Dört rota beyanı + ADR-034 yayılımı + oturum boşluğu — 🔴 **PR #13'ü blokluyor**  | Güvenlik           | T-043f       |
-| T-046  | Oturum geçersizleştirme — T-044g'nin önerisinden yazılacak                         | Güvenlik + Backend | T-044g       |
+| T-044g | Dört rota beyanı + ADR-034 yayılımı + §9/1 — 🟢 **Tamam** (PR #13)                | Güvenlik           | T-043f       |
+| T-046  | Oturum geçersizleştirme (A/B) + şifre hız sınırı + BULGU-019 — **P0**              | Backend            | T-044g       |
 | T-035  | `/panel/icerik/blog` — MDX editör + önizleme                                      | Frontend           | T-043f       |
 | T-036b | `/panel/icerik/profil` — hero metni, bio, sosyaller, CV dosyası                   | Frontend           | T-031, T-032 |
 | T-033  | Panel dashboard — özet kartlar (`CountUp`), bugünün planı                         | Frontend           | T-040        |
