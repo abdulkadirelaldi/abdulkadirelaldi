@@ -66,6 +66,25 @@ export interface AuthUserRecord {
   totpBackupCodes: string[];
 }
 
+/**
+ * `verifyTotpWithRecovery`nin gerçekten okuduğu alanlar — T-042s.
+ *
+ * `AuthUserRecord` bunu SAĞLAR (fazlasıyla); ayrı tutulması, ikinci faktörü
+ * doğrulayan başka akışların giriş akışının tamamını taklit etmesini önlüyor.
+ */
+export interface TotpVerifiable {
+  id: string;
+  totpSecret: string | null;
+  totpBackupCodes: string[];
+}
+
+/** Kurtarma kodu TÜKETİMİ için gereken asgari yazma yüzeyi. */
+export interface TotpConsumerClient {
+  user: {
+    update(args: { where: { id: string }; data: { totpBackupCodes?: string[] } }): Promise<unknown>;
+  };
+}
+
 export interface AuthClient extends LoginAttemptClient, LockoutClient {
   user: {
     findUnique(args: { where: { email: string } }): Promise<AuthUserRecord | null>;
@@ -293,11 +312,19 @@ export async function authenticateUser(
  *
  * Kullanıcı ikisini de aynı alana yazar (T-036); ayrı alan istemek, telefonunu
  * kaybetmiş birinin akışını gereksiz yere karmaşıklaştırırdı.
+ *
+ * İHRAÇ EDİLİYOR (T-042s): şifre değiştirme de ikinci faktörü doğrulamak
+ * zorunda ve bu mantığı orada YENİDEN YAZMAK iki kopya üretirdi — biri
+ * kurtarma kodunu tüketmeyi unutursa kod kalıcı bir arka kapıya dönüşürdü.
+ *
+ * Parametre tipleri `AuthUserRecord`/`AuthClient`ten DARALTILDI: şifre
+ * değiştirme akışının `lockedUntil`, `LoginAttempt` ya da e-postayla arama
+ * yüzeyine ihtiyacı yok. Geniş tipler orada gereksiz bir taklit yükü olurdu.
  */
-async function verifyTotpWithRecovery(
-  user: AuthUserRecord,
+export async function verifyTotpWithRecovery(
+  user: TotpVerifiable,
   code: string,
-  client: AuthClient,
+  client: TotpConsumerClient,
 ): Promise<boolean> {
   // T-013a/T2b — `decryptSecret` FIRLATABİLİR (kurcalanmış veya anahtar değişmiş).
   let secret: string | null = null;

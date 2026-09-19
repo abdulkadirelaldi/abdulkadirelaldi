@@ -118,7 +118,27 @@ export function VeriTablosu<T>({
   const iskeletAdedi = satirlar.length > 0 ? satirlar.length : iskeletSatir;
 
   return (
-    <div className={cn('border-line rounded-card overflow-x-auto border', className)}>
+    /*
+      `relative` ŞART, süs değil — T-043f'te ÖLÇÜLDÜ ve sebebi şaşırtıcı.
+
+      Proje tablosu 7 sütuna çıkınca 360px'te sayfaya 53px YATAY TAŞMA düştü.
+      İlk tahminim flex `min-width: auto` tuzağıydı; `min-w-0` ekledim ve
+      DEĞİŞMEDİ — sarmalayıcı zaten 328px'ti ve düzgün kaydırıyordu
+      (`scrollWidth` 427 > `clientWidth` 326).
+
+      Gerçek sebep, hücrelerdeki `.sr-only` etiketleri: Tailwind'in `sr-only`si
+      `position: absolute` veriyor ve bu kutuda KONUMLANDIRILMIŞ BİR ATA
+      olmadığı için onların içeren bloğu kaydırma kutusunun DIŞINDA kalıyordu.
+      Yani mutlak konumlu o elemanlar kutunun kırpmasından kaçıp tablonun doğal
+      x konumuna (≈427px) düşüyor ve taşmayı sayfaya taşıyorlardı. Ölçüm:
+      `.sr-only`ler gizlenince sayfa genişliği 413 → 360.
+
+      `relative` içeren bloğu bu kutu yapıyor; kırpma yeniden geçerli oluyor.
+      Tabloyu `table-layout: fixed` yapmak da taşmayı kapatıyordu ama o, sütun
+      genişliklerini içeriğe göre hesaplamayı bırakmak demekti — sebebi değil
+      belirtisini düzeltirdi.
+    */
+    <div className={cn('border-line rounded-card relative overflow-x-auto border', className)}>
       <table className="w-full border-collapse text-sm">
         <caption className="sr-only">{baslik}</caption>
 

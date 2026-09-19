@@ -161,6 +161,8 @@ export async function projeleriTemizle(slugOneki: string): Promise<number> {
 
 export interface IletisimMesajiOzeti {
   bulundu: boolean;
+  /** Opak cuid — panelde satırı bulmak için (`[data-mesaj-id]`). */
+  id?: string;
   isRead?: boolean;
   arsivlendi?: boolean;
   honeypotHit?: boolean;

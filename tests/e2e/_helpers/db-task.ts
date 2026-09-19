@@ -199,6 +199,14 @@ const komutlar: Record<string, (arg?: string) => Promise<unknown>> = {
 
     return {
       bulundu: true,
+      /*
+       * KİMLİK DÖNÜYOR — §8.20 ile çelişmiyor. `id` bir cuid: içerik taşımayan,
+       * opak bir tanımlayıcı. §9/2'nin dördüncü halkası panelde SATIRI bulmak
+       * için ona ihtiyaç duyuyor (`[data-mesaj-id]`), ve satırı konu metnine
+       * göre aramak ziyaretçi metnini test çıktısına taşırdı — yani kimliği
+       * döndürmek §8.20 açısından daha TEMİZ olan seçenek.
+       */
+      id: mesaj.id,
       // `ContactMessage`te tek bir `status` sütunu YOK: durum üç boolean/damga
       // alanından okunuyor (`isRead`, `isSpam`, `archivedAt`). Testin
       // beklentisi de bu alanlar üzerinden yazılmalı — uydurma bir "status"

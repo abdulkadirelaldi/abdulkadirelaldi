@@ -75,6 +75,7 @@ açığın ayrıntısı artık saldırgana bir şey kazandırmaz.
 | 2026-08-12 | T-029a | Lighthouse'a masaüstü + koyu profil (WebGL yolu), üç durumlu WebGL doğrulaması, koşu değişkenliği kararı | **BULGU-010 açıldı**: WebGL yolu hiçbir CI koşusunda ölçülmüyordu. Profil kuruldu ve doğrulandı; ölçüm T-021'in hero'yu bağlamasını bekliyor (kontrol kendi kendine zorunlu hâle geliyor). Değişkenliğin **ilk koşuya** ait olduğu ölçüldü; `numberOfRuns` 5, `aggregationMethod` açıkça medyan. |
 | 2026-08-17 | T-029d | Ölçüm yüzeyi dışındaki SEO/OG rotaları (BULGU-015) | **BULGU-015 kapandı** — `tests/e2e/seo-routes.spec.ts`: robots.txt, sitemap.xml, rss.xml, `/og` ve `/og/proje/<slug>` artık her koşumda isteniyor. PNG imza baytlarından, XML gerçek ayrıştırıcıyla doğrulanıyor. Kapsam iki katmanlı: sözleşme testleri + sitemap taraması (yeni sayfa kendiliğinden kapsanır). Mutasyonla kanıtlandı: düzeltme öncesi font aynı render yolunda BULGU-014'ün `TypeError`'ını veriyor. **BULGU-016 açıldı** — sitemap üç adet 404 adresi bildiriyor. |
 | 2026-08-16 | T-029c | Ölçüm işinin veri kurulumu (BULGU-013) + §8.24 haftalık zamanlayıcı | **BULGU-013 açıldı ve düzeltildi**: `lighthouse` işi ayrı koşucuda `services:` bloğu olmadan koşuyordu; ADR-026 sonrası `/` 500 dönüyor, üç profil düşüyor, artifact üretilmiyordu. Kendi Postgres'i kuruldu (yol **a**). İki yeni nöbet: ölçüm ön koşulu ve ayırt edicide durum kodu kontrolü — ikincisi olmadan arıza "⏳ BEKLEMEDE" diye yeşil görünüyordu. §8.24 artık **haftalık** de koşuyor (`17 6 * * 1`). |
+| 2026-09-15 | T-043g | İki mesaj rotasının kapsam beyanı, §9/2'nin dördüncü halkası, KVKK sınırı, `latest` uyarısı | **§9/2 TAM KAPANDI** — T-039'da açık bekleme olarak işaretlenen tek iddia bağlandı: ziyaretçi mesajı panelde satır olarak görünüyor, liste yalnızca `preview` taşıyor (mesaj bilerek 160 karakterden uzun, kuyruk imzası listede YOK detayda VAR), rozet sayıyor. İki mutasyonla sınandı. **KVKK kararı: kabul edilebilir** — 'Göster/Gizle' bir perde, yetki sınırı değil; asıl sınır liste/detay ayrımı ve bağımsız ölçümüm onu doğruladı (liste ham gövdesinde `ip`/`userAgent` işaretleri YOK, detayda VAR). Sızıntı kontrolü mutasyonla sınandı. **Kendi testimde iki vakum yakalandı ve kayda geçti:** `request` fixture'ı çerez taşımıyor, `page.request` yönlendirme izliyor — ikisinde de 'işaret yok' sonucu giriş sayfasından geliyordu; ham gövde artık gezinme yanıtından okunuyor ve 'doğru sayfa' kontrolüyle birlikte. İki rota beyan edildi (ölçülmeyen satırlarıyla), §9 sayacı **4 kapalı / 2 kısmi / 1 açık**. `latest` etiketi uyarısı kayda geçti: `prisma@latest` → 8.0.0-rc.14 (RC!), `vitest` → 5.0.0, `next` → 16.3.4. |
 | 2026-09-13 | T-042g | §8.24 üçüncü kez gerçek olayda tetiklendi: `mysql2`, `fast-uri` (×4), `js-yaml` | **Üçü de kapandı, kapı EXIT 0.** Katmanlar ölçümle seçildi: `fast-uri` ve `js-yaml` **A** (üst paket aralığı yamayı zaten kapsıyor → 3.1.7 ve 4.3.2, override YOK), `mysql2` **B** (`prisma` `"3.15.3"` diye TAM SABİTLİYOR, A imkânsız; kararlı `prisma@7.10.0` da aynı pini taşıyor, C etkisiz → `">=3.23.1 <4.0.0"` ile 3.24.4). **Maruziyet dört ölçümle belirlendi**, varsayılmadı: `Module._load` izleyicisi `generate`/`migrate`/`seed` akışlarında hiçbirini yüklemiyor, taze derlemenin `.next` çıktısında 0 dosya. `@hookform/resolvers → ajv → fast-uri` yolu görev kartında yoktu, denetim çıktısının tamamı okununca çıktı — ölçüldü, `/zod` giriş noktası `ajv`ye ulaşmıyor. **İki sessiz tuzak oyunkitabına işlendi:** `pnpm update --recursive` geçişli pakette EXIT 0 döndürüp HİÇBİR ŞEY yapmıyor (`--depth Infinity` gerekiyor), ve `">=x"` sınırsız override bir kısıttır, yükseltme emri değil — `sharp` 0.35.3'te bu yüzden donmuştu. `postcss` aynı durumdaydı, iki sınırlıya çevrildi. ADVISORY-002 istisnası doğrulandı (70 gün kaldı, kaldırma koşulu hâlâ sağlanmadı) ve kapının altı kırmızı dalı yeniden mutasyonla sınandı. |
 | 2026-09-09 | T-039 | §9/6 (panelden yayınla → public'te görün) ve §9/2 (ziyaretçi mesajı → panel) uçtan uca | **§9/6 KAPANDI** — `panel-yayin.spec.ts`. Testin geçerliliği ÖNBELLEK ISITMASINA bağlı: ısıtma olmadan etiket düşürme tamamen bozulsa bile yeşil kalırdı. **Üç mutasyonla sınandı** (`tags.ts` geçici bozuldu, md5 ile geri alındı): etiket hiç düşmüyor → kırmızı, yalnızca `slugTag` düşüyor → kırmızı, yalnızca `localeTag` düşüyor → **yeşil**. Üçüncüsü beklentiyi düzeltti: detay önbellek girdisi `localeTag` de taşıdığı için `slugTag` bugün hiçbir yolda gözlemlenebilir değil — `tags.ts`'teki gerekçe fazla iddialı, düzeltmesi Backend'de; katman birim testiyle kapalı. **§9/2 üç halkası kapandı**, dördüncüsü (panel mesaj kutusu EKRANI) **açık bekleme** — `test.skip` kullanılmadı, atlanan test "atlanan test yok" nöbetini kırar. Ekranın besleneceği okuma yolu şemadan üretilen varsayılan filtreyle ölçülüyor. Zaman tuzağı ölçüldü: hızlı gönderim `puan=30 tooFast` üretiyor, beklemeli gönderim **0**. Test izolasyonu iki projede paralel koşum için süreç anahtarına çevrildi. §9: **3 kapalı, 3 kısmi, 1 açık**. |
 | 2026-08-29 | T-016b | Rota envanteri × kapı kapsamı; kapsam boşluklarının kapatılması ve kalıcı kapı | 21 rota `src/app`tan **türetildi** (elle liste yok). İki boşluk kapandı: **`/api/v1/health`** §13.6 zarfı hiç doğrulanmıyordu — "durum kodunu bilerek ölçmüyoruz" gerekçesi T-005b'den beri **bayat** (CI'da artık DB var), üstelik §13.7 izlemesi tam o gövdeye bakacak; **`/api/v1/iletisim`** yalnızca birim testliydi, ucun **sunulduğu** hiç ölçülmemişti. Sağlık testi beklentisini **ölçerek seçiyor** (disk < %5 → arıza dalının sözleşmesi) — sabit `200` yerelde haksız kırmızı üretiyordu. Kalıcı kapı: `tests/unit/rota-kapsami.test.ts`, 31 test, yedi kırmızı dalı var; yeni rota beyansız kalırsa `pnpm test` düşer. Yedi mutasyonla doğrulandı (biri gerçek bir `page.tsx` eklenerek). Ters bulgu kayda geçti: `/api/v1/panel/islem` **var olmayan** bir sonda adresi — artık `SANAL_ROTALAR`'da beyanlı. |
@@ -2572,7 +2573,7 @@ taslağı aç, durumu "Yayında" yap, aynı üç iddiayı tekrarla.
 | 1 | `/iletisim` formu (gerçek tarayıcı) | ✅ ölçülüyor |
 | 2 | `POST /api/v1/iletisim` | ✅ ölçülüyor |
 | 3 | `ContactMessage` kaydı | ✅ ölçülüyor (ad/e-posta/mesaj birebir, `isSpam=false`, `spamScore=0`, okunmamış, arşivsiz, `userAgent` yazılı) |
-| 4 | Panel mesaj kutusu **EKRANI** | ⏳ **AÇIK BEKLEME — ekran henüz yok** |
+| 4 | Panel mesaj kutusu **EKRANI** | ⏳ AÇIK BEKLEME (T-039'da) → **T-043g'de KAPANDI**, bkz. aşağıdaki T-043g bölümü |
 
 Dördüncü halka için **elden gelen son adım ölçülüyor**: ekranın besleneceği
 okuma yolu (`fetchContactMessages`, T-038) mesajı gerçekten görüyor mu? Filtre
@@ -2619,12 +2620,157 @@ Lighthouse ölçümünün girdisi olurdu.
 | 7 | Mobil görünümde ana sayfa ve panel kullanılabilir | ⚠️ **kısmi** | Ana sayfa mobil profilde ölçülüyor; **panel formu artık mobilde de koşuyor** (§9/6 ve §9/2 `mobile-chrome`'da geçti) ama panelin gezinme/kullanılabilirlik iddiaları yazılmadı |
 
 **Sayı: 3 kapalı, 3 kısmi, 1 açık.** T-039 öncesi 2 kapalıydı (3 ve 4).
+*(T-043g bu tabloyu güncelledi — güncel sayaç aşağıdaki T-043g bölümünde.)*
+
+---
+
+## §9/2'nin dördüncü halkası kapandı + KVKK sınırı (T-043g)
+
+**Tarih:** 2026-09-15 · **Dosyalar:** `tests/e2e/iletisim-akisi.spec.ts` (genişletildi),
+`tests/e2e/panel-mesaj-kvkk.spec.ts` (yeni) · **Ölçüm:** yerel, gerçek Postgres +
+üretim derlemesi, iki profilde.
+
+### Zincirin son halkası
+
+T-039'da **açık bekleme** olarak işaretlenen tek iddia bağlandı: ziyaretçinin
+gönderdiği mesaj artık panelde **görüldüğü** için kapalı sayılıyor.
+
+| Ne | Nasıl ölçülüyor |
+| -- | --------------- |
+| Satır DOM'da | `[data-mesaj-satir][data-mesaj-id="<id>"]` — **bileşik** seçici |
+| Liste yalnızca önizleme taşıyor | Mesaj bilerek 160 karakterden uzun; kuyruğundaki imza listede **yok**, detayda **var** |
+| Okunmamış rozeti | `/\d+ okunmamış/` görünür |
+| Tam gövde | Satıra tıklanıp `/panel/mesajlar/<id>`'ye gidiliyor |
+
+**Bileşik seçici bilinçli:** `[data-mesaj-satir]` ve `[data-mesaj-id]` ayrı ayrı
+sorulsaydı, kimliği taşıyan başka bir düğüm (ileride bir önizleme kartı) testi
+yanlışlıkla yeşil tutabilirdi. İkisinin **aynı düğümde** olması iddianın kendisi.
+
+**Mesaj neden uzatıldı:** kısa bir gövdede `preview` ile tam metin aynı dizeye
+eşit olurdu; "listede önizleme, detayda tam gövde" iddiası iki farklı sözleşmeyi
+aynı veriyle doğrulamış, yani hiçbir şey ölçmemiş olurdu.
+
+**`?gorunum=hepsi` — Frontend'in önerisi, kabul edildi.** `gelen` görünümü spam
+olmayanları süzüyor; iddia oraya bağlansaydı `spamScore` hesabı bozulduğunda
+**iki** kırmızı çıkardı ("mesaj listede yok" + "spamScore ≠ 0") ve asıl sebep
+ikinci satırda kalırdı. Süzmeyen görünüm iki arızayı iki ayrı yerde tutuyor.
+`spamScore === 0` iddiası T-039'daki gerekçesiyle korunuyor.
+
+**Mutasyonla doğrulandı:**
+
+| # | Mutasyon | Sonuç |
+| - | -------- | ----- |
+| 1 | Liste `?gorunum=arsiv`'e çevrildi (mesaj orada değil) | ❌ kırmızı — "gönderilen mesaj panel listesinde görünmeli" |
+| 2 | "Liste tam gövdeyi taşımalı" diye ters çevrildi | ❌ kırmızı — `preview` sözleşmesi iddiası canlı |
+
+### KVKK / RSC yükü — Frontend'in düzeltmesi hakkındaki karar
+
+Frontend kendi yorumunun yanlış olduğunu ölçüp raporladı: "Göster/Gizle" düğmesi
+bir **yetki sınırı değil**; veri prop olarak geçtiği için `ip`/`userAgent` detay
+rotasının RSC yükünde düğme kapalıyken de duruyor.
+
+**Kendi ölçümüm (ikinci ölçüm, `panel-mesaj-kvkk.spec.ts`):**
+
+| Nerede | `userAgent` işareti | `ip` işareti |
+| ------ | ------------------- | ------------ |
+| Liste rotasının ham gövdesi (`?gorunum=hepsi`) | **yok** | **yok** |
+| Detay rotasının ham gövdesi (düğme KAPALI) | **var** | var |
+| Detay ekranı, düğme kapalı | görünmüyor | görünmüyor |
+| Detay ekranı, "Göster" sonrası | görünüyor | görünüyor |
+
+Ölçüm gerçek kişisel veriyle yapılmıyor: mesaj `User-Agent: E2E-KVKK-SONDA-…` ve
+`X-Forwarded-For: 203.0.113.42` (RFC 5737 belgeleme bloğu) başlıklarıyla
+gönderiliyor, aranan dizeler testin ürettiği uydurma değerler. `127.0.0.1`
+seçilmedi — temel adres olduğu için sayfada başka sebeple geçerdi.
+
+**KARAR: kabul edilebilir.** Gerekçe üç maddede:
+
+1. **Yetki sınırı doğru yerde.** Detay rotası kimliği doğrulanmış + 2FA geçmiş
+   tek kullanıcıya açık; o kullanıcı veriyi görmeye zaten yetkili. §8.20'nin
+   konusu yetkisiz tarafa sızıntıdır ve burada yetkisiz taraf yok.
+2. **Asıl sınır liste/detay ayrımı ve o GERÇEKTEN duruyor** — `LIST_SELECT` iki
+   sütunu hiç çekmiyor, bağımsız ölçümüm bunu doğruladı. Yüzlerce satırlık bir
+   listede KVKK alanlarını taşımamak, veri minimizasyonunun uygulandığı yer.
+3. **Düğmenin işi perde olmak ve bunu yapıyor.** Omuz üstünden bakış / ekran
+   paylaşımı gerçek bir risk; çözümü de ekranda göstermemek.
+
+**Ama bir şart var ve kapıya yazıldı:** düğmeye "veriyi getirir" anlamı
+yüklenemez. Testteki iddia bu yüzden "detay yükünde **BEKLENİYOR**" diye yazıldı
+— ölçülen gerçeği kapıya yazmak, uygulamanın yapmadığı bir sözü kapıya yazmanın
+yerine geçiyor. Biri yarın veriyi gerçekten sunucuda tutmak isterse (ayrı bir
+Server Action ile istek üzerine getirmek) bu satır kırmızıya döner ve kararın
+yeniden verilmesi gerektiğini söyler.
+
+**Kapıya bağlanan asıl şey:** Backend bir gün `LIST_SELECT`e `ip` eklerse liste
+yükünde sızıntı başlar ve **hiçbir birim testi bunu görmezdi** — DTO tipleri
+derlenmeye devam ederdi. Artık E2E görüyor.
+
+**Mutasyonla doğrulandı (sızıntı kontrolünün gerçekten gördüğü):** liste
+kontrolü, işaretin GERÇEKTEN bulunduğu gövdeye (detay) çevrildiğinde ❌ kırmızı
+— "LİSTE yükünde userAgent var — `LIST_SELECT` sınırı delinmiş".
+
+### Kendi testimde yakalanan vakum — iki yanlış deneme kayda geçiyor
+
+Sızıntı kontrolü ilk iki yazımda **vakumda yeşildi** ve bunu ancak "bu gövde
+gerçekten bizim satırımızı içeriyor mu" kontrolü ortaya çıkardı:
+
+| Deneme | Neden hiçbir şey ölçmüyordu |
+| ------ | --------------------------- |
+| `request` fixture'ı ile ham istek | Tarayıcının çerezlerini taşımıyor → panel isteği `/giris`e yönleniyor, "işaret yok" sonucu **giriş sayfasından** geliyordu |
+| `page.request` ile ham istek | Yönlendirmeleri İZLİYOR → oturum geçmese bile `/giris` gövdesiyle **200** dönüyor; durum kodu kontrolü bu yüzden yetmiyor |
+
+Çözüm: ham gövde **gezinme yanıtından** okunuyor (`response.text()`), üstüne iki
+kontrol daha — `page.url()` hâlâ `/panel/mesajlar` mı, ve gövde mesaj kimliğini
+içeriyor mu. "Aranan şeyin bulunmaması" ancak doğru sayfaya bakıldığında
+anlamlı; kişisel veri sızıntısını ölçtüğünü sanan ama giriş sayfasına bakan bir
+kapı, olmamasından daha kötüdür.
+
+Yan not: ilk "doğru sayfa" işareti olarak ekrandaki bir metin ("okunmamış")
+denendi ve tutmadı — RSC yükünde Türkçe karakterler `\uXXXX` kaçışlarıyla
+taşınıyor. Ham gövdede düz metin aramak yanıltıcı; kimlik (ASCII) doğru işaret.
+
+### §9'un yedi senaryosu — T-043g sonrası
+
+| # | Senaryo | Durum | Kanıt / eksik |
+| - | ------- | ----- | ------------- |
+| 1 | Ana sayfa → proje → detay → Kıyı Medya CTA | ⚠️ kısmi | Uçlar ölçülüyor; **tıklama zinciri ve CTA ölçülmüyor** |
+| 2 | İletişim formu → mesaj panele düşer | ✅ **kapalı (T-043g)** | `iletisim-akisi.spec.ts` — dört halka, iki mutasyon |
+| 3 | Yanlış şifre / doğru şifre + 2FA | ✅ kapalı | `auth.spec.ts` |
+| 4 | Girişsiz `/panel` → login | ✅ kapalı | `smoke.spec.ts` + `auth.spec.ts` |
+| 5 | Panelden gelir kaydı → dashboard toplamı | ❌ açık | Finans modülü F4/F5'te |
+| 6 | Panelden proje yayınla → public'te görün | ✅ kapalı (T-039) | `panel-yayin.spec.ts`, üç mutasyon |
+| 7 | Mobil görünümde ana sayfa ve panel kullanılabilir | ⚠️ kısmi | §9/2 ve §9/6 `mobile-chrome`'da da koşuyor; panelin gezinme/kullanılabilirlik iddiaları yazılmadı |
+
+**Sayı: 4 kapalı, 2 kısmi, 1 açık.** (T-039 sonrası 3 kapalıydı.)
+
+### ⚠️ `latest` etiketi "kararlı" demek DEĞİL — üç canlı örnek
+
+`pnpm.overrides` tablosunun yanında duran bu uyarı, ADVISORY-001'in `nanoid`
+tuzağının genelleştirilmiş hâli: orada açık uçlu bir aralık **6.0.1**'e
+çözülmüştü (üç majör atlama, ESM-only). Aynı sınıf tuzak bugün **dist-tag**
+üzerinden karşımızda — 2026-09-13 ölçümü:
+
+| Paket | Bizde | `latest` | Not |
+| ----- | ----- | -------- | --- |
+| `prisma` | 7.9.1 | **8.0.0-rc.14** | `latest` bir **RC**'yi gösteriyor; kararlı hat `prev: 7.10.0` |
+| `vitest` | 4.1.11 | **5.0.0** | T-042g'de Orkestra Şefi yamalı yama sürümüne sabitledi |
+| `next` | 15.5.25 | **16.3.4** | 16'ya geçiş ayrı bir görev (F6) |
+
+**Kural:** `pnpm add <paket>@latest` / `pnpm update <paket>` bir güvenlik
+düzeltmesi için yazılmaz. Danışma kapatılırken hedef sürüm **yamalı sürümdür**,
+`latest` değil; ve yazıldıktan sonra `pnpm why` ile çözülen sürüm okunur.
+`prisma@latest`in bir RC'yi göstermesi bunun neden kural olması gerektiğini tek
+başına anlatıyor: tek bir komut, üretim veri katmanını yayın öncesi koda taşırdı.
+
+Bu uyarı ADVISORY-002'nin kaldırma koşuluyla da doğrudan ilgili: oradaki "kararlı
+Prisma 8" beklentisi, `latest` etiketine bakarak **yanlışlıkla sağlanmış**
+sayılabilirdi.
 
 ---
 
 ## §8 Güvenlik Gereksinimleri — Durum Tablosu
 
-**Ölçüm tarihi:** 2026-09-13 · **Faz:** F3 (sürüyor) · **Son görev:** T-042g
+**Ölçüm tarihi:** 2026-09-15 · **Faz:** F3 (sürüyor) · **Son görev:** T-043g
 · **Dağılım:** ✅ 10 · ⚠️ 6 · ❌ 0 · ⏳ 9
 
 > T-039'da üç satır **bayat çıktığı için** güncellendi (6, 8 ve 15): ikisi
@@ -2654,7 +2800,7 @@ Durum kodları: ✅ sağlandı · ⚠️ kısmi · ❌ eksik · ⏳ henüz uygul
 | 17 | `.env` repoya girmez, `.env.example` tam | ✅ | `.gitignore:22-24` — `.env` ve `.env.*` yasaklı, `.env.example` istisna. `.env.example` §12'nin anahtarlarını değersiz listeliyor (T-001 doğrulaması). |
 | 18 | `NEXT_PUBLIC_` içinde sır yok, CI'da taranır | ✅ | **Otomatik tarama kuruldu** (T-005): `tests/unit/public-env.test.ts` — üç katman: (a) `.env.example`, (b) çalışma ortamı `process.env`, (c) `.next/` derleme çıktısı. `pnpm test` içinde koştuğu için hem yerelde hem CI'da otomatik. **Dedektör kendini kanıtlıyor**: 10 ekili sahte sır (GitHub/AWS/Stripe/JWT/argon2/PEM/bağlantı dizesi) yakalanıyor, meşru URL'ler yanlış pozitif vermiyor. Fiilen doğrulandı: `.env.example`'a `NEXT_PUBLIC_GITHUB_TOKEN=ghp_…` ekildi → hat **KIRMIZI**, geri alındı → **YEŞİL**. |
 | 19 | Panel mutasyonları `AuditLog`'a | ⚠️ | **Merkezî yardımcı geldi** (T-015): `src/server/services/_shared/audit.ts` → `writeAuditLog`, `diff` üzerinde otomatik redaksiyonla (§8.20). Kullananlar: 2FA eylemleri (`actions/totp.ts`) ve hesap kilidi (ADR-022 — denemeler `LoginAttempt`'e, sonuçlar `AuditLog`'a). Kilit kaydı T-016'da üretim yolunda **fiilen tetiklendi**. ⚠️ kalma sebebi: içerik/muhasebe mutasyonları henüz yazılmadı (F3–F5), yani "tüm mutasyonlar" ölçülemiyor. |
-| 20 | Loglarda şifre/token/TOTP/tam e-posta yok | ⚠️ | Sağlık ucu §8.20'ye uyuyor (T-003b'de tarandı: altyapı izi 0 eşleşme). Merkezî bir redaksiyon yardımcısı **henüz yok** — F1'de `src/lib/security/` altına yazılacak. |
+| 20 | Loglarda şifre/token/TOTP/tam e-posta yok | ⚠️ | Sağlık ucu §8.20'ye uyuyor (T-003b'de tarandı: altyapı izi 0 eşleşme) ve bu T-016b'de **kapıya bağlandı** (`api-routes.spec.ts` → bağlantı dizesi / yığın izi / dosya yolu / ortam değişkeni adı desenleri). `writeAuditLog` `diff` üzerinde otomatik redaksiyon yapıyor (T-015). **T-043g — YANIT YÜKÜ de artık ölçülüyor:** KVKK kapsamındaki `ip`/`userAgent` yalnızca detay rotasının yükünde; liste rotasının ham gövdesinde ikisi de YOK (`panel-mesaj-kvkk.spec.ts`, bağımsız ikinci ölçüm, mutasyonla sınandı). ⚠️ kalma sebebi: LOG tarafı için merkezî redaksiyon yardımcısı hâlâ yok — ölçülen şey yanıt gövdeleri, uygulama logları değil. |
 | 21 | Gece 03:00 şifreli `pg_dump` → R2, 30 gün | ⏳ | T-066 / T-073 · **Uyarı:** yol haritası F6/F7 diyor; gerçek muhasebe verisi F4'te girilmeye başlıyor. Yedeksiz geçen her F4 günü, başka kopyası olmayan mali veri riski. |
 | 22 | `restore.md` + en az bir prova | ⏳ | T-066 |
 | 23 | Yedek checksum doğrulaması | ⏳ | T-066 |
