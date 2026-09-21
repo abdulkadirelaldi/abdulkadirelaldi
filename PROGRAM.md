@@ -450,7 +450,10 @@ Bunlar "iyi olur" değil, **kabul şartıdır**. Güvenlik ajanı bunları madde
    2FA'yı açık üretmesi teknik olarak mümkün ama secret'ı kimse bilmediği için kilitlenme
    üretirdi. Zorunluluk kurulum anına taşındı, gevşetilmedi.)*
 2. argon2id ile şifre hash'i, memory ≥ 19MB, iterations ≥ 2
-3. Oturum çerezleri: `httpOnly`, `secure`, `sameSite: lax`, 7 gün
+3. Oturum çerezleri: `httpOnly`, `secure`, `sameSite: lax`, **24 saat** (ADR-035/A —
+   7 günden indirildi; şifre değiştirmek ele geçirilmiş bir oturumu kapatamadığı için
+   maruziyet penceresi tek sabitle %85 daraltıldı. Çerez `maxAge` ve JWT `exp` tek
+   sabitten gelir; biri güncellenip diğeri kalırsa tutarsız ömür çıkar.)
 4. Giriş denemesi: IP başına 15 dakikada 5; aşımda 15 dk kilit + log
 
 **Erişim kontrolü**

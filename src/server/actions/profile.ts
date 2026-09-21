@@ -33,6 +33,33 @@ import { revalidateContent } from './tags';
  *
  * ETİKET: slug yok, durum yok — yalnızca `localeTag('profile', locale)`.
  */
+/**
+ * İki `socials` nesnesi arasında DEĞİŞEN ANAHTAR ADLARI — değerler asla dönmez.
+ *
+ * `null`/`undefined` taraflar boş nesne sayılır: "hiç sosyal yoktu" ile "boş
+ * nesne vardı" denetim kaydı açısından aynı şeydir.
+ *
+ * Karşılaştırma `JSON.stringify` ile: değerler dize ya da `undefined` (şema
+ * `optionalUrlSchema`), yani derin karşılaştırmaya gerek yok ve `Object.is`
+ * iki eşdeğer dizeyi ayırt etmez.
+ *
+ * ⚠️ İHRAÇ EDİLMİYOR ve bu zorunlu: bu dosya `'use server'` taşıyor, yani
+ * ihraç edilen her işlev ağdan çağrılabilir bir POST ucuna dönüşür — üstelik
+ * senkron bir ihraç derlemeyi de kırardı (Server Action'lar async olmak
+ * zorunda). Davranışı `saveProfileAction` üzerinden sınanıyor.
+ */
+function changedSocialKeys(
+  before: Record<string, unknown> | null | undefined,
+  after: Record<string, unknown> | null | undefined,
+): string[] {
+  const a = before ?? {};
+  const b = after ?? {};
+
+  return [...new Set([...Object.keys(a), ...Object.keys(b)])]
+    .filter((key) => JSON.stringify(a[key]) !== JSON.stringify(b[key]))
+    .sort();
+}
+
 export async function saveProfileAction(raw: unknown): Promise<ApiResponse<ProfileDto>> {
   const actorId = await currentActorId();
   if (!actorId) return unauthorized();
@@ -55,6 +82,9 @@ export async function saveProfileAction(raw: unknown): Promise<ApiResponse<Profi
     const before = await findProfileSnapshot(locale);
     const dto = await upsertProfile(locale, parsed.data);
 
+    /** Değişen sosyal anahtar ADLARI — değerler denetim kaydına GİRMEZ. */
+    const socialsChanged = changedSocialKeys(before?.socials, dto.socials);
+
     await writeAuditLog(
       {
         actorId,
@@ -64,18 +94,44 @@ export async function saveProfileAction(raw: unknown): Promise<ApiResponse<Profi
         entity: 'Profile',
         entityId: dto.id,
         /*
-         * §8.20 / ADR-020: `socials.email` HAM E-POSTA TAŞIR.
-         * `writeAuditLog` redaksiyonu ALAN ADI bazlıdır ve İÇ İÇE çalışır, yani
-         * `socials.email` maskeleniyor — `redactAuditDiff` bunu kendisi yapar,
-         * burada elle temizlemeye gerek yok. Testte AYRICA doğrulanıyor:
-         * redaksiyonun "otomatik olduğu" varsayımı sınanmadan bırakılamaz.
+         * BULGU-019 / ADR-034 — `socials` DEĞERLERİ DEĞİL, DEĞİŞEN ANAHTAR
+         * ADLARI yazılıyor.
+         *
+         * Eskiden nesnenin tamamı diff'e giriyordu. Gerekçe şuydu: `socials.email`
+         * ham e-posta taşır ama `redactAuditDiff` alan adı bazlı ve iç içe
+         * çalıştığı için maskeler. Doğruydu — AMA ADR-034'ün dersi tam olarak
+         * buna güvenmemek: redaksiyon bir emniyet ağı, alan seçiminin yerine
+         * geçmez.
+         *
+         * `socials` şemada `.strict()` ile bağlı, ama VERİTABANI sütunu serbest
+         * `Json` ve okuma tarafı onu doğrulamadan tipe daraltıyor
+         * (`profile.ts` → `row.socials as ...`). Yani seed, migration ya da elle
+         * bir yazma oraya BEKLENMEYEN bir anahtar koyabilir ve o anahtar
+         * `REDACTED_KEYS`te olmadığı için diff'e sızardı — `experience`/`skill`/
+         * `service` silmeleriyle aynı sınıf (BULGU-019), sadece bir seviye derinde.
+         *
+         * ÇÖZÜM DEĞERLERİ HİÇ YAZMAMAK. Denetim kaydının cevaplaması gereken soru
+         * "profil ne zaman, kim tarafından değişti" ve "hangi bağlantılar
+         * dokunuldu" — bağlantının KENDİSİ değil. Anahtar ADI hiçbir koşulda
+         * hassas değil, gelecekte eklenecek bir anahtar bile olsa.
+         *
+         * Yedi anahtarı elle saymak da bir seçenekti; reddedildi: o liste
+         * `socialsSchema` ile sapar ve sapma sessiz olur.
          */
-        diff: buildDiff(
-          before
-            ? { headline: before.headline, location: before.location, socials: before.socials }
-            : null,
-          { headline: dto.headline, location: dto.location, socials: dto.socials },
-        ),
+        diff: {
+          ...buildDiff(before ? { headline: before.headline, location: before.location } : null, {
+            headline: dto.headline,
+            location: dto.location,
+          }),
+          /*
+           * `buildDiff`TEN GEÇİRİLMİYOR ve bu zorunlu: o yardımcı `Object.is`
+           * ile karşılaştırıyor, yani İKİ BOŞ DİZİ bile "değişti" sayılırdı ve
+           * `socialsChanged: []` hiç değişiklik olmadığında da denetim kaydına
+           * girerdi. Liste zaten FARKIN KENDİSİ; ikinci kez farklanacak bir
+           * önce/sonra değeri yok.
+           */
+          ...(socialsChanged.length > 0 ? { socialsChanged } : {}),
+        },
       },
       db,
     );
