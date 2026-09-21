@@ -115,7 +115,35 @@ export async function deleteSkillAction(raw: unknown): Promise<ApiResponse<Skill
     const dto = await deleteSkill(parsed.data.id);
 
     await writeAuditLog(
-      { actorId, action: 'DELETE', entity: 'Skill', entityId: dto.id, diff: { deleted: before } },
+      {
+        actorId,
+        action: 'DELETE',
+        entity: 'Skill',
+        entityId: dto.id,
+        /*
+         * BULGU-019 — ALANLAR TEK TEK SAYILIYOR, `{ deleted: before }` DEĞİL.
+         *
+         * Eski hâli satırın TAMAMINI yazıyordu ve bugün sızıntı üretmiyordu;
+         * kusur gelecekteydi: kalıp ALAN SEÇİMİNİ MODELE DEVREDİYORDU. Yarın
+         * eklenecek bir `apiAnahtari` sütunu `REDACTED_KEYS`te olmayacağı için
+         * diff'e OTOMATİK girerdi — ve TİP SİSTEMİ DE GÖREMEZDİ, çünkü `before`
+         * zaten o modelin tipinde. ADR-034'ün tam uyardığı sınıf: redaksiyon
+         * bir emniyet ağı, alan seçiminin yerine geçmez.
+         *
+         * Şimdi seçim BURADA ve açık: yeni bir sütun eklendiğinde denetim
+         * kaydına girmesi için birinin bu listeyi BİLEREK genişletmesi gerekiyor.
+         * `create`/`update` zaten böyle yazılmıştı; silme de onlara uyduruldu.
+         */
+        diff: {
+          deleted: {
+            name: before.name,
+            category: before.category,
+            level: before.level,
+            locale: before.locale,
+            order: before.order,
+          },
+        },
+      },
       db,
     );
 

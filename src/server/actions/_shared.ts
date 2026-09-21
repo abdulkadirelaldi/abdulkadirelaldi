@@ -1,4 +1,5 @@
 import { auth } from '@/server/auth';
+import { writesRevoked } from '@/server/auth/write-gate';
 import { fail, internalError, unauthorized, type ApiFailure } from '@/server/services/_shared';
 
 /**
@@ -20,16 +21,44 @@ import { fail, internalError, unauthorized, type ApiFailure } from '@/server/ser
  * ======================================================================== */
 
 /**
- * Oturum sahibinin kimliği; oturum yoksa `null`.
+ * Oturum sahibinin kimliği; oturum yoksa VEYA yazma yetkisi geçersizleştirilmişse
+ * `null`.
  *
  * §8.6: HER action bunu KENDİ İÇİNDE çağırır. Middleware'e güvenilmez — matcher
  * yanlış yazılmış olabilir, ara katman atlanabilir, ve Server Action'lar
  * middleware'in görmediği bir POST yüzeyi açar. Yetki kontrolü mutasyonun
  * kendisinde durmalı.
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * ADR-035/B — YAZMA KAPISI BURADA, VE YALNIZCA BURADA
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * `writesRevoked` bu fonksiyonun İÇİNDE çağrılıyor, `auth()`'un jwt/session geri
+ * çağrısında DEĞİL. Sebep ölçülmüş bir takas:
+ *
+ *   - Buraya konunca sorgu YALNIZCA Server Action'larda koşar; okuma yolları
+ *     (`fetchXForPanel`, public `getX`) veritabanına fazladan HİÇ gitmez ve
+ *     "normal istek yolu DB'ye gitmez" mimari özelliği okuma tarafında KORUNUR.
+ *   - Geri çağrıya konsaydı `auth()` çağıran her yol sorguya bağlanırdı ve
+ *     karşılığında hiçbir OKUMA korunmazdı: okuma koruması ara katmanda, o da
+ *     Edge'de ve veritabanı okuyamıyor (T-014/K1, T-044g).
+ *
+ * Maliyet: Server Action başına +1 sorgu, p50 0,49 ms (T-044g ölçümü).
+ *
+ * `null` DÖNÜYOR, ayrı bir hata kodu değil: on yedi action'ın hepsi zaten
+ * `if (!actorId) return unauthorized()` yazıyor, yani kapı hiçbir çağıranı
+ * değiştirmeden yürürlüğe giriyor. Kullanıcı için sonuç doğru: o oturum artık
+ * yazma için yetkili değil ve yeniden giriş yapması gerekiyor (ADR-035'in
+ * kullanıcıya söylenecek cümlesi).
  */
 export async function currentActorId(): Promise<string | null> {
   const session = await auth();
-  return session?.user?.id ?? null;
+  const userId = session?.user?.id;
+  if (!userId) return null;
+
+  if (await writesRevoked(userId, session?.tokenIssuedAt)) return null;
+
+  return userId;
 }
 
 export { unauthorized };

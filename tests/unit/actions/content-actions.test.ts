@@ -31,7 +31,20 @@ const auditCreate = vi.hoisted(() => vi.fn());
 
 vi.mock('@/server/auth', () => ({ auth }));
 vi.mock('next/cache', () => ({ revalidateTag, unstable_cache: vi.fn() }));
-vi.mock('@/server/db', () => ({ db: { auditLog: { create: auditCreate } } }));
+const userFindUnique = vi.hoisted(() => vi.fn());
+vi.mock('@/server/db', () => ({
+  db: { auditLog: { create: auditCreate }, user: { findUnique: userFindUnique } },
+}));
+/*
+ * ADR-035/B — YAZMA KAPISI (T-046).
+ *
+ * `currentActorId()` artık `writesRevoked()` çağırıyor, yani her Server Action
+ * `user.findUnique` ile `writesValidFrom` okuyor. İki şey taklide eklendi:
+ *
+ *   - `db.user.findUnique` → `{ writesValidFrom: null }` ("hiç geçersizleştirilmedi")
+ *   - oturuma `tokenIssuedAt` → kapı FAIL-CLOSED; `iat` taşımayan bir oturum
+ *     yazma yetkisiz sayılıyor. Bu kasıtlı ve `yazma-kapisi.test.ts` ölçüyor.
+ */
 
 const svc = vi.hoisted(() => ({
   createProject: vi.fn(),
@@ -69,7 +82,7 @@ const ID = 'clx0000000000000000000001';
 
 /** Oturum var. */
 function oturumVar(): void {
-  auth.mockResolvedValue({ user: { id: 'kullanici-1' } });
+  auth.mockResolvedValue({ user: { id: 'kullanici-1' }, tokenIssuedAt: OTURUM_IAT });
 }
 
 /** Düşürülen etiketler — çağrı sırası önemsiz, KÜME karşılaştırılıyor. */
@@ -83,7 +96,11 @@ function denetimKaydi(): Record<string, unknown> {
   return (auditCreate.mock.calls[0]?.[0] as { data: Record<string, unknown> }).data;
 }
 
+/** Jetonun verildiği an — yazma kapısının eşiği (ADR-035/B). */
+const OTURUM_IAT = Math.floor(Date.parse('2026-09-20T12:00:00.000Z') / 1000);
+
 beforeEach(() => {
+  userFindUnique.mockResolvedValue({ writesValidFrom: null });
   oturumVar();
   auditCreate.mockResolvedValue({});
 });
@@ -141,7 +158,7 @@ describe('§8.6 — yetkisiz erişim', () => {
   it('oturum var ama `user.id` yoksa yine UNAUTHORIZED', async () => {
     // Jeton bozuksa veya `id` claim'i düşmüşse "oturum var" saymak, kimliksiz
     // bir mutasyonu `actorId: undefined` ile denetim kaydına yazardı.
-    auth.mockResolvedValue({ user: {} });
+    auth.mockResolvedValue({ user: {}, tokenIssuedAt: OTURUM_IAT });
     const { createSkillAction } = await import('@/server/actions/skill');
     expect((await createSkillAction({})).ok).toBe(false);
   });
@@ -504,7 +521,13 @@ describe('slug’sız varlıklar — yalnızca localeTag', () => {
    * `Exercise`, `Client`, `Habit`) ve gerekçesi bağlı FK'lerdir. `Skill`e
    * hiçbir model FK ile bağlı değil, public adresi yok, `ContentStatus` yok.
    */
-  it('deleteSkillAction DELETE yazıyor ve SİLİNEN SATIRIN TAMAMINI saklıyor', async () => {
+  /**
+   * DEĞİŞTİ (T-046/BULGU-019) — eskiden "SİLİNEN SATIRIN TAMAMINI saklıyor"
+   * diyordu ve `diff` tam olarak `{ deleted: <satırın tamamı> }`a eşitleniyordu.
+   * O assert, alan seçimini modele devreden kalıbı SABİTLİYORDU. Artık alanlar
+   * tek tek sayılıyor; "ne kayboldu" sorusu hâlâ cevaplanıyor ama seçim AÇIK.
+   */
+  it('deleteSkillAction DELETE yazıyor ve silinen kaydı SAYILAN ALANLARLA saklıyor', async () => {
     const kayit = {
       id: ID,
       locale: 'tr',
@@ -524,7 +547,15 @@ describe('slug’sız varlıklar — yalnızca localeTag', () => {
     expect(log).toMatchObject({ action: 'DELETE', entity: 'Skill' });
     // `buildDiff(before, {})` boş fark üretirdi; burada saklanmak istenen
     // "ne değişti" değil "NE KAYBOLDU" — denetim kaydı tek kalan izdir.
-    expect(log.diff).toEqual({ deleted: kayit });
+    expect(log.diff).toEqual({
+      deleted: {
+        name: kayit.name,
+        category: kayit.category,
+        level: kayit.level,
+        locale: kayit.locale,
+        order: kayit.order,
+      },
+    });
   });
 
   it('deleteServiceAction DELETE yazıyor', async () => {
@@ -621,13 +652,18 @@ describe('saveProfileAction', () => {
   });
 
   /**
-   * §8.20 / ADR-020 — REDAKSİYON OTOMATİK AMA DOĞRULANIYOR.
+   * DEĞİŞTİ (T-046/BULGU-019, ADR-034).
    *
-   * `socials.email` ham e-posta taşır ve `redactAuditDiff` alan adı bazlı,
-   * İÇ İÇE çalışır. "Otomatik" olduğu varsayımı sınanmadan bırakılamaz:
-   * `writeAuditLog` bu testte TAKLİT EDİLMİYOR, gerçek kodu koşuyor.
+   * Bu test eskiden `socials.email`in `[REDACTED]` ile MASKELENDİĞİNİ ve
+   * e-posta dışı bağlantıların DEĞERİYLE kaldığını doğruluyordu. Yani korumayı
+   * `redactAuditDiff`e bağlıyordu — ADR-034'ün "emniyet ağı, korumanın kendisi
+   * değil" dersinin tam tersi.
+   *
+   * Artık `socials` DEĞERLERİ diff'e hiç girmiyor, dolayısıyla maskelenecek bir
+   * şey de yok. Güvence redaksiyondan değil ALAN SEÇİMİNDEN geliyor ve bu daha
+   * güçlü: yarın eklenecek bilinmeyen bir anahtarın değeri de sızmaz.
    */
-  it('socials.email denetim kaydında MASKELENMİŞ (§8.20)', async () => {
+  it('socials DEĞERLERİ denetim kaydına HİÇ girmiyor (§8.20, ADR-034)', async () => {
     svc.findProfileSnapshot.mockResolvedValue(null);
     svc.upsertProfile.mockResolvedValue(dto);
 
@@ -636,9 +672,7 @@ describe('saveProfileAction', () => {
 
     const yazilan = JSON.stringify(denetimKaydi());
     expect(yazilan).not.toContain('gizli@ornek.com');
-    expect(yazilan).toContain('[REDACTED]');
-    // Maskeleme kapsamlı olsun diye her şeyi silmiyor: e-posta dışı sosyaller kalır.
-    expect(yazilan).toContain('github.com/x');
+    expect(yazilan).not.toContain('github.com/x');
   });
 
   it('yalnızca localeTag düşüyor — profilin slug’ı yok', async () => {
@@ -905,5 +939,183 @@ describe.each(KALIP)('§7.1 kalıbı — $ad', (vaka) => {
     expect(sonuc.ok).toBe(false);
     expect(sonuc.error?.code).toBe('NOT_FOUND');
     expect(svc[vaka.servis]).not.toHaveBeenCalled();
+  });
+});
+
+/* ===========================================================================
+ * BULGU-019 — SİLME DIFF'İ ALANLARI TEK TEK SAYIYOR
+ *
+ * Eski kalıp `diff: { deleted: before }` ile satırın TAMAMINI yazıyordu. Bugün
+ * sızıntı üretmiyordu; kusur gelecekteydi: ALAN SEÇİMİ MODELE DEVREDİLMİŞTİ.
+ * Yarın eklenecek bir `apiAnahtari` sütunu `REDACTED_KEYS`te olmayacağı için
+ * diff'e OTOMATİK girerdi ve TİP SİSTEMİ DE GÖREMEZDİ (`before` zaten o modelin
+ * tipinde). ADR-034: redaksiyon bir emniyet ağı, alan seçiminin yerine geçmez.
+ *
+ * Aşağıdaki testler TAM O SENARYOYU kuruyor: anlık görüntüye bugün var olmayan
+ * bir sır alanı konuyor ve diff'e sızmadığı ölçülüyor.
+ * ======================================================================== */
+
+describe('BULGU-019 — silme diff’i modele devretmiyor', () => {
+  /** Yarın eklenecek, `REDACTED_KEYS`te OLMAYAN bir sütun. */
+  const GELECEK_SIR = 'sk_live_gizli_anahtar_2027';
+
+  it('skill silme: beklenmeyen alan diff’e SIZMIYOR', async () => {
+    const kayit = {
+      id: ID,
+      locale: 'tr',
+      name: 'Silinecek',
+      category: 'BACKEND',
+      level: 42,
+      iconKey: 'ts',
+      order: 3,
+      apiAnahtari: GELECEK_SIR,
+    };
+    svc.findSkillSnapshot.mockResolvedValue(kayit);
+    svc.deleteSkill.mockResolvedValue(kayit);
+
+    const { deleteSkillAction } = await import('@/server/actions/skill');
+    await deleteSkillAction({ id: ID });
+
+    const log = denetimKaydi();
+    expect(JSON.stringify(log)).not.toContain(GELECEK_SIR);
+    // Seçim AÇIK: yalnızca bilerek sayılan alanlar.
+    expect(Object.keys(log.diff as Record<string, unknown>)).toEqual(['deleted']);
+    expect(Object.keys((log.diff as { deleted: object }).deleted).sort()).toEqual([
+      'category',
+      'level',
+      'locale',
+      'name',
+      'order',
+    ]);
+  });
+
+  it('service silme: beklenmeyen alan diff’e SIZMIYOR', async () => {
+    const kayit = {
+      id: ID,
+      locale: 'tr',
+      title: 'Hizmet',
+      description: 'D',
+      iconKey: null,
+      ctaUrl: null,
+      order: 0,
+      apiAnahtari: GELECEK_SIR,
+    };
+    svc.findServiceSnapshot.mockResolvedValue(kayit);
+    svc.deleteService.mockResolvedValue(kayit);
+
+    const { deleteServiceAction } = await import('@/server/actions/service');
+    await deleteServiceAction({ id: ID });
+
+    expect(JSON.stringify(denetimKaydi())).not.toContain(GELECEK_SIR);
+  });
+
+  it('experience silme: beklenmeyen alan diff’e SIZMIYOR', async () => {
+    const kayit = {
+      id: ID,
+      locale: 'tr',
+      organization: 'Kurum',
+      role: 'Rol',
+      type: 'WORK',
+      startDate: '2020-01-01',
+      endDate: null,
+      current: true,
+      description: null,
+      order: 0,
+      apiAnahtari: GELECEK_SIR,
+    };
+    svc.findExperienceSnapshot.mockResolvedValue(kayit);
+    svc.deleteExperience.mockResolvedValue(kayit);
+
+    const { deleteExperienceAction } = await import('@/server/actions/experience');
+    await deleteExperienceAction({ id: ID });
+
+    expect(JSON.stringify(denetimKaydi())).not.toContain(GELECEK_SIR);
+  });
+
+  it('silinen kaydın ANLAMLI alanları hâlâ saklanıyor — koruma bilgiyi yok etmedi', async () => {
+    const kayit = {
+      id: ID,
+      locale: 'tr',
+      name: 'Silinecek',
+      category: 'BACKEND',
+      level: 42,
+      iconKey: 'ts',
+      order: 3,
+    };
+    svc.findSkillSnapshot.mockResolvedValue(kayit);
+    svc.deleteSkill.mockResolvedValue(kayit);
+
+    const { deleteSkillAction } = await import('@/server/actions/skill');
+    await deleteSkillAction({ id: ID });
+
+    // "Ne kayboldu" sorusu hâlâ cevaplanabiliyor (T-031'in gerekçesi ayakta).
+    expect((denetimKaydi().diff as { deleted: Record<string, unknown> }).deleted).toMatchObject({
+      name: 'Silinecek',
+      category: 'BACKEND',
+      level: 42,
+    });
+  });
+});
+
+/* ===========================================================================
+ * BULGU-019 / profile.socials — DEĞERLER DEĞİL, DEĞİŞEN ANAHTARLAR
+ * ======================================================================== */
+
+describe('profile.socials — değerler diff’e girmiyor', () => {
+  const dto = {
+    id: 'singleton',
+    locale: 'tr',
+    headline: 'Başlık',
+    subtitle: null,
+    bio: 'Bio',
+    location: 'İstanbul',
+    availability: null,
+    socials: { email: 'gizli@ornek.com', github: 'https://github.com/x' },
+    avatar: null,
+    cv: null,
+  };
+
+  it('sosyal bağlantı DEĞERLERİ yazılmıyor, yalnızca değişen ANAHTARLAR', async () => {
+    svc.findProfileSnapshot.mockResolvedValue({ ...dto, socials: { github: 'https://eski/x' } });
+    svc.upsertProfile.mockResolvedValue(dto);
+
+    const { saveProfileAction } = await import('@/server/actions/profile');
+    await saveProfileAction({ headline: 'Başlık' });
+
+    const yazilan = JSON.stringify(denetimKaydi());
+    // Ne e-posta ne de URL — hiçbir DEĞER yok.
+    expect(yazilan).not.toContain('gizli@ornek.com');
+    expect(yazilan).not.toContain('github.com/x');
+    expect(yazilan).not.toContain('https://eski/x');
+    // Ama NE DEĞİŞTİĞİ okunabiliyor.
+    expect(yazilan).toContain('socialsChanged');
+    expect(yazilan).toContain('email');
+    expect(yazilan).toContain('github');
+  });
+
+  it('BEKLENMEYEN bir sosyal anahtarın DEĞERİ de sızmıyor', async () => {
+    // Sütun serbest `Json`; seed/migration/elle yazma buraya her şeyi koyabilir
+    // ve `REDACTED_KEYS` onu tanımaz. Anahtar ADI zararsız, DEĞER değil.
+    const sir = 'sk_live_gizli_2027';
+    svc.findProfileSnapshot.mockResolvedValue({ ...dto, socials: {} });
+    svc.upsertProfile.mockResolvedValue({ ...dto, socials: { apiAnahtari: sir } });
+
+    const { saveProfileAction } = await import('@/server/actions/profile');
+    await saveProfileAction({ headline: 'Başlık' });
+
+    const yazilan = JSON.stringify(denetimKaydi());
+    expect(yazilan).not.toContain(sir);
+    expect(yazilan).toContain('apiAnahtari');
+  });
+
+  it('sosyal değişmediyse liste BOŞ', async () => {
+    svc.findProfileSnapshot.mockResolvedValue(dto);
+    svc.upsertProfile.mockResolvedValue(dto);
+
+    const { saveProfileAction } = await import('@/server/actions/profile');
+    await saveProfileAction({ headline: 'Başlık' });
+
+    // `buildDiff` yalnızca DEĞİŞENİ taşır; boş liste = değişiklik yok demek.
+    expect(JSON.stringify(denetimKaydi())).not.toContain('socialsChanged');
   });
 });

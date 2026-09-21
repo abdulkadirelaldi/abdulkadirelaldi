@@ -18,7 +18,20 @@ const auditCreate = vi.hoisted(() => vi.fn());
 
 vi.mock('@/server/auth', () => ({ auth }));
 vi.mock('next/cache', () => ({ revalidateTag, unstable_cache: vi.fn() }));
-vi.mock('@/server/db', () => ({ db: { auditLog: { create: auditCreate } } }));
+const userFindUnique = vi.hoisted(() => vi.fn());
+vi.mock('@/server/db', () => ({
+  db: { auditLog: { create: auditCreate }, user: { findUnique: userFindUnique } },
+}));
+/*
+ * ADR-035/B — YAZMA KAPISI (T-046).
+ *
+ * `currentActorId()` artık `writesRevoked()` çağırıyor, yani her Server Action
+ * `user.findUnique` ile `writesValidFrom` okuyor. İki şey taklide eklendi:
+ *
+ *   - `db.user.findUnique` → `{ writesValidFrom: null }` ("hiç geçersizleştirilmedi")
+ *   - oturuma `tokenIssuedAt` → kapı FAIL-CLOSED; `iat` taşımayan bir oturum
+ *     yazma yetkisiz sayılıyor. Bu kasıtlı ve `yazma-kapisi.test.ts` ölçüyor.
+ */
 
 const svc = vi.hoisted(() => ({
   fetchContactMessageById: vi.fn(),
@@ -59,8 +72,12 @@ function denetimKaydi(): Record<string, unknown> {
   return (auditCreate.mock.calls[0]?.[0] as { data: Record<string, unknown> }).data;
 }
 
+/** Jetonun verildiği an — yazma kapısının eşiği (ADR-035/B). */
+const OTURUM_IAT = Math.floor(Date.parse('2026-09-20T12:00:00.000Z') / 1000);
+
 beforeEach(() => {
-  auth.mockResolvedValue({ user: { id: 'kullanici-1' } });
+  userFindUnique.mockResolvedValue({ writesValidFrom: null });
+  auth.mockResolvedValue({ user: { id: 'kullanici-1' }, tokenIssuedAt: OTURUM_IAT });
   auditCreate.mockResolvedValue({});
   svc.fetchContactMessageById.mockResolvedValue(MESAJ);
   svc.updateContactMessageStatus.mockResolvedValue({ ...MESAJ, isRead: true });
@@ -103,7 +120,7 @@ describe('§8.6 — yetkisiz erişim', () => {
   });
 
   it('oturum var ama `user.id` yoksa yine UNAUTHORIZED', async () => {
-    auth.mockResolvedValue({ user: {} });
+    auth.mockResolvedValue({ user: {}, tokenIssuedAt: OTURUM_IAT });
     const { archiveContactMessageAction } = await import('@/server/actions/contact-message');
     expect((await archiveContactMessageAction({ id: ID })).ok).toBe(false);
   });

@@ -38,6 +38,9 @@
 | ADR-030 | Seed, ölçüm sözleşmesidir | 2026-08-16 | Kabul edildi |
 | ADR-031 | Fontlar repoda barındırılır — `next/font/local` | 2026-08-16 | Kabul edildi |
 | ADR-032 | Kullanıcı girdisi önbellek anahtarına doğrulanmadan girmez | 2026-08-16 | Kabul edildi |
+| ADR-033 | URL filtre boole'ları `booleanFilterSchema` ile; `z.coerce.boolean()` yasak | 2026-09-11 | Kabul edildi |
+| ADR-034 | `redactAuditDiff` emniyet ağıdır, korumanın kendisi değil | 2026-09-19 | Kabul edildi |
+| ADR-035 | Oturum geçersizleştirme üç katmanda; kapsamlar adlarında | 2026-09-20 | Kabul edildi |
 
 ---
 
@@ -525,6 +528,10 @@ Backend'in T-000 değerlendirmesi üç kalemde şemanın kendi içinde tutarsız
 modelleri şemadan **çıkarılır**; `Account` eklenmez. PrismaAdapter kullanılmaz — tek kullanıcılı
 Credentials akışında hiçbir şey kazandırmıyor. Oturum çerezi §8.3'teki bayrakları taşır
 (`httpOnly`, `secure`, `sameSite: lax`, 7 gün).
+> ⚠️ **7 gün ADR-035/A ile 24 SAATE indirildi (T-046).** Bu satır kararın o günkü
+> hâlini kaydediyor; yürürlükteki değer ADR-035'tedir. Ayrıca ADR-013'ün
+> satır 545'te öngördüğü `iat` + toplu geçersizleştirme mekanizması ADR-035/B
+> ile — `sessionsValidFrom` değil `writesValidFrom` adıyla — uygulandı.
 
 **A2 — Kurtarma kodları ve şifreli secret.** `User` şu alanları kazanır:
 `totpBackupCodes String[]` (her biri **argon2id ile hash'li** — düz saklanmaz),
@@ -1636,3 +1643,107 @@ ayrı bir test de yazdı ve o test bu ADR'nin kodda duran hâli.
 - **Kuralı yalnızca kod yorumunda bırakmak** — **reddedildi**: aynı varsayım bu
   projede **iki kez** kuruldu (T-038'de mesaj gövdesi, T-042s'de şifre). Üçüncüsünü
   ADR engellesin.
+
+---
+
+## ADR-035 — Oturum Geçersizleştirme Üç Katmanda; Kapsamlar Adlarında
+
+**Tarih:** 2026-09-20 · **Durum:** Kabul edildi · **Kapsar:** §8.3 değişikliği, `User.writesValidFrom`
+**Kaynak:** BULGU-020 (T-044g ölçümü), T-042s (Backend), T-046 (uygulama)
+
+### Bağlam
+
+ADR-013 JWT stratejisini seçti ve satır 545'te mekanizmayı **zaten adlandırmıştı**:
+*"gerekirse token `iat` + `User.sessionsValidFrom` karşılaştırmasıyla toplu
+geçersizleştirme eklenir (v1'de yok)"*.
+
+T-042s boşluğun **gerçek** olduğunu gösterdi: şifre değiştirmek ele geçirilmiş bir
+oturumu kapatmıyor, çünkü sunucuda oturum kaydı yok ve dağıtılmış JWT'ler süreleri
+dolana dek geçerli kalıyor. T-044g uygulanabilirliği **ölçtü**:
+
+| Ölçüm | Sonuç |
+|-------|-------|
+| Ara katmana `db` eklenip derleme | `UnhandledSchemeError`, build EXIT 1 — T-014/K1 doğrulandı |
+| Depoda `await auth()` sayısı | **üç**; `(panel)` altındaki tek çağıran `ayarlar/guvenlik`. **Panel düzeni çağırmıyor** |
+| Kontrolün gerektireceği asgari sorgu | p50 **0,49 ms** / p95 **0,92 ms** (200 koşu) |
+
+Ara katman **Edge**'de koşuyor ve Prisma orada yüklenemiyor. Panel sayfaları yalnızca
+ara katmanla korunduğu için, sunucu tarafında yapılabilecek her kontrol **yazmaları**
+kapatır, **okumaları kapatmaz**. "Kısmi"nin tam tanımı budur.
+
+### Karar
+
+Üç katman, ve **her katmanın kapsamı adında**:
+
+**(A) Oturum ömrü 7 gün → 24 saat.** Tek sabit, **sıfır sorgu**, ölçüm borcu yok.
+Maruziyet penceresini %85 daraltıyor. Çerez `maxAge` ve JWT `exp` **birlikte**
+değişir — biri güncellenip diğeri kalırsa tutarsız ömür çıkar.
+
+> **§8.3 DEĞİŞİKLİĞİ:** "Oturum çerezleri: `httpOnly`, `secure`, `sameSite: lax`,
+> **7 gün**" → **24 saat**. PROGRAM.md düzenlemesi Orkestra Şefi'nde.
+
+Bedeli tek kullanıcılı panelde günde bir giriş **+ bir TOTP kodu** (§8.1 gereği 2FA
+zorunlu, yani her giriş bir kod girişi demek). Kabul edildi.
+
+**(B) `User.writesValidFrom` + yazma yolunda `iat` kontrolü.** Kolonun adı
+`sessionsValidFrom` **değil** ve bu bağlayıcı: ad, yaptığı şeyi söylemeli. Oturumlar
+kapanmıyor — **yazma yetkileri** kalkıyor. T-042s'te bu kolonun eklenmemesi doğruydu
+(hiçbir şeyin okumadığı, ama oturumların kapatıldığını düşündüren bir kolon olurdu);
+şimdi ekleniyor çünkü artık **okuyan bir kontrol var** ve adı kapsamını söylüyor.
+
+Kontrol `currentActorId()` içinde — yani **tüm Server Action'ların geçtiği tek kapı**.
+`auth()`'un jwt geri çağrısına konmadı: orası okuma yollarında da koşar ve "normal
+istek yolu DB'ye gitmez" özelliğini gereksizce kaybettirirdi.
+
+**KENDİ OTURUMU DA KAPSANIYOR ve bu bir kusur değil, özellik.** `iat` tek ayırt edici
+sinyal ve şifreyi değiştiren oturumun jetonu da eskidir. Sonuç: şifreyi **saldırgan**
+değiştirse bile kendi yazma yetkisini kaybeder ve yeniden giriş yapmak zorunda kalır —
+ki bunun için yeni şifreye **ve** TOTP cihazına ihtiyacı vardır.
+
+**(C) Okumaları kapatmak — F6/T-062'ye ertelendi.** Node ara katmanı gerektirir.
+Güvenlik'in uyarısı kayıtta: kontrol **yalnızca `isPanelPath` için** koşmalı; `matcher`
+neredeyse tüm yolları kapsadığı için aksi hâlde public sayfalara **istek başına bir
+sorgu** eklenir ve **ADR-011'in tüm önbellekleme çabası geri alınır.**
+
+### Kullanıcıya söylenebilecek cümle — BAĞLAYICI
+
+T-042s'in yasağı **sürüyor**: "Tüm cihazlardan çıkış yapıldı" ve "Diğer oturumlar
+sonlandırıldı" **yasak** — tutulamayacak sözdür.
+
+İzin verilen ve (B) ile birlikte **doğru olan** cümle:
+
+> **"Şifreniz değiştirildi. Güvenlik için açık olan tüm oturumlar —bu cihaz dahil—
+> artık değişiklik yapamaz; değişiklik yapmak için yeniden giriş yapmanız gerekiyor.
+> Oturumlar kapatılmadı, yalnızca değişiklik yetkileri kaldırıldı."**
+
+Kısa biçim: **"Diğer cihazlar artık değişiklik yapamaz."** — doğru.
+**"Diğer cihazlar çıkış yaptı."** — yanlış, yasak.
+
+Cümlenin "bu cihaz dahil" kısmı atlanamaz: kullanıcı şifre değiştirdikten hemen sonra
+bir kaydetme denerse `UNAUTHORIZED` görecek ve sebebini bilmeli.
+
+### Sonuçlar
+
+- Maruziyet penceresi 7 gün → 24 saat (A), ve o pencerede bile çalınmış oturum
+  **yazamaz** (B).
+- "Normal istek yolu DB'ye gitmez" özelliği **okuma yollarında korunuyor**; yalnızca
+  Server Action başına +1 sorgu (p50 0,49 ms) eklendi.
+- Okuma tarafı hâlâ açık: çalınmış bir oturum panel **içeriğini görebilir** (C, F6).
+  Bu ADR onu gizlemiyor — kullanıcıya verilen cümle de bunu ima etmiyor.
+- Günde bir giriş + TOTP kodu maliyeti kabul edildi.
+
+### Alternatifler ve neden reddedildi
+
+- **`sessionsValidFrom` adı** — **reddedildi**: T-042s'in kaçındığı yanılsamayı geri
+  getirirdi. Ad, yaptığı işi söylemeli.
+- **Kontrolü `auth()`'un jwt geri çağrısına koymak** — **reddedildi**: okuma yollarını
+  da DB'ye bağlardı, karşılığında hiçbir okuma korumadan (okuma koruması ara katmanda
+  ve orası Edge).
+- **Şifre değiştiren oturumu muaf tutmak** — **reddedildi**: sunucu "bu cihaz"ı
+  ayırt edemez (tek sinyal `iat`), ve muafiyet tam da saldırganın şifreyi değiştirdiği
+  senaryoda onu korurdu.
+- **Ara katmanı Node'a çevirip (C)'yi şimdi yapmak** — **reddedildi bu turda**:
+  ölçülmüş bir bedeli var (public sayfalara istek başına sorgu) ve kendi görevini
+  hak ediyor (T-062).
+- **Hiçbir şey yapmayıp F6'yı beklemek** — **reddedildi**: (A) tek başına sıfır
+  maliyetle pencereyi %85 daraltıyor; beklemenin gerekçesi yoktu.

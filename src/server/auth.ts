@@ -23,8 +23,26 @@ import { getTotpState } from './services/user';
  * middleware'e GÜVENİLMEZ. Bu dosya o yardımcıyı ihraç eder.
  */
 
-/** §8.3 — oturum 7 gün. */
-const SESSION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
+/**
+ * §8.3 — oturum ömrü **24 saat** (ADR-035/A, eskiden 7 gündü).
+ *
+ * KISALTMANIN SEBEBİ BİR MARUZİYET PENCERESİ: JWT stratejisinde (ADR-013)
+ * sunucuda oturum kaydı yok, yani dağıtılmış bir jeton süresi dolana kadar
+ * geçerli kalır ve ÇALINMIŞ bir jeton da öyle. 7 günden 24 saate inmek o
+ * pencereyi %85 daraltıyor — tek sabit, SIFIR sorgu, hiçbir ölçüm borcu yok.
+ *
+ * Tek kullanıcılı bir panelde bedeli günde bir giriş VE bir TOTP kodu (§8.1
+ * gereği 2FA zorunlu, yani her giriş bir kod girişi demek). Kabul edildi.
+ *
+ * ⚠️ BU SABİT İKİ YERDE KULLANILIYOR — çerez `maxAge` ve oturum `maxAge` (JWT
+ * `exp` ondan türer). İkisi TEK KAYNAKTAN beslendiği için sapamazlar; ayrı ayrı
+ * yazılsaydı biri güncellenip diğeri kalınca tutarsız bir ömür çıkardı: çerez
+ * ölmüş ama jeton geçerli, ya da tersi. `tests/unit/session-omru.test.ts` ikisinin
+ * de bu sabitten geldiğini kaynaktan doğruluyor.
+ *
+ * (A) katmanı TEK BAŞINA anlamlıdır ve (B)'den bağımsızdır — ADR-035.
+ */
+const SESSION_MAX_AGE_SECONDS = 24 * 60 * 60;
 
 const useSecureCookies = process.env.NODE_ENV === 'production';
 
@@ -130,6 +148,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (token.sub) {
         session.user.id = token.sub;
       }
+      /*
+       * ADR-035/B — `iat` oturuma taşınıyor.
+       *
+       * BURADA VERİTABANINA GİDİLMİYOR ve bu kasıtlı: karşılaştırmayı bu geri
+       * çağrıya koymak, `auth()` çağıran HER yolu (okuma dahil) veritabanına
+       * bağlardı ve karşılığında hiçbir okumayı korumazdı — okuma koruması ara
+       * katmanda, o da Edge'de ve DB okuyamıyor (T-014/K1).
+       *
+       * Burada yalnızca jetonun kendi alanı kopyalanıyor; kararı yazma kapısı
+       * (`currentActorId`) veriyor.
+       */
+      session.tokenIssuedAt = typeof token.iat === 'number' ? token.iat : undefined;
       return session;
     },
   },
