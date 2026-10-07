@@ -40,5 +40,22 @@ export default function MdxOnizleme({ kaynak }: { kaynak: string }) {
     );
   }
 
-  return <Mdx kaynak={kaynak} className="max-w-none" />;
+  /*
+    `hataPolitikasi="firlat"` — T-049f'te public tarafa yedek çıktı eklendi ama
+    YAZAR için yanlış mesaj olurdu: "bu içerik görüntülenemedi" ona hangi satırın
+    bozuk olduğunu söylemez. Hata fırlatılıyor, `OnizlemeSinir` derleyicinin
+    satır/sütun veren mesajını gösteriyor (T-035'te ölçüldü).
+
+    `kayitEtiketi` yine de veriliyor: politika `firlat` olduğu için günlüğe
+    düşmüyor, ama alan zorunlu ve ileride politika değişirse "hangi kayıt"
+    sorusu cevapsız kalmasın.
+  */
+  return (
+    <Mdx
+      kaynak={kaynak}
+      className="max-w-none"
+      kayitEtiketi="panel:onizleme"
+      hataPolitikasi="firlat"
+    />
+  );
 }

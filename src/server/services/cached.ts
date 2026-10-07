@@ -108,17 +108,39 @@ export const getFeaturedProjects = cachedRead(
 );
 
 /**
- * Slug bazlı önbellek.
+ * Slug bazlı önbellek — DETAY GİRDİSİ `localeTag` TAŞIMIYOR (T-045/ADR-029).
  *
- * Etiketlere `slugTag` de eklenir: F3'te tek bir projenin düzenlenmesi yalnızca
- * o kaydın girdisini düşürebilsin diye. Liste etiketi de taşınır, çünkü etiket
- * eşleşmesi tam dizedir (ADR-029).
+ * ═══════════════════════════════════════════════════════════════════════════
+ * ⚠️ `localeTag` BİLEREK ÇIKARILDI — AŞIRI GEÇERSİZLEŞTİRME DÜZELTMESİ
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * T-040'ta ölçüldü: detay girdileri `localeTag` de taşıdığı için
+ * `revalidateTag('content:project:tr')` o dildeki HER projenin detay girdisini
+ * düşürüyordu — yani A projesini düzenlemek B'nin sayfasını da
+ * geçersizleştiriyordu. Ve bunun ikinci bir sonucu vardı: `slugTag` hiçbir
+ * zaman yük taşımıyordu, çünkü aynı girdiye `localeTag` de ulaşıyordu. T-039'un
+ * mutasyonu `slugTag`i tamamen kaldırıp E2E'yi yeşil bırakması tam bu yüzdendi.
+ *
+ * Artık detay girdisi `entityTag + slugTag` taşıyor:
+ *   - A'yı düzenlemek B'nin detay girdisine DOKUNMUYOR
+ *   - `slugTag` YÜK TAŞIYOR — ADR-029'un çürütülen gerekçesi artık gerçekten
+ *     doğru: onu kaldırmak detay sayfasını bayat bırakır
+ *
+ * ERİŞİLEBİLİRLİK KORUNDU: `tagTargetsFor` (actions/tags.ts) etkilenen kaydın
+ * slug'ını HER mutasyon yolunda üretiyor — ekleme, düzenleme, slug değişimi
+ * (eski+yeni), dil değişimi (eski+yeni), durum değişikliği, arşivleme. Yani
+ * düşürülmesi gereken detay girdisi daima bir `slugTag` ile yakalanıyor.
+ *
+ * ⚠️ T-037'YE NOT: bu girdi `fetchProjectGallery`yi de kapsıyor. Eklenti
+ * mutasyonu geldiğinde, sahibi olan kaydın `slugTag`ini DÜŞÜRMEK ZORUNDA —
+ * eskiden `localeTag` onu tesadüfen kapsıyordu, artık kapsamıyor. Bugün eklenti
+ * yazma eylemi YOK, yani gerileme değil; gelecek turun bilmesi gereken bir şart.
  */
 export const getProjectBySlug = cachedRead(
   (slug: string, locale: string = DEFAULT_LOCALE) => fetchProjectBySlug(slug, { locale }),
   (slug, locale = DEFAULT_LOCALE) => ({
     keyParts: ['project', locale, slug],
-    tags: [entityTag('project'), localeTag('project', locale), slugTag('project', locale, slug)],
+    tags: [entityTag('project'), slugTag('project', locale, slug)],
   }),
 );
 
@@ -170,12 +192,16 @@ export const getPublishedPosts = cachedRead(
   }),
 );
 
-/** `slug` anahtara açıkça konur — bkz. `getProjectBySlug`. */
+/**
+ * `slug` anahtara açıkça konur ve `localeTag` TAŞINMIYOR — gerekçenin tamamı
+ * `getProjectBySlug`te (T-045). Özet: aşırı geçersizleştirme gideriliyor ve
+ * `slugTag` yük taşıyan hâle geliyor.
+ */
 export const getPostBySlug = cachedRead(
   (slug: string, locale: string = DEFAULT_LOCALE) => fetchPostBySlug(slug, { locale }),
   (slug, locale = DEFAULT_LOCALE) => ({
     keyParts: ['post', locale, slug],
-    tags: [entityTag('post'), localeTag('post', locale), slugTag('post', locale, slug)],
+    tags: [entityTag('post'), slugTag('post', locale, slug)],
   }),
 );
 

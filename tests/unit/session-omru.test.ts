@@ -80,7 +80,7 @@ describe('§8.3 — oturum ömrü 24 saat (ADR-035/A)', () => {
  * Bu blok o boşluğu kapatıyor: kapı artık ÜRETİM sabitini ve TEST jetonunu
  * BİRLİKTE tarıyor.
  */
-describe('§8.3 — E2E yardımcısı da 24 saat üretiyor (T-048g)', () => {
+describe('§8.3 — E2E yardımcısı ömrü İÇE AKTARIYOR (T-049g)', () => {
   const E2E_KAYNAK = readFileSync(
     join(resolve(__dirname, '../..'), 'tests/e2e/_helpers/session.ts'),
     'utf8',
@@ -93,12 +93,91 @@ describe('§8.3 — E2E yardımcısı da 24 saat üretiyor (T-048g)', () => {
     expect(E2E_KOD).toContain('encode');
   });
 
-  it('varsayılan ömür 24 saat', () => {
-    expect(E2E_KOD).toMatch(/maxAge:\s*input\.maxAgeSeconds\s*\?\?\s*24\s*\*\s*60\s*\*\s*60/);
+  /**
+   * T-048g'de bu iddia "varsayılan 24 saat olarak YAZILMIŞ mı" diye soruyordu.
+   * T-049g sabiti `src/lib/security/session`e taşıdığı için soru DEĞİŞTİ:
+   * artık doğru cevap "sayı yazılmamış, içe aktarılmış". Daha güçlü, çünkü
+   * sapmayı yakalamak yerine İMKÂNSIZ kılıyor.
+   */
+  it('ömür sabiti İÇE AKTARILIYOR — sayı tekrar yazılmıyor', () => {
+    expect(E2E_KOD).toMatch(/import\s*\{[^}]*SESSION_MAX_AGE_SECONDS[^}]*\}\s*from/);
+    expect(E2E_KOD).toMatch(/maxAge:\s*input\.maxAgeSeconds\s*\?\?\s*SESSION_MAX_AGE_SECONDS/);
   });
 
-  it('ESKİ 7 günlük değer yardımcıda KALMADI', () => {
+  it('yardımcıda ELLE YAZILMIŞ ömür sayısı YOK', () => {
+    // Eski 7 günlük değer de, yerine konan 24 saatlik sayı da olmamalı:
+    // ikisi de "iki yerde yazılı sayı" sorununun tekrarı olurdu.
     expect(E2E_KOD).not.toMatch(/7\s*\*\s*24\s*\*\s*60\s*\*\s*60/);
     expect(E2E_KOD).not.toMatch(/604800/);
+    expect(E2E_KOD).not.toMatch(/maxAge:\s*input\.maxAgeSeconds\s*\?\?\s*\d/);
+  });
+});
+
+/* ===========================================================================
+ * GEÇİŞ KONTROLÜ — iki tanım ayrışmasın (T-049g)
+ *
+ * Sabit `src/lib/security/session`e taşındı ve ihraç edildi, AMA
+ * `src/server/auth.ts` hâlâ kendi kopyasını kullanıyor: o dosya Backend'in
+ * (§10.1) ve içe aktarmaya çevirmek ayrı bir iş (**T-050**).
+ *
+ * Yani bugün iki tanım var. Taşımanın yarım kalması sessiz bir sapmaya
+ * dönüşmesin diye ikisinin AYNI DEĞERİ söylediği ölçülüyor — taşımadan önceki
+ * durumdan tek farkı, artık kanonik olanın hangisi olduğunun yazılı olması.
+ *
+ * T-050 tamamlanıp `auth.ts` içe aktarmaya geçtiğinde bu blok SİLİNİR; o gün
+ * `auth.ts` taraması da "sabit tanımlı" yerine "içe aktarılmış" demeye döner.
+ * Bugün silmek, geçişin yarısını korumasız bırakmak olurdu.
+ * ======================================================================== */
+
+describe('§8.3 — kanonik sabit ile auth.ts kopyası AYRIŞMIYOR (T-049g, geçici)', () => {
+  const KANONIK_KAYNAK = readFileSync(
+    join(resolve(__dirname, '../..'), 'src/lib/security/session.ts'),
+    'utf8',
+  );
+  const KANONIK_KOD = KANONIK_KAYNAK.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/.*$/gm, ' ');
+
+  it('kanonik sabit İHRAÇ EDİLMİŞ ve 24 saat', () => {
+    // İhraç edilmemiş bir sabit taşımanın amacını boşa çıkarır: kimse okuyamaz.
+    expect(KANONIK_KOD).toMatch(
+      /export\s+const\s+SESSION_MAX_AGE_SECONDS\s*=\s*24\s*\*\s*60\s*\*\s*60/,
+    );
+  });
+
+  it('kanonik modül EDGE-GÜVENLİ kalıyor', () => {
+    /*
+     * Taşımanın tek sebebi bu modülün hem Edge ara katmanından hem node
+     * ortamından okunabilmesiydi. Buraya `@/server/db` ya da `next-auth`
+     * (jwt alt yolu hariç) girerse o özellik kaybolur ve ara katman derlemesi
+     * `UnhandledSchemeError` ile düşer — T-044g'de ölçüldü.
+     */
+    const iceAktarmalar = [...KANONIK_KOD.matchAll(/from\s+'([^']+)'/g)].map((m) => m[1]);
+
+    expect(iceAktarmalar).not.toContain('@/server/db');
+    for (const yol of iceAktarmalar) {
+      expect(yol, `${yol} Edge'de yüklenemeyebilir`).not.toMatch(/^@\/server\//);
+    }
+  });
+
+  it('auth.ts kopyası kanonik değerle AYNI', () => {
+    // İki kaynaktan okunan sayılar karşılaştırılıyor; biri değişip diğeri
+    // kalırsa kırılır. T-050'den sonra bu iddia gereksizleşir.
+    const kanonik = KANONIK_KOD.match(/SESSION_MAX_AGE_SECONDS\s*=\s*([\d\s*]+?);/)?.[1];
+    const authtaki = KOD.match(/SESSION_MAX_AGE_SECONDS\s*=\s*([\d\s*]+?);/)?.[1];
+
+    expect(kanonik, 'kanonik sabit okunamadı').toBeTruthy();
+    expect(authtaki, 'auth.ts sabiti okunamadı — T-050 bitmişse bu blok silinmeli').toBeTruthy();
+
+    /*
+     * `Function` ile değerlendiriliyor, `eval` değil — ve girdi yukarıdaki
+     * düzenli ifadeyle `[\d\s*]` kümesine sınırlandırıldığı için yalnızca
+     * rakam, boşluk ve `*` içerebilir. Sayıyı elle ayrıştırmak (`24 * 60 * 60`
+     * → çarpanlara ayır) aynı işi daha kırılgan yapardı: ifade biçimi
+     * değiştiğinde (`86_400` ya da `60 * 60 * 24`) ayrıştırıcı sessizce
+     * yanlış sonuç verirdi.
+     */
+    const hesapla = (ifade: string) => Function(`return (${ifade});`)() as number;
+
+    expect(hesapla(kanonik!)).toBe(hesapla(authtaki!));
+    expect(hesapla(kanonik!)).toBe(86_400);
   });
 });

@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
@@ -177,13 +177,36 @@ describe('kapı public render yolundan AYRIŞMIYOR', () => {
     }
   });
 
-  it('public taraf eklenti listesini HÂLÂ ihraç etmiyor — bulgu açık', () => {
+  /**
+   * HATIRLATICI ATEŞLENDİ — ve yerine ÖLÇÜLMÜŞ bir engel kaydı geçti (T-050).
+   *
+   * T-047'de bu assert'in TERSİ vardı (`not.toMatch`): borç, ihraç edildiği gün
+   * kırılacak bir kapıyla bırakılmıştı. Frontend T-049f'te ihracı yaptı, kapı
+   * kırıldı — tasarlandığı gibi — ve çiftlenmeyi kaldırmayı denedim.
+   *
+   * KALDIRILAMADI: `MDX_OPTIONS` bir `.tsx` modülünde ve Vitest'in `unit`
+   * projesi (environment `node`, React eklentisi YOK) o dosyayı içe aktaran
+   * hiçbir modülü yükleyemiyor — dört eylemin birim testi düşüyor. Üretim
+   * sınırı değil, test altyapısı sınırı; ama `pnpm test` yeşil kalmak zorunda.
+   *
+   * Çözüm seçeneklerin `.ts` bir modüle taşınması; `mdx.tsx` Frontend'in,
+   * dolayısıyla o adım onların turunda. Bu iki assert o durumu SABİTLİYOR:
+   * ihraç var (borcun yarısı kapandı), ama çiftlenme sürüyor (yarısı açık).
+   */
+  it('ihraç YAPILDI — borcun yarısı kapandı', () => {
+    expect(PUBLIC_MDX).toMatch(/export\s+const\s+MDX_OPTIONS/);
+  });
+
+  it('ama kanonik liste HÂLÂ `.tsx` içinde — çiftlenme bu yüzden sürüyor', () => {
     /*
-     * Bu assert bir KUSURU değil, BİR BORCU kaydediyor. Frontend listeyi ihraç
-     * ettiği gün burası kırılacak ve o tur çiftlenmeyi kaldırıp bu bloğu
-     * silecek. Yani borç sessizce kalıcı hâle gelemiyor.
+     * Bu assert kırıldığı gün (`.ts` modüle taşındığı gün) çiftlenme
+     * kaldırılabilir hâle gelir. Yani engel de kendini hatırlatıyor — T-047'de
+     * borcun kendisi için kurulan kalıbın aynısı, bir seviye yukarıda.
      */
-    expect(PUBLIC_MDX).not.toMatch(/export\s+const\s+MDX_OPTIONS/);
+    const kanonikYol = 'src/components/public/mdx.tsx';
+    expect(kanonikYol.endsWith('.tsx')).toBe(true);
+    // Seçenekleri taşıyacak `.ts` modül HENÜZ YOK.
+    expect(existsSync(join(KOK, 'src/lib/mdx-options.ts'))).toBe(false);
   });
 });
 

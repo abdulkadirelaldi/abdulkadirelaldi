@@ -159,7 +159,7 @@ export default async function YaziSayfasi({ params }: SayfaProps) {
       */}
       <Icindekiler kaynak={yazi.content} />
 
-      <Mdx kaynak={yazi.content} className="max-w-none" />
+      <Mdx kaynak={yazi.content} className="max-w-none" kayitEtiketi={`post:${yazi.slug}`} />
     </article>
   );
 }

@@ -1,4 +1,4 @@
-import { MDXRemote } from 'next-mdx-remote/rsc';
+import { compileMDX, type MDXRemoteProps } from 'next-mdx-remote/rsc';
 import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
 import remarkGfm from 'remark-gfm';
 import type { ComponentProps, ReactNode } from 'react';
@@ -227,31 +227,138 @@ export type MdxProps = {
   /** Ham MDX kaynağı — `ProjectDto.content` / `PostDto.content`. */
   kaynak: string;
   className?: string;
+  /**
+   * Derleme hatasında sunucu günlüğüne yazılacak KAYIT KİMLİĞİ —
+   * ör. `blog:nextjs-15-app-router-notlari`.
+   *
+   * §8.20: günlüğe kimlik ve derleyici sebebi girer, İÇERİK GÖVDESİ GİRMEZ.
+   * Çağıranın vermesi şart çünkü bu bileşen hangi kaydı çizdiğini bilmiyor;
+   * verilmezse günlük "hangi sayfa" sorusunu cevaplayamaz.
+   */
+  kayitEtiketi: string;
+  /**
+   * DERLEME HATASINDA NE OLACAĞI — çağıranın kararı.
+   *
+   *   `'yedek-goster'` (varsayılan): hata yakalanır, günlüğe yazılır ve
+   *     okuyucuya "bu içerik görüntülenemedi" gösterilir. PUBLIC tarafın
+   *     ihtiyacı bu — sayfa 500 yerine okunabilir bir 200 olur.
+   *
+   *   `'firlat'`: hata olduğu gibi fırlatılır. PANEL ÖNİZLEMESİNİN ihtiyacı
+   *     bu: yazara "görüntülenemedi" demek işe yaramaz, ona derleyicinin
+   *     SATIR/SÜTUN veren mesajı gerekiyor ve onu `OnizlemeSinir` gösteriyor.
+   *     Politikayı bileşenin içinde sabitlemek, iki farklı okuyucudan birine
+   *     yanlış mesajı vermek olurdu.
+   */
+  hataPolitikasi?: 'yedek-goster' | 'firlat';
+};
+
+/**
+ * MDX DERLEME SEÇENEKLERİ — TEK KAYNAK (T-049f'te ihraç edildi).
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * NEDEN İHRAÇ EDİLİYOR
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * T-047'de Backend `mdx-validate.ts` içinde kaydetme öncesi bir derleme kapısı
+ * kurdu ve bu listeyi ZORUNLU OLARAK ÇİFTLEDİ — çünkü burası onu ihraç
+ * etmiyordu. Çiftlenme tehlikesi somut: kapı `remark-gfm` olmadan derlerse
+ * GFM sözdizimi kapıda hata verip render'da çalışırdı (ya da tersi), yani
+ * "kaydedilemeyen ama geçerli içerik" ya da "kaydedilen ama patlayan içerik"
+ * doğardı.
+ *
+ * Backend o çiftlenmeyi bir BORÇ olarak kayda geçirdi: kapı testi bu dosyada
+ * `export const MDX_OPTIONS` ARAMIYOR OLDUĞUNU assert ediyor, yani ihraç
+ * edildiği gün o test KIRILIYOR ve çiftlenme o turda kaldırılıyor. Bilerek
+ * kurulmuş bir hatırlatıcı; bu ihraç onu ateşliyor.
+ *
+ * SIRA ÖNEMLİ: sanitize EN SONDA çalışır. Önce çalışsaydı, sonraki bir
+ * eklentinin ürettiği düğümler denetimden geçmemiş olurdu. Şema açıkça
+ * veriliyor — argümansız çağırmak da varsayılanı kullanır ama hangi şemanın
+ * yürürlükte olduğu okunurken görünsün.
+ */
+/*
+  `as const` YOK ve olmamalı: `MDXRemote`un beklediği `SerializeOptions`
+  DEĞİŞTİRİLEBİLİR dizi (`Pluggable[]`) istiyor, `readonly` olanı kabul
+  etmiyor. `as const` eklemek derlemeyi kırıyordu — ölçüldü.
+*/
+export const MDX_OPTIONS: MDXRemoteProps['options'] = {
+  mdxOptions: {
+    remarkPlugins: [remarkGfm],
+    rehypePlugins: [[rehypeSanitize, defaultSchema]],
+  },
 };
 
 /**
  * MDX içeriğini render eder. Çağıran taraf yalnızca kaynağı verir; eklentiler,
  * şema ve tipografi burada — iki içerik türü (proje, yazı) aynı yerden beslensin.
  */
-export function Mdx({ kaynak, className }: MdxProps): ReactNode {
-  return (
-    <div className={cn('max-w-2xl', className)}>
-      <MDXRemote
-        source={kaynak}
-        components={BILESENLER}
-        options={{
-          mdxOptions: {
-            remarkPlugins: [remarkGfm],
-            /*
-              SIRA ÖNEMLİ: sanitize EN SONDA çalışır. Önce çalışsaydı, sonraki
-              bir eklentinin ürettiği düğümler denetimden geçmemiş olurdu.
-              Şema açıkça veriliyor — argümansız çağırmak da varsayılanı kullanır
-              ama hangi şemanın yürürlükte olduğu okunurken görünsün.
-            */
-            rehypePlugins: [[rehypeSanitize, defaultSchema]],
-          },
-        }}
-      />
-    </div>
-  );
+export async function Mdx({
+  kaynak,
+  className,
+  kayitEtiketi,
+  hataPolitikasi = 'yedek-goster',
+}: MdxProps) {
+  let icerik: ReactNode;
+
+  try {
+    ({ content: icerik } = await compileMDX({
+      source: kaynak,
+      components: BILESENLER,
+      options: MDX_OPTIONS,
+    }));
+  } catch (hata) {
+    /* Panel önizlemesi kendi sınırıyla ilgileniyor — mesajı o göstersin. */
+    if (hataPolitikasi === 'firlat') throw hata;
+
+    /*
+      ═══════════════════════════════════════════════════════════════════════
+      GÜRÜLTÜLÜ LOG — SESSİZ YUTMAK GERÇEKTEN GİZLERDİ (T-049f şartı (a))
+      ═══════════════════════════════════════════════════════════════════════
+
+      `console.error` bilerek: Vercel günlüğünde hata seviyesinde görünsün ve
+      uyarı kuralları yakalayabilsin. §8.20 uyumlu — KAYIT KİMLİĞİ ve DERLEYİCİ
+      SEBEBİ yazılıyor, içerik gövdesi YAZILMIYOR.
+
+      "Sınır gerilemeyi gizler" itirazının cevabı bu satır: gerilemenin
+      dedektörü üretimdeki 500 değil, T-047'nin kaydetme öncesi birim
+      testleridir; bu log ise doğrudan DB yazma yolundan (seed, migration,
+      elle psql) gelen kırık içeriği ortaya çıkarıyor — o yol kapıdan geçmiyor.
+    */
+    console.error(
+      `[mdx] derleme başarısız — içerik görüntülenemedi. kayıt=${kayitEtiketi} sebep=${
+        hata instanceof Error ? hata.message : String(hata)
+      }`,
+    );
+
+    /*
+      ═══════════════════════════════════════════════════════════════════════
+      ARAYÜZDE SESSİZ OLMAMA (T-049f şartı (b))
+      ═══════════════════════════════════════════════════════════════════════
+
+      Boş alan BIRAKILMIYOR. Okuyucu "yazı bitti mi, bozuk mu" diye
+      tahmin etmek zorunda kalmasın: ne olduğu yazıyor ve adresin DOĞRU
+      olduğu söyleniyor — sayfa 500 yerine okunabilir bir 200.
+
+      `role="alert"` DEĞİL `role="status"`: bu, okuyucunun yaptığı bir şeyin
+      sonucu değil, sayfanın bir durumu. Alert, ekran okuyucusunu keserdi.
+
+      ÖNBELLEK NOTU: sayfa ADR-029 etiketleriyle önbelleklendiği için bu
+      yedek çıktı da önbelleğe girer. İçerik panelden düzeltildiğinde etiket
+      düşüyor ve gerçek render geri geliyor — kalıcı bir yanlış durum yok.
+    */
+    icerik = (
+      <div
+        role="status"
+        className="border-warning/40 bg-warning/8 rounded-card flex flex-col gap-2 border p-4"
+      >
+        <p className="text-warning text-sm font-medium">Bu içerik görüntülenemedi</p>
+        <p className="text-body text-sm">
+          Adres doğru — metnin biçimlendirmesinde bir sorun var ve bu yüzden çizilemiyor. Sorun
+          kaydedildi; düzeltildiğinde sayfa kendiliğinden düzelecek.
+        </p>
+      </div>
+    );
+  }
+
+  return <div className={cn('max-w-2xl', className)}>{icerik}</div>;
 }

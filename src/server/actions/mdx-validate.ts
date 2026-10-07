@@ -71,11 +71,35 @@ import { fail, type ApiFailure } from '@/server/services/_shared';
  * yani render de patlamıyor) — ama kapı "hiçbir 500 kalmadı" diye değil,
  * "ölçülen 500 sınıfı kapandı" diye okunmalı.
  *
- * ⚠️ EKLENTİ LİSTESİ ÇİFTLENMİŞ DURUMDA. `mdx.tsx` o listeyi ihraç etmiyor ve
- * o dosya Frontend'in (§10.1). `tests/unit/actions/mdx-dogrulama.test.ts`
- * İKİSİNİN EŞLEŞTİĞİNİ KAYNAKTAN doğruluyor: `mdx.tsx` eklenti değiştirirse
- * test kırılır. Kalıcı çözüm listenin tek yerden ihracı; raporda bulgu olarak
- * açıldı.
+ * ⚠️ EKLENTİ LİSTESİ HÂLÂ ÇİFTLENMİŞ — VE NEDEN KALDIRILAMADIĞI ÖLÇÜLDÜ (T-050).
+ *
+ * T-047'de çiftlenme bir BORÇ olarak bırakılmıştı ve kapı testi `mdx.tsx`te
+ * `export const MDX_OPTIONS` ARAMIYOR OLDUĞUNU assert ediyordu — ihraç edildiği
+ * gün kırılsın diye. Frontend T-049f'te ihracı yaptı, kapı KIRILDI (tasarlandığı
+ * gibi) ve çiftlenmeyi kaldırmayı denedim.
+ *
+ * KALDIRILAMADI, ve sebebi ölçüm: `MDX_OPTIONS` bir **`.tsx`** modülünde
+ * (`components/public/mdx.tsx`). Buradan içe aktarıldığında Vitest'in `unit`
+ * projesi bu dosyayı — ve onu içe aktaran DÖRT EYLEMİ — hiç yükleyemiyor:
+ *
+ *   Failed to parse source for import analysis because the content contains
+ *   invalid JS syntax … src/components/public/mdx.tsx:80:6
+ *
+ * Çünkü `unit` projesi `environment: 'node'` ve React eklentisi YOK (JSX'i
+ * yalnızca `component` projesi çözüyor, o da `*.test.tsx` koşuyor).
+ *
+ * Bu bir ÜRETİM sınırı değil — Next JSX'i her yerde derler. Bir TEST ALTYAPISI
+ * sınırı, ama bağlayıcı: `pnpm test` yeşil kalmak zorunda ve dört eylemin
+ * birim testi bu modülden geçiyor.
+ *
+ * ÇÖZÜM, ÇİFTLENMEYİ KALDIRMAK İÇİN: seçenekler `.ts` bir modüle taşınmalı
+ * (ör. `src/lib/mdx-options.ts`) ve İKİ taraf da oradan içe aktarmalı.
+ * `mdx.tsx` Frontend'in (§10.1), bu yüzden o adım bu turda yapılamadı; rapora
+ * bulgu olarak yazıldı. Kendi tarafımda yeni bir tanım AÇMADIM: bugün tek
+ * kanonik liste `mdx.tsx`te ve üçüncü bir kopya durumu kötüleştirirdi.
+ *
+ * O GÜNE KADAR kapı duruyor: `tests/unit/actions/mdx-dogrulama.test.ts`
+ * İKİSİNİN EŞLEŞTİĞİNİ kaynaktan doğruluyor, yani sapma sessiz kalamaz.
  */
 
 /**

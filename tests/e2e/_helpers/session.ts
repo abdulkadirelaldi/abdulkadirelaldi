@@ -10,6 +10,7 @@ import { encode } from 'next-auth/jwt';
 import {
   SESSION_COOKIE_NAME_DEV,
   SESSION_COOKIE_NAME_PROD,
+  SESSION_MAX_AGE_SECONDS,
 } from '../../../src/lib/security/session';
 import { TWO_FACTOR_CLAIM } from '../../../src/lib/security/two-factor';
 
@@ -44,7 +45,10 @@ export interface IssueSessionInput {
   userId: string;
   email: string;
   name?: string;
-  /** Saniye cinsinden ömür. Varsayılan §8.3 ile aynı: **24 saat** (ADR-035/A). */
+  /**
+   * Saniye cinsinden ömür. Varsayılan **§8.3'ün kendisi** —
+   * `SESSION_MAX_AGE_SECONDS` içe aktarılıyor, sayı burada YAZILMIYOR.
+   */
   maxAgeSeconds?: number;
   /**
    * §8.1 — jetondaki `tfa` alanı (T-019).
@@ -78,24 +82,20 @@ export async function issueSessionToken(input: IssueSessionInput): Promise<strin
     salt: name,
     secret,
     /*
-     * §8.3 — ADR-035/A ile 7 gün → 24 saat. BU SATIR T-048g'DE BAYATTI:
-     * uygulama 24 saate indikten sonra da 7 gün üretmeye devam ediyordu ve
-     * hiçbir test kırılmadı, çünkü Backend'in ömür kapısı (`session-omru.test.ts`)
-     * yalnızca `src/server/auth.ts`i tarıyor.
+     * ÖMÜR İÇE AKTARILIYOR, TEKRAR YAZILMIYOR (T-049g).
      *
-     * Sonucu "zararsız" saymak yanlış olurdu: E2E paketi, üretimde ARTIK
-     * ÜRETİLEMEYEN bir jeton biçimiyle koşuyordu — ölçülen ortam ile gerçek
-     * ortam arasında sessiz bir sapma. Bu projenin tekrar tekrar adını koyduğu
-     * sınıf (bayat öncül) ve bu kez kendi test altyapımızdaydı.
+     * T-048g'de bu satır `7 * 24 * 60 * 60` idi: ADR-035/A ömrü 24 saate
+     * indirdikten sonra da eski değeri üretiyordu ve hiçbir test kırılmadı.
+     * O turda sayı 24 saate çekilip sapma bir kaynak taramasıyla kapatıldı —
+     * ama tarama bir SEMPTOM çözümüydü: iki yerde yazılı bir sayı, yarın
+     * yine ayrışabilirdi.
      *
-     * KALICI ÇÖZÜM BENDE DEĞİL: sabit `src/server/auth.ts` içinde ve o dosya
-     * `next-auth` içe aktardığı için buradan okunamıyor. Ömür sabiti
-     * `src/lib/security/session`e taşınırsa (Backend'e öneri) iki taraf da
-     * tek kaynaktan okur. O güne kadar sayı burada TEKRAR yazılıyor ve
-     * sapmayı `tests/unit/session-omru.test.ts` yakalıyor (T-048g'de eklenen
-     * dal bu dosyayı da tarıyor).
+     * T-049g sabiti `src/lib/security/session`e taşıdı (Edge-güvenli, bu
+     * yardımcının zaten çerez adları için içe aktardığı modül). Artık
+     * kopyalanacak sayı yok: ömür değişirse burası KENDİLİĞİNDEN uyar.
+     * Sapmanın imkânsız hâle gelmesi, sapmayı yakalayan bir testten iyidir.
      */
-    maxAge: input.maxAgeSeconds ?? 24 * 60 * 60,
+    maxAge: input.maxAgeSeconds ?? SESSION_MAX_AGE_SECONDS,
     token: {
       sub: input.userId,
       email: input.email,

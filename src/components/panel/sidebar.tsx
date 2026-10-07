@@ -111,7 +111,21 @@ export function Sidebar() {
             className="bg-canvas/70 absolute inset-0 backdrop-blur-sm"
           />
 
+          {/*
+            `id="panel-menu"` — BULGU-021. `MenuDugmesi`
+            `aria-controls="panel-menu"` ilan ediyordu ama o kimlik HİÇBİR
+            YERDE yoktu: ekran okuyucu çözülmeyen bir ilişki duyuruyordu.
+            Kimlik ÇEKMECENİN KENDİSİNDE, çünkü düğmenin açtığı şey bu.
+
+            KALAN İNCELİK (raporda yazılı): çekmece kapalıyken DOM'da hiç yok
+            (üstteki nota bakınız — odak tuzağı olmasın diye bilinçli), yani
+            `aria-controls` yalnızca AÇIKKEN çözülüyor. Hiç sarkmayan bir
+            kimlik için çekmecenin monte kalıp `hidden` ile gizlenmesi
+            gerekirdi; o da "kapalıyken odak tuzağı yok" özelliğini takas etmek
+            demek — tek satırlık bir düzeltmenin kararı değil.
+          */}
           <div
+            id="panel-menu"
             role="dialog"
             aria-modal="true"
             aria-label="Panel menüsü"

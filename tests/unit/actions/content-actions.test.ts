@@ -1264,3 +1264,119 @@ describe('T-047 — geçersiz MDX eyleme girmiyor', () => {
     expect(svc.updatePost).toHaveBeenCalledOnce();
   });
 });
+
+/* ===========================================================================
+ * T-050/3 — YABANCI ANAHTAR (P2003): var olmayan eklenti kimliği
+ *
+ * `avatarAttachmentId`/`cvAttachmentId` (profil) ve `coverAttachmentId`
+ * (proje + blog) GİZLİ FORM ALANLARINDAN geliyor ve şema yalnızca BİÇİMİ
+ * doğruluyor (`cuidSchema`) — VARLIĞI doğrulamıyor. Var olmayan bir kimlik
+ * gönderilirse kapı veritabanındaki FK kısıtı oluyor.
+ *
+ * ÖLÇÜLEN KUSUR: P2003 için dal yoktu, `internalError`a düşüyordu ve kullanıcı
+ * "Lütfen tekrar deneyin" görüyordu — tekrar denemek ASLA çalışmaz ve hatanın
+ * dosyayla ilgili olduğuna dair hiçbir ipucu yok.
+ * ======================================================================== */
+
+describe('T-050/3 — eklenti FK hatası anlaşılır dönüyor', () => {
+  /** Prisma çalışma zamanı eşlemesi: `ForeignKeyConstraintViolation → P2003`. */
+  const fkHatasi = () =>
+    Object.assign(new Error('Foreign key constraint failed on the field'), {
+      code: 'P2003',
+      meta: { field_name: 'post_coverAttachmentId_fkey (index)' },
+    });
+
+  const YAZI = { locale: 'tr', slug: 'y', title: 'T', excerpt: 'E', content: '# İçerik' };
+
+  it('post: P2003 → VALIDATION_ERROR, INTERNAL_ERROR DEĞİL', async () => {
+    svc.createPost.mockRejectedValue(fkHatasi());
+
+    const { createPostAction } = await import('@/server/actions/post');
+    const sonuc = await createPostAction({
+      ...YAZI,
+      coverAttachmentId: 'clxYOK0000000000000000001',
+    });
+
+    expect(sonuc.ok).toBe(false);
+    if (sonuc.ok) throw new Error('beklenmedik başarı');
+    expect(sonuc.error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('mesaj SEBEBİ ve YAPILACAĞI söylüyor — "tekrar deneyin" demiyor', async () => {
+    svc.createPost.mockRejectedValue(fkHatasi());
+
+    const { createPostAction } = await import('@/server/actions/post');
+    const sonuc = await createPostAction({
+      ...YAZI,
+      coverAttachmentId: 'clxYOK0000000000000000001',
+    });
+
+    if (sonuc.ok) throw new Error('beklenmedik başarı');
+    expect(sonuc.error.message).toContain('Seçilen dosya bulunamadı');
+    expect(sonuc.error.message).toContain('yeniden seçip');
+    // Eski davranışın metni: tekrar denemek bu hatada ASLA çalışmaz.
+    expect(sonuc.error.message).not.toContain('tekrar deneyin');
+  });
+
+  it('project ve profile de aynı yoldan geçiyor', async () => {
+    const { createProjectAction } = await import('@/server/actions/project');
+    svc.createProject.mockRejectedValue(fkHatasi());
+    const proje = await createProjectAction({
+      locale: 'tr',
+      slug: 'p',
+      title: 'T',
+      summary: 'S',
+      content: '# İçerik',
+      coverAttachmentId: 'clxYOK0000000000000000001',
+    });
+    if (proje.ok) throw new Error('beklenmedik başarı');
+    expect(proje.error.code).toBe('VALIDATION_ERROR');
+
+    svc.findProfileSnapshot.mockResolvedValue(null);
+    svc.upsertProfile.mockRejectedValue(fkHatasi());
+    const { saveProfileAction } = await import('@/server/actions/profile');
+    const profil = await saveProfileAction({ avatarAttachmentId: 'clxYOK0000000000000000001' });
+    if (profil.ok) throw new Error('beklenmedik başarı');
+    expect(profil.error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('`fields` BİLEREK boş — yanlış girdiyi işaretlemek hiç işaretlememekten kötü', async () => {
+    svc.createPost.mockRejectedValue(fkHatasi());
+
+    const { createPostAction } = await import('@/server/actions/post');
+    const sonuc = await createPostAction({
+      ...YAZI,
+      coverAttachmentId: 'clxYOK0000000000000000001',
+    });
+
+    if (sonuc.ok) throw new Error('beklenmedik başarı');
+    /*
+     * Prisma'nın `meta.field_name`i KISIT adını taşıyor
+     * (`post_coverAttachmentId_fkey`), form alan adını değil. Profilde iki
+     * eklenti alanı var (`avatar`, `cv`) ve sezgiselle yanlışını göstermek
+     * kullanıcıyı var olmayan bir hataya yönlendirirdi.
+     */
+    expect(sonuc.error.fields).toBeUndefined();
+  });
+
+  it('OTURUM/denetim tarafı etkilenmiyor — kayıt yazılmadı', async () => {
+    svc.createPost.mockRejectedValue(fkHatasi());
+
+    const { createPostAction } = await import('@/server/actions/post');
+    await createPostAction({ ...YAZI, coverAttachmentId: 'clxYOK0000000000000000001' });
+
+    expect(auditCreate).not.toHaveBeenCalled();
+    expect(revalidateTag).not.toHaveBeenCalled();
+  });
+
+  it('P2003 DIŞI hatalar hâlâ INTERNAL_ERROR — dal fazla geniş değil', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    svc.createPost.mockRejectedValue(new Error('beklenmeyen'));
+
+    const { createPostAction } = await import('@/server/actions/post');
+    const sonuc = await createPostAction(YAZI);
+
+    if (sonuc.ok) throw new Error('beklenmedik başarı');
+    expect(sonuc.error.code).toBe('INTERNAL_ERROR');
+  });
+});

@@ -34,7 +34,7 @@
 | ADR-026 | F2 public sayfaları gerçek veriden okur; içerik servisleri F3'ten öne alındı | 2026-08-11 | Kabul edildi |
 | ADR-027 | İstatistikler türetilir, elle girilmez | 2026-08-12 | Kabul edildi |
 | ADR-028 | Dal ve commit disiplini: tur başına tek PR, Orkestra Şefi commit'ler | 2026-08-14 | Kabul edildi |
-| ADR-029 | `revalidateTag` tam dize eşleşir; her seviye ayrı düşürülür | 2026-08-14 | Kabul edildi |
+| ADR-029 | `revalidateTag` tam dize eşleşir; her seviye ayrı düşürülür | 2026-08-14 · **rev. 2026-10-07 (T-045)** | Kabul edildi |
 | ADR-030 | Seed, ölçüm sözleşmesidir | 2026-08-16 | Kabul edildi |
 | ADR-031 | Fontlar repoda barındırılır — `next/font/local` | 2026-08-16 | Kabul edildi |
 | ADR-032 | Kullanıcı girdisi önbellek anahtarına doğrulanmadan girmez | 2026-08-16 | Kabul edildi |
@@ -1359,12 +1359,51 @@ kuralı: her girdi kendisini düşürebilecek **tüm** etiketleri taşır, yani 
 girdisini de düşürür. Ayrıca `tagTargetsFor` slug'ları yalnızca `locales`'e zaten
 eklenmiş dillerden topluyor — yani **`slugTag`'siz bir düşürme yolu bugün kodda yok.**
 
-`slugTag` bugün **ispatlanabilir biçimde ölü**: davranışı değiştirmiyor. Kalmasının tek
-gerekçesi ileriye dönük: tek bir kaydı dar biçimde düşüren bir işlem çıkarsa
-(`localeTag`'e dokunmadan) gereken tek etiket odur. **Bu bir ihtimal, ölçülmüş bir
-ihtiyaç değil** — ve "bir şey yapıyormuş gibi duran ölü kod" bu projenin en pahalı
-hata sınıfı. Kararı Backend verecek (T-040); hangi yol seçilirse seçilsin `tags.ts`'teki
-yanlış gerekçe metni düzeltilecek.
+`slugTag` o gün **ispatlanabilir biçimde ölüydü**: davranışı değiştirmiyordu. T-040
+onu TUTMA kararı verdi — "ölü" ile "gereksiz" ayrımını yaparak: kod çalışıyor ve
+girdilerin gerçekten taşıdığı bir etiketi düşürüyor, gereksizliği BAŞKA BİR DOSYADAKİ
+bir tercihten (detay girdilerinin `localeTag` de taşıması) doğuyor. Aynı tur o tercihin
+kendisinin bir KUSUR olduğunu ölçtü: `localeTag('project','tr')` düşürmek o dildeki
+**her** projenin detay girdisini düşürüyordu, yani **A'yı düzenlemek B'nin sayfasını
+geçersizleştiriyordu.**
+
+---
+
+### ⚠️ GÜNCELLEME — T-045: Genişletme 1'in gerekçesi ARTIK DOĞRU
+
+**Karar:** detay girdileri (`getProjectBySlug`, `getPostBySlug`) `localeTag`
+**TAŞIMIYOR**. Taşıdıkları: `entityTag + slugTag`.
+
+**Sonuçlar — ölçüldü** (`tests/unit/services/onbellek-granulasyonu.test.ts`,
+`unstable_cache`e geçirilen `tags` dizisi yakalanarak):
+
+| Mutasyon | T-045'ten önce | T-045'ten sonra |
+|---|---|---|
+| A'yı düzenle → A'nın detayı | düşer | **düşer** ✓ |
+| A'yı düzenle → B'nin detayı | **düşer** ✗ (aşırı) | **düşmez** ✓ |
+| A'yı düzenle → `en` dilindeki detay | düşer ✗ | **düşmez** ✓ |
+| A'yı düzenle → liste / istatistik / sitemap | düşer | **düşer** ✓ |
+
+`slugTag` böylece **yük taşıyan** hâle geldi: T-039'un mutasyonu (slug üretimini
+kaldırmak) artık **yakalanır** — detay girdisine ulaşan başka etiket yok. Yani
+Genişletme 1'in özgün gerekçesi ("yalnızca `localeTag` düşürmek detay sayfasını bayat
+bırakır") bugün **doğru**; o gün yanlış olmasının sebebi gerekçe değil, girdilerin
+fazla etiket taşımasıydı.
+
+**Erişilebilirlik korundu:** `tagTargetsFor` etkilenen kaydın slug'ını HER mutasyon
+yolunda üretiyor (ekleme, düzenleme, slug değişimi eski+yeni, dil değişimi eski+yeni,
+durum değişikliği, arşivleme) — testle ölçüldü.
+
+**T-037'ye şart:** detay girdisi `fetchProjectGallery`yi de kapsıyor. Eklenti mutasyonu
+geldiğinde sahibi olan kaydın `slugTag`ini **düşürmek zorunda**; eskiden `localeTag`
+onu tesadüfen kapsıyordu. Bugün eklenti yazma eylemi yok, yani gerileme değil — gelecek
+turun bilmesi gereken bir şart.
+
+**İkinci ders — bir değişmezlik testi, izlediği şeyi OKUMUYORSA onu korumaz.** T-040
+"slugTag gereksiz" değişmezliğini yazarken girdi etiketlerini testin içinde ELLE
+modellemişti (`cached.ts`i okumuyordu). Sonuç: T-045 değişikliğinde o testler
+**kırılmadı** — oysa kırılmaları bekleniyordu ve beklenmesi haklıydı. Ölçüm artık
+`unstable_cache`e geçirilen gerçek diziyi yakalıyor.
 
 **Ders (bu ADR'nin asıl kazancı):** gerekçe kodun kendisinden değil, kodun *olması
 gerektiği* düşünülen hâlinden türetilmişti. Ben bu genişletmeyi Backend'in raporundan

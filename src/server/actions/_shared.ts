@@ -110,6 +110,46 @@ export function toFailure(
           );
     case 'P2025':
       return fail('NOT_FOUND', 'Kayıt bulunamadı. Başka bir yerden silinmiş olabilir.');
+
+    /*
+     * P2003 — YABANCI ANAHTAR İHLALİ. T-050/3'te ölçüldü ve eklendi.
+     *
+     * ═══════════════════════════════════════════════════════════════════════
+     * NEDEN EKLENDİ: "tekrar deneyin" YANLIŞ TAVSİYEYDİ
+     * ═══════════════════════════════════════════════════════════════════════
+     *
+     * Bu dal yokken P2003 `internalError`a düşüyordu ve kullanıcı şunu
+     * görüyordu: "İşlem tamamlanamadı. Lütfen tekrar deneyin." İki yönden
+     * yanlış: tekrar denemek ASLA çalışmaz (kimlik hâlâ yok), ve hatanın
+     * seçilen dosyayla ilgili olduğuna dair hiçbir ipucu yok. Kullanıcı
+     * düzeltebileceği bir şeyi düzeltemez hâle geliyordu.
+     *
+     * Bugün bu yola nasıl giriliyor: `avatarAttachmentId`/`cvAttachmentId`
+     * (profil) ve `coverAttachmentId` (proje + blog) GİZLİ FORM ALANLARINDAN
+     * geliyor ve şema yalnızca BİÇİMİ doğruluyor (`cuidSchema`) — varlığı
+     * DOĞRULAMIYOR. Var olmayan bir kimlik gönderilirse kapı veritabanındaki
+     * FK kısıtı oluyor (`onDelete: Restrict`).
+     *
+     * Hata kodu Prisma'nın kendi çalışma zamanı eşlemesinden doğrulandı:
+     * `ForeignKeyConstraintViolation → "P2003"`.
+     *
+     * ═══════════════════════════════════════════════════════════════════════
+     * `fields` BİLEREK BOŞ
+     * ═══════════════════════════════════════════════════════════════════════
+     *
+     * Prisma'nın P2003 `meta`sı FORM ALAN ADINI değil KISIT ADINI taşıyor
+     * (`post_coverAttachmentId_fkey` gibi). Oradan alan adı türetmek bir
+     * sezgisel olurdu ve YANLIŞ girdiyi işaretleme riski taşırdı — profilde
+     * iki eklenti alanı var (`avatar`, `cv`) ve yanlışını göstermek hiç
+     * göstermemekten kötüdür. Mesaj sebebi söylüyor; alanı işaretlemek
+     * `meta` şekli canlı veritabanında ölçüldükten sonra eklenebilir.
+     */
+    case 'P2003':
+      return fail(
+        'VALIDATION_ERROR',
+        'Seçilen dosya bulunamadı — yüklenmemiş ya da silinmiş olabilir. ' +
+          'Dosyayı yeniden seçip kaydedin.',
+      );
     default:
       return internalError(context, error);
   }
