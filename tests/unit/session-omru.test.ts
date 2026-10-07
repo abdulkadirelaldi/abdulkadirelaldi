@@ -63,3 +63,42 @@ describe('§8.3 — oturum ömrü 24 saat (ADR-035/A)', () => {
     expect(24 * 60 * 60).toBe(86_400);
   });
 });
+
+/**
+ * KAPININ KÖR NOKTASI — T-048g'de ölçüldü ve kapatıldı.
+ *
+ * Yukarıdaki taramanın tamamı `src/server/auth.ts`e bakıyor. ADR-035/A ömrü
+ * 7 günden 24 saate indirdiğinde o dosya güncellendi, kapı yeşil kaldı — ve
+ * `tests/e2e/_helpers/session.ts` **7 gün üretmeye devam etti**. Hiçbir test
+ * kırılmadı çünkü kimse oraya bakmıyordu.
+ *
+ * Zararı "yalnızca testte" diye küçümsemek yanlış olurdu: E2E paketi, üretimde
+ * ARTIK ÜRETİLEMEYEN bir jeton biçimiyle koşuyordu. Ölçülen ortam ile gerçek
+ * ortam arasındaki sessiz sapma, bu deponun defalarca adını koyduğu sınıf
+ * (bayat öncül) — bu kez kendi test altyapımızda.
+ *
+ * Bu blok o boşluğu kapatıyor: kapı artık ÜRETİM sabitini ve TEST jetonunu
+ * BİRLİKTE tarıyor.
+ */
+describe('§8.3 — E2E yardımcısı da 24 saat üretiyor (T-048g)', () => {
+  const E2E_KAYNAK = readFileSync(
+    join(resolve(__dirname, '../..'), 'tests/e2e/_helpers/session.ts'),
+    'utf8',
+  );
+  const E2E_KOD = E2E_KAYNAK.replace(/\/\*[\s\S]*?\*\//g, ' ').replace(/\/\/.*$/gm, ' ');
+
+  it('tarama çalışıyor — yardımcı gerçekten okundu', () => {
+    // Sahte yeşil koruması: dosya taşınırsa/adı değişirse burası önce kırılır.
+    expect(E2E_KOD).toContain('maxAge');
+    expect(E2E_KOD).toContain('encode');
+  });
+
+  it('varsayılan ömür 24 saat', () => {
+    expect(E2E_KOD).toMatch(/maxAge:\s*input\.maxAgeSeconds\s*\?\?\s*24\s*\*\s*60\s*\*\s*60/);
+  });
+
+  it('ESKİ 7 günlük değer yardımcıda KALMADI', () => {
+    expect(E2E_KOD).not.toMatch(/7\s*\*\s*24\s*\*\s*60\s*\*\s*60/);
+    expect(E2E_KOD).not.toMatch(/604800/);
+  });
+});

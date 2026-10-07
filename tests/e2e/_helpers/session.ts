@@ -44,7 +44,7 @@ export interface IssueSessionInput {
   userId: string;
   email: string;
   name?: string;
-  /** Saniye cinsinden ömür. Varsayılan §8.3 ile aynı: 7 gün. */
+  /** Saniye cinsinden ömür. Varsayılan §8.3 ile aynı: **24 saat** (ADR-035/A). */
   maxAgeSeconds?: number;
   /**
    * §8.1 — jetondaki `tfa` alanı (T-019).
@@ -77,7 +77,25 @@ export async function issueSessionToken(input: IssueSessionInput): Promise<strin
   return encode({
     salt: name,
     secret,
-    maxAge: input.maxAgeSeconds ?? 7 * 24 * 60 * 60,
+    /*
+     * §8.3 — ADR-035/A ile 7 gün → 24 saat. BU SATIR T-048g'DE BAYATTI:
+     * uygulama 24 saate indikten sonra da 7 gün üretmeye devam ediyordu ve
+     * hiçbir test kırılmadı, çünkü Backend'in ömür kapısı (`session-omru.test.ts`)
+     * yalnızca `src/server/auth.ts`i tarıyor.
+     *
+     * Sonucu "zararsız" saymak yanlış olurdu: E2E paketi, üretimde ARTIK
+     * ÜRETİLEMEYEN bir jeton biçimiyle koşuyordu — ölçülen ortam ile gerçek
+     * ortam arasında sessiz bir sapma. Bu projenin tekrar tekrar adını koyduğu
+     * sınıf (bayat öncül) ve bu kez kendi test altyapımızdaydı.
+     *
+     * KALICI ÇÖZÜM BENDE DEĞİL: sabit `src/server/auth.ts` içinde ve o dosya
+     * `next-auth` içe aktardığı için buradan okunamıyor. Ömür sabiti
+     * `src/lib/security/session`e taşınırsa (Backend'e öneri) iki taraf da
+     * tek kaynaktan okur. O güne kadar sayı burada TEKRAR yazılıyor ve
+     * sapmayı `tests/unit/session-omru.test.ts` yakalıyor (T-048g'de eklenen
+     * dal bu dosyayı da tarıyor).
+     */
+    maxAge: input.maxAgeSeconds ?? 24 * 60 * 60,
     token: {
       sub: input.userId,
       email: input.email,

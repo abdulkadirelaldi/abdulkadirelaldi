@@ -18,8 +18,11 @@ import { requiresTwoFactorSetup, TWO_FACTOR_SETUP_PATH } from '@/lib/security/tw
  * │ Buradaki kontrol yalnızca oturum çerezinin GEÇERLİ olduğunu söyler.   │
  * │ Söylemediği şeyler: kullanıcı hâlâ var mı, hesabı kilitli mi          │
  * │ (`lockedUntil`), 2FA'sı geçerli mi, o kayda erişim hakkı var mı.      │
- * │ JWT stratejisi (ADR-013) gereği jeton 7 gün boyunca kendi başına      │
- * │ geçerli kalır — kullanıcı silinse bile.                               │
+ * │ JWT stratejisi (ADR-013) gereği jeton ömrü boyunca kendi başına       │
+ * │ geçerli kalır — kullanıcı silinse bile. Ömür §8.3'te **24 saat**      │
+ * │ (ADR-035/A; eskiden 7 gündü). Süre kısaldı ama BU KATMANIN            │
+ * │ GEREKÇESİ DEĞİŞMEDİ: kısalan şey maruziyet penceresi, ara katmanın    │
+ * │ bilemediği şeylerin listesi değil.                                    │
  * │                                                                       │
  * │ Bu yüzden HER Server Action ve HER Server Component kendi `auth()`    │
  * │ kontrolünü AYRICA yapar. Server Action'lar matcher'dan bağımsız birer │

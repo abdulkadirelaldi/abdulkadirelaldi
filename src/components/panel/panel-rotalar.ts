@@ -11,6 +11,7 @@ import {
   Settings,
   Sparkles,
   Users,
+  UserRound,
   Wallet,
 } from 'lucide-react';
 import type { ComponentType } from 'react';
@@ -74,6 +75,7 @@ export const PANEL_GRUPLARI: ReadonlyArray<{
   {
     title: 'Site',
     items: [
+      { href: '/panel/icerik/profil', label: 'Profil', icon: UserRound, hazir: true },
       { href: '/panel/icerik/projeler', label: 'Projeler', icon: FileText, hazir: true },
       { href: '/panel/icerik/blog', label: 'Blog', icon: Newspaper, hazir: true },
       { href: '/panel/icerik/deneyim', label: 'Deneyim', icon: GraduationCap, hazir: true },

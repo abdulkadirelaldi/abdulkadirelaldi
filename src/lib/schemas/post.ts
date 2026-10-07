@@ -35,6 +35,26 @@ const postBase = z.object({
   publishedAt: instantSchema.optional(),
 });
 
+/**
+ * ⚠️ MDX GEÇERLİLİĞİ BU ŞEMADA DOĞRULANMIYOR — kural `src/server/actions/
+ * mdx-validate.ts` içinde yaşıyor (T-047).
+ *
+ * §7.3 "kural şemada yaşar" diyor; buradaki istisnanın ölçülmüş gerekçesi şu:
+ * bu modül `toFormSchema` ile İSTEMCİYE DE GİDİYOR (T-031) ve MDX derleyicisini
+ * buraya koymak onu her panel formunun yığınına sokardı (§5.2 yasağı).
+ *
+ * §7.3'ün yasakladığı şey aynı kuralın İKİ YERE yazılmasıdır; bir kuralın şema
+ * yerine eylem katmanında yaşaması değil. Kural tek yerde ve bu not onu
+ * BULUNABİLİR kılıyor — aksi hâlde "content doğrulanıyor mu" sorusunun cevabı
+ * hiçbir yerde yazılı olmazdı.
+ *
+ * Buradaki `min(1)`/`max` kuralları KALIYOR: onlar istemcide doğru ve yararlı
+ * çalışıyor. `serverInterpreted` ile işaretlemek alanı form şemasından tümden
+ * çıkarır ve "İçerik zorunludur" kuralını da götürürdü — bir kuralı taşımak
+ * için başka bir kuralı feda etmek olurdu (aynı ayrım T-042s'te `totpCode`
+ * için de yapıldı).
+ */
+
 const scheduledNeedsDate = {
   error: 'İleri tarihli yayın için yayın tarihi zorunludur.',
   path: ['publishedAt'],

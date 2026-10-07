@@ -19,6 +19,7 @@ import {
 import type { ContentWriteDto } from '@/server/services/content-dto';
 
 import { currentActorId, toFailure, unauthorized } from './_shared';
+import { mdxCompileFailure } from './mdx-validate';
 import { revalidateContent, tagTargetsFor } from './tags';
 
 /**
@@ -54,6 +55,16 @@ export async function createProjectAction(raw: unknown): Promise<ApiResponse<Con
 
   const parsed = parseOrFail(createProjectSchema, raw);
   if (!parsed.ok) return parsed.failure;
+
+  /*
+   * ⚠️ MDX KAPISI — §7.1 sırasında Zod'dan SONRA, servisten ÖNCE (T-047/P0).
+   *
+   * Geçersiz MDX kaydedilirse detay sayfası 500 veriyor ve liste/RSS/sitemap o
+   * kırık adresi tanıtmaya devam ediyor. Kapı neden şemada değil, public render
+   * yoluyla aynı sonucu nasıl verdiği ve bilinen sınırı: `mdx-validate.ts`.
+   */
+  const mdxHatasi = await mdxCompileFailure(parsed.data.content);
+  if (mdxHatasi) return mdxHatasi;
 
   try {
     const dto = await createProject(parsed.data);
@@ -101,6 +112,18 @@ export async function updateProjectAction(raw: unknown): Promise<ApiResponse<Con
 
   const parsed = parseOrFail(updateProjectSchema, raw);
   if (!parsed.ok) return parsed.failure;
+
+  /*
+   * MDX KAPISI — gerekçe `mdx-validate.ts`te. KISMİ GÜNCELLEMEDE yalnızca
+   * `content` GÖNDERİLDİĞİNDE koşuyor: gönderilmediğinde veritabanındaki içerik
+   * değişmiyor, dolayısıyla doğrulanacak yeni bir şey de yok. Koşulsuz
+   * çalıştırmak, yalnızca başlığı düzelten bir kaydetmeye gereksiz bir derleme
+   * maliyeti bindirirdi.
+   */
+  if (parsed.data.content !== undefined) {
+    const mdxHatasi = await mdxCompileFailure(parsed.data.content);
+    if (mdxHatasi) return mdxHatasi;
+  }
 
   try {
     /*

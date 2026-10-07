@@ -1119,3 +1119,148 @@ describe('profile.socials — değerler diff’e girmiyor', () => {
     expect(JSON.stringify(denetimKaydi())).not.toContain('socialsChanged');
   });
 });
+
+/* ===========================================================================
+ * T-047 — MDX KAPISI EYLEM SEVİYESİNDE
+ *
+ * `mdx-dogrulama.test.ts` doğrulayıcının KENDİSİNİ ölçüyor. Bu blok kapının
+ * §7.1 sırasında DOĞRU YERDE durduğunu ölçüyor: Zod'dan sonra, SERVİSTEN ÖNCE.
+ * Sıra yanlış olsaydı geçersiz MDX veritabanına yazılır, sonra hata dönerdi —
+ * yani kapı hiçbir işe yaramazdı.
+ * ======================================================================== */
+
+describe('T-047 — geçersiz MDX eyleme girmiyor', () => {
+  const GECERSIZ_MDX = 'Metin\n\n<img src="/x.png">\n';
+
+  const YAZI = {
+    locale: 'tr',
+    slug: 'yazi',
+    title: 'Yazı',
+    excerpt: 'Özet',
+  };
+  const PROJE = {
+    locale: 'tr',
+    slug: 'proje',
+    title: 'Proje',
+    summary: 'Özet',
+  };
+
+  it('createPostAction: geçersiz MDX → VALIDATION_ERROR, SERVİSE GİTMİYOR', async () => {
+    const { createPostAction } = await import('@/server/actions/post');
+    const sonuc = await createPostAction({ ...YAZI, content: GECERSIZ_MDX });
+
+    expect(sonuc.ok).toBe(false);
+    if (sonuc.ok) throw new Error('beklenmedik başarı');
+    expect(sonuc.error.code).toBe('VALIDATION_ERROR');
+    expect(sonuc.error.fields?.content).toContain('Expected a closing tag');
+
+    // ⚠️ ASIL ÖLÇÜM: veritabanına hiç gidilmedi ve denetim kaydı yazılmadı.
+    expect(svc.createPost).not.toHaveBeenCalled();
+    expect(auditCreate).not.toHaveBeenCalled();
+    expect(revalidateTag).not.toHaveBeenCalled();
+  });
+
+  it('updatePostAction: geçersiz MDX → VALIDATION_ERROR, servise gitmiyor', async () => {
+    svc.findPostSnapshot.mockResolvedValue({
+      id: ID,
+      locale: 'tr',
+      slug: 'y',
+      title: 'T',
+      status: 'DRAFT',
+      readingMinutes: 1,
+      publishedAt: null,
+    });
+
+    const { updatePostAction } = await import('@/server/actions/post');
+    const sonuc = await updatePostAction({ id: ID, content: GECERSIZ_MDX });
+
+    expect(sonuc.ok).toBe(false);
+    expect(svc.updatePost).not.toHaveBeenCalled();
+  });
+
+  it('createProjectAction: geçersiz MDX → VALIDATION_ERROR, servise gitmiyor', async () => {
+    const { createProjectAction } = await import('@/server/actions/project');
+    const sonuc = await createProjectAction({ ...PROJE, content: GECERSIZ_MDX });
+
+    expect(sonuc.ok).toBe(false);
+    if (sonuc.ok) throw new Error('beklenmedik başarı');
+    expect(sonuc.error.fields?.content).toBeTruthy();
+    expect(svc.createProject).not.toHaveBeenCalled();
+  });
+
+  it('updateProjectAction: geçersiz MDX → servise gitmiyor', async () => {
+    svc.findProjectSnapshot.mockResolvedValue({
+      id: ID,
+      locale: 'tr',
+      slug: 'p',
+      title: 'P',
+      status: 'DRAFT',
+      featured: false,
+      order: 0,
+      publishedAt: null,
+    });
+
+    const { updateProjectAction } = await import('@/server/actions/project');
+    expect((await updateProjectAction({ id: ID, content: GECERSIZ_MDX })).ok).toBe(false);
+    expect(svc.updateProject).not.toHaveBeenCalled();
+  });
+
+  it('GEÇERLİ MDX akışı engellemiyor', async () => {
+    svc.createPost.mockResolvedValue({
+      id: ID,
+      locale: 'tr',
+      slug: 'yazi',
+      status: 'DRAFT',
+      publishedAt: null,
+    });
+
+    const { createPostAction } = await import('@/server/actions/post');
+    const sonuc = await createPostAction({ ...YAZI, content: '# Başlık\n\nMetin.' });
+
+    expect(sonuc.ok).toBe(true);
+    expect(svc.createPost).toHaveBeenCalledOnce();
+  });
+
+  it('`<script>` içeren GEÇERLİ MDX kaydedilebiliyor — sanitize render’da temizler', async () => {
+    svc.createPost.mockResolvedValue({
+      id: ID,
+      locale: 'tr',
+      slug: 'yazi',
+      status: 'DRAFT',
+      publishedAt: null,
+    });
+
+    const { createPostAction } = await import('@/server/actions/post');
+    const sonuc = await createPostAction({
+      ...YAZI,
+      content: '# A\n\n<script>alert(1)</script>\n',
+    });
+
+    // Kaydetmeyi engellemek AYRI bir karardı ve verilmedi.
+    expect(sonuc.ok).toBe(true);
+  });
+
+  it('KISMİ güncellemede content yoksa kapı HİÇ koşmuyor', async () => {
+    svc.findPostSnapshot.mockResolvedValue({
+      id: ID,
+      locale: 'tr',
+      slug: 'y',
+      title: 'Eski',
+      status: 'DRAFT',
+      readingMinutes: 1,
+      publishedAt: null,
+    });
+    svc.updatePost.mockResolvedValue({
+      id: ID,
+      locale: 'tr',
+      slug: 'y',
+      status: 'DRAFT',
+      publishedAt: null,
+    });
+
+    const { updatePostAction } = await import('@/server/actions/post');
+    // Yalnızca başlık düzeltiliyor; derleme maliyeti ödenmemeli.
+    expect((await updatePostAction({ id: ID, title: 'Yeni' })).ok).toBe(true);
+    expect(svc.updatePost).toHaveBeenCalledOnce();
+  });
+});

@@ -41,6 +41,7 @@
 | ADR-033 | URL filtre boole'ları `booleanFilterSchema` ile; `z.coerce.boolean()` yasak | 2026-09-11 | Kabul edildi |
 | ADR-034 | `redactAuditDiff` emniyet ağıdır, korumanın kendisi değil | 2026-09-19 | Kabul edildi |
 | ADR-035 | Oturum geçersizleştirme üç katmanda; kapsamlar adlarında | 2026-09-20 | Kabul edildi |
+| ADR-036 | `KAPSAM` beyanını rotayı yazan doldurur (§10.1 istisnası) | 2026-10-07 | Kabul edildi |
 
 ---
 
@@ -1747,3 +1748,76 @@ bir kaydetme denerse `UNAUTHORIZED` görecek ve sebebini bilmeli.
   hak ediyor (T-062).
 - **Hiçbir şey yapmayıp F6'yı beklemek** — **reddedildi**: (A) tek başına sıfır
   maliyetle pencereyi %85 daraltıyor; beklemenin gerekçesi yoktu.
+
+---
+
+## ADR-036 — `KAPSAM` Beyanını Rotayı Yazan Doldurur (§10.1 İstisnası)
+
+**Tarih:** 2026-10-07 · **Durum:** Kabul edildi · **Kaynak:** Orkestra Şefi — üç turda tekrarlanan sıralama hatası
+
+### Bağlam
+T-016b'nin kurduğu rota kapsamı kapısı (`tests/unit/rota-kapsami.test.ts`) iki parçadan
+oluşuyor: **kapı mantığı** (`src/app`'tan rota envanteri türetip `KAPSAM` haritasıyla
+karşılaştırır) ve **`KAPSAM` haritasının içeriği** (hangi kapı dokunuyor, kanıtı ne,
+ne ölçülmüyor).
+
+`tests/**` §10.1'de Güvenlik'in. Sonuç olarak her rota ekleyen tur şöyle geçti:
+
+1. Frontend rotayı ekler, `pnpm test` kırmızı olur
+2. Frontend beyanı **raporunda tam metin olarak yazar** — kimlik zinciri ve
+   "ölçülmeyen" satırları dahil
+3. Ben o metni Güvenlik'in görev kartına kopyalarım
+4. Güvenlik haritaya **aynen transkribe eder**
+
+**Bu üç turda üç kez oldu** (T-034/T-043g · T-043f/T-044g · T-035+T-036b/T-048g) ve
+her seferinde PR, saf bir transkripsiyon adımı için bloklandı. Paralel verdiğimde
+boşluk açıldı, seri verdiğimde bir tur maliyeti çıktı. **Hatanın kaynağı ajanlar değil,
+benim sıralamamdı** — ama sıralamayı düzeltmek sorunu çözmüyor, yalnızca maliyeti
+hangi yere koyacağımı seçtiriyor.
+
+Asıl gerekçe ise ajanların kendi sözlerinde duruyor ve iki ayrı ajan aynı şeyi
+bağımsızca söyledi: **"beyanı — hangi kapı dokunuyor, kanıtı ne, ne ölçülmüyor —
+yalnızca rotayı yazan dürüstçe doldurabilir."** Transkribe eden, beyanın doğruluğunu
+sınayamaz; yalnızca kopyalar.
+
+### Karar
+**`rota-kapsami.test.ts` içindeki `KAPSAM` haritasına satır eklemek, rotayı ekleyen
+ajanın görevidir.** Dosyanın geri kalanı — kapı mantığı, türetme, iddialar — **Güvenlik'in**
+kalır ve ona dokunulmaz.
+
+Yani bu, `tests/**` kuralının **tek ve adı konmuş** istisnası: bir dosyanın içindeki
+bir veri yapısı.
+
+**Bağlayıcı sonuçlar:**
+- Rota ekleyen ajan, rotayı eklediği **aynı turda** beyanını da yazar. Kapı o turun
+  sonunda **yeşil** olur; sonraki tura kırmızı devretmez.
+- "Kapsanmıyor" **geçerli bir beyandır** — gerekçesiyle. Beyan bir test yazma
+  taahhüdü değil, bir **durum bildirimi**.
+- Güvenlik beyanları **denetler**: yanlış ya da fazla iyimser bir beyan bulgu konusudur.
+  Yazması değil, sınaması onun işi.
+- Güvenlik `KAPSAM`'a yalnızca **kendi** eklediği testler için satır ekler.
+
+### Sonuçlar
+- **Olumlu:** Transkripsiyon adımı ve onunla gelen tur maliyeti ortadan kalkıyor.
+- **Olumlu:** Beyanı yazan, beyanın doğruluğunu bilen kişi oluyor — kapının
+  **var olma sebebi** buydu.
+- **Olumlu:** Her tur yeşil kapanıyor; ADR-028'in "CI yeşil görmeden sonraki turu
+  dağıtma" kuralı artık rota ekleyen turlarda da uygulanabilir.
+- **Olumsuz / kabul edilen:** İki ajan aynı dosyaya yazabiliyor. Çatışma riski düşük
+  (harita bir eşleme tablosu, satırlar bağımsız) ama sıfır değil. **Kabul edildi:**
+  alternatiflerin maliyeti üç turda ölçüldü.
+- **Olumsuz / kabul edilen:** §10.1'in "bir ajan başkasının dosyasını değiştirmez"
+  kuralı artık mutlak değil. Bu yüzden istisna **tek bir veri yapısıyla** sınırlı ve
+  adı ADR'de yazılı; genişletilmesi yeni bir ADR gerektirir.
+
+### Alternatifler ve neden reddedildi
+- **Güvenlik'in görevini her zaman Frontend'den SONRAKİ tura koymak** — **reddedildi**:
+  işe yarar ama her rota ekleyen tur kırmızı kapanır ve bir sonraki turun bir parçası
+  transkripsiyona gider. Üç turda ölçüldü.
+- **Haritayı `tests/**` dışına, ortak bir dosyaya taşımak** — **reddedildi**: kapı ile
+  verisini ayırmak, verinin kapısız kalabileceği bir hâl açar; ayrıca "ortak dosya"
+  statüsü her değişikliği bana getirirdi.
+- **Beyanı zorunlu tutmayı bırakmak** — **reddedildi**: T-016b'nin tüm kazancı buydu
+  ve kapı kurulduğundan beri **üç gerçek yakalama** yaptı.
+- **Rota envanterinden beyanı otomatik üretmek** — **reddedildi**: "ne ölçülmüyor"
+  türetilemez. Türetilebilen bir beyan, beyan değildir.

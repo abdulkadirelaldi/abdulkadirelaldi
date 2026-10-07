@@ -528,6 +528,15 @@ SEO ≥ 95 (public sayfalar).
 | **Frontend** | `src/app/(public)/**`, `src/app/(panel)/**`, `src/app/(auth)/**`, `src/app/layout.tsx`, `src/components/**`, `src/app/globals.css`, `public/**` | Kod |
 | **Güvenlik & Test** | `tests/**`, `src/middleware.ts`, `src/lib/security/**`, `docs/security/**`, `.github/**`, `.nvmrc`, `vitest.config.ts`, `playwright.config.ts`, `lighthouserc.json` | Kod + rapor |
 
+> **§10.1'in tek istisnası — ADR-036.** `tests/unit/rota-kapsami.test.ts` içindeki
+> **`KAPSAM` haritasına satır eklemek, rotayı ekleyen ajanın** işidir; dosyanın geri
+> kalanı (kapı mantığı, türetme, iddialar) Güvenlik'in kalır. Gerekçe: beyanı —
+> *hangi kapı dokunuyor, kanıtı ne, ne ölçülmüyor* — yalnızca rotayı yazan dürüstçe
+> doldurabilir; transkribe eden doğruluğunu sınayamaz. Rota ekleyen ajan beyanını
+> **aynı turda** yazar, yani kapı o turun sonunda yeşil olur. "Kapsanmıyor" gerekçesiyle
+> geçerli bir beyandır. Güvenlik beyanları **denetler**, yazmaz. İstisna bu tek veri
+> yapısıyla sınırlıdır; genişletilmesi yeni bir ADR gerektirir.
+
 **Sınır kuralı:** Bir ajan başkasının dosyasını değiştirmez. İhtiyaç varsa Orkestra
 Şefi'ne **değişiklik talebi** açar, o da ilgili ajana görev yazar. Bu kural projenin
 tutarlılığını koruyan tek mekanizmadır, esnetilmez.

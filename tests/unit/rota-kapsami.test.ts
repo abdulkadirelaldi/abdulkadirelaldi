@@ -217,6 +217,21 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     kanit: [],
     not: 'T-043f ile eklendi; gerekçe `deneyim/yeni` satırıyla aynı. Bu modelde `status` YOK — yani `projeler/[id]`de ölçülen taslak→yayın geçişinin karşılığı burada bulunmuyor, kopyalanacak senaryo da yok. Silme (`deleteExperienceAction`) liste rotasından tetikleniyor ve denetim kaydı SİLİNEN SATIRIN TAMAMINI taşıyor — bkz. BULGU-019.',
   },
+  '/panel/icerik/blog': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: "T-047 ile eklendi. Okuma `fetchPostsForPanel`, YAZMA YOK, filtre `postFilterSchema`'dan geçiyor (adres çubuğu kullanıcı girdisidir — ADR-032). Kimlik zinciri `projeler`/`deneyim` ile AYNI: `(panel)` düzeni + ara katman, çerezsiz istek 307 → /giris, oturum + 2FA; `robots: noindex/nofollow/nocache`. E2E'ye alınmadı çünkü aynı liste kalıbı (`VeriTablosu` + `?durum=` sekmeleri + sayfalama) `projeler` tarafında ölçülüyor. ÖLÇÜLMEYEN: sayfa boyutu SABİT 25, adresten verilemiyor; sıralama ve süzme doğruluğu (birim testlerinde).",
+  },
+  '/panel/icerik/blog/yeni': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: "T-047 ile eklendi; yazma `createPostAction`. Gerekçe `deneyim/yeni` ile aynı: aynı `panel-form` + Server Action + ADR-029 zinciri `projeler/yeni` tarafında uçtan uca ölçülüyor ve `post.ts` action'ları `project.ts`in birebir kardeşi (etiket hesabı dahil). ÖLÇÜLMEYEN: slug çakışmasının bu rotadaki hâli; MDX ÖNİZLEMESİNİN İSTEMCİ TARAFI KAYNAK TÜKETİMİ — önizleme derleyicisi tarayıcıda koşuyor, derleme bombası/özyinelemeli yapı denenmedi (sunucu etkilenmiyor; kabul edilen risk, gerekçesi docs/security/README.md'de).",
+  },
+  '/panel/icerik/blog/[id]': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: 'T-047 ile eklendi. Okuma `fetchPostForPanel` (MDX + `coverAttachmentId`), yazma `updatePostAction` + `archivePostAction`. Arşivlenmiş yazı burada 410 DEĞİL, düzenlenebilir — panelde `ContentLookup` zarfı yok (T-040, bilinçli) ve bu davranışın kendisi ölçülmüyor. Taslak→yayın geçişinin ADR-029 tarafı `projeler/[id]`de ölçülüyor; `post` aynı `revalidateContent` + `tagTargetsFor` yolunu kullanıyor. ÖLÇÜLMEYEN: var olmayan kimlikte 404 dışı davranış; kimlik numaralandırma (cuid tahmin edilemez VARSAYILDI); istemci tarafı önizleme kaynak tüketimi (yukarıdaki satırla aynı).',
+  },
   '/blog': {
     kapilar: ['sitemap-taramasi'],
     kanit: ["absoluteUrl('/blog')"],

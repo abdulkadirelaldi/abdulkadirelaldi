@@ -75,6 +75,7 @@ açığın ayrıntısı artık saldırgana bir şey kazandırmaz.
 | 2026-08-12 | T-029a | Lighthouse'a masaüstü + koyu profil (WebGL yolu), üç durumlu WebGL doğrulaması, koşu değişkenliği kararı | **BULGU-010 açıldı**: WebGL yolu hiçbir CI koşusunda ölçülmüyordu. Profil kuruldu ve doğrulandı; ölçüm T-021'in hero'yu bağlamasını bekliyor (kontrol kendi kendine zorunlu hâle geliyor). Değişkenliğin **ilk koşuya** ait olduğu ölçüldü; `numberOfRuns` 5, `aggregationMethod` açıkça medyan. |
 | 2026-08-17 | T-029d | Ölçüm yüzeyi dışındaki SEO/OG rotaları (BULGU-015) | **BULGU-015 kapandı** — `tests/e2e/seo-routes.spec.ts`: robots.txt, sitemap.xml, rss.xml, `/og` ve `/og/proje/<slug>` artık her koşumda isteniyor. PNG imza baytlarından, XML gerçek ayrıştırıcıyla doğrulanıyor. Kapsam iki katmanlı: sözleşme testleri + sitemap taraması (yeni sayfa kendiliğinden kapsanır). Mutasyonla kanıtlandı: düzeltme öncesi font aynı render yolunda BULGU-014'ün `TypeError`'ını veriyor. **BULGU-016 açıldı** — sitemap üç adet 404 adresi bildiriyor. |
 | 2026-08-16 | T-029c | Ölçüm işinin veri kurulumu (BULGU-013) + §8.24 haftalık zamanlayıcı | **BULGU-013 açıldı ve düzeltildi**: `lighthouse` işi ayrı koşucuda `services:` bloğu olmadan koşuyordu; ADR-026 sonrası `/` 500 dönüyor, üç profil düşüyor, artifact üretilmiyordu. Kendi Postgres'i kuruldu (yol **a**). İki yeni nöbet: ölçüm ön koşulu ve ayırt edicide durum kodu kontrolü — ikincisi olmadan arıza "⏳ BEKLEMEDE" diye yeşil görünüyordu. §8.24 artık **haftalık** de koşuyor (`17 6 * * 1`). |
+| 2026-09-21 | T-048g | Üç blog rotası beyanı, §8.3 sapması, BULGU-021, §9/7 | **Kapı yeşil** (36/36) — üç blog rotası `kapsanmiyor` + gerekçeyle beyan edildi; aynı `panel-form`/action/ADR-029 zinciri `projeler` tarafında ölçülüyor ve `post.ts` onun birebir kardeşi. **MDX önizlemesinin istemcide derlenmesi: kabul edilen risk** — güvenilmeyen girdi yolu yok (tek yazar, kendi tarayıcısı), public taraf sunucuda derleyip `rehype-sanitize`den geçiyor; değerlendirmenin düşeceği iki koşul yazıldı (çok yazarlılık, dışarıdan içerik). **§8.3 sapması bulundu:** ADR-035/A ömrü 24 saate indirdi ama Backend'in ömür kapısı yalnızca `src/server/auth.ts`i tarıyordu ve `tests/e2e/_helpers/session.ts` **7 gün üretmeye devam ediyordu** — E2E paketi üretimde artık üretilemeyen bir jeton biçimiyle koşuyordu. Yardımcı düzeltildi, kapı genişletildi (üretim sabiti + test jetonu birlikte taranıyor), mutasyonla doğrulandı. Belgede dört bayat "7 gün" düzeltildi; **§8 tablosu satır 3 iki kez bayattı** (süre 7 gün, durum ⏳) → **✅ 24 saat**. `src/middleware.ts:21` yorumu ADR-035/A'ya göre güncellendi. **BULGU-021 açıldı ve kapıya bağlandı:** mobil menü düğmesinin `aria-controls="panel-menu"` hedefi DOM'da yok (ölçüldü: 0 eşleşme) — görsel hiçbir test yakalamaz, düzeltmesi tek satır ve Frontend'in. §9/7 specı yazıldı (menü · kırıntı yolu · tablo taşması, iddia görünüme göre seçiliyor — atlanan test yok); **tek kırmızı bu iddia, bilerek bırakıldı** (BULGU-016 kalıbı). §9 sayacı **5 kapalı / 1 kısmi / 1 açık** — §9/7 o satır düzelince kapanır. |
 | 2026-09-19 | T-044g | Dört rota beyanı, ADR-034 taraması, iki karar (şifre hız sınırı + oturum geçersizleştirme), §9/1 | **Kapı yeşil** — dört rota beyan edildi; ikisi (`projeler/yeni`, `projeler/[id]`) GERÇEK e2e kapsamı kazandı çünkü §9/6 paketi yeni UI'ya taşındı. **§9/6'nın LİTERAL hâli kapandı**: T-043f ENGEL-1'i kaldırınca taslak→yayın geçişi panelden ölçülebilir oldu; `updateProjectAction` yolunun ADR-029 hesabı AYRI mutasyonla sınandı (ekleme yolundan farklı: `tagTargetsFor(before, dto)`). **ADR-034 taraması:** on bir `buildDiff` + yedi elle yazılmış `diff` okundu — bugün sızıntı YOK; emniyet ağının kapsamı üçüncü kez bağımsız ölçüldü ve YENİ bilgi çıktı: iç içe/dizi içindeki BİLİNEN adlar maskeleniyor, yani sınır özyineleme değil **ad bilgisi**. **BULGU-019 açıldı**: üç silme eylemi `diff: { deleted: before }` ile satırın tamamını yazıyor — bugün public içerik, yarın eklenecek hassas bir sütun sessizce girer. **Şifre hız sınırı: GEREKLİ** — asıl gerekçe brute-force değil kaynak tüketimi (ölçüldü: argon2 doğrulaması p50 **31 ms**, ~33 deneme/sn/çekirdek, her deneme **19 MiB**). **BULGU-020 + T-046 önerisi**: ara katmanın Edge'de DB okuyamadığı derleme hatasıyla doğrulandı; panel SAYFALARININ `auth()` çağırmadığı ölçüldü (tek istisna `ayarlar/guvenlik`) — yani `auth()` içindeki bir kontrol yazmaları kapatır, **okumaları kapatmaz**. Kontrolün maliyeti p50 **0.49 ms**. Üç katmanlı öneri yazıldı. **§9/1 kapandı** → sayaç **5 kapalı / 1 kısmi / 1 açık**. |
 | 2026-09-15 | T-043g | İki mesaj rotasının kapsam beyanı, §9/2'nin dördüncü halkası, KVKK sınırı, `latest` uyarısı | **§9/2 TAM KAPANDI** — T-039'da açık bekleme olarak işaretlenen tek iddia bağlandı: ziyaretçi mesajı panelde satır olarak görünüyor, liste yalnızca `preview` taşıyor (mesaj bilerek 160 karakterden uzun, kuyruk imzası listede YOK detayda VAR), rozet sayıyor. İki mutasyonla sınandı. **KVKK kararı: kabul edilebilir** — 'Göster/Gizle' bir perde, yetki sınırı değil; asıl sınır liste/detay ayrımı ve bağımsız ölçümüm onu doğruladı (liste ham gövdesinde `ip`/`userAgent` işaretleri YOK, detayda VAR). Sızıntı kontrolü mutasyonla sınandı. **Kendi testimde iki vakum yakalandı ve kayda geçti:** `request` fixture'ı çerez taşımıyor, `page.request` yönlendirme izliyor — ikisinde de 'işaret yok' sonucu giriş sayfasından geliyordu; ham gövde artık gezinme yanıtından okunuyor ve 'doğru sayfa' kontrolüyle birlikte. İki rota beyan edildi (ölçülmeyen satırlarıyla), §9 sayacı **4 kapalı / 2 kısmi / 1 açık**. `latest` etiketi uyarısı kayda geçti: `prisma@latest` → 8.0.0-rc.14 (RC!), `vitest` → 5.0.0, `next` → 16.3.4. |
 | 2026-09-13 | T-042g | §8.24 üçüncü kez gerçek olayda tetiklendi: `mysql2`, `fast-uri` (×4), `js-yaml` | **Üçü de kapandı, kapı EXIT 0.** Katmanlar ölçümle seçildi: `fast-uri` ve `js-yaml` **A** (üst paket aralığı yamayı zaten kapsıyor → 3.1.7 ve 4.3.2, override YOK), `mysql2` **B** (`prisma` `"3.15.3"` diye TAM SABİTLİYOR, A imkânsız; kararlı `prisma@7.10.0` da aynı pini taşıyor, C etkisiz → `">=3.23.1 <4.0.0"` ile 3.24.4). **Maruziyet dört ölçümle belirlendi**, varsayılmadı: `Module._load` izleyicisi `generate`/`migrate`/`seed` akışlarında hiçbirini yüklemiyor, taze derlemenin `.next` çıktısında 0 dosya. `@hookform/resolvers → ajv → fast-uri` yolu görev kartında yoktu, denetim çıktısının tamamı okununca çıktı — ölçüldü, `/zod` giriş noktası `ajv`ye ulaşmıyor. **İki sessiz tuzak oyunkitabına işlendi:** `pnpm update --recursive` geçişli pakette EXIT 0 döndürüp HİÇBİR ŞEY yapmıyor (`--depth Infinity` gerekiyor), ve `">=x"` sınırsız override bir kısıttır, yükseltme emri değil — `sharp` 0.35.3'te bu yüzden donmuştu. `postcss` aynı durumdaydı, iki sınırlıya çevrildi. ADVISORY-002 istisnası doğrulandı (70 gün kaldı, kaldırma koşulu hâlâ sağlanmadı) ve kapının altı kırmızı dalı yeniden mutasyonla sınandı. |
@@ -617,7 +618,7 @@ kullanıcı da kurulum ekranına kilitlenirdi — jetonu alanı hiçbir zaman
 kazanmayacağı için kalıcı olarak. Bu bir atlatma yolu **değildir**: alanı
 taşımayan bir jeton yalnızca `AUTH_SECRET`'i bilen tarafça, yani bizim
 tarafımızdan üretilebilir. Saldırgan alanı "düşürerek" kontrolü atlayamaz,
-çünkü jetonu hiç üretemez. Pencere en fazla oturum ömrü kadardır (§8.3 — 7 gün).
+çünkü jetonu hiç üretemez. Pencere en fazla oturum ömrü kadardır (§8.3 — **24 saat**; T-019b döneminde 7 gündü, ADR-035/A ile indirildi).
 
 **Gereken değişiklik (Backend, iki küçük kalem):**
 
@@ -648,7 +649,8 @@ kurulu mu" bilgisini taşır ve zaten oturumu elinde tutan tarafa görünür. Se
 kurtarma kodu veya sayıları JWT'ye girmez.
 
 **Kurulum tamamlandıktan sonra tazeleme (aynı talebin ikinci yarısı):**
-Jeton girişte üretiliyor ve 7 gün yaşıyor. Kullanıcı 2FA kurulumunu
+Jeton girişte üretiliyor ve oturum ömrü kadar yaşıyor (§8.3 — yazıldığı gün
+7 gün, ADR-035/A'dan beri **24 saat**). Kullanıcı 2FA kurulumunu
 tamamladığında jetonu hâlâ `tfa: false` der ve kurulum ekranından çıkamaz.
 Çözüm: `confirmTotpSetup` başarılı olduğunda istemci `useSession().update()`
 çağırsın ve `jwt` geri çağrısı `trigger === 'update'` dalında alanı tazelesin.
@@ -2910,7 +2912,7 @@ kardeşi) — o test olmadan eşik bir temenni olur.
 
 Şifre değiştirmek, dağıtılmış JWT'leri geçersiz kılmıyor: sunucuda oturum kaydı
 yok, jeton kendi kendini doğruluyor. Çalınan bir çerez, şifre değişse bile
-**ömrü dolana kadar (7 gün) geçerli.**
+**ömrü dolana kadar geçerli** — ölçüm yapıldığında bu **7 gündü**; ADR-035/A (aşağıdaki (A) önerisi) **24 saate** indirdi.
 
 Backend kolon **eklemedi** ve bu doğruydu: hiçbir şeyin okumadığı bir
 `sessionsValidFrom` kolonu, oturumların kapatıldığı **yanılsamasını** üretirdi —
@@ -2955,7 +2957,9 @@ Mutlak maliyet düşük; asıl bedel "normal istek yolu veritabanına gitmez"
 
 ### T-046 için öneri — üç katman, ikisi hemen
 
-**(A) Oturum ömrünü kısalt — HEMEN, en ucuz.** §8.3'ü 7 günden **24 saate**
+**(A) Oturum ömrünü kısalt — HEMEN, en ucuz.** ✅ **KABUL EDİLDİ VE UYGULANDI**
+(ADR-035/A, T-046 — `SESSION_MAX_AGE_SECONDS = 24 * 60 * 60`; Backend ayrıca
+`tests/unit/session-omru.test.ts` ile kapıya bağladı). §8.3'ü 7 günden **24 saate**
 çekmek maruziyet penceresini 7×24 saatten 24 saate indirir; kod değişikliği tek
 sabit, ölçüm gerektirmez, hiçbir yeni sorgu getirmez. Tek bedeli: kullanıcı daha
 sık giriş yapar — **tek kullanıcılı bir panelde** kabul edilebilir. Bu, tek
@@ -2992,7 +2996,7 @@ iç ağında farklı olabilir) ve Node ara katmanının soğuk başlatma maliyet
 | 4 | Girişsiz `/panel` → login | ✅ kapalı | `smoke.spec.ts` + `auth.spec.ts` |
 | 5 | Panelden gelir kaydı → dashboard toplamı | ❌ açık | Finans modülü F4/F5'te |
 | 6 | Panelden proje yayınla → public'te görün | ✅ kapalı (T-039) + **literal hâli T-044g** | `panel-yayin.spec.ts`: ekleme yolu, taslak sızıntısı, **ve artık DRAFT→PUBLISHED geçişi** |
-| 7 | Mobil görünümde ana sayfa ve panel kullanılabilir | ⚠️ kısmi | §9/1, §9/2 ve §9/6 `mobile-chrome`'da da geçiyor; panelin gezinme/kullanılabilirlik iddiaları hâlâ yazılmadı |
+| 7 | Mobil görünümde ana sayfa ve panel kullanılabilir | ⚠️ kısmi — **spec yazıldı (T-048g)** | `panel-mobil.spec.ts`: menü düğmesi → çekmece, kırıntı yolu `aria-current`, sayfa yatay taşmıyor; iddia görünüme göre seçiliyor (atlanan test yok). **Tek kırmızı BULGU-021** (`aria-controls` hedefi yok) — o satır düzelince §9/7 kapanır ve sayaç **6** olur |
 
 ### §9/1 — dış bağlantı ölçülürken üçüncü tarafa istek atılmıyor
 
@@ -3017,9 +3021,106 @@ da kapıya yazılması gereken sınıf.
 
 ---
 
+## §8.3'ün test tarafındaki sapması — kapının kör noktası (T-048g)
+
+**Tarih:** 2026-09-21 · **Bulan:** ADR-035/A sonrası "7 gün" taraması
+
+ADR-035/A oturum ömrünü 7 günden 24 saate indirdi; `src/server/auth.ts`
+güncellendi ve Backend `tests/unit/session-omru.test.ts` ile kapıya bağladı.
+**Ama o kapı yalnızca `src/server/auth.ts`i tarıyordu** ve
+`tests/e2e/_helpers/session.ts` **7 gün üretmeye devam ediyordu**:
+
+```ts
+maxAge: input.maxAgeSeconds ?? 7 * 24 * 60 * 60,   // ← ADR-035/A'dan sonra bayat
+```
+
+Hiçbir test kırılmadı, çünkü kimse oraya bakmıyordu.
+
+**Neden "sadece testte" demedim:** E2E paketi, üretimde **artık
+üretilemeyen** bir jeton biçimiyle koşuyordu. Ölçülen ortam ile gerçek ortam
+arasındaki sessiz sapma, bu deponun tekrar tekrar adını koyduğu sınıf (bayat
+öncül) — bu kez kendi test altyapımızda. Bugün zararsız çünkü hiçbir iddia
+`exp`e bakmıyor; yarın oturum süresiyle ilgili bir iddia yazıldığında test
+gerçeğe değil eski değere göre yeşil kalırdı.
+
+**Düzeltme + kapı genişletildi:** yardımcı 24 saate çekildi ve
+`session-omru.test.ts`e üçüncü bir blok eklendi — kapı artık **üretim sabitini
+ve test jetonunu birlikte** tarıyor. Mutasyonla doğrulandı: yardımcı 7 güne
+döndürüldüğünde iki yeni iddia da kırmızı.
+
+**Kalıcı çözüm bende değil (Backend'e öneri):** sabit `src/server/auth.ts`
+içinde ve o dosya `next-auth` içe aktardığı için E2E yardımcısından okunamıyor.
+`SESSION_MAX_AGE_SECONDS` `src/lib/security/session`e taşınırsa iki taraf da
+**tek kaynaktan** okur ve bu tür bir tarama gerekmez. O güne kadar sayı iki
+yerde yazılı ve sapmayı kapı yakalıyor.
+
+**"7 gün" taramasının kalan sonucu:** `docs/security/README.md` içinde dört yer
+güncellendi (§8.1 geçiş penceresi anlatımı ×2, BULGU-020 ölçüm cümlesi, ara
+katman tablosu) ve **§8 tablosu satır 3** düzeltildi — o satır iki kez bayattı:
+hem süreyi 7 gün diyordu hem de `⏳ F1/T-013` durumunu taşıyordu, oysa çerez
+seçenekleri T-013'te kurulmuş ve her E2E koşumunda fiilen kullanılıyordu.
+
+---
+
+## BULGU-021 — Mobil menü düğmesinin `aria-controls` hedefi DOM'da yok
+
+**Önem:** Düşük (erişilebilirlik) · **Görev:** T-048g (bulan) · **Durum:** AÇIK
+**Düzeltme sahibi:** Frontend · **PROGRAM.md:** §1.1/K5
+
+`src/components/panel/menu-dugmesi.tsx` düğmesi `aria-controls="panel-menu"`
+bildiriyor, ama `panel-menu` kimliğini taşıyan **hiçbir öğe yok** — çekmece
+açıkken bile. Ölçüldü (`panel-mobil.spec.ts`, Pixel 5):
+
+```
+aria-controls="panel-menu" → eşleşen öğe sayısı: 0   (beklenen: 1)
+```
+
+**Etkisi:** ekran okuyucu "bu düğme neyi açıyor" bağını kuramaz. Düğme görsel
+olarak çalışıyor, çekmece açılıyor, `aria-expanded` doğru güncelleniyor — yani
+**hiçbir görsel test bunu yakalamaz.** Tam da bu yüzden kapıya bağlandı.
+
+**Düzeltme tek satır:** `sidebar.tsx` içindeki mobil çekmecenin
+`role="dialog"` div'ine `id="panel-menu"` eklemek.
+
+⚠️ **Bu iddia bilerek KIRMIZI bırakıldı** — BULGU-016'da kurulan kalıp: test
+gerçek bir kusuru gösteriyor ve susturmak, ekran okuyucu kullanıcısının
+kaybettiği bağı görünmez kılardı. Paketin geri kalanı yeşil (92/93); tek kırmızı
+bu. §9/7 bu satır düzelene kadar **kısmi** kalıyor.
+
+---
+
+## MDX önizlemesi istemcide derleniyor — kabul edilen risk (T-048g)
+
+Frontend, blog editöründeki önizlemenin MDX derleyicisini **istemcide**
+çalıştırdığını ve derleme bombası / özyinelemeli yapı gibi girdilerle **istemci
+tarafı kaynak tüketiminin denenmediğini** beyan etti. Sunucu etkilenmiyor.
+
+**Değerlendirme: kabul edilebilir, ölçüm borcu açılmıyor.** Gerekçe:
+
+1. **Güvenilmeyen girdi yolu yok.** Önizlemeye metni yazan tek kişi, kimliği
+   doğrulanmış ve 2FA'dan geçmiş panel kullanıcısı — yani sitenin sahibi.
+   Kaynak tüketimi **kendi tarayıcısında** ve **kendi yazdığı girdiyle** olur;
+   tehdit modeli "kullanıcı kendi sekmesini dondurur"a iner.
+2. **Public taraf bu yoldan geçmiyor.** Ziyaretçinin gördüğü MDX sunucuda
+   derleniyor ve `rehype-sanitize`den geçiyor; önizleme panel-only.
+3. **Bedeli asimetrik.** İstemci derleyicisine sınır koymak (zaman aşımı, düğüm
+   sayısı) gerçek bir iş; kazancı, kullanıcıyı kendi girdisinden korumak.
+
+**Koşul — bu değerlendirme ne zaman düşer:** (a) panel çok yazarlı hâle
+gelirse (bir yazarın taslağı başka birinin tarayıcısında derlenir), ya da
+(b) önizleme dışarıdan gelen içeriği (içe aktarma, yapıştırılan şablon,
+API'den çekilen taslak) derlemeye başlarsa. İkisi de F6'nın kapsamında;
+o gün bu satır yeniden okunmalı.
+
+Beyan `tests/unit/rota-kapsami.test.ts` → `/panel/icerik/blog/yeni` ve
+`/[id]` satırlarının "ÖLÇÜLMEYEN" kısmında yazılı — kapsam haritası bunu bir
+boşluk olarak **görünür** tutuyor.
+
+---
+
 ## §8 Güvenlik Gereksinimleri — Durum Tablosu
 
-**Ölçüm tarihi:** 2026-09-19 · **Faz:** F3 (sürüyor) · **Son görev:** T-044g
+**Ölçüm tarihi:** 2026-09-21 · **Faz:** F3 (sürüyor) · **Son görev:** T-048g
 · **Dağılım:** ✅ 10 · ⚠️ 6 · ❌ 0 · ⏳ 9
 
 > T-039'da üç satır **bayat çıktığı için** güncellendi (6, 8 ve 15): ikisi
@@ -3032,7 +3133,7 @@ Durum kodları: ✅ sağlandı · ⚠️ kısmi · ❌ eksik · ⏳ henüz uygul
 | - | ----- | ----- | ----------- |
 | 1 | Credentials + TOTP 2FA; kurulum ilk girişte zorunlu | ✅ | **Mekanizma** (T-016): doğru TOTP → panel, yanlış kod reddediliyor, kurtarma kodu çalışıyor ve tüketiliyor. **Zorunluluk kapısı** (T-019): `tfa !== true` olan oturum panelin hiçbir bölümüne giremiyor, `/panel/ayarlar/guvenlik`'e yönleniyor; kurulum ekranı muaf (döngü yok), panel API'si `403 FORBIDDEN`, çıkış yolu açık, ara katman DB'ye bakmıyor. **Besleme** (T-013e): jeton `tfa` taşıyor — girişte ve kurulum sonrası tazelemede yazılıyor, değer **veritabanından** okunuyor. **Geçiş penceresi kapatıldı** (T-019b): alan yoksa da kuruluma yönlendiriliyor. Uçtan uca ölçüldü: 2FA'sız gerçek giriş → kurulum ekranı; 2FA'lı gerçek giriş → panel. Kapı devre dışı bırakılınca **18 birim testi kırılıyor**. |
 | 2 | argon2id ≥19MB / ≥2 iterasyon | ⏳ | F1 / T-013 · `argon2@0.45.1` kurulu |
-| 3 | Çerez `httpOnly`/`secure`/`sameSite:lax`/7 gün | ⏳ | F1 / T-013 |
+| 3 | Çerez `httpOnly`/`secure`/`sameSite:lax`/**24 saat** | ✅ | **Satır iki kez bayattı, T-048g'de düzeltildi.** (a) Süre: §8.3 ADR-035/A ile 7 günden **24 saate** indi — `src/server/auth.ts` → `SESSION_MAX_AGE_SECONDS = 24 * 60 * 60`, hem `session.maxAge` hem çerez `maxAge` AYNI sabitten. (b) Durum: `⏳ F1/T-013` yazıyordu ama çerez seçenekleri T-013'te kurulmuştu; `tests/e2e/_helpers/session.ts` üretim çerez adını (`__Secure-` önekli) ve `secure` bayrağını her E2E koşumunda fiilen kullanıyor, `security-headers.spec.ts` HSTS dalını ölçüyor. Kapı: Backend'in `session-omru.test.ts`i (24 saat sabiti, iki kullanım, elle yazılmış `maxAge` yasağı) + T-048g'de eklenen **E2E yardımcısı taraması** (aşağıda). |
 | 4 | Giriş 5/15dk/IP + 15dk kilit + log | ✅ | **Uçtan uca çalışıyor.** "log" → `LoginAttempt` her denemeyi yazıyor (T-013b). "kilit" → politika `src/lib/security/rate-limit.ts` (eşikler tek sabitte: 5 deneme / 15 dk pencere / 15 dk kilit, 20 birim testi), giriş akışına T-013c'de bağlandı, **T-016'da gerçek tarayıcıyla doğrulandı**: 5. yanlış şifrede `lockedUntil` yazılıyor, kilitliyken doğru şifre bile reddediliyor, 4 denemede kilitlenmiyor. BULGU-005 kapandı. |
 | 5 | `middleware.ts` `/panel/*` + `/api/v1/panel/*` korur | ✅ | **T-014 ile gerçek koruma kuruldu.** `/panel/*` oturumsuzken `/giris`'e yönlenir (307), `/api/v1/panel/*` §7.2 zarfıyla **401 JSON** döner. Oturum `getToken` ile **kriptografik olarak doğrulanır** (çerez varlığı yeterli değil), Edge'de çalışır. `AUTH_SECRET` yoksa **kapalı yönde başarısız olur**. 32 test. §8.6 uyarısı için aşağıya bakın. |
 | 6 | Her Server Action ayrıca `auth()` | ⚠️ | **Satır bayattı — Server Action'lar T-031'de geldi.** `src/server/actions/*` hepsi `currentActorId()` ile başlıyor ve oturum yoksa servise HİÇ gitmeden `UNAUTHORIZED` dönüyor; Backend'in birim testi bunu TÜM içerik action'ları için tek tek dolaşıyor (`tests/unit/actions/content-actions.test.ts` → "oturum YOKSA hepsi UNAUTHORIZED döner ve servise HİÇ gitmez"). **T-039'da yetkili yol uçtan uca ölçüldü**: gerçek oturumla panelden proje yayınlandı, kayıt DB'ye düştü. ⚠️ kalma sebebi: oturumSUZ bir action çağrısı gerçek tarayıcıyla ölçülmedi — birim testi taklit (`auth` mock'lu) üzerinden konuşuyor. |
@@ -3095,7 +3196,7 @@ Söylediği tek şey: istekte `AUTH_SECRET` ile çözülebilen bir oturum jetonu
 
 | Soru | Ara katman bilir mi? |
 | ---- | -------------------- |
-| Kullanıcı hâlâ var mı? | ❌ JWT bağımsızdır, kullanıcı silinse de 7 gün geçerli (ADR-013) |
+| Kullanıcı hâlâ var mı? | ❌ JWT bağımsızdır, kullanıcı silinse de jeton ömrü boyunca geçerli — §8.3 ile **24 saat** (ADR-013 + ADR-035/A) |
 | Hesap kilitli mi (`lockedUntil`)? | ❌ DB'ye bakmaz |
 | 2FA tamamlanmış mı? | ✅ **Biliyor** — jetondaki `tfa` alanından (T-019 + T-013e). Bu, listedeki tek istisna: değer girişte ve tazelemede DB'den yazıldığı için ara katman DB'ye bakmadan karar verebiliyor. |
 | Bu kayda erişim hakkı var mı? | ❌ Kayıt bazlı yetki hiç sorulmaz |
