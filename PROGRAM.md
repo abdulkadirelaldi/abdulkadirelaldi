@@ -226,7 +226,17 @@ kartlarında da geçerli: çalışıyormuş gibi görünen hiçbir beyan bırak�
 /panel/icerik/deneyim     Deneyim/eğitim CRUD
 /panel/mesajlar           İletişim formu kutusu → "işe dönüştür" aksiyonu
 /panel/ayarlar            Şifre, 2FA, tema, yedek durumu, denetim kaydı
+/panel/ayarlar/guvenlik   2FA kurulumu, QR, kurtarma kodları (T-018/T-036)
+/panel/ayarlar/denetim    Denetim kaydı listesi (T-052)
+/panel/desenler           Panel desen galerisi — T-032'de kuruldu, kabul edildi
 ```
+
+> **`/panel/desenler` neden listede:** T-032'nin kurduğu altı deseni (veri tablosu,
+> form kabuğu, boş/yükleniyor/hata durumları) tek yerde gösteriyor. Panel içi, `noindex`,
+> ziyaretçiye kapalı. Buraya **sonradan** yazıldı (F3 kabul kontrolü, 2026-10-09) —
+> rotayı §4.2'ye yazmadan kabul etmek, sonraki okuyucuya sapma gibi görünürdü.
+> §4.1'in "bir rota, yayına girdiği turda sitemap'e eklenir" kuralının panel karşılığı:
+> **bir panel rotası, kabul edildiği turda §4.2'ye eklenir.**
 
 ### 4.3 Klasör Yapısı
 

@@ -1223,3 +1223,67 @@ içinde devam eder — komşu bloğa girmez.
 *Neden kayda geçti: çakışma sessizdi. `T-050` iki farklı işi adlandırıyordu ve hangi
 görevin kastedildiği yalnızca bağlamdan anlaşılıyordu — tam olarak bu projenin
 "bazen çalışan, teşhisi zor" dediği sınıf.*
+
+---
+
+## F3 faz kabul kontrolü (Orkestra Şefi, 2026-10-09)
+
+§4.2'nin istediğini depodaki hâlle karşılaştırdım. **İki izlenmeyen boşluk buldum ve
+ikisi de benim takip hatamdı.**
+
+### §4.2'nin F3 kapsamındaki rotaları
+
+| Rota | Durum |
+|------|-------|
+| `/panel` dashboard | ⚠️ kabuk var, özet kartlar ve bugünün planı yok → **T-033** |
+| `/panel/icerik/projeler` | ✅ liste + `/yeni` + `/[id]`, tüm durumlar, MDX |
+| `/panel/icerik/blog` | ✅ liste + `/yeni` + `/[id]`, MDX editör + önizleme |
+| `/panel/icerik/deneyim` | ✅ liste + `/yeni` + `/[id]` |
+| `/panel/icerik/profil` | ✅ tekil varlık; CV alanı T-037 bekliyor |
+| `/panel/mesajlar` | ✅ liste + `/[id]` + §6 dönüşümü |
+| `/panel/ayarlar` | ⚠️ beş bölümün **üçü işlevsiz** → aşağıda |
+| `/panel/desenler` | ✅ T-032, §4.2'ye **sonradan yazıldı** (aşağıda) |
+
+### `/panel/ayarlar` — beş bölüm, üçü işlevsiz
+
+| Bölüm | Durum | Kart |
+|-------|-------|------|
+| Şifre | ⚠️ yalnızca metin; sunucu yarısı hazır (T-042s) | **T-042f** |
+| İki adımlı doğrulama | ✅ `href` ile çalışıyor | — |
+| Tema | ✅ `ThemeToggle` bağlı | — |
+| **Yedek durumu** | ❌ metin var, **kartı yoktu** | F6/**T-066** bağımlılığı, kayda geçti |
+| **Denetim kaydı** | ❌ metin var, **kartı yoktu** | **T-052 açıldı** |
+
+**Ek ölçüm:** `AuditLog` **okuma servisi hiç yok** — `src/server/` altında
+`auditLog.findMany`/`fetchAuditLog` geçen tek dosya üretilmiş Prisma istemcisi.
+Yazma yolu F1'den beri çalışıyor ama **yazdığımız hiçbir şeyi okuyamıyoruz.**
+
+**İkinci, daha ince sorun:** bölüm açıklamaları var olan bir özelliği **şimdiki
+zamanda** anlatıyor — *"Panelde yapılan her değişikliğin kaydı: ne, ne zaman, hangi
+IP'den."* Ölü düğme yok (T-018'e uyuluyor) ama bu **tutulamayacak söz** sınıfına
+yakın. T-034'te "410 dönüyor" metnini ölçüp geri almak ve T-036b'de CV için "yakında"
+demekten kaçınmak aynı sınıftı; aynı ölçüt buraya da uygulanmalı → T-052'ye yazıldı.
+
+### `/panel/desenler` — §4.2'ye sonradan eklendi, ve bu bir kural doğurdu
+
+Rota T-032'de kuruldu, ben kabul ettim, ama **§4.2'ye yazmadım.** Sonraki okuyucuya
+sapma gibi görünürdü. PROGRAM.md §4.2'ye `/panel/ayarlar/guvenlik` ve
+`/panel/ayarlar/denetim` ile birlikte eklendi.
+
+**Doğan kural (§4.2'ye yazıldı):** §4.1'in *"bir rota, yayına girdiği turda sitemap'e
+eklenir"* kuralının panel karşılığı — **bir panel rotası, kabul edildiği turda
+§4.2'ye eklenir.** Üç tur boyunca panel rotası ekledim ve §4.2'yi hiç güncellemedim;
+kural olmadığı için kimse de hatırlatmadı.
+
+### F3'ün kalan işi
+
+| Görev | Ajan | Not |
+|-------|------|-----|
+| **T-051** A–F | üçü birden | **dağıtıldı**, F maddesi PR #14'ü blokluyor |
+| **T-033** | Frontend | dashboard — özet kartlar, bugünün planı |
+| **T-042f** | Frontend | şifre ekranı (sunucu yarısı T-042s'te hazır) |
+| **T-052** | Backend + Frontend | **yeni** — denetim kaydı okuma + ekran |
+| **T-037** | Backend + Güvenlik | 🔴 **R2 hesabı bekliyor** |
+
+**F3 kapanış şartı:** yukarıdaki beşi + §4.2'nin F3 satırlarının tamamının işlevsel
+olması. *Yedek durumu* bilerek F6'ya bırakıldı ve bağımlılığı yazılı.
