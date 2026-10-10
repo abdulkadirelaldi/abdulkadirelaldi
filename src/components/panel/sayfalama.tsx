@@ -5,6 +5,27 @@ import { buttonClasses } from '@/components/ui/button';
 /**
  * Sayfalama — `PagedResult` için.
  *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * ⚠️ `opacity-60` KALDIRILDI — ÖLÇÜLEN KONTRAST İHLALİ (T-055f)
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Sınırdaki devre dışı öğe `text-muted opacity-60` taşıyordu. Açık temada
+ * `--text-muted: #686885` zemine (`#f8f8fc`) karşı 5.05 — GEÇİYOR; ama %60
+ * saydamlık onu zeminle harmanlayıp `#a2a2b5`e indiriyor ve kontrast
+ * 2.36'ya düşüyor. Lighthouse erişilebilirlik puanını 100 → 96 yapan tek
+ * denetim buydu (`color-contrast`).
+ *
+ * ⚠️ GİZLİ BİR KUSURDU: `Sayfalama` tek sayfada `null` döndürüyor, yani
+ * blog/projeler/deneyim/mesajlar ekranları 100 ölçmüştü SADECE fikstürleri
+ * tek sayfaya sığdığı için. 125 denetim satırı ilk kez ikinci sayfayı
+ * doğurdu ve kusur ortaya çıktı — T-043f'teki `.sr-only` taşmasıyla aynı
+ * sınıf: sütun/satır sayısı azken görünmeyen bir hata.
+ *
+ * SAYDAMLIK YERİNE `aria-hidden`: öğe zaten bir bağlantı DEĞİL ve hiçbir yere
+ * gitmiyor; "Önceki" kelimesini ekran okuyucuya iki kez (biri işlevsiz)
+ * duyurmak yerine görsel bir sınır işareti olarak bırakılıyor. Gezinme
+ * bilgisini "Sayfa 1 / 3" metni zaten veriyor.
+ *
  * T-041f'te mesaj listesinde satır içinde yazılmıştı; içerik ekranlarıyla
  * birlikte ÜÇÜNCÜ kullanım oldu ve ortak bileşene taşındı.
  *
@@ -44,7 +65,10 @@ export function Sayfalama({
             Önceki
           </Link>
         ) : (
-          <span className="text-muted rounded-btn border-line border px-3 py-2 text-sm opacity-60">
+          <span
+            aria-hidden="true"
+            className="text-muted rounded-btn border-line border px-3 py-2 text-sm"
+          >
             Önceki
           </span>
         )}
@@ -57,7 +81,10 @@ export function Sayfalama({
             Sonraki
           </Link>
         ) : (
-          <span className="text-muted rounded-btn border-line border px-3 py-2 text-sm opacity-60">
+          <span
+            aria-hidden="true"
+            className="text-muted rounded-btn border-line border px-3 py-2 text-sm"
+          >
             Sonraki
           </span>
         )}
