@@ -32,9 +32,22 @@ const auditCreate = vi.hoisted(() => vi.fn());
 vi.mock('@/server/auth', () => ({ auth }));
 vi.mock('next/cache', () => ({ revalidateTag, unstable_cache: vi.fn() }));
 const userFindUnique = vi.hoisted(() => vi.fn());
+const attachmentFindMany = vi.hoisted(() => vi.fn());
 vi.mock('@/server/db', () => ({
-  db: { auditLog: { create: auditCreate }, user: { findUnique: userFindUnique } },
+  db: {
+    auditLog: { create: auditCreate },
+    user: { findUnique: userFindUnique },
+    attachment: { findMany: attachmentFindMany },
+  },
 }));
+/*
+ * T-051/B — EKLENTİ VARLIK KAPISI.
+ *
+ * `missingAttachmentFailure` yazmadan önce `attachment.findMany` ile sorulan
+ * kimliklerin var olup olmadığını kontrol ediyor. Varsayılan taklit SORULAN HER
+ * KİMLİĞİ VAR sayıyor, yani mevcut testler etkilenmiyor; yokluk senaryosu
+ * aşağıdaki blokta açıkça kuruluyor.
+ */
 /*
  * ADR-035/B — YAZMA KAPISI (T-046).
  *
@@ -101,6 +114,10 @@ const OTURUM_IAT = Math.floor(Date.parse('2026-09-20T12:00:00.000Z') / 1000);
 
 beforeEach(() => {
   userFindUnique.mockResolvedValue({ writesValidFrom: null });
+  // Varsayılan: sorulan her eklenti kimliği VAR (T-051/B).
+  attachmentFindMany.mockImplementation((args: { where: { id: { in: string[] } } }) =>
+    Promise.resolve(args.where.id.in.map((id) => ({ id }))),
+  );
   oturumVar();
   auditCreate.mockResolvedValue({});
 });
@@ -1378,5 +1395,186 @@ describe('T-050/3 — eklenti FK hatası anlaşılır dönüyor', () => {
 
     if (sonuc.ok) throw new Error('beklenmedik başarı');
     expect(sonuc.error.code).toBe('INTERNAL_ERROR');
+  });
+});
+
+/* ===========================================================================
+ * T-051/B — EKLENTİ REFERANSI: `fields` KESİN ALAN ADIYLA DOLU
+ *
+ * T-050'de `fields` boş bırakılmıştı ve gerekçem "kısıt adından alan türetmek
+ * sezgiseldir" idi. Orkestra Şefi gerçek bir FK ihlali ölçtü ve gerekçeyi
+ * ÇÜRÜTTÜ: kısıt adı alan adını içeriyor ve ayrıştırması mekanik.
+ *
+ * Ama kabuk `meta.driverAdapterError.cause.constraint.index` altında, İÇ İÇE ve
+ * BELGELENMEMİŞ. Bu yüzden kabuğu ayrıştırmak yerine varlık kontrolü YAZMADAN
+ * ÖNCEYE taşındı: alan adı artık kendi sorgumuzdan geliyor, kesin.
+ * ======================================================================== */
+
+describe('T-051/B — eksik eklenti KESİN alanı işaretliyor', () => {
+  const YAZI = { locale: 'tr', slug: 'y', title: 'T', excerpt: 'E', content: '# İçerik' };
+  const YOK = 'clxYOK0000000000000000001';
+
+  /** Sorulan kimliklerden `mevcut` olmayanlar bulunamamış sayılır. */
+  function eklentiler(mevcut: string[]) {
+    attachmentFindMany.mockImplementation((args: { where: { id: { in: string[] } } }) =>
+      Promise.resolve(args.where.id.in.filter((id) => mevcut.includes(id)).map((id) => ({ id }))),
+    );
+  }
+
+  it('post: eksik kapak → fields.coverAttachmentId', async () => {
+    eklentiler([]);
+    const { createPostAction } = await import('@/server/actions/post');
+    const sonuc = await createPostAction({ ...YAZI, coverAttachmentId: YOK });
+
+    expect(sonuc.ok).toBe(false);
+    if (sonuc.ok) throw new Error('beklenmedik başarı');
+    expect(sonuc.error.code).toBe('VALIDATION_ERROR');
+    expect(sonuc.error.fields?.coverAttachmentId).toBeTruthy();
+  });
+
+  it('YAZMA HİÇ DENENMİYOR — kapı yazmadan önce', async () => {
+    eklentiler([]);
+    const { createPostAction } = await import('@/server/actions/post');
+    await createPostAction({ ...YAZI, coverAttachmentId: YOK });
+
+    // Eskiden FK hatası yazma denemesinden SONRA geliyordu.
+    expect(svc.createPost).not.toHaveBeenCalled();
+    expect(auditCreate).not.toHaveBeenCalled();
+  });
+
+  /**
+   * ⚠️ ASIL KAZANÇ BURADA. Profilde İKİ eklenti alanı var ve genel mesaj
+   * hangisinin bozuk olduğunu söyleyemiyordu. Artık söylüyor — ve YALNIZCA
+   * bozuk olanı işaretliyor.
+   */
+  it('profile: SADECE bozuk alan işaretleniyor (avatar eksik, cv sağlam)', async () => {
+    eklentiler(['ek_cv']);
+    svc.findProfileSnapshot.mockResolvedValue(null);
+
+    const { saveProfileAction } = await import('@/server/actions/profile');
+    const sonuc = await saveProfileAction({
+      avatarAttachmentId: YOK,
+      cvAttachmentId: 'ek_cv',
+    });
+
+    if (sonuc.ok) throw new Error('beklenmedik başarı');
+    expect(sonuc.error.fields?.avatarAttachmentId).toBeTruthy();
+    // Sağlam alan İŞARETLENMİYOR — yanlış alanı göstermek hiç göstermemekten kötü.
+    expect(sonuc.error.fields?.cvAttachmentId).toBeUndefined();
+    expect(svc.upsertProfile).not.toHaveBeenCalled();
+  });
+
+  it('profile: İKİSİ de eksikse ikisi de işaretleniyor', async () => {
+    eklentiler([]);
+    svc.findProfileSnapshot.mockResolvedValue(null);
+
+    const { saveProfileAction } = await import('@/server/actions/profile');
+    const sonuc = await saveProfileAction({
+      avatarAttachmentId: YOK,
+      cvAttachmentId: 'clxYOK0000000000000000002',
+    });
+
+    if (sonuc.ok) throw new Error('beklenmedik başarı');
+    expect(Object.keys(sonuc.error.fields ?? {}).sort()).toEqual([
+      'avatarAttachmentId',
+      'cvAttachmentId',
+    ]);
+  });
+
+  it('project: eksik kapak → fields.coverAttachmentId, yazma yok', async () => {
+    eklentiler([]);
+    const { createProjectAction } = await import('@/server/actions/project');
+    const sonuc = await createProjectAction({
+      locale: 'tr',
+      slug: 'p',
+      title: 'T',
+      summary: 'S',
+      content: '# İçerik',
+      coverAttachmentId: YOK,
+    });
+
+    if (sonuc.ok) throw new Error('beklenmedik başarı');
+    expect(sonuc.error.fields?.coverAttachmentId).toBeTruthy();
+    expect(svc.createProject).not.toHaveBeenCalled();
+  });
+
+  it('GEÇERLİ kimlik akışı engellemiyor', async () => {
+    eklentiler(['ek_var']);
+    svc.createPost.mockResolvedValue({
+      id: ID,
+      locale: 'tr',
+      slug: 'y',
+      status: 'DRAFT',
+      publishedAt: null,
+    });
+
+    const { createPostAction } = await import('@/server/actions/post');
+    expect((await createPostAction({ ...YAZI, coverAttachmentId: 'ek_var' })).ok).toBe(true);
+  });
+
+  it('eklenti GÖNDERİLMEMİŞSE sorgu HİÇ açılmıyor — en sık durum bedava', async () => {
+    svc.createPost.mockResolvedValue({
+      id: ID,
+      locale: 'tr',
+      slug: 'y',
+      status: 'DRAFT',
+      publishedAt: null,
+    });
+
+    const { createPostAction } = await import('@/server/actions/post');
+    expect((await createPostAction(YAZI)).ok).toBe(true);
+    expect(attachmentFindMany).not.toHaveBeenCalled();
+  });
+
+  it('KISMİ güncellemede eklenti yoksa kapı koşmuyor', async () => {
+    svc.findPostSnapshot.mockResolvedValue({
+      id: ID,
+      locale: 'tr',
+      slug: 'y',
+      title: 'Eski',
+      status: 'DRAFT',
+      readingMinutes: 1,
+      publishedAt: null,
+    });
+    svc.updatePost.mockResolvedValue({
+      id: ID,
+      locale: 'tr',
+      slug: 'y',
+      status: 'DRAFT',
+      publishedAt: null,
+    });
+
+    const { updatePostAction } = await import('@/server/actions/post');
+    expect((await updatePostAction({ id: ID, title: 'Yeni' })).ok).toBe(true);
+    expect(attachmentFindMany).not.toHaveBeenCalled();
+  });
+
+  it('P2003 HÂLÂ ele alınıyor — yarış koruması duruyor', async () => {
+    // Dosya kontrol ile yazma arasında silinirse FK yine tetiklenir; o durumda
+    // `fields` boş olmak DOĞRU, kullanıcının düzeltebileceği alan yok.
+    eklentiler(['ek_var']);
+    svc.createPost.mockRejectedValue(
+      Object.assign(new Error('FK'), {
+        code: 'P2003',
+        meta: {
+          modelName: 'Post',
+          driverAdapterError: {
+            cause: {
+              originalCode: '23503',
+              kind: 'ForeignKeyConstraintViolation',
+              constraint: { index: 'post_coverAttachmentId_fkey' },
+            },
+          },
+        },
+      }),
+    );
+
+    const { createPostAction } = await import('@/server/actions/post');
+    const sonuc = await createPostAction({ ...YAZI, coverAttachmentId: 'ek_var' });
+
+    if (sonuc.ok) throw new Error('beklenmedik başarı');
+    expect(sonuc.error.code).toBe('VALIDATION_ERROR');
+    expect(sonuc.error.message).toContain('Seçilen dosya bulunamadı');
+    expect(sonuc.error.fields).toBeUndefined();
   });
 });

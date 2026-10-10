@@ -1,13 +1,18 @@
-import { compileMDX, type MDXRemoteProps } from 'next-mdx-remote/rsc';
-import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
-import remarkGfm from 'remark-gfm';
+import { compileMDX } from 'next-mdx-remote/rsc';
 import type { ComponentProps, ReactNode } from 'react';
 
 import { basligaSlug, metinCikar } from '@/components/public/baslik-slug';
+import { MDX_OPTIONS } from '@/lib/mdx-options';
 import { cn } from '@/lib/utils/cn';
 
 /**
  * MDX RENDER KALIBI — §8.9. T-024'te kuruldu, T-025 (blog) aynısını kullanır.
+ *
+ * ⚠️ EKLENTİ LİSTESİ VE SANİTİZE ŞEMASI BURADA DEĞİL: kanonik tanım
+ * `@/lib/mdx-options` (`MDX_OPTIONS`). T-051'de oraya TAŞINDI — kaydetme
+ * kapısı (`mdx-validate.ts`) da aynı nesneyi okuyor ve bir `.tsx` modülünden
+ * içe aktarmak Vitest'in node ortamını kırıyordu. Aşağıdaki güvenlik
+ * gerekçeleri o tanım için geçerli; neden orada durduğu o dosyada yazılı.
  *
  * ═══════════════════════════════════════════════════════════════════════════
  * GÜVENLİK — İKİ KATMAN
@@ -253,40 +258,25 @@ export type MdxProps = {
 };
 
 /**
- * MDX DERLEME SEÇENEKLERİ — TEK KAYNAK (T-049f'te ihraç edildi).
+ * Derleyici hatasından GÜNLÜĞE GİRECEK kısmı çıkarır — kod çerçevesi HARİÇ.
  *
- * ═══════════════════════════════════════════════════════════════════════════
- * NEDEN İHRAÇ EDİLİYOR
- * ═══════════════════════════════════════════════════════════════════════════
+ * Çerçeve satırları (`  1 | …`, `> 3 | …`, `    | ^`) içeriğin kendisidir ve
+ * §8.20 gereği kalıcı günlüğe giremez. Süzgeç bu üç şeklin tamamını yakalıyor:
+ * başta boşluk, isteğe bağlı `>`, isteğe bağlı satır numarası, sonra `|`.
  *
- * T-047'de Backend `mdx-validate.ts` içinde kaydetme öncesi bir derleme kapısı
- * kurdu ve bu listeyi ZORUNLU OLARAK ÇİFTLEDİ — çünkü burası onu ihraç
- * etmiyordu. Çiftlenme tehlikesi somut: kapı `remark-gfm` olmadan derlerse
- * GFM sözdizimi kapıda hata verip render'da çalışırdı (ya da tersi), yani
- * "kaydedilemeyen ama geçerli içerik" ya da "kaydedilen ama patlayan içerik"
- * doğardı.
- *
- * Backend o çiftlenmeyi bir BORÇ olarak kayda geçirdi: kapı testi bu dosyada
- * `export const MDX_OPTIONS` ARAMIYOR OLDUĞUNU assert ediyor, yani ihraç
- * edildiği gün o test KIRILIYOR ve çiftlenme o turda kaldırılıyor. Bilerek
- * kurulmuş bir hatırlatıcı; bu ihraç onu ateşliyor.
- *
- * SIRA ÖNEMLİ: sanitize EN SONDA çalışır. Önce çalışsaydı, sonraki bir
- * eklentinin ürettiği düğümler denetimden geçmemiş olurdu. Şema açıkça
- * veriliyor — argümansız çağırmak da varsayılanı kullanır ama hangi şemanın
- * yürürlükte olduğu okunurken görünsün.
+ * İlk iki anlamlı satır tutuluyor: `[next-mdx-remote] error compiling MDX:`
+ * ve sebep + `(satır:sütun)`. Sonrasındaki "More information: …" bağlantısı
+ * teşhise bir şey katmıyor.
  */
-/*
-  `as const` YOK ve olmamalı: `MDXRemote`un beklediği `SerializeOptions`
-  DEĞİŞTİRİLEBİLİR dizi (`Pluggable[]`) istiyor, `readonly` olanı kabul
-  etmiyor. `as const` eklemek derlemeyi kırıyordu — ölçüldü.
-*/
-export const MDX_OPTIONS: MDXRemoteProps['options'] = {
-  mdxOptions: {
-    remarkPlugins: [remarkGfm],
-    rehypePlugins: [[rehypeSanitize, defaultSchema]],
-  },
-};
+function sebepSatiri(hata: unknown): string {
+  const mesaj = hata instanceof Error ? hata.message : String(hata);
+
+  return mesaj
+    .split('\n')
+    .filter((satir) => satir.trim() !== '' && !/^\s*>?\s*\d*\s*\|/.test(satir))
+    .slice(0, 2)
+    .join(' ');
+}
 
 /**
  * MDX içeriğini render eder. Çağıran taraf yalnızca kaynağı verir; eklentiler,
@@ -316,8 +306,26 @@ export async function Mdx({
       ═══════════════════════════════════════════════════════════════════════
 
       `console.error` bilerek: Vercel günlüğünde hata seviyesinde görünsün ve
-      uyarı kuralları yakalayabilsin. §8.20 uyumlu — KAYIT KİMLİĞİ ve DERLEYİCİ
-      SEBEBİ yazılıyor, içerik gövdesi YAZILMIYOR.
+      uyarı kuralları yakalayabilsin. KAYIT KİMLİĞİ ve DERLEYİCİ SEBEBİ
+      yazılıyor, içerik gövdesi YAZILMIYOR.
+
+      ⚠️ §8.20 İHLALİ ÖLÇÜMLE BULUNDU (T-051): `hata.message`i olduğu gibi
+      yazmak YETMİYOR — `next-mdx-remote`un mesajı bir KOD ÇERÇEVESİ taşıyor
+      ve o çerçeve içeriğin GERÇEK SATIRLARINI içeriyor:
+
+          Expected a closing tag for `<img>` (3:1-3:33)
+            1 | ## Baslik
+          > 3 | <img src="x" alt="kapatilmamis">
+
+      Yani ilk uygulama, kaçınmak için yazıldığı şeyi tam olarak yapıyordu:
+      içerik gövdesini sunucu günlüğüne döküyordu (ölçümde 5 eşleşme).
+      `sebepSatiri` çerçeveyi süzüyor; geriye sebep ve SATIR/SÜTUN kalıyor —
+      teşhis için yeterli, gövde için sıfır.
+
+      YAZARIN EKRANI AYRI BİR SORU: panel önizlemesi (`hataPolitikasi:
+      'firlat'`) tam mesajı çerçevesiyle gösteriyor ve göstermeli — orada
+      içerik zaten yazarın kendi ekranında ve satır numarası onun tek ipucu.
+      §8.20 KALICI GÜNLÜĞÜ sınırlıyor, geçici bir arayüzü değil.
 
       "Sınır gerilemeyi gizler" itirazının cevabı bu satır: gerilemenin
       dedektörü üretimdeki 500 değil, T-047'nin kaydetme öncesi birim
@@ -325,9 +333,7 @@ export async function Mdx({
       elle psql) gelen kırık içeriği ortaya çıkarıyor — o yol kapıdan geçmiyor.
     */
     console.error(
-      `[mdx] derleme başarısız — içerik görüntülenemedi. kayıt=${kayitEtiketi} sebep=${
-        hata instanceof Error ? hata.message : String(hata)
-      }`,
+      `[mdx] derleme başarısız — içerik görüntülenemedi. kayıt=${kayitEtiketi} sebep=${sebepSatiri(hata)}`,
     );
 
     /*

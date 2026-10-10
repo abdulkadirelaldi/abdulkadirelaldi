@@ -76,6 +76,23 @@ test.describe('§9/7 · panel mobil gezinmesi', () => {
        * bir öğe arar; yoksa bağ kopuktur ve "bu düğme neyi açıyor" bilgisi
        * kaybolur. Hiçbir görsel test bunu yakalamaz — düğme çalışıyor gibi
        * görünür. Bu yüzden kimliğin ÇÖZÜLDÜĞÜ ayrıca ölçülüyor.
+       *
+       * ⚠️ İDDİA BİLEREK YALNIZCA ÇEKMECE AÇIKKEN — T-051/E kararı.
+       *
+       * Çekmece kapalıyken DOM'da HİÇ YOK (Frontend'in bilinçli kararı: odak
+       * tuzağı olmasın). Yani `panel-menu` kimliği kapalıyken sarkıyor. "Hiç
+       * sarkmasın" demek çekmeceyi monte tutup `hidden` ile gizlemek demek —
+       * ve o takas ÖLÇÜLEBİLİR bir özelliği (kapalıyken odaklanabilir hiçbir
+       * öğe DOM'da yok) tanımsız davranışlı bir iyileştirme için verirdi:
+       * `hidden` öğeyi erişilebilirlik ağacından da çıkarır, yani
+       * `aria-controls` "var olan ama gezinilemeyen" bir öğeyi gösterir.
+       *
+       * Asıl semantiği taşıyan `aria-expanded` ve o her iki durumda doğru
+       * (yukarıda ölçülüyor). `aria-controls` isteğe bağlı bir ipucu ve
+       * destek düzeyi tutarsız. Bu yüzden karar: çekmece monte EDİLMEYECEK,
+       * `aria-controls` KALACAK ve iddia ipucunun eyleme dönüşebildiği TEK
+       * duruma (açık) bağlı kalacak. Gerekçenin tamamı
+       * docs/security/README.md → "BULGU-021'in bıraktığı incelik".
        */
       const hedefId = await menuDugmesi.getAttribute('aria-controls');
       expect(hedefId, 'düğme bir aria-controls hedefi bildirmeli').toBeTruthy();

@@ -45,6 +45,31 @@ import { fetchSiteStats } from './stats';
  * saf tarafa `next/*` bağımlılığı sızarsa test kırılır. Yorum değil, kapı.
  *
  * ───────────────────────────────────────────────────────────────────────────
+ * ⚠️ BU DOSYANIN KAPSAMI DÜŞÜK GÖRÜNÜR (~%63) VE BU BEKLENEN — T-051/E
+ * ───────────────────────────────────────────────────────────────────────────
+ *
+ * Sebebi: `tests/unit/services/onbellek-granulasyonu.test.ts` ETİKETLERİ ölçmek
+ * için `unstable_cache`i taklit ediyor ve sarmalanan okuma geri çağrılarını
+ * HİÇ ÇAĞIRMIYOR (amaç veri okumak değil, girdinin taşıdığı `tags` dizisini
+ * yakalamak). Dolayısıyla bu dosyadaki `fetchX` gövdeleri burada çalışmıyor;
+ * onlar kendi servis testlerinde ölçülüyor. Bu turda ASIL konu olan etiket
+ * hesabı ise TAM kapsanıyor.
+ *
+ * KAPSAM KAPISI ETKİLENMİYOR — ölçüldü (T-051/E), üç bağımsız sebep:
+ *
+ *   1. Eşik KÜRESEL, dosya başına DEĞİL: `vitest.config.ts`te `perFile`
+ *      ayarlanmamış. Tek bir dosyanın yüzdesi kapıyı tetikleyemez.
+ *   2. Küresel sayılar eşiğin çok üstünde: satır %94,7 · fonksiyon %91,0 ·
+ *      dal %82,6 · deyim %93,0 — eşik 70.
+ *   3. Kapı bugün zaten RAPORLAMA modunda: CI `COVERAGE_ENFORCE: '0'`
+ *      (`.github/workflows/ci.yml`).
+ *
+ * Yani bu yüzde bir borç değil, bir ÖLÇÜM YÖNTEMİ sonucu. `perFile` bir gün
+ * açılırsa bu dosya gerçek bir istisna olarak değerlendirilmeli — o zaman doğru
+ * çözüm kapsamı şişirmek için sahte test yazmak değil, okuma gövdelerinin
+ * nerede ölçüldüğünü kapsama dışı bırakma listesiyle yazmak olur.
+ *
+ * ───────────────────────────────────────────────────────────────────────────
  * ETİKETLER: her okuma, kendisini düşürebilecek TÜM etiketleri taşır. Eşleşme
  * tam dizedir (ADR-029), önek değil — eksik bırakılan etiket, geçersizleştirmesi
  * imkânsız bir önbellek girdisi bırakır.

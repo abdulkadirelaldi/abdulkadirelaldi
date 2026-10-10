@@ -134,15 +134,29 @@ export function toFailure(
      * `ForeignKeyConstraintViolation → "P2003"`.
      *
      * ═══════════════════════════════════════════════════════════════════════
-     * `fields` BİLEREK BOŞ
+     * ARTIK BİRİNCİ KAPI DEĞİL — YARIŞ KORUMASI (T-051/B)
      * ═══════════════════════════════════════════════════════════════════════
      *
-     * Prisma'nın P2003 `meta`sı FORM ALAN ADINI değil KISIT ADINI taşıyor
-     * (`post_coverAttachmentId_fkey` gibi). Oradan alan adı türetmek bir
-     * sezgisel olurdu ve YANLIŞ girdiyi işaretleme riski taşırdı — profilde
-     * iki eklenti alanı var (`avatar`, `cv`) ve yanlışını göstermek hiç
-     * göstermemekten kötüdür. Mesaj sebebi söylüyor; alanı işaretlemek
-     * `meta` şekli canlı veritabanında ölçüldükten sonra eklenebilir.
+     * T-050'de bu dal TEK kapıydı ve `fields` boş bırakılmıştı. Gerekçem
+     * şuydu: "Prisma'nın `meta.field_name`i kısıt adını taşıyor, sezgiselle
+     * yanlış alanı işaretlemek hiç işaretlememekten kötü olurdu."
+     *
+     * ⚠️ O GEREKÇE ÇÜRÜTÜLDÜ. Orkestra Şefi gerçek bir FK ihlali üretip kabuğu
+     * ölçtü: `meta.field_name` HİÇ YOK; kısıt adı
+     * `meta.driverAdapterError.cause.constraint.index` altında, iç içe —
+     * ve alan adını İÇERİYOR (`profile_avatarAttachmentId_fkey`). Ayrıştırması
+     * mekanik, yani "sezgisel" demek yanlıştı.
+     *
+     * BİRİNCİ KAPI ARTIK BAŞKA YERDE: `attachment-refs.ts` eklenti kimliklerinin
+     * varlığını YAZMADAN ÖNCE kontrol ediyor ve `fields`i KENDİ sorgusundan
+     * kuruyor — belgelenmemiş bir kabuğa bağlanmadan, kesin alan adıyla.
+     * Gerekçenin tamamı o dosyada.
+     *
+     * Bu dal ne işe yarıyor: YARIŞ. Dosya kontrol ile yazma arasında silinirse
+     * FK yine tetiklenir. O durumda `fields` boş olmak DOĞRU — kullanıcının
+     * düzeltebileceği bir alan yok, dosya gerçekten kaybolmuştur ve mesaj zaten
+     * bunu söylüyor. Ayrıca doğrudan veritabanı yazmaları (seed, migration,
+     * elle müdahale) için son savunma olarak duruyor.
      */
     case 'P2003':
       return fail(

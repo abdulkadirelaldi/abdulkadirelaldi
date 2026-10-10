@@ -14,6 +14,7 @@ import { DEFAULT_LOCALE } from '@/server/services/_shared/content-query';
 import type { ProfileDto } from '@/server/services/content-dto';
 
 import { currentActorId, toFailure, unauthorized } from './_shared';
+import { missingAttachmentFailure } from './attachment-refs';
 import { revalidateContent } from './tags';
 
 /**
@@ -66,6 +67,17 @@ export async function saveProfileAction(raw: unknown): Promise<ApiResponse<Profi
 
   const parsed = parseOrFail(updateProfileSchema, raw);
   if (!parsed.ok) return parsed.failure;
+
+  /*
+   * EKLENTİ REFERANSI KAPISI — T-051/B. Gerekçe `attachment-refs.ts`te.
+   * Şema `cuidSchema` ile yalnızca BİÇİMİ doğruluyor; varlığı burada kontrol
+   * ediliyor, böylece hangi form alanının bozuk olduğu KESİN biliniyor.
+   */
+  const eksikEk = await missingAttachmentFailure({
+    avatarAttachmentId: parsed.data.avatarAttachmentId,
+    cvAttachmentId: parsed.data.cvAttachmentId,
+  });
+  if (eksikEk) return eksikEk;
 
   /*
    * DİL, GÜNCELLENEN ALAN DEĞİL ADRESTİR.

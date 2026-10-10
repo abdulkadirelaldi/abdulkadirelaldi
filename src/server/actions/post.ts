@@ -14,6 +14,7 @@ import {
 import type { ContentWriteDto } from '@/server/services/content-dto';
 
 import { currentActorId, toFailure, unauthorized } from './_shared';
+import { missingAttachmentFailure } from './attachment-refs';
 import { mdxCompileFailure } from './mdx-validate';
 import { revalidateContent, tagTargetsFor } from './tags';
 
@@ -33,6 +34,16 @@ export async function createPostAction(raw: unknown): Promise<ApiResponse<Conten
 
   const parsed = parseOrFail(createPostSchema, raw);
   if (!parsed.ok) return parsed.failure;
+
+  /*
+   * EKLENTİ REFERANSI KAPISI — T-051/B. Gerekçe `attachment-refs.ts`te.
+   * Şema `cuidSchema` ile yalnızca BİÇİMİ doğruluyor; varlığı burada kontrol
+   * ediliyor, böylece hangi form alanının bozuk olduğu KESİN biliniyor.
+   */
+  const eksikEk = await missingAttachmentFailure({
+    coverAttachmentId: parsed.data.coverAttachmentId,
+  });
+  if (eksikEk) return eksikEk;
 
   /*
    * ⚠️ MDX KAPISI — §7.1 sırasında Zod'dan SONRA, servisten ÖNCE (T-047/P0).
@@ -78,6 +89,16 @@ export async function updatePostAction(raw: unknown): Promise<ApiResponse<Conten
 
   const parsed = parseOrFail(updatePostSchema, raw);
   if (!parsed.ok) return parsed.failure;
+
+  /*
+   * EKLENTİ REFERANSI KAPISI — T-051/B. Gerekçe `attachment-refs.ts`te.
+   * Şema `cuidSchema` ile yalnızca BİÇİMİ doğruluyor; varlığı burada kontrol
+   * ediliyor, böylece hangi form alanının bozuk olduğu KESİN biliniyor.
+   */
+  const eksikEk = await missingAttachmentFailure({
+    coverAttachmentId: parsed.data.coverAttachmentId,
+  });
+  if (eksikEk) return eksikEk;
 
   /*
    * MDX KAPISI — gerekçe `mdx-validate.ts`te. KISMİ GÜNCELLEMEDE yalnızca

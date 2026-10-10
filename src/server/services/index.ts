@@ -115,6 +115,7 @@ export * from './_shared/content-cache';
 export type * from './content-dto';
 
 // §4.1 /iletisim — public form yazma tarafı (T-027)
+export * from './attachment';
 export * from './contact-message';
 
 // ADR-026 — içerik servisleri (F2 public okuma tarafı)

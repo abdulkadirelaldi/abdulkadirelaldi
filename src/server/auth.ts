@@ -1,6 +1,7 @@
 import NextAuth, { CredentialsSignin } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 
+import { SESSION_MAX_AGE_SECONDS } from '@/lib/security/session';
 import { loginSchema } from '@/lib/schemas';
 
 import {
@@ -23,26 +24,24 @@ import { getTotpState } from './services/user';
  * middleware'e GÜVENİLMEZ. Bu dosya o yardımcıyı ihraç eder.
  */
 
-/**
- * §8.3 — oturum ömrü **24 saat** (ADR-035/A, eskiden 7 gündü).
+/*
+ * §8.3 — oturum ömrü (24 saat, ADR-035/A).
  *
- * KISALTMANIN SEBEBİ BİR MARUZİYET PENCERESİ: JWT stratejisinde (ADR-013)
- * sunucuda oturum kaydı yok, yani dağıtılmış bir jeton süresi dolana kadar
- * geçerli kalır ve ÇALINMIŞ bir jeton da öyle. 7 günden 24 saate inmek o
- * pencereyi %85 daraltıyor — tek sabit, SIFIR sorgu, hiçbir ölçüm borcu yok.
+ * ⚠️ DEĞERİN KENDİSİ VE GEREKÇESİ BURADA DEĞİL: kanonik tanım
+ * `@/lib/security/session` içinde (T-049g taşıdı, T-051/A bu dosyayı oraya
+ * bağladı). Burada bir literal DURMAMALI — iki tanım, biri güncellenip diğeri
+ * kalınca tutarsız bir ömür üretirdi ve tam bu yüzden taşındı.
  *
- * Tek kullanıcılı bir panelde bedeli günde bir giriş VE bir TOTP kodu (§8.1
- * gereği 2FA zorunlu, yani her giriş bir kod girişi demek). Kabul edildi.
+ * Neden O MODÜL kanonik: ara katman Edge'de koşuyor ve `@/server/*` zincirini
+ * yükleyemiyor (T-044g'de `UnhandledSchemeError` ile ölçüldü), yani ömrü hem
+ * ara katmanın hem bu dosyanın okuyabileceği tek yer orası.
  *
- * ⚠️ BU SABİT İKİ YERDE KULLANILIYOR — çerez `maxAge` ve oturum `maxAge` (JWT
- * `exp` ondan türer). İkisi TEK KAYNAKTAN beslendiği için sapamazlar; ayrı ayrı
- * yazılsaydı biri güncellenip diğeri kalınca tutarsız bir ömür çıkardı: çerez
- * ölmüş ama jeton geçerli, ya da tersi. `tests/unit/session-omru.test.ts` ikisinin
- * de bu sabitten geldiğini kaynaktan doğruluyor.
+ * SABİT İKİ YERDE KULLANILIYOR — çerez `maxAge` ve oturum `maxAge` (JWT `exp`
+ * ondan türer). İkisi de aşağıda aynı içe aktarmadan besleniyor.
  *
- * (A) katmanı TEK BAŞINA anlamlıdır ve (B)'den bağımsızdır — ADR-035.
+ * `tests/unit/session-omru.test.ts` bu dosyanın içe aktardığını ve kendi
+ * literalini YAZMADIĞINI kaynaktan doğruluyor (Güvenlik'in kapısı).
  */
-const SESSION_MAX_AGE_SECONDS = 24 * 60 * 60;
 
 const useSecureCookies = process.env.NODE_ENV === 'production';
 

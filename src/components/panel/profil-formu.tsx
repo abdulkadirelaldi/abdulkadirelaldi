@@ -68,17 +68,6 @@ const SOSYAL_ALANLAR: ReadonlyArray<{
   tur: 'url' | 'email';
   ipucu: string;
 }> = [
-  /*
-    ⚠️ `email` BİLEREK EN BAŞTA — sıra kozmetik değil, ÖLÇÜLMÜŞ bir sebebi var.
-    En sonda olduğunda Güvenlik'in §8.18 paket kapısı (`public-env.test.ts`)
-    KIRMIZIYA DÖNÜYORDU: küçültülmüş çıktıda oluşan
-    `…ipucu:"https://ornek.com"},{…,ipucu:"ad@` dizisi, kapının "kimlik bilgisi
-    içeren bağlantı dizesi" desenine (`scheme://…:…@`) uyuyor. Gerçek bir
-    sızıntı DEĞİL — desen iki ayrı YER TUTUCUYU köprülüyor. `email` başa
-    alınınca `@` hiçbir `://`den sonra gelmediği için pencere hiç oluşmuyor.
-    Asıl düzeltme desenin daraltılması; o dosya Güvenlik'in, raporda yazılı.
-  */
-  { anahtar: 'email', etiket: 'E-posta', tur: 'email', ipucu: 'ad@ornek.com' },
   { anahtar: 'github', etiket: 'GitHub', tur: 'url', ipucu: 'https://github.com/kullanici' },
   {
     anahtar: 'linkedin',
@@ -95,6 +84,7 @@ const SOSYAL_ALANLAR: ReadonlyArray<{
   },
   { anahtar: 'youtube', etiket: 'YouTube', tur: 'url', ipucu: 'https://youtube.com/@kanal' },
   { anahtar: 'website', etiket: 'Web sitesi', tur: 'url', ipucu: 'https://ornek.com' },
+  { anahtar: 'email', etiket: 'E-posta', tur: 'email', ipucu: 'ad@ornek.com' },
 ];
 
 function baslangicDegerleri(profil: ProfileDto): ProfilFormGirdi {
