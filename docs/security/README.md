@@ -75,6 +75,7 @@ açığın ayrıntısı artık saldırgana bir şey kazandırmaz.
 | 2026-08-12 | T-029a | Lighthouse'a masaüstü + koyu profil (WebGL yolu), üç durumlu WebGL doğrulaması, koşu değişkenliği kararı | **BULGU-010 açıldı**: WebGL yolu hiçbir CI koşusunda ölçülmüyordu. Profil kuruldu ve doğrulandı; ölçüm T-021'in hero'yu bağlamasını bekliyor (kontrol kendi kendine zorunlu hâle geliyor). Değişkenliğin **ilk koşuya** ait olduğu ölçüldü; `numberOfRuns` 5, `aggregationMethod` açıkça medyan. |
 | 2026-08-17 | T-029d | Ölçüm yüzeyi dışındaki SEO/OG rotaları (BULGU-015) | **BULGU-015 kapandı** — `tests/e2e/seo-routes.spec.ts`: robots.txt, sitemap.xml, rss.xml, `/og` ve `/og/proje/<slug>` artık her koşumda isteniyor. PNG imza baytlarından, XML gerçek ayrıştırıcıyla doğrulanıyor. Kapsam iki katmanlı: sözleşme testleri + sitemap taraması (yeni sayfa kendiliğinden kapsanır). Mutasyonla kanıtlandı: düzeltme öncesi font aynı render yolunda BULGU-014'ün `TypeError`'ını veriyor. **BULGU-016 açıldı** — sitemap üç adet 404 adresi bildiriyor. |
 | 2026-08-16 | T-029c | Ölçüm işinin veri kurulumu (BULGU-013) + §8.24 haftalık zamanlayıcı | **BULGU-013 açıldı ve düzeltildi**: `lighthouse` işi ayrı koşucuda `services:` bloğu olmadan koşuyordu; ADR-026 sonrası `/` 500 dönüyor, üç profil düşüyor, artifact üretilmiyordu. Kendi Postgres'i kuruldu (yol **a**). İki yeni nöbet: ölçüm ön koşulu ve ayırt edicide durum kodu kontrolü — ikincisi olmadan arıza "⏳ BEKLEMEDE" diye yeşil görünüyordu. §8.24 artık **haftalık** de koşuyor (`17 6 * * 1`). |
+| 2026-10-10 | T-055g | ADR-035 bağlayıcı metninin dize kapısı; ADR-037'nin geriye dönük ilk uygulaması | **ADR-035 metni kapıya bağlandı** (`adr-035-metni.test.ts`, 23 iddia). Kapı beklenen cümleyi ELLE YAZMIYOR — `docs/DECISIONS.md` içindeki ADR bloğundan ayıklayıp bileşendeki sabitle birebir karşılaştırıyor; elle yazmak cümlenin ÜÇÜNCÜ kopyasını doğurur ve ADR düzeltildiğinde kapı eski cümleyi savunmaya devam ederdi. Sapma iki yönde kırmızı. Pozitif + negatif birlikte: yalnızca "yasak ifade yok" denseydi SABİTİ SİLEN değişiklik de yeşil kalırdı (§8.18 dersi) — M2 mutasyonu bunu doğruladı. Yasak liste İKİ KADEMELİ ve ayrım ölçüme dayanıyor: "çıkış yapıldı" gerçek bir çıkıştan sonra DOĞRU, yalnızca şifre değiştirmenin sonucu olarak yanlış; bugün panelde meşru böyle bir metin yok (çıkış düğmesi panel dizinleri dışında ve mesaj basmıyor). Yorum sıyırmanın ZORUNLU olduğu da ayrı bir iddiayla kilitlendi — bileşenin yorumu yasağı alıntılıyor, ham taramayla kapı her zaman kırmızı olurdu. Dört mutasyon (yasak cümle · sabit silindi · "bu cihaz dahil" atlandı · ADR değişti) 9/5/2/2 iddia kırdı, md5 ile birebir geri alındı. **Ayıklayıcı ilk kurulumda BOŞ DİZE döndürdü** — cümlenin içinde noktalı virgül var ve "`;`'e kadar oku" deseni ortadan kesiyordu; önkoşul bloğu yakaladı, yoksa sessizce hiçbir şey ölçmeyen bir kapı CI'ya girecekti. **ADR-037 geriye dönük tarandı ve ADVISORY-006'nın bir OLGUSU YANLIŞ çıktı:** kayıt "`pnpm lint` sırasında braces HİÇ yüklenmiyor" diyordu, oysa yükleniyor (`@next/eslint-plugin-next/get-root-dirs` → fast-glob → micromatch → braces; aynı izleyiciyle, kaydın adlandırdığı komutla doğrulandı). Yanlış satır T-042g'de prisma akışlarında yapılan ölçümün lint'e GENELLENMESİNDEN doğmuş — yani maruziyet tablosunun içine saklanmış bir çıkarım. Çıkarım ("maruziyet kabul edilebilir") ise DOĞRU çıktı ve artık dolaylı gerekçe değil DENEY: braces'in girişi throw edecek hâle getirildi, `pnpm lint` EXIT 0 → savunmasız kod yolu HİÇ KOŞMUYOR. Sebebi de ölçüldü: `get-root-dirs` yalnızca `settings.next.rootDir` verilmişse `globSync` çağırıyor, bizde ayarlı değil. Deneyin geçerlilik KOŞULU kayda geçti (rootDir eklenirse ters sonuç verir) ve kaldırma koşulu 3'e bağlandı. braces md5 ile birebir geri geldi. **Oyunkitabının "tam sabit pin" ölçütü çürüdü ve düzeltildi:** pin katman A'yı eler, B'yi ELEMEZ — B'yi bir deneye bağlar. **En önemli bulgu:** karşı kanıt zaten elimizdeydi — `mysql2` override'ı `prisma`nın `"3.15.3"` tam pinini aşıyor ve T-042g'den beri çalışıyor; iki olgu hiç bağlanmadı ve üç aylık beklemeye mal oldu. Yeni kural: bir katmanı elemeden önce o katmanın bu projede çalıştığı bir kayıt var mı diye bakılır. Katman D ölçütüne ADR-037 zorunluluğu (iki başlık) eklendi; BULGU-020'nin "mümkün değil" kaydı zaten uyumlu çıktı. |
 | 2026-10-10 | T-054g | Denetim ekranının yeni yüzeyi (RSC yükü + beyaz liste polaritesi), ADVISORY-002, ADR-036 ikinci beyan denetimi | **ADVISORY-002 KAPANDI — katman B, süresinden 42 gün önce.** Üç kaldırma koşulu yine sağlanmadı (`latest` hâlâ **8.0.0-rc.22**, `@prisma/config@7.10.0` hâlâ `7.1.5` sabitliyor, yamalı aralık `>=8.0.0` → 7.1.6 de yamalı değil), ama istisnanın KENDİ GEREKÇESİ sınandı ve devrildi: "pin varsa override sözleşmeyi çiğner" bir ölçüm değil **çıkarımdı**. Override uygulandı → `@prisma/config` `deepmerge-ts@8.0.2` ile çalışıyor (validate · generate · migrate status · db execute · `pnpm test` hepsi geçti, kilit deltası 11 satır ve yalnızca bu zincir). İşlevsel yeşil YETERLİ SAYILMADI: yamalı kopyanın girişi geçici olarak `throw` edecek hâle getirildi ve CLI o hatayla düştü → yama **o kod yolunda**. CI istisnası silindi (kapının "ölü istisna" dalı zaten kırmızıya çevirecekti), haftalık tazelik nöbeti override'ı kendiliğinden izliyor. **Denetim ekranı iki kapıyla ölçüldü:** (a) `panel-denetim-diff.spec.ts` — ham `diff`in ne ilk gezinme belgesinde ne de saf `?_rsc=` yükünde olmadığı; ekran bir `'use client'` bileşeni ve DTO ona prop olarak geçtiği için yük T-041f'nin yüzeyi. Üç çapa negatiflerden ÖNCE koşuyor, üçüncüsü **izinli bir değerin GÖRÜNMESİNİ** şart koşuyor — yoksa özet DTO'dan tamamen kaldırılsa bile kapı yeşil kalırdı. `toListDto`ya ham `diff` eklenince kapı tam beklenen mesajla kırmızı, geri alma md5 ile doğrulandı. Bir yarış koşulu da burada yakalandı: yumuşak gezinme yanıtının gövdesi sonradan okunamıyor → `page.route` eliyle, sayfa tüketmeden önce. (b) `denetim-beyaz-liste-polarite.test.ts` — ada eklemenin BEDELİ: `buildDiff` çıktısı (`{before,after}`) eklenen adla bile **değer basmıyor** (ikinci, biçime dayalı bariyer), ama **elle yazılmış ilkel değer ÇIKAR** ve ad **her derinlikte** açılır. Kural: ada eklemek, o adın altına asla kayıt içeriği yazılmadığını kanıtlamayı gerektirir. **BULGU-023 açıldı** (düşük, Backend): `socialsChanged` adlarını serbest `Json` sütunundan topluyor → beklenmeyen bir ad ekranda görünebilir; değer görünmüyor, ölçüldü. **ADR-036 denetimi:** iki beyanın yapısal iddiaları doğru, kapı 36/36. **Karar:** ADR-034'ün gerekçesi beyana AİT DEĞİL (tek kaynak servis + ADR; kopya sessizce sapar), beyana ait olan ölçüm durumuydu ve beyan onu dürüstçe kendisi yazmıştı — o boşluk yukarıdaki iki kapıyla kapatıldı. `/panel/ayarlar/sifre` beyanındaki `ADR_035_MESAJ` boşluğu **T-057g'ye önerildi**. **§9/7** T-051/E kararıyla tam kapalı. |
 | 2026-10-09 | T-051 | §8.24 dördüncü tetiklenme (11 danışma), donmuş taban nöbeti, ömür sabiti geçişi, BULGU-021 incelik kararı | **Kapı EXIT 0.** Yedi paket **katman A** ile düzeldi — onarım override tabanı yükseltmek değil **kilidi yeniden çözdürmek**ti (sharp 0.35.5, nanoid 3.3.20, source-map-js 1.2.2, brace-expansion 1.1.21+5.0.12, fast-uri 3.1.8, postcss 8.5.29, mysql2 3.24.5). **İki override ÖLÜ AĞIRLIK çıktı ve silindi** (`sharp`, `nanoid`): üst paket aralıkları yamalı sürümü zaten kapsıyordu, yani tek etkileri paketi kendi tabanında dondurmaktı. Kalan ikisi yük taşıyor (`next` postcss'i, `prisma` mysql2'yi TAM SABİTLİYOR). **YAPISAL ÇÖZÜM kuruldu:** `ci.yml` → "Override tazeliği" adımı, her override için kayıt sunucusuna aralığın en yenisini sordurup kilitle karşılaştırıyor; **yalnızca haftalık koşumda** (her PR'da koşsaydı üst paketin her yama sürümü ilgisiz PR'ı kırmızıya çevirirdi — haksız düşen kapı). Üç hâl ayrı: taze · donmuş · **ölçülemedi** (BULGU-013 dersi). İlk koşumunda `mysql2`yi 3.24.4'te donmuş yakaladı; iki dalı mutasyonla doğrulandı. Adımın kendisi de bir kusur üretti ve gerçek ağaçta koşturulduğu için yakalandı (`@tailwindcss/postcss` satırını "postcss" sanıyordu → ad sınırı eklendi). **ADVISORY-006 açıldı** (`braces`): yamalı sürüm YOK, paket 2024-09-18'den beri bakımsız, üst zincirin yeni sürümleri de micromatch taşıyor → katman D, bitiş 2027-01-09; maruziyet dört ölçümde sıfır, kaldırma koşulu üç yollu yazıldı. **ADVISORY-002 44 gün öncesinden yeniden ölçüldü:** üç koşulun hiçbiri sağlanmadı (kararlı hat 7.10.0, `latest` → 8.0.0-**rc.22**, `@prisma/config@7.10.0` hâlâ 7.1.5 sabitliyor) → 22 Kasım kararı ölçümle hazırlandı, önerilen yeni bitiş 2027-02-22. **Madde A:** `session-omru.test.ts` literal iddiası → "auth.ts kanonik modülden İÇE AKTARIYOR" iddiasına çevrildi, çapraz kontrol silindi, Edge-güvenliği dalı kaldı; iddia İKİ YÖNDE doğrulandı (Backend'in değişikliği geçici uygulandı → 12/12 yeşil, geri alındı → kırmızı, md5 eşleşti). Ağaç Backend'in tarafı gelene kadar **bilerek kırmızı**. **Madde E kararı:** çekmece monte edilmeyecek, `aria-controls` kalacak — `hidden` takası ölçülebilir bir özelliği tanımsız bir iyileştirme için verirdi; iddia ipucunun eyleme dönüşebildiği tek duruma (açık) kapsamlandı. ⚠️ Kapsamım dışında: `next@15.5.25` iki **moderate** danışma taşıyor (yama >=15.5.27) — kapıyı bloke etmiyor, yükseltme Orkestra Şefi'nin. |
 | 2026-10-07 | T-049g | §8.18 deseni daraltıldı, ömür sabiti taşındı, ADR-036'nın ilk beyan denetimi | **§8.18 sahte pozitifi kapandı:** desen küçültülmüş çıktıda iki yer tutucuyu köprülüyordu; `userinfo` sınıflarından `" { } ,` çıkarıldı (RFC 3986 kaybı yok). İKİ YÖNLÜ mutasyon: geniş desen → köprü testleri kırmızı (daraltma gerekli), desen etkisiz → gerçek sızıntı testleri kırmızı (fazla kesmemiş). Yedi gerçek biçim + iki köprü şekli teste bağlandı. **Frontend'in alan sırası kaçınması artık gereksiz — kaldırabilir** (ölçüldü: iki sıra da temiz). **`SESSION_MAX_AGE_SECONDS` `src/lib/security/session`e taşındı ve ihraç edildi** — T-048g'nin semptom çözümü (iki yerde yazılı sayı + kaynak taraması) yerine kök neden kapatıldı: E2E yardımcısı artık içe aktarıyor, kopyalanacak sayı yok. Geçiş YARIM (auth.ts hâlâ kendi kopyasını kullanıyor → **T-050**), bu yüzden geçici çapraz kontrol eklendi; dört yeni dal mutasyonla doğrulandı (Edge-güvenliği dalı dahil). **ADR-036 ilk denetim:** `/panel/icerik/profil` beyanının beş yapısal iddiası kodla karşılaştırıldı, hepsi doğru; beyan dürüst ve fazla iyimser değil. Dördüncü "ölçülmeyen" başlığının bugün ölçülebilir yarısı ölçüldü → **BULGU-022**: geçerli biçimli ama var olmayan eklenti kimliği P2003 üretiyor, `toFailure` onu eşlemediği için kullanıcı tetikli `INTERNAL_ERROR` çıkıyor (sızıntı yok; kodun P2002 gerekçesi birebir geçerli). Düzeltme Backend'in. **BULGU-021 KAPANDI** (Frontend `id="panel-menu"` ekledi) → `panel-mobil.spec.ts` yeşil, **§9/7 kapandı**, sayaç **6 kapalı / 0 kısmi / 1 açık**. Not: `tests/unit/actions/mdx-dogrulama.test.ts` şu an kırmızı — Frontend'in kendi kapısı, kendi devam eden düzeltmesine (`export const MDX_OPTIONS`) tepki veriyor; benim değişikliklerimle ilgisi yok, iddia onların turunda çevrilmeli. |
@@ -1464,7 +1465,7 @@ bir sonraki gerçek açık için de gevşetir.
 | **A · Kilit tazeleme** | Üst paketin ilan ettiği aralık yamalı sürümü **zaten kapsıyor** (ör. `^3.0.1` ⊇ 3.1.6) | `pnpm update <paket> --depth Infinity` — **`--recursive` DEĞİL** (T-042g'de ölçüldü, aşağıya bak). Override'a gerek yok. Tek risk: kilit yeniden sabitlenince geri gelmesi — bu yüzden `pnpm audit` CI'da koşmalı (koşuyor). |
 | **B · Override** | Üst paket **yamasız bir aralık** ilan ediyor ve yamalı sürüm **aynı majör** içinde | `pnpm.overrides` → `">=<yamalı> <sonrakiMajör>"`. **ÜST SINIR ZORUNLU** (ADVISORY-001'in tuzağı). |
 | **C · Üst paketi yükselt** | Yamalı sürüm **majör sınırının ötesinde** — override ara paketin sözleşmesini bozar | Üst paketi yükselt (ör. `postcss` yeni majör). ADR gerekir: majör yükseltme davranış değiştirir. |
-| **D · Bekle + kaydet** | C mümkün değil (üst paket henüz yayınlamadı) **ve** maruziyet ölçülmüş biçimde yok | Bulgu kaydı aç, üst paketin issue'suna bağlan, `bagimlilik-denetimi` işine **süreli** istisna. Süresiz istisna yazılmaz. **Mekanizma ADVISORY-002'de kuruldu**: `ci.yml` → "pnpm audit … süreli istisnalarla". `pnpm.auditConfig` KULLANILMAZ — süresizdir. |
+| **D · Bekle + kaydet** | C mümkün değil (üst paket henüz yayınlamadı) **ve** maruziyet ölçülmüş biçimde yok | Bulgu kaydı aç, üst paketin issue'suna bağlan, `bagimlilik-denetimi` işine **süreli** istisna. Süresiz istisna yazılmaz. **Mekanizma ADVISORY-002'de kuruldu**: `ci.yml` → "pnpm audit … süreli istisnalarla". `pnpm.auditConfig` KULLANILMAZ — süresizdir. **ADR-037 ZORUNLULUĞU:** kayıt iki başlık taşır — *"ne ölçtük"* (olgu) ve *"ne çıkardık + o çıkarımı nasıl sınarız"* (yeniden koşturulabilir deney). Deney yazılmamış bir D kaydı eksiktir. |
 
 **ADVISORY-002'nin eklediği ölçüt — ÜST PAKETİN İLANINA BAK.** Katman seçerken
 majör sınırından önce üst paketin `package.json`ı okunur:
@@ -1474,6 +1475,27 @@ majör sınırından önce üst paketin `package.json`ı okunur:
 - **Tam sabit sürüm** (`"deepmerge-ts": "7.1.5"`) → override, açık bir
   sözleşmenin üstünden geçmektir. Majör atlamıyor olsa bile burada durulur ve
   gerekçe yazılır.
+
+> ### ⚠️ BU ÖLÇÜT T-054g'DE DÜZELTİLDİ — PİN BİR DUR İŞARETİ DEĞİL, BİR DENEY EMRİDİR
+>
+> Yukarıdaki satır üç ay boyunca ADVISORY-002'yi açık tuttu, çünkü "burada
+> durulur" fiiliyat olarak "override denenmez" diye okundu. T-054g ölçtü:
+> override `@prisma/config`in `7.1.5` pinini aşıyor ve **çalışıyor** (CLI'nin
+> tamamı geçti, yamanın o kod yolunda olduğu girişi bozup kanıtlandı).
+>
+> **Daha da önemlisi: projenin elinde ZATEN karşı kanıt vardı.** `mysql2`
+> override'ı `prisma`nın `"3.15.3"` TAM PİNİNİ aşıyor ve T-042g'den beri
+> sorunsuz koşuyor. Yani aynı belgenin iki yerinde, biri "pin aşılırsa
+> sözleşme çiğnenir" diyor, öteki pin'i aşan çalışan bir override'ı kaydediyor.
+> Bağlanmamış iki olgu, üç aylık bir beklemeye mal oldu.
+>
+> **Yürürlükteki kural (ADR-037):** tam sabit pin, katman A'yı **eler** (T-042g,
+> ölçülmüş) ama katman B'yi **elemez** — yalnızca B'yi bir **deneye** bağlar:
+> override uygulanır, üst paketin tüm giriş noktaları koşturulur ve yamanın
+> gerçekten o kod yolunda olduğu (girişi bozup hatanın geldiğini görerek)
+> sınanır. Deney geçerse B meşrudur ve "üst paket bu bileşimi desteklemiyor"
+> sınırı dürüstçe yazılır. Deney başarısızsa D'ye geçilir — **ve o zaman
+> gerekçe bir ölçümdür.**
 
 **T-042g'nin eklediği ölçüt — TAM SABİT SÜRÜM KATMAN A'YI İMKÂNSIZ KILAR.**
 ADVISORY-002 tam sabit pini "dur ve gerekçe yaz" işareti saymıştı; T-042g bunun
@@ -3423,17 +3445,67 @@ zincir (2 yol, ikisi de aynı):
 bakımsız. "Yamayı bekle" gerçekçi bir kaldırma koşulu değil, bu yüzden koşullar
 aşağıda üç yollu yazıldı.
 
-### Maruziyet — dört ölçüm, hepsi sıfır
+### ⚠️ T-055g — ADR-037 AYRIŞTIRMASI VE BİR ÖLÇÜMÜN DÜZELTİLMESİ
 
-| Ölçüm | Sonuç |
-| ----- | ----- |
-| Bağımlılık türü | Yalnızca `devDependencies` (eslint zinciri) — üretim ağacında yok |
-| Üretim paketi | `.next/server` + `.next/static` taramasında **0 dosya** |
-| Çalışma zamanı | `Module._load` izleyicisi: `pnpm lint` ve `prisma generate` sırasında `braces`/`micromatch`/`fast-glob` **HİÇ yüklenmedi** |
-| Tetikleyici girdi | Derin yuvalı glob deseni gerekiyor; bizim desenlerimiz `eslint.config.mjs` içinde — kendi yazdığımız sabitler, dış girdi yok |
+ADR-037 geriye dönük uygulandı ve ilk bulgusu bu kaydın **kendi içinden**
+çıktı: aşağıdaki dört satırdan biri **yanlıştı**.
 
-**Pratik maruziyet: yok.** DoS sınıfı bir açık ve tetikleyicisi saldırganın
-kontrol ettiği bir desen; bizde desenleri biz yazıyoruz.
+#### 1. Ne ölçtük? (olgu)
+
+| Ölçüm | Sonuç (2026-10-10 ile yeniden) |
+| ----- | ------------------------------ |
+| Bağımlılık türü | Yalnızca `devDependencies` (eslint zinciri) — üretim ağacında yok ✅ |
+| Üretim paketi | `.next/server` + `.next/static` taramasında **0 dosya** ✅ |
+| `prisma generate` | `Module._load` izleyicisi: `braces`/`micromatch`/`fast-glob` yüklenmiyor ✅ |
+| `pnpm lint` | ❌ **ESKİ KAYIT YANLIŞTI.** "HİÇ yüklenmedi" yazıyordu; bugün aynı izleyiciyle **üçü de yükleniyor**: `@next/eslint-plugin-next/dist/utils/get-root-dirs.js` → `fast-glob` → `micromatch/index.js` → `braces` |
+| Yama durumu | `braces` en son yayını hâlâ **3.0.3 / 2024-09-18**; `micromatch`in v5'i YOK (4.0.8 son), `fast-glob@3.3.3` hâlâ `micromatch ^4.0.8`, `@next/eslint-plugin-next@16.4.0` hâlâ `fast-glob` **3.3.1**'i TAM SABİTLİYOR ✅ |
+
+Yanlış satırın nasıl oluştuğu öğretici: T-042g'de izleyici
+`generate`/`migrate`/`seed` akışlarında koşturulmuştu ve sonuç **lint'e
+genellenmişti**. Yani "ölçüm" diye yazılan şeyin bir parçası aslında
+**çıkarımdı** — ADR-037'nin tanımladığı hatanın tam kendisi, ve bu kez
+maruziyet tablosunun içinde saklanmıştı.
+
+#### 2. Ondan ne çıkardık, ve o çıkarımı NASIL SINARIZ? (deney)
+
+**Çıkarım:** *"O hâlde maruziyetimiz kabul edilebilir."*
+
+Eski kayıt bu çıkarımı "tetikleyiciyi biz yazıyoruz" gerekçesine dayandırıyordu
+— doğru ama **dolaylı**: desenin bizden geldiğini bilmek, savunmasız kodun
+koşup koşmadığını söylemez. ADVISORY-002'de öğrenilen ayrım aynen geçerli:
+**modülün YÜKLENMESİ, kod yolunun KOŞMASI değildir.**
+
+**Deney (yeniden koşturulabilir, ~1 dakika):** `braces`in giriş dosyası
+her ihracı `throw` edecek hâle getirilir ve `pnpm lint` koşturulur.
+
+```
+braces/index.js → module.exports = () => { throw new Error('…KOD YOLU KOŞTU') }
+pnpm lint  →  EXIT 0
+```
+
+**Sonuç: savunmasız kod yolu HİÇ KOŞMUYOR.** Lint, `braces` tamamen bozukken
+bile geçiyor. Sebebi de ölçüldü: `get-root-dirs.js` yalnızca
+`settings.next.rootDir` verilmişse `globSync` çağırıyor; bizim
+`eslint.config.mjs`imiz `rootDir` **ayarlamıyor**, yani `rootDirs =
+[context.cwd]` yolundan dönüyor ve glob hiç çalışmıyor. Modül yüklenir, işlev
+çağrılmaz.
+
+Dosya `md5` ile birebir geri alındı (`c930a02f71a7a9e836b9f5dd5ae5ee28`).
+
+**Net sonuç:** olgulardan biri yanlıştı, çıkarım doğruydu — ve çıkarım artık
+dolaylı bir gerekçeye değil **doğrudan bir deneye** dayanıyor. Maruziyet eskiden
+"yok" diye *iddia ediliyordu*; şimdi "yok" diye *ölçülüyor*.
+
+**Deneyin geçerliliğinin KOŞULU, ve bu yüzden izlenmesi gereken şey:**
+`eslint.config.mjs`e bir `settings.next.rootDir` eklenirse `globSync` koşmaya
+başlar ve bu deney **ters sonuç verir**. O gün maruziyet gerçek olur (hâlâ
+dev-time ve hâlâ kendi desenimiz, ama kod yolu canlı). Kaldırma koşulu 3
+aşağıda bunu kapsıyor.
+
+### Maruziyet — özet
+
+**Pratik maruziyet: ölçülmüş biçimde yok.** DoS sınıfı bir açık; tetikleyicisi
+derin yuvalı bir glob deseni, bizde glob **hiç çağrılmıyor**.
 
 ### Kaldırma koşulu — üç yoldan biri
 
@@ -3442,9 +3514,11 @@ kontrol ettiği bir desen; bizde desenleri biz yazıyoruz.
    `@next/eslint-plugin-next` glob kütüphanesini değiştirir) → istisna
    kendiliğinden ölü satıra döner ve kapı bunu söyler.
 3. **Maruziyet ölçümü değişir** — paket `dependencies` altına girer, üretim
-   paketinde görünür ya da bir koşum yolunda yüklenmeye başlarsa istisna
-   DERHAL geçersizdir. Kapının yol kontrolü (`yolIcermeli: 'micromatch@'`) bu
-   üçüncü hâli yakalar.
+   paketinde görünür ya da **savunmasız kod yolu koşmaya başlarsa** istisna
+   DERHAL geçersizdir. Kapının yol kontrolü (`yolIcermeli: 'micromatch@'`) ilk
+   iki hâli yakalar; üçüncüsü için **yukarıdaki deney** her gözden geçirmede
+   yeniden koşturulur (T-055g / ADR-037). Somut tetikleyici:
+   `eslint.config.mjs`e `settings.next.rootDir` eklenmesi.
 
 **2027-01-09'da hiçbiri olmazsa** kapı durur ve süre yalnızca **yeniden
 ölçülmüş** bir gerekçeyle uzatılır.
@@ -3782,9 +3856,124 @@ açmıyorum); **T-057g için önerilmiştir** ve tek satırlık bir kaynak taram
 
 ---
 
+## ADR-035'in bağlayıcı cümlesi kapıya bağlandı (T-055g)
+
+Boşluk T-054g'de ölçülmüştü: metin `ADR_035_MESAJ` sabitinde duruyordu ve
+**hiçbir kapı onu dizeyle karşılaştırmıyordu.** Frontend ve Güvenlik aynı
+boşluğu bağımsızca gördü; kalem T-055g'de verildi.
+
+**Neden kozmetik değil:** ADR-035/C — okumaların kapatılması — F6'ya bırakıldı.
+Şifre değiştirmek bugün çalınmış bir oturumun panel **içeriğini görmesini**
+engellemiyor, yalnızca yazma yetkisini kaldırıyor. "Tüm cihazlardan çıkış
+yapıldı" demek bu yüzden **tutulmayan bir söz** olur ve bedeli somut: o söze
+dayanan biri çalınmış bir cihazı önemsemeyebilir.
+
+### Kapı cümleyi ADR'DEN TÜRETİYOR — üçüncü kopya yazılmadı
+
+`tests/unit/adr-035-metni.test.ts` beklenen metni **elle yazmıyor**;
+`docs/DECISIONS.md` içindeki ADR-035 bloğundan ("Kullanıcıya söylenebilecek
+cümle — BAĞLAYICI" başlığı altındaki alıntı) ayıklıyor ve bileşendeki sabitle
+**birebir** karşılaştırıyor. Elle yazmak aynı cümlenin üçüncü kopyasını
+doğurur (ADR · bileşen · test) ve ADR düzeltildiğinde test **eski** cümleyi
+savunmaya devam ederdi — kapı, koruduğu kararın gerisinde kalırdı.
+`SESSION_MAX_AGE_SECONDS` taşımasının dersi birebir burada.
+
+Sapma **iki yönde** kırmızı: bileşen değişirse de, ADR değişip bileşen
+güncellenmezse de.
+
+### İddialar — pozitif ve negatif birlikte
+
+| Tür | İddia |
+| --- | ----- |
+| Pozitif | Sabit, ADR bloğundaki cümleyle **aynı** |
+| Pozitif | Üç atlanamaz öğe ayrı ayrı: `bu cihaz dahil` · `oturumlar kapatılmadı` · `yeniden giriş` |
+| Negatif (kademe 1) | 10 yasak ifade **hiçbir panel dosyasında** yok (53 dosya tarandı) |
+| Negatif (kademe 2) | 3 ifade **şifre formunda** yok |
+| Önkoşul | ADR'den ayıklama tuttu · sabit bulundu · tarama dosya okudu |
+| Önerme | ADR **hâlâ** bu ifadeleri yasaklıyor |
+
+**Pozitif iddia olmadan negatifler hiçbir şey ölçmezdi** — §8.18
+daraltmasında (T-049g) yazdığım kuralın aynısı: yalnızca "yasak ifade yok"
+denseydi, **sabiti tamamen silen** bir değişiklik de yeşil kalırdı. Mutasyon M2
+bunu doğruladı.
+
+**İki kademe, çünkü ölçtüm.** "Çıkış yapıldı" tek başına yanlış DEĞİL — gerçek
+bir çıkış işleminden sonra doğrudur. Yanlış olan, onu şifre değiştirmenin
+sonucu olarak söylemek. Tek kademeli bir liste ileride meşru bir çıkış metnini
+haksız yere kırmızıya çevirirdi. Bugün böyle bir metin YOK (ölçüldü: çıkış
+düğmesi `src/components/auth/sign-out-button.tsx`te ve mesaj basmadan
+`/giris`e yönlendiriyor), yani kademe 2 fazladan kısıt getirmiyor; ayrımın
+sebebi geleceği haksız düşürmemek.
+
+**"Önerme tazeliği" iddiası** kapının kendi gerekçesini izliyor: ADR bir gün
+C katmanını getirip "çıkış yapıldı"yı DOĞRU hâle getirirse bu kapı
+gereksizleşir ve o anda kırmızıya dönmesi **doğru** davranıştır — kaldırma
+kararı ölçümle verilsin, kapı sessizce yanlış bir şeyi savunmasın. T-054g'nin
+"kapı çalışıyor ama önermesi bayat" sınıfı.
+
+### Yorum sıyırma teorik değil, ölçülmüş bir ihtiyaç
+
+`sifre-formu.tsx`in blok yorumu yasağı **açıkça alıntılıyor** (`"Tüm
+cihazlardan çıkış yapıldı" YASAK`). Ham dosyada tarama yapan bir kapı bu
+yüzden her zaman kırmızı olurdu ve "kapıyı sustur" baskısı doğardı. Ayrı bir
+iddia hem sıyırmanın çalıştığını hem de gerekli olduğunu kilitliyor.
+
+### Mutasyonla dört yönde doğrulandı
+
+| Mutasyon | Sonuç |
+| -------- | ----- |
+| M1 · metin "Tüm cihazlardan çıkış yapıldı"ya çevrildi | **9 iddia kırmızı** |
+| M2 · sabit tamamen silindi (işlev çağrısıyla değiştirildi) | **5 iddia kırmızı** |
+| M3 · yalnızca "bu cihaz dahil" atlandı | **2 iddia kırmızı** |
+| M4 · ADR değişti, bileşen güncellenmedi | **2 iddia kırmızı** |
+
+Dört dosya da `git checkout` ile geri alındı ve **md5 ile birebir** doğrulandı
+(`sifre-formu.tsx` ve `docs/DECISIONS.md`).
+
+**Ayıklayıcının kendisi de bir ders verdi:** ilk kurulum sabiti `=` ile `;`
+arasını okuyarak buluyordu ve **boş dize** döndürdü — çünkü ADR'nin cümlesinin
+İÇİNDE noktalı virgül var ("…artık değişiklik yapamaz; değişiklik yapmak
+için…"). Boş dizede her negatif iddia doğru çıkar; önkoşul bloğu tam bu hâli
+yakaladı ve ayıklayıcı dize değişmezlerini sırayla tüketen bir okuyucuya
+çevrildi. Kapıyı yazarken önkoşul yazmasaydım, bu kapı **sessizce hiçbir şey
+ölçmeyen** bir kapı olarak CI'ya girecekti.
+
+---
+
+## ADR-037'nin geriye dönük taraması — bulgular (T-055g)
+
+Açık istisnalar ve oyunkitabının "yapılamaz" kayıtları ADR-037'nin iki
+başlığına göre tarandı.
+
+| Kayıt | Durum |
+| ----- | ----- |
+| **ADVISORY-006** (`braces`) | ⚠️ **Bir olgusu YANLIŞ çıktı, düzeltildi; çıkarımı deneye bağlandı.** Ayrıntı: ADVISORY-006 kaydı |
+| **Oyunkitabı — "tam sabit pin"** ölçütü | ⚠️ **Çürüdü, düzeltildi.** Pin katman A'yı eler ama B'yi **elemez**; B'yi bir deneye bağlar |
+| **Oyunkitabı — katman D** ölçütü | ✅ ADR-037 zorunluluğu eklendi (iki başlık olmadan D kaydı eksik) |
+| **BULGU-020 / ara katmanda `sessionsValidFrom`** ("mümkün değil") | ✅ **Zaten ADR-037 uyumlu.** İddia bir deneye dayanıyor: ara katmana Prisma eklenince derleme `UnhandledSchemeError` ile düşüyor, mutasyon geri alındı, md5 eşleşti |
+| `postcss` · `mysql2` override gerekçeleri | ✅ Gereklilik T-051'de ölçülmüştü (§3b taraması; iki override ölü ağırlık çıkıp silinmişti) |
+| ADVISORY-001 · 003 · 004 · 005 | ✅ Kapalı — tarama kapsamı açık kayıtlar |
+
+### En önemli bulgu: karşı kanıt ZATEN elimizdeydi
+
+ADVISORY-002'nin gerekçesi *"pin aşılırsa üst paketin açık sözleşmesi
+çiğnenir"* diyordu. Aynı belgenin başka bir yerinde ise `mysql2` override'ı
+kayıtlı — ve o override `prisma`nın `"3.15.3"` **tam pinini aşıyor**, T-042g'den
+beri sorunsuz koşuyor.
+
+Yani proje, pin aşan bir override'ın çalıştığını **zaten ölçmüştü**; iki olgu
+hiç bağlanmadı ve bu bağlanmamışlık üç aylık bir beklemeye mal oldu. ADR-037'nin
+mekanik faydası tam burada: "çıkarımı nasıl sınarız" sorusu sorulduğu an,
+cevabın **aynı dosyada yazılı olduğu** görülürdü.
+
+Bundan çıkan ek kural (oyunkitabına işlendi): bir katmanı elemeden önce
+**aynı katmanın bu projede daha önce çalıştığı bir kayıt var mı** diye bakılır.
+
+---
+
 ## §8 Güvenlik Gereksinimleri — Durum Tablosu
 
-**Ölçüm tarihi:** 2026-10-10 · **Faz:** F3 (sürüyor) · **Son görev:** T-054g
+**Ölçüm tarihi:** 2026-10-10 · **Faz:** F3 (sürüyor) · **Son görev:** T-055g
 · **Dağılım:** ✅ 10 · ⚠️ 6 · ❌ 0 · ⏳ 9
 
 > T-054g'de dağılım DEĞİŞMEDİ ve bu bilinçli: denetim ekranı yeni bir yüzey

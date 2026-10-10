@@ -1907,6 +1907,45 @@ olduğu şeyin ta kendisi, bir kademe yukarıda.
 **Bu ADR geriye dönük uygulanır:** açık her istisna ve "yapılamaz" kaydı, sonraki
 gözden geçirmesinde bu ayrıştırmadan geçer.
 
+### Güçlendirme — karşı kanıt maddesi (T-055g, 2026-10-11)
+
+ADR-037 geriye dönük ilk uygulandığında kendi gerekçesinden daha güçlü bir şey
+buldu: **ADVISORY-002'nin dayanağının çalışan karşı örneği kendi `package.json`'ımızda
+aylardır duruyordu.**
+
+Gerekçe şuydu: *"pin TAM SABİTLİYOR, yani override açık sözleşmeyi çiğnerdi."*
+Ama aynı dosyada `mysql2` override'ı kayıtlı ve **`prisma`'nın tam pinini aşıyor**
+— Orkestra Şefi doğruladı:
+
+```
+prisma 7.9.1 → mysql2 pin: 3.15.3   (TAM SABİT)
+bizdeki override: >=3.23.1 <4.0.0   →  çözülen: 3.24.5
+```
+
+Dokuz minör ötesi, ve T-042g'den beri çalışıyor. **İki olgu hiç bağlanmadı ve bu
+bağlanmamışlık üç aylık beklemeye mal oldu.**
+
+**Eklenen madde:** bir katmanı, yolu ya da yaklaşımı *"yapılamaz"* diye elemeden
+önce, **o yaklaşımın bu projede daha önce çalıştığı bir kayıt var mı** diye bakılır.
+Karşı kanıt genellikle dışarıda değil, kendi belgelerimizdedir.
+
+**Aynı turda ikinci bir olgu da yanlış çıktı:** ADVISORY-006 (`braces`) kaydı
+*"`pnpm lint` sırasında `braces` hiç yüklenmiyor"* diyordu. Yükleniyor —
+`@next/eslint-plugin-next → fast-glob → micromatch → braces`, iki bağımsız
+izleyiciyle doğrulandı. Yanlış satırın kaynağı öğretici: T-042g'de **prisma
+akışlarında** yapılan bir ölçüm `lint`'e **genellenmişti** — yani maruziyet
+tablosunun içine saklanmış bir çıkarım.
+
+Çıkarımın kendisi (*"maruziyet kabul edilebilir"*) doğru çıktı ama artık dolaylı
+gerekçe değil **deney**: `braces`'in girişi `throw` edilince `pnpm lint` **EXIT 0**
+— savunmasız kod yolu hiç koşmuyor, çünkü `get-root-dirs` yalnızca
+`settings.next.rootDir` verilmişse `globSync` çağırıyor. **Deneyin geçerlilik
+koşulu kayda geçti:** `rootDir` eklenirse sonuç tersine döner.
+
+**Ders:** bir maruziyet tablosunun satırları da ölçüm ile çıkarım olarak
+ayrışır. "Yüklenmiyor" bir ölçümdür ve hangi komutla ölçüldüğü yazılmalıdır;
+başka bir komuttan genellenmişse o bir çıkarımdır.
+
 ### Sonuçlar
 - **Olumlu:** Üç aylık bir istisna kapandı ve `deepmerge-ts` artık yamalı.
 - **Olumlu:** Kural mekanik — istisna metninde iki başlık aranır, "dikkatli ol" değil.
