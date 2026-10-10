@@ -245,16 +245,16 @@ ve bu turda Frontend'in ölçüm görevi var (ADR-023: iki ölçüm görevi para
 
 | #     | Görev                                                                                        | Ajan     | Bağımlılık   |
 | ----- | -------------------------------------------------------------------------------------------- | -------- | ------------ |
-| T-040 | `Client`, `Job` servisleri + Zod şemaları                                                    | Backend  | T-015        |
-| T-041 | `TransactionCategory`, `Transaction` servisleri; **Job→Transaction bağı** (§6 kritik ilişki) | Backend  | T-040        |
-| T-042 | Rapor hesaplayıcıları: aylık/yıllık toplam, kategori dağılımı, bakiye                        | Backend  | T-041        |
-| T-043 | `/panel/musteriler` + `/panel/isler` kanban + `/panel/isler/[id]`                            | Frontend | T-040, T-032 |
-| T-044 | `/panel/muhasebe` liste + filtre + hızlı ekleme                                              | Frontend | T-041, T-032 |
-| T-045 | `/panel/muhasebe/raporlar` — Recharts grafikleri                                             | Frontend | T-042        |
-| T-046 | CSV/PDF dışa aktarım                                                                         | Backend  | T-042        |
-| T-047 | E2E senaryo 5 + muhasebe verisi erişim denetimi                                              | Güvenlik | T-044        |
+| T-100 | `Client`, `Job` servisleri + Zod şemaları                                                    | Backend  | T-015        |
+| T-101 | `TransactionCategory`, `Transaction` servisleri; **Job→Transaction bağı** (§6 kritik ilişki) | Backend  | T-100        |
+| T-102 | Rapor hesaplayıcıları: aylık/yıllık toplam, kategori dağılımı, bakiye                        | Backend  | T-101        |
+| T-103 | `/panel/musteriler` + `/panel/isler` kanban + `/panel/isler/[id]`                            | Frontend | T-100, T-032 |
+| T-104 | `/panel/muhasebe` liste + filtre + hızlı ekleme                                              | Frontend | T-101, T-032 |
+| T-105 | `/panel/muhasebe/raporlar` — Recharts grafikleri                                             | Frontend | T-102        |
+| T-106 | CSV/PDF dışa aktarım                                                                         | Backend  | T-102        |
+| T-107 | E2E senaryo 5 + muhasebe verisi erişim denetimi                                              | Güvenlik | T-104        |
 
-**Sıra:** T-040 → T-041 → T-042 → (T-043 ∥ T-044) → T-045 → T-046 → T-047
+**Sıra:** T-100 → T-101 → T-102 → (T-103 ∥ T-104) → T-105 → T-106 → T-107
 
 ---
 
@@ -262,15 +262,15 @@ ve bu turda Frontend'in ölçüm görevi var (ADR-023: iki ölçüm görevi para
 
 | #     | Görev                                                                        | Ajan     | Bağımlılık  |
 | ----- | ---------------------------------------------------------------------------- | -------- | ----------- |
-| T-050 | `HealthLog` servis + şema                                                    | Backend  | T-015       |
-| T-051 | `Exercise`, `Workout`, `WorkoutSet`, `PersonalRecord` servisleri + PR hesabı | Backend  | T-015       |
-| T-052 | `Habit`, `HabitLog`, `Goal`, `JournalEntry` servisleri                       | Backend  | T-015       |
-| T-053 | `/panel/saglik` — giriş formu + trend grafikleri                             | Frontend | T-050       |
-| T-054 | `/panel/spor` — antrenman kaydı, egzersiz kütüphanesi, PR takibi             | Frontend | T-051       |
-| T-055 | `/panel/hayat` — alışkanlık, hedef, günlük                                   | Frontend | T-052       |
-| T-056 | Hassas veri erişim denetimi (sağlık tabloları)                               | Güvenlik | T-053…T-055 |
+| T-110 | `HealthLog` servis + şema                                                    | Backend  | T-015       |
+| T-111 | `Exercise`, `Workout`, `WorkoutSet`, `PersonalRecord` servisleri + PR hesabı | Backend  | T-015       |
+| T-112 | `Habit`, `HabitLog`, `Goal`, `JournalEntry` servisleri                       | Backend  | T-015       |
+| T-113 | `/panel/saglik` — giriş formu + trend grafikleri                             | Frontend | T-110       |
+| T-114 | `/panel/spor` — antrenman kaydı, egzersiz kütüphanesi, PR takibi             | Frontend | T-111       |
+| T-115 | `/panel/hayat` — alışkanlık, hedef, günlük                                   | Frontend | T-112       |
+| T-116 | Hassas veri erişim denetimi (sağlık tabloları)                               | Güvenlik | T-113…T-115 |
 
-**Sıra:** (T-050 ∥ T-051 ∥ T-052) → (T-053 ∥ T-054 ∥ T-055) → T-056
+**Sıra:** (T-110 ∥ T-111 ∥ T-112) → (T-113 ∥ T-114 ∥ T-115) → T-116
 
 ---
 
@@ -1197,3 +1197,93 @@ derleseydi `build → test:e2e` sıralaması anlamını yitirirdi), `.gitignore`
 | Q7-eski | ~~T-036 F1'e mi alınsın?~~ Kurtarma kodları kullanıcıya hiç gösterilmediği sürece ADR-013'ün kurtarma yolu pratikte kullanılamaz | T-013c sonrası |
 | ~~Q3~~ | ~~Repo GitHub'da mı?~~ → **GitHub + Actions** (ADR-009)                    | ✅ Kapandı 2026-08-05                  |
 | ~~Q4~~ | ~~Node sürümü?~~ → **Node 22 LTS** (ADR-008)                               | ✅ Kapandı 2026-08-05                  |
+
+---
+
+## Görev numaralandırma — çakışma düzeltmesi (Orkestra Şefi, 2026-10-07)
+
+**Hata benim muhasebemdeydi.** F3 planlanandan fazla göreve taştı ve sırayla numara
+verdim: `T-040`…`T-050`. Ama F4'ün planlanan tablosu `T-040`…`T-047`, F5'in tablosu
+`T-050`…`T-056` kullanıyordu. **Sekiz + bir numara çakıştı**, ve çakışanlardan biri
+(`T-050`) dağıtılmış bir karttı.
+
+**Düzeltme:** dağıtılmış hiçbir kart yeniden adlandırılmadı — gelecek fazlar kaydırıldı.
+
+| Faz | Eski | Yeni |
+|-----|------|------|
+| F4 — İş & Muhasebe | `T-040`…`T-047` | **`T-100`…`T-107`** |
+| F5 — Sağlık/Spor/Hayat | `T-050`…`T-056` | **`T-110`…`T-116`** |
+| F6 — Sertleştirme | `T-060`…`T-066` | değişmedi (çakışma yok) |
+| F7 — Yayın | `T-070`…`T-075` | değişmedi (çakışma yok) |
+
+**Bundan sonraki kural:** F3'ün taşan görevleri `T-0xx` aralığında devam eder; faz
+tabloları kendi yüzlük bloğunda yaşar. Bir faz planlanandan taşarsa, o fazın bloğu
+içinde devam eder — komşu bloğa girmez.
+
+*Neden kayda geçti: çakışma sessizdi. `T-050` iki farklı işi adlandırıyordu ve hangi
+görevin kastedildiği yalnızca bağlamdan anlaşılıyordu — tam olarak bu projenin
+"bazen çalışan, teşhisi zor" dediği sınıf.*
+
+---
+
+## F3 faz kabul kontrolü (Orkestra Şefi, 2026-10-09)
+
+§4.2'nin istediğini depodaki hâlle karşılaştırdım. **İki izlenmeyen boşluk buldum ve
+ikisi de benim takip hatamdı.**
+
+### §4.2'nin F3 kapsamındaki rotaları
+
+| Rota | Durum |
+|------|-------|
+| `/panel` dashboard | ⚠️ kabuk var, özet kartlar ve bugünün planı yok → **T-033** |
+| `/panel/icerik/projeler` | ✅ liste + `/yeni` + `/[id]`, tüm durumlar, MDX |
+| `/panel/icerik/blog` | ✅ liste + `/yeni` + `/[id]`, MDX editör + önizleme |
+| `/panel/icerik/deneyim` | ✅ liste + `/yeni` + `/[id]` |
+| `/panel/icerik/profil` | ✅ tekil varlık; CV alanı T-037 bekliyor |
+| `/panel/mesajlar` | ✅ liste + `/[id]` + §6 dönüşümü |
+| `/panel/ayarlar` | ⚠️ beş bölümün **üçü işlevsiz** → aşağıda |
+| `/panel/desenler` | ✅ T-032, §4.2'ye **sonradan yazıldı** (aşağıda) |
+
+### `/panel/ayarlar` — beş bölüm, üçü işlevsiz
+
+| Bölüm | Durum | Kart |
+|-------|-------|------|
+| Şifre | ⚠️ yalnızca metin; sunucu yarısı hazır (T-042s) | **T-042f** |
+| İki adımlı doğrulama | ✅ `href` ile çalışıyor | — |
+| Tema | ✅ `ThemeToggle` bağlı | — |
+| **Yedek durumu** | ❌ metin var, **kartı yoktu** | F6/**T-066** bağımlılığı, kayda geçti |
+| **Denetim kaydı** | ❌ metin var, **kartı yoktu** | **T-052 açıldı** |
+
+**Ek ölçüm:** `AuditLog` **okuma servisi hiç yok** — `src/server/` altında
+`auditLog.findMany`/`fetchAuditLog` geçen tek dosya üretilmiş Prisma istemcisi.
+Yazma yolu F1'den beri çalışıyor ama **yazdığımız hiçbir şeyi okuyamıyoruz.**
+
+**İkinci, daha ince sorun:** bölüm açıklamaları var olan bir özelliği **şimdiki
+zamanda** anlatıyor — *"Panelde yapılan her değişikliğin kaydı: ne, ne zaman, hangi
+IP'den."* Ölü düğme yok (T-018'e uyuluyor) ama bu **tutulamayacak söz** sınıfına
+yakın. T-034'te "410 dönüyor" metnini ölçüp geri almak ve T-036b'de CV için "yakında"
+demekten kaçınmak aynı sınıftı; aynı ölçüt buraya da uygulanmalı → T-052'ye yazıldı.
+
+### `/panel/desenler` — §4.2'ye sonradan eklendi, ve bu bir kural doğurdu
+
+Rota T-032'de kuruldu, ben kabul ettim, ama **§4.2'ye yazmadım.** Sonraki okuyucuya
+sapma gibi görünürdü. PROGRAM.md §4.2'ye `/panel/ayarlar/guvenlik` ve
+`/panel/ayarlar/denetim` ile birlikte eklendi.
+
+**Doğan kural (§4.2'ye yazıldı):** §4.1'in *"bir rota, yayına girdiği turda sitemap'e
+eklenir"* kuralının panel karşılığı — **bir panel rotası, kabul edildiği turda
+§4.2'ye eklenir.** Üç tur boyunca panel rotası ekledim ve §4.2'yi hiç güncellemedim;
+kural olmadığı için kimse de hatırlatmadı.
+
+### F3'ün kalan işi
+
+| Görev | Ajan | Not |
+|-------|------|-----|
+| **T-051** A–F | üçü birden | **dağıtıldı**, F maddesi PR #14'ü blokluyor |
+| **T-033** | Frontend | dashboard — özet kartlar, bugünün planı |
+| **T-042f** | Frontend | şifre ekranı (sunucu yarısı T-042s'te hazır) |
+| **T-052** | Backend + Frontend | **yeni** — denetim kaydı okuma + ekran |
+| **T-037** | Backend + Güvenlik | 🔴 **R2 hesabı bekliyor** |
+
+**F3 kapanış şartı:** yukarıdaki beşi + §4.2'nin F3 satırlarının tamamının işlevsel
+olması. *Yedek durumu* bilerek F6'ya bırakıldı ve bağımlılığı yazılı.

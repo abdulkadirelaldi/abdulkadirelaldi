@@ -10,6 +10,7 @@ import { encode } from 'next-auth/jwt';
 import {
   SESSION_COOKIE_NAME_DEV,
   SESSION_COOKIE_NAME_PROD,
+  SESSION_MAX_AGE_SECONDS,
 } from '../../../src/lib/security/session';
 import { TWO_FACTOR_CLAIM } from '../../../src/lib/security/two-factor';
 
@@ -44,7 +45,10 @@ export interface IssueSessionInput {
   userId: string;
   email: string;
   name?: string;
-  /** Saniye cinsinden ömür. Varsayılan §8.3 ile aynı: 7 gün. */
+  /**
+   * Saniye cinsinden ömür. Varsayılan **§8.3'ün kendisi** —
+   * `SESSION_MAX_AGE_SECONDS` içe aktarılıyor, sayı burada YAZILMIYOR.
+   */
   maxAgeSeconds?: number;
   /**
    * §8.1 — jetondaki `tfa` alanı (T-019).
@@ -77,7 +81,21 @@ export async function issueSessionToken(input: IssueSessionInput): Promise<strin
   return encode({
     salt: name,
     secret,
-    maxAge: input.maxAgeSeconds ?? 7 * 24 * 60 * 60,
+    /*
+     * ÖMÜR İÇE AKTARILIYOR, TEKRAR YAZILMIYOR (T-049g).
+     *
+     * T-048g'de bu satır `7 * 24 * 60 * 60` idi: ADR-035/A ömrü 24 saate
+     * indirdikten sonra da eski değeri üretiyordu ve hiçbir test kırılmadı.
+     * O turda sayı 24 saate çekilip sapma bir kaynak taramasıyla kapatıldı —
+     * ama tarama bir SEMPTOM çözümüydü: iki yerde yazılı bir sayı, yarın
+     * yine ayrışabilirdi.
+     *
+     * T-049g sabiti `src/lib/security/session`e taşıdı (Edge-güvenli, bu
+     * yardımcının zaten çerez adları için içe aktardığı modül). Artık
+     * kopyalanacak sayı yok: ömür değişirse burası KENDİLİĞİNDEN uyar.
+     * Sapmanın imkânsız hâle gelmesi, sapmayı yakalayan bir testten iyidir.
+     */
+    maxAge: input.maxAgeSeconds ?? SESSION_MAX_AGE_SECONDS,
     token: {
       sub: input.userId,
       email: input.email,

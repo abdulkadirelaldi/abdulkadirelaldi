@@ -25,6 +25,21 @@ declare module 'next-auth' {
     user: {
       id: string;
     } & DefaultSession['user'];
+    /**
+     * Jetonun verildiği an — saniye cinsinden Unix zamanı (JWT `iat`).
+     *
+     * ADR-035/B: yazma kapısı bunu `User.writesValidFrom` ile karşılaştırıyor.
+     * Oturum nesnesine taşınıyor çünkü `auth()` ham jetonu değil oturumu döner
+     * ve karşılaştırma `currentActorId()` içinde, yani action katmanında yapılıyor.
+     *
+     * HASSAS DEĞİL (§8.20): `iat` zaten istemcinin elindeki JWT'nin içinde.
+     *
+     * OPSİYONEL: alanı taşımayan eski jetonlar olabilir. `undefined` "bilinmiyor"
+     * demek ve kapı onu YAZMAYA İZİN VERMEYEN tarafa yorumluyor — bkz.
+     * `currentActorId`. Varsayılanı "izin ver" yapmak, bozuk bir jetonu
+     * geçersizleştirmeden muaf tutardı.
+     */
+    tokenIssuedAt?: number;
   }
 }
 

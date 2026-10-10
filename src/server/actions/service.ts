@@ -108,7 +108,22 @@ export async function deleteServiceAction(raw: unknown): Promise<ApiResponse<Ser
     const dto = await deleteService(parsed.data.id);
 
     await writeAuditLog(
-      { actorId, action: 'DELETE', entity: 'Service', entityId: dto.id, diff: { deleted: before } },
+      {
+        actorId,
+        action: 'DELETE',
+        entity: 'Service',
+        entityId: dto.id,
+        /* BULGU-019 — alanlar tek tek sayılıyor; gerekçe `skill.ts`'te. */
+        diff: {
+          deleted: {
+            title: before.title,
+            description: before.description,
+            ctaUrl: before.ctaUrl,
+            locale: before.locale,
+            order: before.order,
+          },
+        },
+      },
       db,
     );
 

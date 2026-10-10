@@ -1,6 +1,7 @@
 import NextAuth, { CredentialsSignin } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 
+import { SESSION_MAX_AGE_SECONDS } from '@/lib/security/session';
 import { loginSchema } from '@/lib/schemas';
 
 import {
@@ -23,8 +24,24 @@ import { getTotpState } from './services/user';
  * middleware'e GÜVENİLMEZ. Bu dosya o yardımcıyı ihraç eder.
  */
 
-/** §8.3 — oturum 7 gün. */
-const SESSION_MAX_AGE_SECONDS = 7 * 24 * 60 * 60;
+/*
+ * §8.3 — oturum ömrü (24 saat, ADR-035/A).
+ *
+ * ⚠️ DEĞERİN KENDİSİ VE GEREKÇESİ BURADA DEĞİL: kanonik tanım
+ * `@/lib/security/session` içinde (T-049g taşıdı, T-051/A bu dosyayı oraya
+ * bağladı). Burada bir literal DURMAMALI — iki tanım, biri güncellenip diğeri
+ * kalınca tutarsız bir ömür üretirdi ve tam bu yüzden taşındı.
+ *
+ * Neden O MODÜL kanonik: ara katman Edge'de koşuyor ve `@/server/*` zincirini
+ * yükleyemiyor (T-044g'de `UnhandledSchemeError` ile ölçüldü), yani ömrü hem
+ * ara katmanın hem bu dosyanın okuyabileceği tek yer orası.
+ *
+ * SABİT İKİ YERDE KULLANILIYOR — çerez `maxAge` ve oturum `maxAge` (JWT `exp`
+ * ondan türer). İkisi de aşağıda aynı içe aktarmadan besleniyor.
+ *
+ * `tests/unit/session-omru.test.ts` bu dosyanın içe aktardığını ve kendi
+ * literalini YAZMADIĞINI kaynaktan doğruluyor (Güvenlik'in kapısı).
+ */
 
 const useSecureCookies = process.env.NODE_ENV === 'production';
 
@@ -130,6 +147,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (token.sub) {
         session.user.id = token.sub;
       }
+      /*
+       * ADR-035/B — `iat` oturuma taşınıyor.
+       *
+       * BURADA VERİTABANINA GİDİLMİYOR ve bu kasıtlı: karşılaştırmayı bu geri
+       * çağrıya koymak, `auth()` çağıran HER yolu (okuma dahil) veritabanına
+       * bağlardı ve karşılığında hiçbir okumayı korumazdı — okuma koruması ara
+       * katmanda, o da Edge'de ve DB okuyamıyor (T-014/K1).
+       *
+       * Burada yalnızca jetonun kendi alanı kopyalanıyor; kararı yazma kapısı
+       * (`currentActorId`) veriyor.
+       */
+      session.tokenIssuedAt = typeof token.iat === 'number' ? token.iat : undefined;
       return session;
     },
   },

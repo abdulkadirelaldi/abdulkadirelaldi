@@ -2,6 +2,7 @@
 
 import { changePasswordSchema } from '@/lib/schemas';
 import { changePassword, type ChangePasswordFailure } from '@/server/auth/change-password';
+import { CHANGE_PASSWORD_RATE_LIMIT } from '@/server/services/user';
 import { db } from '@/server/db';
 import {
   fail,
@@ -26,17 +27,34 @@ import { currentActorId, toFailure, unauthorized } from './_shared';
  * burada da geçerli: kopyalanmayacak adımı işaretlemek kalıbın parçası.
  *
  * ═══════════════════════════════════════════════════════════════════════════
- * ⚠️ DİĞER OTURUMLAR KAPANMIYOR — KULLANICIYA BU SÖZ VERİLMEMELİ
+ * ⚠️ OTURUMLAR KAPANMIYOR — AMA YAZMA YETKİLERİ KALKIYOR (ADR-035/B)
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * ADR-013 JWT stratejisi seçti: sunucuda oturum kaydı YOK. Şifre değişse bile
- * daha önce dağıtılmış JWT'ler süreleri dolana kadar (7 gün, §8.3) GEÇERLİ
- * KALIR. Yani şifre değiştirmek ELE GEÇİRİLMİŞ BİR OTURUMU KAPATMAZ.
+ * BU BLOK T-046'DA GÜNCELLENDİ. T-042s'teki hâli "şifre değiştirmek ele
+ * geçirilmiş bir oturumu kapatmaz" diyordu ve o gün DOĞRUYDU; ADR-035/B ile
+ * yarısı değişti. Eski metni bırakmak, çağrı noktasında artık yanlış olan bir
+ * gerekçe bırakmak olurdu.
  *
- * Bu bir eksiklik değil, ölçülmüş bir sınır — ayrıntı ve neden bu turda
- * kapatılamadığı raporda. Arayüz "tüm cihazlardan çıkış yapıldı" ya da
- * "diğer oturumlar sonlandırıldı" DEMEMELİ; tutulamayacak bir sözdür
- * (T-034'ün "410" dersi). Söylenebilecek doğru cümle: "Şifreniz değiştirildi."
+ * BUGÜNKÜ DURUM:
+ *   - Başarılı değişiklik `User.writesValidFrom`u damgalıyor.
+ *   - O damgadan ÖNCE verilmiş her jeton YAZMA yetkisini kaybediyor
+ *     (`currentActorId` → `writesRevoked`). BU OTURUM DA DAHİL.
+ *   - Jetonlar hâlâ GEÇERLİ ve panel sayfaları hâlâ AÇILIYOR: okuma tarafı
+ *     ara katmanla korunuyor, o da Edge'de ve veritabanı okuyamıyor
+ *     (T-014/K1). O katman F6/T-062'ye ertelendi (ADR-035/C).
+ *   - Oturum ömrü ayrıca 7 günden 24 saate indi (ADR-035/A).
+ *
+ * ARAYÜZ İÇİN BAĞLAYICI METİN (ADR-035):
+ *   ✅ "Şifreniz değiştirildi. Güvenlik için açık olan tüm oturumlar —bu cihaz
+ *      dahil— artık değişiklik yapamaz; değişiklik yapmak için yeniden giriş
+ *      yapmanız gerekiyor. Oturumlar kapatılmadı, yalnızca değişiklik
+ *      yetkileri kaldırıldı."
+ *   ✅ Kısa: "Diğer cihazlar artık değişiklik yapamaz."
+ *   ❌ "Tüm cihazlardan çıkış yapıldı." / "Diğer oturumlar sonlandırıldı."
+ *      — hâlâ YASAK; tutulamayacak sözdür (T-034'ün "410" dersi).
+ *
+ * "Bu cihaz dahil" atlanamaz: kullanıcı değişiklikten hemen sonra bir kaydetme
+ * denerse `UNAUTHORIZED` görecek ve sebebini bilmeli.
  */
 
 /** Servis sebebini §7.2 zarfına çevirir — `fields` FORM ALAN ADLARIYLA birebir. */
@@ -72,6 +90,13 @@ function toApiFailure(reason: ChangePasswordFailure): ApiFailure {
       return fail('VALIDATION_ERROR', 'Yeni şifre mevcut şifreyle aynı olamaz.', {
         newPassword: 'Yeni şifre mevcut şifreyle aynı olamaz.',
       });
+
+    case 'RATE_LIMITED':
+      // §7.2 kodu. `fields` YOK — düzeltilecek bir alan değil, beklenecek bir süre.
+      return fail(
+        'RATE_LIMITED',
+        `Çok fazla başarısız deneme yapıldı. ${CHANGE_PASSWORD_RATE_LIMIT.windowMinutes} dakika sonra tekrar deneyin.`,
+      );
   }
 }
 
@@ -102,7 +127,12 @@ function toApiFailure(reason: ChangePasswordFailure): ApiFailure {
  *
  * ASLA FIRLATMAZ — `writeAuditLog`un sözleşmesi bu.
  */
-async function recordFailedAttempt(userId: string, reason: ChangePasswordFailure): Promise<void> {
+async function recordFailedAttempt(
+  userId: string,
+  reason: ChangePasswordFailure,
+  /** Sayaç bağlamı. Varsayılan sayılan bağlam; aşım kaydı bilerek AYRI geçer. */
+  context: string = 'CHANGE_PASSWORD',
+): Promise<void> {
   await writeAuditLog(
     {
       actorId: userId,
@@ -116,7 +146,7 @@ async function recordFailedAttempt(userId: string, reason: ChangePasswordFailure
        * tam olarak buydu: FARKLI ADLI bir anahtara konan sır maskelenmez.
        * Tek güvenilir koruma sırrı diff'e HİÇ KOYMAMAK.
        */
-      diff: { context: 'CHANGE_PASSWORD', reason },
+      diff: { context, reason },
     },
     db,
   );
@@ -138,6 +168,23 @@ export async function changePasswordAction(raw: unknown): Promise<ApiResponse<nu
       // yazım hatasıdır ve denetim kaydını gürültüyle doldururlardı.
       if (sonuc.reason === 'INVALID_CURRENT_PASSWORD' || sonuc.reason === 'INVALID_TOTP') {
         await recordFailedAttempt(actorId, sonuc.reason);
+      }
+
+      /*
+       * ⚠️ AŞIM KAYDI **FARKLI BİR BAĞLAMLA** YAZILIYOR — sayacı beslemesin.
+       *
+       * `CHANGE_PASSWORD` bağlamıyla yazılsaydı, sınıra takılan her istek
+       * sayaca bir satır daha eklerdi ve pencere 5. denemeden değil SON
+       * denemeden itibaren sayılmaya başlardı. Sonuç: saldırgan boş istek
+       * yağdırarak hesabı SÜRESİZ kilitli tutabilirdi — hız sınırı, korumaya
+       * çalıştığı kullanıcıya karşı bir silaha dönüşürdü.
+       *
+       * Ayrı bağlam denetlenebilirliği korurken sayacın dışında kalıyor
+       * (`AUTH_FAILURE_CONTEXTS.changePassword` yalnızca `CHANGE_PASSWORD`
+       * içeriyor). `tests/unit/actions/sifre-degistirme.test.ts` bunu ölçüyor.
+       */
+      if (sonuc.reason === 'RATE_LIMITED') {
+        await recordFailedAttempt(actorId, 'RATE_LIMITED', 'CHANGE_PASSWORD_RATE_LIMITED');
       }
       return toApiFailure(sonuc.reason);
     }

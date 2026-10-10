@@ -138,47 +138,47 @@ describe('durum değişikliği — localeTag MUTLAKA', () => {
 });
 
 /* ===========================================================================
- * `slugTag` GEREKSİZLİĞİ — AÇIK DEĞİŞMEZLİK (T-040)
+ * `slugTag` ARTIK YÜK TAŞIYOR — T-045 (ADR-029 güncellendi)
  *
- * T-039'un 2 numaralı mutasyonu `slugTag` üretimini tamamen kaldırdı ve E2E
- * yeşil kaldı. ADR-029'un "ekleme de slugTag düşürmeli" genişletmesi böylece
- * çürütüldü; `tags.ts`'teki yanlış gerekçe metni T-040'ta silindi.
+ * ═══════════════════════════════════════════════════════════════════════════
+ * BU BLOK T-040'TA "GEREKSİZLİK" OLARAK YAZILMIŞTI VE TERSİNE DÖNDÜ
+ * ═══════════════════════════════════════════════════════════════════════════
  *
- * BU BLOK GEREKSİZLİĞİ SABİTLİYOR. Sebebi: gereksizlik ÖLÇÜLMÜŞ BİR OLGU ama
- * kodda görünmüyor — iki dosya arasındaki bir eşleşmeden doğuyor. Yazılı
- * olmadığı için bir kez YANLIŞ BİR MEKANİZMA ANLATISINA dönüştü zaten. Burada
- * assert olarak durursa bir daha dönüşemez.
+ * T-039 `slugTag` üretimini kaldırıp E2E'yi yeşil bırakmıştı; T-040 bunu
+ * doğruladı ve sebebini buldu — detay girdileri `localeTag` DE taşıyordu, yani
+ * `slugTag` hiçbir zaman tek başına yük taşımıyordu. T-040 o gereksizliği bir
+ * değişmezlik olarak sabitledi ve kökünün bir KUSUR olduğunu yazdı (A'yı
+ * düzenlemek B'nin sayfasını düşürüyordu).
  *
- * Bu testlerin kırılması bir HATA DEĞİL, bir HABER olabilir: eşleşme değişmiş
- * ve `slugTag` yük taşımaya başlamış olabilir. O durumda `tags.ts`'teki gerekçe
- * güncellenmeli.
+ * T-045 o kusuru giderdi: detay girdilerinden `localeTag` çıkarıldı. Artık
+ * `slugTag` yük taşıyor ve gereksizlik değişmezliği GEÇERSİZ.
+ *
+ * ⚠️ T-040'IN TESTİNİN ZAYIFLIĞI: girdi etiketlerini ELLE MODELLİYORDU
+ * (`const girdiEtiketleri = [entityTag(…), localeTag(…), slugTag(…)]`), yani
+ * `cached.ts`i okumuyordu. Bu yüzden T-045 değişikliğinde KIRILMADI — oysa
+ * kırılması gerekiyordu. Bir değişmezlik testi izlediği şeyi okumuyorsa onu
+ * korumaz.
+ *
+ * Ölçüm artık `tests/unit/services/onbellek-granulasyonu.test.ts` içinde ve
+ * `unstable_cache`e GEÇİRİLEN etiketleri yakalıyor. Aşağıda yalnızca HESAP
+ * tarafı kalıyor (bu dosyanın konusu o); girdi tarafı orada ölçülüyor.
  * ======================================================================== */
 
-describe('slugTag gereksizliği — ölçülmüş değişmezlik', () => {
-  /** `content-cache.ts`'ten OKUNAN gerçek girdi etiketleri (slug taşıyan ikisi). */
-  const SLUG_TASIYAN_GIRDILER = [
-    { ad: 'getProjectBySlug', entity: 'project' as const, locale: 'tr', slug: 'a' },
-    { ad: 'getPostBySlug', entity: 'post' as const, locale: 'tr', slug: 'a' },
-  ];
+describe('slugTag hesabı — girdi tarafı ayrı dosyada ÖLÇÜLÜYOR', () => {
+  it('hesap etkilenen slug’ı üretmeye devam ediyor', () => {
+    const tags = contentTagsToDrop(
+      'project',
+      tagTargetsFor({ locale: 'tr', slug: 'a' }, { locale: 'tr', slug: 'b' }),
+    );
 
-  it('DEĞİŞMEZLİK 1: slug taşıyan her girdi localeTag DE taşıyor', () => {
-    // `cached.ts`'in kuralı: her girdi kendisini düşürebilecek TÜM etiketleri
-    // taşır. `slugTag`in gereksiz olmasının BİRİNCİ sebebi bu.
-    for (const g of SLUG_TASIYAN_GIRDILER) {
-      const girdiEtiketleri = [
-        entityTag(g.entity),
-        localeTag(g.entity, g.locale),
-        slugTag(g.entity, g.locale, g.slug),
-      ];
-      expect(girdiEtiketleri, `${g.ad} localeTag taşımıyor`).toContain(
-        localeTag(g.entity, g.locale),
-      );
-    }
+    // Hesap T-045'te DEĞİŞMEDİ; değişen şey girdilerin taşıdığı etiketler.
+    expect(tags).toContain(slugTag('project', 'tr', 'a'));
+    expect(tags).toContain(slugTag('project', 'tr', 'b'));
+    expect(tags).toContain(localeTag('project', 'tr'));
   });
 
-  it('DEĞİŞMEZLİK 2: üretilen her slugTag’in dili locales’te ZATEN var', () => {
-    // İKİNCİ sebep: `tagTargetsFor` "slug'ı düşen ama dili düşmeyen" bir hedef
-    // kümesi KURAMIYOR. Bu yüzden slugTag hiçbir zaman tek başına yük taşımıyor.
+  it('DEĞİŞMEZLİK: üretilen her slugTag’in dili locales’te — hâlâ geçerli', () => {
+    // Bu değişmezlik T-045'ten bağımsız: `tagTargetsFor`un yapısal özelliği.
     const senaryolar: [
       { locale: string; slug?: string } | null,
       { locale: string; slug?: string },
@@ -197,77 +197,17 @@ describe('slugTag gereksizliği — ölçülmüş değişmezlik', () => {
 
     for (const [before, after] of senaryolar) {
       const hedef = tagTargetsFor(before, after);
-      for (const s of hedef.slugs ?? []) {
-        expect(hedef.locales, `slug ${s.slug} dili ${s.locale} locales'te yok`).toContain(s.locale);
+      for (const sl of hedef.slugs ?? []) {
+        expect(hedef.locales).toContain(sl.locale);
       }
     }
   });
 
-  it('DEĞİŞMEZLİK 3: contentTagsToDrop KOŞULSUZ localeTag üretiyor', () => {
-    // ÜÇÜNCÜ sebep. `locales` boş verilse bile slug'a bakıp etiket üretmiyor;
-    // yani "yalnızca slug düşür" diye bir çağrı biçimi yok.
-    const yalnizSlug = contentTagsToDrop('project', {
-      locales: [],
+  it('entityTag hâlâ DÜŞÜRÜLMÜYOR', () => {
+    const tags = contentTagsToDrop('project', {
+      locales: ['tr'],
       slugs: [{ locale: 'tr', slug: 'a' }],
     });
-    // Böyle bir çağrı YAPILMIYOR (tagTargetsFor üretemiyor) ama yapılabilseydi
-    // localeTag'siz kalırdı — değişmezliğin nereden geldiğini gösteriyor.
-    expect(yalnizSlug).toEqual([slugTag('project', 'tr', 'a')]);
-    expect(yalnizSlug).not.toContain(localeTag('project', 'tr'));
-  });
-
-  it('SONUÇ: slugTag çıkarılsa DÜŞEN GİRDİ KÜMESİ değişmiyor', () => {
-    /*
-     * Ölçümün özü. Girdi tarafını modelleyip iki hesabı karşılaştırıyoruz:
-     * `slugTag` ile ve `slugTag` olmadan hangi önbellek girdileri düşüyor?
-     */
-    const girdiler = [
-      { ad: 'detay(a,tr)', tags: [localeTag('project', 'tr'), slugTag('project', 'tr', 'a')] },
-      { ad: 'detay(b,tr)', tags: [localeTag('project', 'tr'), slugTag('project', 'tr', 'b')] },
-      { ad: 'detay(a,en)', tags: [localeTag('project', 'en'), slugTag('project', 'en', 'a')] },
-      { ad: 'liste(tr)', tags: [localeTag('project', 'tr')] },
-    ];
-    const dusenler = (etiketler: string[]) =>
-      girdiler
-        .filter((g) => g.tags.some((t) => etiketler.includes(t)))
-        .map((g) => g.ad)
-        .sort();
-
-    const senaryolar: [
-      string,
-      { locale: string; slug?: string } | null,
-      { locale: string; slug?: string },
-    ][] = [
-      ['ekleme', null, { locale: 'tr', slug: 'a' }],
-      ['slug değişti', { locale: 'tr', slug: 'a' }, { locale: 'tr', slug: 'b' }],
-      ['dil değişti', { locale: 'en', slug: 'a' }, { locale: 'tr', slug: 'a' }],
-      ['durum değişti', { locale: 'tr', slug: 'a' }, { locale: 'tr', slug: 'a' }],
-    ];
-
-    for (const [ad, before, after] of senaryolar) {
-      const hedef = tagTargetsFor(before, after);
-      const ile = contentTagsToDrop('project', hedef);
-      const siz = contentTagsToDrop('project', { locales: hedef.locales });
-
-      expect(dusenler(siz), `${ad}: slugTag'siz farklı girdi kümesi düşüyor`).toEqual(
-        dusenler(ile),
-      );
-    }
-  });
-
-  it('AŞIRI GEÇERSİZLEŞTİRME: A’yı düzenlemek B’nin detayını da düşürüyor', () => {
-    /*
-     * Gereksizliğin KÖKÜ bu: detay girdileri `localeTag` de taşıdığı için
-     * geçersizleştirme dil granülasyonunda kalıyor, slug granülasyonu
-     * kullanılmıyor. Bunu düzeltmek (detay girdilerinden `localeTag`i çıkarmak)
-     * `slugTag`i yük taşıyan hâle getirirdi — ayrı bir ölçüm görevi.
-     */
-    const etiketler = contentTagsToDrop(
-      'project',
-      tagTargetsFor({ locale: 'tr', slug: 'a' }, { locale: 'tr', slug: 'a' }),
-    );
-    const bDetayEtiketleri = [localeTag('project', 'tr'), slugTag('project', 'tr', 'b')];
-
-    expect(bDetayEtiketleri.some((t) => etiketler.includes(t))).toBe(true);
+    expect(tags).not.toContain(entityTag('project'));
   });
 });

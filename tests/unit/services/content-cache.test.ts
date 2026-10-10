@@ -90,15 +90,28 @@ describe('etiketler ARGÜMANDAN türüyor — sarmalama anında sabitlenmiyor', 
     );
   });
 
-  it('slug okuması slug etiketini de taşır', async () => {
+  /**
+   * DEĞİŞTİ (T-045) — detay girdisi `localeTag` TAŞIMIYOR artık.
+   *
+   * Bu assert eskiden üç etiketi birden bekliyordu (`content:project`,
+   * `content:project:tr`, `content:project:tr:kiyi-medya`) ve T-045'te doğru
+   * biçimde KIRILDI: dil etiketi bilerek çıkarıldı.
+   *
+   * SEBEP ÖLÇÜLDÜ: `localeTag` detay girdilerinde de dururken
+   * `revalidateTag('content:project:tr')` o dildeki HER projenin detay
+   * girdisini düşürüyordu — A'yı düzenlemek B'nin sayfasını geçersizleştiriyordu.
+   * Çıkarıldığında `slugTag` yük taşıyan hâle geldi (ADR-029/T-045 güncellemesi).
+   *
+   * Bu test, T-040'ın aynı değişmezliği ELLE MODELLEYEN testinden daha
+   * güçlüydü: `lastCall().tags` ile GERÇEK diziyi okuduğu için değişikliği
+   * yakaladı. Granülasyonun tamamı
+   * `tests/unit/services/onbellek-granulasyonu.test.ts` içinde ölçülüyor.
+   */
+  it('slug okuması entityTag + slugTag taşır, localeTag TAŞIMAZ (T-045)', async () => {
     await getProjectBySlug('kiyi-medya', 'tr');
-    expect(lastCall().tags).toEqual(
-      expect.arrayContaining([
-        'content:project',
-        'content:project:tr',
-        'content:project:tr:kiyi-medya',
-      ]),
-    );
+
+    expect(lastCall().tags).toEqual(['content:project', 'content:project:tr:kiyi-medya']);
+    expect(lastCall().tags).not.toContain('content:project:tr');
     expect(lastCall().keyParts).toContain('kiyi-medya');
   });
 

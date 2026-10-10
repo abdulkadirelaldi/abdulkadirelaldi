@@ -384,6 +384,29 @@ jobs:
                 'TAM SABİTLİYOR ("deepmerge-ts": "7.1.5"), yani override üst ' +
                 "paketin açık sözleşmesini çiğnerdi (oyunkitabı katman C/D).",
             },
+            {
+              ghsa: 'GHSA-vfj7-8cjw-p6xm',
+              paket: 'braces',
+              /*
+               * Maruziyet ölçümü BU ZİNCİRE dayanıyor: `braces`e yalnızca
+               * eslint zinciri ulaşıyor (eslint-config-next →
+               * @next/eslint-plugin-next → fast-glob → micromatch → braces),
+               * yani devDependency. Başka bir yoldan gelirse — özellikle
+               * `dependencies` altından — ölçüm geçersizdir ve kapı bunu
+               * yol kontrolüyle yakalar.
+               */
+              yolIcermeli: 'micromatch@',
+              bitis: '2027-01-09',
+              kayit: 'ADVISORY-006',
+              neden:
+                'YAMALI SÜRÜM YOK (audit: "fix: <0.0.0"). En son yayın 3.0.3 ve ' +
+                '2024-09-18 tarihli — paket fiilen bakımsız. Üst zincirin yeni ' +
+                'sürümleri de micromatch/braces taşıyor (fast-glob@3.3.3 ve ' +
+                '@next/eslint-plugin-next@16.4.0 ölçüldü), yani katman C de yok. ' +
+                'Maruziyet dört ölçümde sıfır: devDependency, üretim paketinde 0 ' +
+                'dosya, `pnpm lint` ve `prisma generate` sırasında hiç yüklenmiyor, ' +
+                'tetikleyici girdi (derin yuvalı glob) bizim kendi config dosyamız.',
+            },
           ];
 
           const raporYolu = path.join(process.env.RUNNER_TEMP, 'denetim.json');
@@ -525,6 +548,176 @@ jobs:
       # Kilit dosyası ile package.json ayrışmışsa `--frozen-lockfile` zaten
       # düşer; bu adım niyeti açık kılar ve ADR-003'ün diğer paket
       # yöneticilerini yasaklamasını uygular.
+      # ═══════════════════════════════════════════════════════════════════════
+      # OVERRIDE TAZELİĞİ — "donmuş taban" nöbeti (T-051)
+      # ═══════════════════════════════════════════════════════════════════════
+      #
+      # ÖLÇÜLMÜŞ ARIZA: sınırlı bir override, alt sınırında KALICI OLARAK
+      # donuyor. `">=0.35.4 <0.36.0"` yazıp kilidi 0.35.4'te bırakmak kısıtı
+      # sağlıyor, dolayısıyla pnpm'in yeniden çözmek için sebebi olmuyor — ve
+      # o aralıkta yayımlanan her yeni danışma elle yükseltme gerektiriyor.
+      # Hiçbir şey uyarmıyor; §8.24 kırmızıya dönene kadar. T-051'de dördüncü
+      # kez bu yüzden kırmızıya döndü ve kontrol ilk koşumunda `mysql2`yi
+      # 3.24.4'te donmuş yakaladı (aralıkta 3.24.5 vardı).
+      #
+      # NEDEN YALNIZCA HAFTALIK KOŞUMDA (`if: schedule`):
+      # Her PR'da koşsaydı, üst paketin yayımladığı HER yama sürümü ilgisiz bir
+      # PR'ı kırmızıya çevirirdi — "haksız düşen kapı", güvenilirliği aşındıran
+      # tam o sınıf. Haftalık koşum ise zaten kimsenin PR'ını bloke etmiyor ve
+      # düştüğünde GitHub depo sahibine bildirim gönderiyor (§8.24'ün
+      # `schedule` gerekçesi). Yani sinyal, bakılması gereken yere düşüyor.
+      #
+      # NEDEN BİR BİRİM TESTİ DEĞİL: cevabı yalnızca kayıt sunucusu biliyor
+      # (aralıkta en yeni sürüm hangisi). Ağ isteği atan bir birim testi,
+      # çevrimdışı koşumda sessizce yeşil kalırdı.
+      - name: Override tazeliği (haftalık — donmuş taban var mı?)
+        if: github.event_name == 'schedule'
+        run: |
+          node <<'BETIK'
+          const { execFileSync } = require('node:child_process');
+          const { appendFileSync, readFileSync } = require('node:fs');
+
+          const overrides = JSON.parse(readFileSync('package.json', 'utf8')).pnpm?.overrides ?? {};
+          const girdiler = Object.entries(overrides);
+
+          if (girdiler.length === 0) {
+            console.log('Override yok — kontrol edilecek taban da yok.');
+            process.exit(0);
+          }
+
+          /** Kilitte çözülen en yüksek sürüm. `pnpm why` çıktısından okunur. */
+          const cozulen = (paket) => {
+            const cikti = execFileSync('pnpm', ['why', paket], { encoding: 'utf8' });
+            /*
+               AD SINIRI ŞART: `postcss` desenini sınırsız aramak
+               `@tailwindcss/postcss 4.3.3` satırını da yakalıyordu ve paket
+               iki farklı sürümde görünüyordu. Ölçüldü — bu kontrol gerçek
+               ağaçta ilk koşumunda tam bu yüzden "ölçülemedi" dedi. Geriye
+               bakış kapsamı (negative lookbehind) ad başını gerçek bir sınıra
+               bağlıyor: `/`, `@`, harf veya tire ile BİTİŞİK bir eşleşme artık
+               sayılmıyor.
+            */
+            const surumler = [
+              ...cikti.matchAll(new RegExp(`(?<![\\w/@.-])${paket} (\\d+\\.\\d+\\.\\d+)`, 'g')),
+            ].map((m) => m[1]);
+            /*
+               ÇOK HATLI PAKETTE MAX ALMAK YANILTIR: ağaçta iki majör hat
+               varsa (ör. `brace-expansion` 1.x ve 5.x) en yükseği alıp
+               aralığın en yenisiyle karşılaştırmak sahte "donmuş" üretir.
+               Bir override normalde hatları TEK sürüme indirger; indirgemiyorsa
+               sorun karşılaştırmada değil override'ın kendisindedir. Bu yüzden
+               tek sürüm beklenir ve beklenti bozulursa `null` dönüp
+               "ölçülemedi" kovasına düşülür — sessiz yanlış teşhis yerine
+               gürültülü belirsizlik.
+            */
+            const tekil = [...new Set(surumler)];
+            return tekil.length === 1 ? tekil[0] : null;
+          };
+
+          /** Kayıt sunucusuna ARALIĞI çözdürüyoruz — kendi semver ayrıştırıcımızı
+              yazmak, kurala uymayan bir kenar durumda sessizce yanlış cevap
+              verirdi. `npm view "<paket>@<aralık>" version` en yüksek eşleşeni
+              basar; bu iş için tam olarak doğru araç. */
+          const aralikEnYeni = (paket, aralik) => {
+            const cikti = execFileSync('npm', ['view', `${paket}@${aralik}`, 'version'], {
+              encoding: 'utf8',
+            });
+            const bulunan = [...cikti.matchAll(/(\d+\.\d+\.\d+)/g)].map((m) => m[1]);
+            return [...new Set(bulunan)].sort(karsilastir).at(-1) ?? null;
+          };
+
+          function karsilastir(a, b) {
+            const pa = a.split('.').map(Number);
+            const pb = b.split('.').map(Number);
+            for (let i = 0; i < 3; i += 1) {
+              if (pa[i] !== pb[i]) return pa[i] - pb[i];
+            }
+            return 0;
+          }
+
+          const satirlar = [];
+          const donmus = [];
+          /*
+             "ÖLÇÜM YAPILAMADI" ile "TAZE" AYRI HÂLLER (BULGU-013 dersi).
+             Kayıt sunucusu erişilemezse ya da `pnpm why` çıktısı beklenen
+             biçimi kaybederse sonuç `null` gelir; bunu "donmuş" saymak yanlış
+             teşhis, "taze" saymak ise sahte yeşil olurdu. Üçüncü bir kova
+             tutuluyor ve o da kapıyı düşürüyor — ama mesajı farklı.
+          */
+          const olculemedi = [];
+
+          for (const [paket, aralik] of girdiler) {
+            let kilit = null;
+            let enYeni = null;
+            try {
+              kilit = cozulen(paket);
+              enYeni = aralikEnYeni(paket, aralik);
+            } catch (e) {
+              // Ölçüm YAPILAMADI ile "taze" KARIŞTIRILMAZ (BULGU-013 dersi).
+              olculemedi.push(`${paket}: ${e.message.split('\n')[0]}`);
+              satirlar.push(`| \`${paket}\` | \`${aralik}\` | ? | ? | ⚠️ ölçülemedi |`);
+              continue;
+            }
+
+            if (kilit === null || enYeni === null) {
+              olculemedi.push(
+                `${paket}: sürüm okunamadı (kilit=${kilit ?? 'yok'}, kayıt=${enYeni ?? 'yok'})`,
+              );
+              satirlar.push(
+                `| \`${paket}\` | \`${aralik}\` | ${kilit ?? '—'} | ${enYeni ?? '—'} | ⚠️ ÖLÇÜLEMEDİ |`,
+              );
+              continue;
+            }
+
+            const taze = kilit === enYeni;
+            satirlar.push(
+              `| \`${paket}\` | \`${aralik}\` | ${kilit} | ${enYeni} | ${taze ? '✅ taze' : '❄️ DONMUŞ'} |`,
+            );
+            if (!taze) donmus.push(`${paket}: kilit ${kilit}, aralıkta en yeni ${enYeni}`);
+          }
+
+          const ozet = [
+            '## Override tazeliği (haftalık)',
+            '',
+            '| Paket | Aralık | Kilitte | Aralıkta en yeni | Durum |',
+            '| ----- | ------ | ------- | ---------------- | ----- |',
+            ...satirlar,
+            '',
+          ];
+
+          if (olculemedi.length > 0) {
+            ozet.push(
+              `**${olculemedi.length} override ÖLÇÜLEMEDİ** — bu "taze" demek değil:`,
+              ...olculemedi.map((d) => `- ${d}`),
+              '',
+              'Sebebi ağ/kayıt sunucusu ya da `pnpm why` çıktı biçiminin değişmesi olabilir.',
+              '',
+            );
+          }
+
+          if (donmus.length > 0) {
+            ozet.push(
+              `**${donmus.length} override tabanında donmuş:**`,
+              ...donmus.map((d) => `- ${d}`),
+              '',
+              'Düzeltme iki yoldan biri (oyunkitabı §4):',
+              '1. `pnpm update <paket> --depth Infinity` → kilit aralığın en yenisine çıkar.',
+              '2. Override ÖLÜ ise (üst paketin aralığı yamalı sürümü zaten kapsıyor) **satırı sil** —',
+              '   T-051: `sharp` ve `nanoid` böyle çıktı, silinince katman A kendiliğinden çalıştı.',
+            );
+          } else {
+            ozet.push('Tüm override tabanları aralığın en yenisinde.');
+          }
+
+          const metin = ozet.join('\n');
+          console.log(metin);
+          if (process.env.GITHUB_STEP_SUMMARY) {
+            appendFileSync(process.env.GITHUB_STEP_SUMMARY, metin + '\n');
+          }
+
+          if (donmus.length > 0 || olculemedi.length > 0) process.exit(1);
+          BETIK
+
       - name: Yabancı kilit dosyası yok (ADR-003)
         run: |
           for dosya in package-lock.json yarn.lock npm-shrinkwrap.json; do

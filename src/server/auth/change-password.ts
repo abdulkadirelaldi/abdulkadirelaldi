@@ -1,6 +1,8 @@
 import type { ChangePasswordInput } from '@/lib/schemas';
 import { db } from '@/server/db';
 
+import { isChangePasswordRateLimited, type TotpAuditReader } from '@/server/services/user';
+
 import { verifyTotpWithRecovery, type TotpConsumerClient } from './credentials';
 import { hashPassword, verifyPassword } from './password';
 
@@ -25,14 +27,22 @@ export interface ChangePasswordUserRecord {
   /** `null` = 2FA kurulumu tamamlanmamış (ADR-013). İkinci faktör kararı buna bakar. */
   totpConfirmedAt: Date | null;
   totpBackupCodes: string[];
+  /**
+   * ADR-035/B damgası. İKİ İŞ BİRDEN görüyor ve bu kasıtlı:
+   *   1. Yazma kapısının eşiği (`write-gate.ts`).
+   *   2. Hız sınırı penceresinin SIFIRLAMA noktası — başarılı bir değişiklik
+   *      sayacı temizler. İkinci bir "son başarılı değişiklik" sütunu açmak,
+   *      aynı anı iki yerde tutup sapmalarına izin vermek olurdu.
+   */
+  writesValidFrom: Date | null;
 }
 
-export interface ChangePasswordClient extends TotpConsumerClient {
+export interface ChangePasswordClient extends TotpConsumerClient, TotpAuditReader {
   user: {
     findUnique(args: { where: { id: string } }): Promise<ChangePasswordUserRecord | null>;
     update(args: {
       where: { id: string };
-      data: { passwordHash?: string; totpBackupCodes?: string[] };
+      data: { passwordHash?: string; totpBackupCodes?: string[]; writesValidFrom?: Date };
     }): Promise<unknown>;
   };
 }
@@ -51,7 +61,9 @@ export type ChangePasswordFailure =
   | 'TOTP_REQUIRED'
   | 'INVALID_TOTP'
   /** Yeni şifre saklanan hash'le eşleşiyor — yani değişen bir şey yok. */
-  | 'SAME_PASSWORD';
+  | 'SAME_PASSWORD'
+  /** §8.4 kalıbı, T-046/3a — kullanıcı başına 5/15 dk. */
+  | 'RATE_LIMITED';
 
 export type ChangePasswordResult = { ok: true } | { ok: false; reason: ChangePasswordFailure };
 
@@ -63,8 +75,9 @@ export type ChangePasswordResult = { ok: true } | { ok: false; reason: ChangePas
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * 1. MEVCUT ŞİFRE (§8.4 gerekçesi): oturumu ele geçiren biri şifreyi
- *    değiştirip KALICI erişim kuramamalı. Oturum çerezi 7 gün geçerli (§8.3),
- *    yani "zaten giriş yapmış" olmak taze bir kimlik kanıtı değildir.
+ *    değiştirip KALICI erişim kuramamalı. Oturum çerezi 24 saat geçerli
+ *    (§8.3, ADR-035/A ile 7 günden indirildi), yani "zaten giriş yapmış" olmak
+ *    taze bir kimlik kanıtı değildir.
  *
  * 2. İKİNCİ FAKTÖR — bkz. aşağıdaki blok.
  *
@@ -80,9 +93,25 @@ export async function changePassword(
   userId: string,
   input: ChangePasswordInput,
   client: ChangePasswordClient = db,
+  now: Date = new Date(),
 ): Promise<ChangePasswordResult> {
   const user = await client.user.findUnique({ where: { id: userId } });
   if (!user) return { ok: false, reason: 'USER_NOT_FOUND' };
+
+  /*
+   * ⚠️ HIZ SINIRI ARGON2'DEN **ÖNCE** — sıranın kendisi korumanın yarısı.
+   *
+   * Gerekçe kaynak tüketimi (T-046/3a): her yanlış şifre doğrulaması p50 31 ms
+   * CPU ve 19 MiB bellek harcıyor. Kontrol doğrulamadan SONRA yapılsaydı sınır
+   * aşılmış olsa bile maliyet zaten ödenmiş olurdu — yani sınır saldırıyı
+   * saymış ama engellememiş olurdu.
+   *
+   * Pencere `writesValidFrom`tan başlıyor: son BAŞARILI değişiklikten önceki
+   * denemeler sayılmıyor.
+   */
+  if (await isChangePasswordRateLimited(userId, now, user.writesValidFrom, client)) {
+    return { ok: false, reason: 'RATE_LIMITED' };
+  }
 
   if (!(await verifyPassword(user.passwordHash, input.currentPassword))) {
     return { ok: false, reason: 'INVALID_CURRENT_PASSWORD' };
@@ -103,8 +132,9 @@ export async function changePassword(
    *
    * İkinci senaryo bileşik ama gerçek: çerez hırsızlığı (XSS) ile şifre
    * sızıntısı (yeniden kullanım, oltalama) bağımsız olaylardır. Ve "kullanıcı
-   * zaten 2FA ile giriş yaptı" savunması burada zayıf, çünkü o giriş YEDİ GÜN
-   * ÖNCE olmuş olabilir (§8.3). Kimlik bilgisini değiştiren bir işlemde cihaz
+   * zaten 2FA ile giriş yaptı" savunması burada zayıf, çünkü o giriş BİR GÜN
+   * ÖNCE olmuş olabilir (§8.3; ADR-035/A pencereyi 7 günden 24 saate indirdi —
+   * daralttı ama KAPATMADI). Kimlik bilgisini değiştiren bir işlemde cihaz
    * sahipliğini O AN yeniden kanıtlatmak standart adım-yükseltme (step-up)
    * pratiğidir ve maliyeti tek bir kod girişidir.
    *
@@ -128,9 +158,24 @@ export async function changePassword(
     return { ok: false, reason: 'SAME_PASSWORD' };
   }
 
+  /*
+   * ADR-035/B — ŞİFRE VE DAMGA BİRLİKTE YAZILIYOR.
+   *
+   * Ayrı iki `update` olsaydı araya düşen bir hata şifreyi değiştirip damgayı
+   * atlayabilirdi: kullanıcı şifresini değiştirmiş sanır, ama çalınmış oturum
+   * yazmaya devam eder. Tek `update` bu ikisini ayrılamaz kılıyor.
+   *
+   * DAMGA KENDİ OTURUMUNU DA KAPSIYOR ve bu bir özellik: şifreyi SALDIRGAN
+   * değiştirse bile kendi yazma yetkisini kaybeder ve yeniden giriş yapmak
+   * zorunda kalır — bunun için yeni şifreye VE TOTP cihazına ihtiyacı vardır.
+   * Kullanıcıya söylenecek cümle bunu açıkça söylemeli (ADR-035).
+   */
   await client.user.update({
     where: { id: userId },
-    data: { passwordHash: await hashPassword(input.newPassword) },
+    data: {
+      passwordHash: await hashPassword(input.newPassword),
+      writesValidFrom: now,
+    },
   });
 
   return { ok: true };

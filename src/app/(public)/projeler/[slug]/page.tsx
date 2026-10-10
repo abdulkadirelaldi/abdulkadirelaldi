@@ -186,7 +186,7 @@ export default async function ProjeDetaySayfasi({ params }: SayfaProps) {
       <KapakGorsel kapak={proje.cover} baslik={proje.title} className="rounded-card" />
 
       {/* İçerik — problem / çözüm / sonuç anlatısı MDX'ten gelir (§8.9). */}
-      <Mdx kaynak={proje.content} />
+      <Mdx kaynak={proje.content} kayitEtiketi={`project:${proje.slug}`} />
 
       {proje.gallery.length > 0 && (
         <section aria-labelledby="galeri-baslik" className="flex flex-col gap-4">

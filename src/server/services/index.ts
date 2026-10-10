@@ -115,7 +115,11 @@ export * from './_shared/content-cache';
 export type * from './content-dto';
 
 // §4.1 /iletisim — public form yazma tarafı (T-027)
+export * from './attachment';
 export * from './contact-message';
+
+// §4.2 denetim kaydı — OKUMA yolu (T-052). Yazma yolu `_shared/audit.ts`te.
+export * from './audit-log';
 
 // ADR-026 — içerik servisleri (F2 public okuma tarafı)
 export * from './experience';

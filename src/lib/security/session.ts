@@ -34,6 +34,36 @@ import { readTwoFactorClaim, type TwoFactorClaim } from './two-factor';
 export const SESSION_COOKIE_NAME_DEV = 'authjs.session-token';
 export const SESSION_COOKIE_NAME_PROD = '__Secure-authjs.session-token';
 
+/**
+ * §8.3 — OTURUM ÖMRÜ: 24 saat (ADR-035/A, eskiden 7 gündü).
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * NEDEN ÇEREZ ADLARININ YANINDA — VE NEDEN `server/auth.ts`'TE DEĞİL
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * T-048g'de ölçülen sapma: ADR-035/A ömrü 24 saate indirdiğinde
+ * `src/server/auth.ts` güncellendi ama `tests/e2e/_helpers/session.ts` **7 gün
+ * üretmeye devam etti** ve hiçbir test kırılmadı. Sebep yapısal: sabit
+ * `server/auth.ts` içindeydi, o dosya `next-auth` içe aktardığı için ne Edge
+ * ara katmanından ne de Vitest'in node ortamından okunabiliyordu — yani
+ * ihtiyacı olan iki taraf da sayıyı KOPYALAMAK zorundaydı.
+ *
+ * Bu modül çerez adları için tam bu sebeple zaten "tek kaynak" rolünde ve
+ * Edge-güvenli (yalnızca `next-auth/jwt` → `jose` → Web Crypto). Ömür de
+ * buraya taşındı: artık kopyalamak zorunda olan kimse yok.
+ *
+ * ⚠️ GEÇİŞ YARIM — `src/server/auth.ts` HÂLÂ KENDİ KOPYASINI KULLANIYOR.
+ * O dosya Backend'in (§10.1) ve oradan içe aktarmaya çevirmek ayrı bir iş:
+ * **T-050**. O güne kadar iki tanım var ve `tests/unit/session-omru.test.ts`
+ * ikisinin AYRIŞMADIĞINI ölçüyor — geçişin yarım kalması sessiz bir sapmaya
+ * dönüşmesin diye. T-050 tamamlandığında o çapraz kontrol silinebilir;
+ * bugün silmek, taşımanın yarısını korumasız bırakmak olurdu.
+ *
+ * Değerin gerekçesi (maruziyet penceresi, tek kullanıcılı panelde bedeli)
+ * `src/server/auth.ts` içinde ve ADR-035'te yazılı; burada tekrarlanmıyor.
+ */
+export const SESSION_MAX_AGE_SECONDS = 24 * 60 * 60;
+
 export function sessionCookieName(isProduction: boolean): string {
   return isProduction ? SESSION_COOKIE_NAME_PROD : SESSION_COOKIE_NAME_DEV;
 }

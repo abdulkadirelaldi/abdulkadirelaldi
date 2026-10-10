@@ -177,6 +177,18 @@ model User {
   /// §8.4 — hız sınırı aşımında kilit. Politika Güvenlik ajanının.
   lockedUntil DateTime?
 
+  /// ADR-035/B — bu andan ÖNCE verilmiş jetonlar YAZMA yetkisini kaybeder.
+  ///
+  /// ⚠️ ADI `sessionsValidFrom` DEĞİL ve bu bağlayıcı: oturumlar KAPANMIYOR,
+  /// yalnızca yazma yetkileri kalkıyor. Okuma tarafı ara katmanla korunuyor ve
+  /// ara katman Edge'de koşup veritabanı okuyamıyor (T-014/K1, T-044g'de
+  /// yeniden ölçüldü). Ad kapsamı söylemezse T-042s'te kaçınılan yanılsama —
+  /// "şifre değiştirince her yerden çıkış yapıldı" — geri gelir.
+  ///
+  /// Karşılaştırma `currentActorId()` içinde, yani tüm Server Action'ların
+  /// geçtiği tek kapıda. Okuma yolları bu kolonu HİÇ okumaz.
+  writesValidFrom DateTime?
+
   // --- 2FA (ADR-013) ---
   /// UYGULAMA SEVİYESİNDE ŞİFRELİ saklanır (TOTP_ENCRYPTION_KEY).
   /// Düz metin yazılırsa DB yedeği (§8.21) sızdığında ikinci faktör değersizleşir.

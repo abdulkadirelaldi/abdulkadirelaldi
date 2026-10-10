@@ -1,4 +1,5 @@
 import { auth } from '@/server/auth';
+import { writesRevoked } from '@/server/auth/write-gate';
 import { fail, internalError, unauthorized, type ApiFailure } from '@/server/services/_shared';
 
 /**
@@ -20,16 +21,44 @@ import { fail, internalError, unauthorized, type ApiFailure } from '@/server/ser
  * ======================================================================== */
 
 /**
- * Oturum sahibinin kimliği; oturum yoksa `null`.
+ * Oturum sahibinin kimliği; oturum yoksa VEYA yazma yetkisi geçersizleştirilmişse
+ * `null`.
  *
  * §8.6: HER action bunu KENDİ İÇİNDE çağırır. Middleware'e güvenilmez — matcher
  * yanlış yazılmış olabilir, ara katman atlanabilir, ve Server Action'lar
  * middleware'in görmediği bir POST yüzeyi açar. Yetki kontrolü mutasyonun
  * kendisinde durmalı.
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * ADR-035/B — YAZMA KAPISI BURADA, VE YALNIZCA BURADA
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * `writesRevoked` bu fonksiyonun İÇİNDE çağrılıyor, `auth()`'un jwt/session geri
+ * çağrısında DEĞİL. Sebep ölçülmüş bir takas:
+ *
+ *   - Buraya konunca sorgu YALNIZCA Server Action'larda koşar; okuma yolları
+ *     (`fetchXForPanel`, public `getX`) veritabanına fazladan HİÇ gitmez ve
+ *     "normal istek yolu DB'ye gitmez" mimari özelliği okuma tarafında KORUNUR.
+ *   - Geri çağrıya konsaydı `auth()` çağıran her yol sorguya bağlanırdı ve
+ *     karşılığında hiçbir OKUMA korunmazdı: okuma koruması ara katmanda, o da
+ *     Edge'de ve veritabanı okuyamıyor (T-014/K1, T-044g).
+ *
+ * Maliyet: Server Action başına +1 sorgu, p50 0,49 ms (T-044g ölçümü).
+ *
+ * `null` DÖNÜYOR, ayrı bir hata kodu değil: on yedi action'ın hepsi zaten
+ * `if (!actorId) return unauthorized()` yazıyor, yani kapı hiçbir çağıranı
+ * değiştirmeden yürürlüğe giriyor. Kullanıcı için sonuç doğru: o oturum artık
+ * yazma için yetkili değil ve yeniden giriş yapması gerekiyor (ADR-035'in
+ * kullanıcıya söylenecek cümlesi).
  */
 export async function currentActorId(): Promise<string | null> {
   const session = await auth();
-  return session?.user?.id ?? null;
+  const userId = session?.user?.id;
+  if (!userId) return null;
+
+  if (await writesRevoked(userId, session?.tokenIssuedAt)) return null;
+
+  return userId;
 }
 
 export { unauthorized };
@@ -81,6 +110,60 @@ export function toFailure(
           );
     case 'P2025':
       return fail('NOT_FOUND', 'Kayıt bulunamadı. Başka bir yerden silinmiş olabilir.');
+
+    /*
+     * P2003 — YABANCI ANAHTAR İHLALİ. T-050/3'te ölçüldü ve eklendi.
+     *
+     * ═══════════════════════════════════════════════════════════════════════
+     * NEDEN EKLENDİ: "tekrar deneyin" YANLIŞ TAVSİYEYDİ
+     * ═══════════════════════════════════════════════════════════════════════
+     *
+     * Bu dal yokken P2003 `internalError`a düşüyordu ve kullanıcı şunu
+     * görüyordu: "İşlem tamamlanamadı. Lütfen tekrar deneyin." İki yönden
+     * yanlış: tekrar denemek ASLA çalışmaz (kimlik hâlâ yok), ve hatanın
+     * seçilen dosyayla ilgili olduğuna dair hiçbir ipucu yok. Kullanıcı
+     * düzeltebileceği bir şeyi düzeltemez hâle geliyordu.
+     *
+     * Bugün bu yola nasıl giriliyor: `avatarAttachmentId`/`cvAttachmentId`
+     * (profil) ve `coverAttachmentId` (proje + blog) GİZLİ FORM ALANLARINDAN
+     * geliyor ve şema yalnızca BİÇİMİ doğruluyor (`cuidSchema`) — varlığı
+     * DOĞRULAMIYOR. Var olmayan bir kimlik gönderilirse kapı veritabanındaki
+     * FK kısıtı oluyor (`onDelete: Restrict`).
+     *
+     * Hata kodu Prisma'nın kendi çalışma zamanı eşlemesinden doğrulandı:
+     * `ForeignKeyConstraintViolation → "P2003"`.
+     *
+     * ═══════════════════════════════════════════════════════════════════════
+     * ARTIK BİRİNCİ KAPI DEĞİL — YARIŞ KORUMASI (T-051/B)
+     * ═══════════════════════════════════════════════════════════════════════
+     *
+     * T-050'de bu dal TEK kapıydı ve `fields` boş bırakılmıştı. Gerekçem
+     * şuydu: "Prisma'nın `meta.field_name`i kısıt adını taşıyor, sezgiselle
+     * yanlış alanı işaretlemek hiç işaretlememekten kötü olurdu."
+     *
+     * ⚠️ O GEREKÇE ÇÜRÜTÜLDÜ. Orkestra Şefi gerçek bir FK ihlali üretip kabuğu
+     * ölçtü: `meta.field_name` HİÇ YOK; kısıt adı
+     * `meta.driverAdapterError.cause.constraint.index` altında, iç içe —
+     * ve alan adını İÇERİYOR (`profile_avatarAttachmentId_fkey`). Ayrıştırması
+     * mekanik, yani "sezgisel" demek yanlıştı.
+     *
+     * BİRİNCİ KAPI ARTIK BAŞKA YERDE: `attachment-refs.ts` eklenti kimliklerinin
+     * varlığını YAZMADAN ÖNCE kontrol ediyor ve `fields`i KENDİ sorgusundan
+     * kuruyor — belgelenmemiş bir kabuğa bağlanmadan, kesin alan adıyla.
+     * Gerekçenin tamamı o dosyada.
+     *
+     * Bu dal ne işe yarıyor: YARIŞ. Dosya kontrol ile yazma arasında silinirse
+     * FK yine tetiklenir. O durumda `fields` boş olmak DOĞRU — kullanıcının
+     * düzeltebileceği bir alan yok, dosya gerçekten kaybolmuştur ve mesaj zaten
+     * bunu söylüyor. Ayrıca doğrudan veritabanı yazmaları (seed, migration,
+     * elle müdahale) için son savunma olarak duruyor.
+     */
+    case 'P2003':
+      return fail(
+        'VALIDATION_ERROR',
+        'Seçilen dosya bulunamadı — yüklenmemiş ya da silinmiş olabilir. ' +
+          'Dosyayı yeniden seçip kaydedin.',
+      );
     default:
       return internalError(context, error);
   }

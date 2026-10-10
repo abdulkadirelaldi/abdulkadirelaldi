@@ -2,7 +2,13 @@ import * as z from 'zod';
 
 import { AuditAction } from '@/types';
 
-import { cuidSchema, paginationSchema, shortTextSchema, sortDirectionSchema } from './common';
+import {
+  cuidSchema,
+  dayDateSchema,
+  paginationSchema,
+  shortTextSchema,
+  sortDirectionSchema,
+} from './common';
 
 /**
  * `AuditLog` (§8.19, ADR-020) — tüm panel mutasyonları buraya yazılır.
@@ -54,13 +60,56 @@ export const createAuditLogSchema = z.object({
 /** Denetim kaydı değiştirilemez. Güncelleme şeması bilerek boştur. */
 export const updateAuditLogSchema = z.object({});
 
-export const auditLogFilterSchema = paginationSchema.extend({
-  action: z.enum(AuditAction).optional(),
-  entity: shortTextSchema.optional(),
-  entityId: cuidSchema.optional(),
-  actorId: cuidSchema.optional(),
-  sort: sortDirectionSchema,
-});
+/**
+ * Denetim kaydı listesi filtresi — §4.2 denetim ekranı (T-052).
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * TARİH ARALIĞI GÜN CİNSİNDEN; ANA ÇEVİRME SUNUCUDA
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * `from`/`to` `YYYY-MM-DD` alır, `instantSchema` DEĞİL. İki sebep:
+ *
+ *  1. Filtreyi kullanan insan gün seçer, an seçmez. Arayüzden ISO damga
+ *     istemek, tarayıcının zaman dilimine göre değişen bir değer üretirdi —
+ *     Europe/Istanbul'da olmayan bir makineden bakıldığında filtre sessizce
+ *     kayardı (ADR-016'nın kapattığı sınıf).
+ *  2. Gün → an dönüşümü TEK YERDE yaşıyor: `appDayRangeToInstantFilter`.
+ *     `createdAt` bir `DateTime` ve UTC gece yarısını sınır almak o günün ilk
+ *     üç saatini sessizce düşürüyor — ölçüldü, gerekçe `_shared/app-date.ts`te.
+ *     Dönüşümü istemciye bırakmak o tuzağı arayüze taşımak olurdu.
+ *
+ * `to` DAHİL semantiği taşır; dışlayıcı üst sınıra çeviren servis.
+ *
+ * ⚠️ ADR-033 (`booleanFilterSchema`) BURADA UYGULANMIYOR, ÇÜNKÜ BOOLE YOK.
+ * Denetim kaydı değiştirilemez (`updateAuditLogSchema` boş) ve okunmuş/
+ * arşivlenmiş gibi bir durum alanı taşımıyor; süzülecek her alan ya enum, ya
+ * kimlik, ya gün. Konvansiyona uymanın yolu burada BİR BOOLE UYDURMAMAK —
+ * `hasDiff` gibi bir bayrak eklemek, ADR-033'ü anmak için var olmayan bir
+ * ihtiyaç icat etmek olurdu. Bir gün boole eklenirse `booleanFilterSchema`
+ * zorunludur (`z.coerce.boolean()` "false" → `true` veriyor, T-038 ölçümü).
+ */
+export const auditLogFilterSchema = paginationSchema
+  .extend({
+    action: z.enum(AuditAction).optional(),
+    entity: shortTextSchema.optional(),
+    entityId: cuidSchema.optional(),
+    actorId: cuidSchema.optional(),
+    /** Dahil — o günün Istanbul'daki ilk anından itibaren. */
+    from: dayDateSchema.optional(),
+    /** DAHİL — o günün Istanbul'daki son anına kadar. */
+    to: dayDateSchema.optional(),
+    sort: sortDirectionSchema,
+  })
+  /*
+   * Ters aralık SESSİZCE boş liste döndürmesin. `from > to` yazan biri
+   * "kayıt yok" sanır ve filtresini değil verisini sorgulamaya başlar;
+   * `dateRangeSchema` aynı kuralı aynı mesajla koyuyor (tek kural, iki yerde
+   * yazılmıyor — kontrol `tests/unit/schemas` tarafında sabit).
+   */
+  .refine((value) => !value.from || !value.to || value.from <= value.to, {
+    error: 'Bitiş tarihi, başlangıç tarihinden önce olamaz.',
+    path: ['to'],
+  });
 
 export type CreateAuditLogInput = z.infer<typeof createAuditLogSchema>;
 export type UpdateAuditLogInput = z.infer<typeof updateAuditLogSchema>;

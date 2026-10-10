@@ -31,7 +31,33 @@ const auditCreate = vi.hoisted(() => vi.fn());
 
 vi.mock('@/server/auth', () => ({ auth }));
 vi.mock('next/cache', () => ({ revalidateTag, unstable_cache: vi.fn() }));
-vi.mock('@/server/db', () => ({ db: { auditLog: { create: auditCreate } } }));
+const userFindUnique = vi.hoisted(() => vi.fn());
+const attachmentFindMany = vi.hoisted(() => vi.fn());
+vi.mock('@/server/db', () => ({
+  db: {
+    auditLog: { create: auditCreate },
+    user: { findUnique: userFindUnique },
+    attachment: { findMany: attachmentFindMany },
+  },
+}));
+/*
+ * T-051/B — EKLENTİ VARLIK KAPISI.
+ *
+ * `missingAttachmentFailure` yazmadan önce `attachment.findMany` ile sorulan
+ * kimliklerin var olup olmadığını kontrol ediyor. Varsayılan taklit SORULAN HER
+ * KİMLİĞİ VAR sayıyor, yani mevcut testler etkilenmiyor; yokluk senaryosu
+ * aşağıdaki blokta açıkça kuruluyor.
+ */
+/*
+ * ADR-035/B — YAZMA KAPISI (T-046).
+ *
+ * `currentActorId()` artık `writesRevoked()` çağırıyor, yani her Server Action
+ * `user.findUnique` ile `writesValidFrom` okuyor. İki şey taklide eklendi:
+ *
+ *   - `db.user.findUnique` → `{ writesValidFrom: null }` ("hiç geçersizleştirilmedi")
+ *   - oturuma `tokenIssuedAt` → kapı FAIL-CLOSED; `iat` taşımayan bir oturum
+ *     yazma yetkisiz sayılıyor. Bu kasıtlı ve `yazma-kapisi.test.ts` ölçüyor.
+ */
 
 const svc = vi.hoisted(() => ({
   createProject: vi.fn(),
@@ -69,7 +95,7 @@ const ID = 'clx0000000000000000000001';
 
 /** Oturum var. */
 function oturumVar(): void {
-  auth.mockResolvedValue({ user: { id: 'kullanici-1' } });
+  auth.mockResolvedValue({ user: { id: 'kullanici-1' }, tokenIssuedAt: OTURUM_IAT });
 }
 
 /** Düşürülen etiketler — çağrı sırası önemsiz, KÜME karşılaştırılıyor. */
@@ -83,7 +109,15 @@ function denetimKaydi(): Record<string, unknown> {
   return (auditCreate.mock.calls[0]?.[0] as { data: Record<string, unknown> }).data;
 }
 
+/** Jetonun verildiği an — yazma kapısının eşiği (ADR-035/B). */
+const OTURUM_IAT = Math.floor(Date.parse('2026-09-20T12:00:00.000Z') / 1000);
+
 beforeEach(() => {
+  userFindUnique.mockResolvedValue({ writesValidFrom: null });
+  // Varsayılan: sorulan her eklenti kimliği VAR (T-051/B).
+  attachmentFindMany.mockImplementation((args: { where: { id: { in: string[] } } }) =>
+    Promise.resolve(args.where.id.in.map((id) => ({ id }))),
+  );
   oturumVar();
   auditCreate.mockResolvedValue({});
 });
@@ -141,7 +175,7 @@ describe('§8.6 — yetkisiz erişim', () => {
   it('oturum var ama `user.id` yoksa yine UNAUTHORIZED', async () => {
     // Jeton bozuksa veya `id` claim'i düşmüşse "oturum var" saymak, kimliksiz
     // bir mutasyonu `actorId: undefined` ile denetim kaydına yazardı.
-    auth.mockResolvedValue({ user: {} });
+    auth.mockResolvedValue({ user: {}, tokenIssuedAt: OTURUM_IAT });
     const { createSkillAction } = await import('@/server/actions/skill');
     expect((await createSkillAction({})).ok).toBe(false);
   });
@@ -504,7 +538,13 @@ describe('slug’sız varlıklar — yalnızca localeTag', () => {
    * `Exercise`, `Client`, `Habit`) ve gerekçesi bağlı FK'lerdir. `Skill`e
    * hiçbir model FK ile bağlı değil, public adresi yok, `ContentStatus` yok.
    */
-  it('deleteSkillAction DELETE yazıyor ve SİLİNEN SATIRIN TAMAMINI saklıyor', async () => {
+  /**
+   * DEĞİŞTİ (T-046/BULGU-019) — eskiden "SİLİNEN SATIRIN TAMAMINI saklıyor"
+   * diyordu ve `diff` tam olarak `{ deleted: <satırın tamamı> }`a eşitleniyordu.
+   * O assert, alan seçimini modele devreden kalıbı SABİTLİYORDU. Artık alanlar
+   * tek tek sayılıyor; "ne kayboldu" sorusu hâlâ cevaplanıyor ama seçim AÇIK.
+   */
+  it('deleteSkillAction DELETE yazıyor ve silinen kaydı SAYILAN ALANLARLA saklıyor', async () => {
     const kayit = {
       id: ID,
       locale: 'tr',
@@ -524,7 +564,15 @@ describe('slug’sız varlıklar — yalnızca localeTag', () => {
     expect(log).toMatchObject({ action: 'DELETE', entity: 'Skill' });
     // `buildDiff(before, {})` boş fark üretirdi; burada saklanmak istenen
     // "ne değişti" değil "NE KAYBOLDU" — denetim kaydı tek kalan izdir.
-    expect(log.diff).toEqual({ deleted: kayit });
+    expect(log.diff).toEqual({
+      deleted: {
+        name: kayit.name,
+        category: kayit.category,
+        level: kayit.level,
+        locale: kayit.locale,
+        order: kayit.order,
+      },
+    });
   });
 
   it('deleteServiceAction DELETE yazıyor', async () => {
@@ -621,13 +669,18 @@ describe('saveProfileAction', () => {
   });
 
   /**
-   * §8.20 / ADR-020 — REDAKSİYON OTOMATİK AMA DOĞRULANIYOR.
+   * DEĞİŞTİ (T-046/BULGU-019, ADR-034).
    *
-   * `socials.email` ham e-posta taşır ve `redactAuditDiff` alan adı bazlı,
-   * İÇ İÇE çalışır. "Otomatik" olduğu varsayımı sınanmadan bırakılamaz:
-   * `writeAuditLog` bu testte TAKLİT EDİLMİYOR, gerçek kodu koşuyor.
+   * Bu test eskiden `socials.email`in `[REDACTED]` ile MASKELENDİĞİNİ ve
+   * e-posta dışı bağlantıların DEĞERİYLE kaldığını doğruluyordu. Yani korumayı
+   * `redactAuditDiff`e bağlıyordu — ADR-034'ün "emniyet ağı, korumanın kendisi
+   * değil" dersinin tam tersi.
+   *
+   * Artık `socials` DEĞERLERİ diff'e hiç girmiyor, dolayısıyla maskelenecek bir
+   * şey de yok. Güvence redaksiyondan değil ALAN SEÇİMİNDEN geliyor ve bu daha
+   * güçlü: yarın eklenecek bilinmeyen bir anahtarın değeri de sızmaz.
    */
-  it('socials.email denetim kaydında MASKELENMİŞ (§8.20)', async () => {
+  it('socials DEĞERLERİ denetim kaydına HİÇ girmiyor (§8.20, ADR-034)', async () => {
     svc.findProfileSnapshot.mockResolvedValue(null);
     svc.upsertProfile.mockResolvedValue(dto);
 
@@ -636,9 +689,7 @@ describe('saveProfileAction', () => {
 
     const yazilan = JSON.stringify(denetimKaydi());
     expect(yazilan).not.toContain('gizli@ornek.com');
-    expect(yazilan).toContain('[REDACTED]');
-    // Maskeleme kapsamlı olsun diye her şeyi silmiyor: e-posta dışı sosyaller kalır.
-    expect(yazilan).toContain('github.com/x');
+    expect(yazilan).not.toContain('github.com/x');
   });
 
   it('yalnızca localeTag düşüyor — profilin slug’ı yok', async () => {
@@ -905,5 +956,625 @@ describe.each(KALIP)('§7.1 kalıbı — $ad', (vaka) => {
     expect(sonuc.ok).toBe(false);
     expect(sonuc.error?.code).toBe('NOT_FOUND');
     expect(svc[vaka.servis]).not.toHaveBeenCalled();
+  });
+});
+
+/* ===========================================================================
+ * BULGU-019 — SİLME DIFF'İ ALANLARI TEK TEK SAYIYOR
+ *
+ * Eski kalıp `diff: { deleted: before }` ile satırın TAMAMINI yazıyordu. Bugün
+ * sızıntı üretmiyordu; kusur gelecekteydi: ALAN SEÇİMİ MODELE DEVREDİLMİŞTİ.
+ * Yarın eklenecek bir `apiAnahtari` sütunu `REDACTED_KEYS`te olmayacağı için
+ * diff'e OTOMATİK girerdi ve TİP SİSTEMİ DE GÖREMEZDİ (`before` zaten o modelin
+ * tipinde). ADR-034: redaksiyon bir emniyet ağı, alan seçiminin yerine geçmez.
+ *
+ * Aşağıdaki testler TAM O SENARYOYU kuruyor: anlık görüntüye bugün var olmayan
+ * bir sır alanı konuyor ve diff'e sızmadığı ölçülüyor.
+ * ======================================================================== */
+
+describe('BULGU-019 — silme diff’i modele devretmiyor', () => {
+  /** Yarın eklenecek, `REDACTED_KEYS`te OLMAYAN bir sütun. */
+  const GELECEK_SIR = 'sk_live_gizli_anahtar_2027';
+
+  it('skill silme: beklenmeyen alan diff’e SIZMIYOR', async () => {
+    const kayit = {
+      id: ID,
+      locale: 'tr',
+      name: 'Silinecek',
+      category: 'BACKEND',
+      level: 42,
+      iconKey: 'ts',
+      order: 3,
+      apiAnahtari: GELECEK_SIR,
+    };
+    svc.findSkillSnapshot.mockResolvedValue(kayit);
+    svc.deleteSkill.mockResolvedValue(kayit);
+
+    const { deleteSkillAction } = await import('@/server/actions/skill');
+    await deleteSkillAction({ id: ID });
+
+    const log = denetimKaydi();
+    expect(JSON.stringify(log)).not.toContain(GELECEK_SIR);
+    // Seçim AÇIK: yalnızca bilerek sayılan alanlar.
+    expect(Object.keys(log.diff as Record<string, unknown>)).toEqual(['deleted']);
+    expect(Object.keys((log.diff as { deleted: object }).deleted).sort()).toEqual([
+      'category',
+      'level',
+      'locale',
+      'name',
+      'order',
+    ]);
+  });
+
+  it('service silme: beklenmeyen alan diff’e SIZMIYOR', async () => {
+    const kayit = {
+      id: ID,
+      locale: 'tr',
+      title: 'Hizmet',
+      description: 'D',
+      iconKey: null,
+      ctaUrl: null,
+      order: 0,
+      apiAnahtari: GELECEK_SIR,
+    };
+    svc.findServiceSnapshot.mockResolvedValue(kayit);
+    svc.deleteService.mockResolvedValue(kayit);
+
+    const { deleteServiceAction } = await import('@/server/actions/service');
+    await deleteServiceAction({ id: ID });
+
+    expect(JSON.stringify(denetimKaydi())).not.toContain(GELECEK_SIR);
+  });
+
+  it('experience silme: beklenmeyen alan diff’e SIZMIYOR', async () => {
+    const kayit = {
+      id: ID,
+      locale: 'tr',
+      organization: 'Kurum',
+      role: 'Rol',
+      type: 'WORK',
+      startDate: '2020-01-01',
+      endDate: null,
+      current: true,
+      description: null,
+      order: 0,
+      apiAnahtari: GELECEK_SIR,
+    };
+    svc.findExperienceSnapshot.mockResolvedValue(kayit);
+    svc.deleteExperience.mockResolvedValue(kayit);
+
+    const { deleteExperienceAction } = await import('@/server/actions/experience');
+    await deleteExperienceAction({ id: ID });
+
+    expect(JSON.stringify(denetimKaydi())).not.toContain(GELECEK_SIR);
+  });
+
+  it('silinen kaydın ANLAMLI alanları hâlâ saklanıyor — koruma bilgiyi yok etmedi', async () => {
+    const kayit = {
+      id: ID,
+      locale: 'tr',
+      name: 'Silinecek',
+      category: 'BACKEND',
+      level: 42,
+      iconKey: 'ts',
+      order: 3,
+    };
+    svc.findSkillSnapshot.mockResolvedValue(kayit);
+    svc.deleteSkill.mockResolvedValue(kayit);
+
+    const { deleteSkillAction } = await import('@/server/actions/skill');
+    await deleteSkillAction({ id: ID });
+
+    // "Ne kayboldu" sorusu hâlâ cevaplanabiliyor (T-031'in gerekçesi ayakta).
+    expect((denetimKaydi().diff as { deleted: Record<string, unknown> }).deleted).toMatchObject({
+      name: 'Silinecek',
+      category: 'BACKEND',
+      level: 42,
+    });
+  });
+});
+
+/* ===========================================================================
+ * BULGU-019 / profile.socials — DEĞERLER DEĞİL, DEĞİŞEN ANAHTARLAR
+ * ======================================================================== */
+
+describe('profile.socials — değerler diff’e girmiyor', () => {
+  const dto = {
+    id: 'singleton',
+    locale: 'tr',
+    headline: 'Başlık',
+    subtitle: null,
+    bio: 'Bio',
+    location: 'İstanbul',
+    availability: null,
+    socials: { email: 'gizli@ornek.com', github: 'https://github.com/x' },
+    avatar: null,
+    cv: null,
+  };
+
+  it('sosyal bağlantı DEĞERLERİ yazılmıyor, yalnızca değişen ANAHTARLAR', async () => {
+    svc.findProfileSnapshot.mockResolvedValue({ ...dto, socials: { github: 'https://eski/x' } });
+    svc.upsertProfile.mockResolvedValue(dto);
+
+    const { saveProfileAction } = await import('@/server/actions/profile');
+    await saveProfileAction({ headline: 'Başlık' });
+
+    const yazilan = JSON.stringify(denetimKaydi());
+    // Ne e-posta ne de URL — hiçbir DEĞER yok.
+    expect(yazilan).not.toContain('gizli@ornek.com');
+    expect(yazilan).not.toContain('github.com/x');
+    expect(yazilan).not.toContain('https://eski/x');
+    // Ama NE DEĞİŞTİĞİ okunabiliyor.
+    expect(yazilan).toContain('socialsChanged');
+    expect(yazilan).toContain('email');
+    expect(yazilan).toContain('github');
+  });
+
+  it('BEKLENMEYEN bir sosyal anahtarın DEĞERİ de sızmıyor', async () => {
+    // Sütun serbest `Json`; seed/migration/elle yazma buraya her şeyi koyabilir
+    // ve `REDACTED_KEYS` onu tanımaz. Anahtar ADI zararsız, DEĞER değil.
+    const sir = 'sk_live_gizli_2027';
+    svc.findProfileSnapshot.mockResolvedValue({ ...dto, socials: {} });
+    svc.upsertProfile.mockResolvedValue({ ...dto, socials: { apiAnahtari: sir } });
+
+    const { saveProfileAction } = await import('@/server/actions/profile');
+    await saveProfileAction({ headline: 'Başlık' });
+
+    const yazilan = JSON.stringify(denetimKaydi());
+    expect(yazilan).not.toContain(sir);
+    expect(yazilan).toContain('apiAnahtari');
+  });
+
+  it('sosyal değişmediyse liste BOŞ', async () => {
+    svc.findProfileSnapshot.mockResolvedValue(dto);
+    svc.upsertProfile.mockResolvedValue(dto);
+
+    const { saveProfileAction } = await import('@/server/actions/profile');
+    await saveProfileAction({ headline: 'Başlık' });
+
+    // `buildDiff` yalnızca DEĞİŞENİ taşır; boş liste = değişiklik yok demek.
+    expect(JSON.stringify(denetimKaydi())).not.toContain('socialsChanged');
+  });
+});
+
+/* ===========================================================================
+ * T-047 — MDX KAPISI EYLEM SEVİYESİNDE
+ *
+ * `mdx-dogrulama.test.ts` doğrulayıcının KENDİSİNİ ölçüyor. Bu blok kapının
+ * §7.1 sırasında DOĞRU YERDE durduğunu ölçüyor: Zod'dan sonra, SERVİSTEN ÖNCE.
+ * Sıra yanlış olsaydı geçersiz MDX veritabanına yazılır, sonra hata dönerdi —
+ * yani kapı hiçbir işe yaramazdı.
+ * ======================================================================== */
+
+describe('T-047 — geçersiz MDX eyleme girmiyor', () => {
+  const GECERSIZ_MDX = 'Metin\n\n<img src="/x.png">\n';
+
+  const YAZI = {
+    locale: 'tr',
+    slug: 'yazi',
+    title: 'Yazı',
+    excerpt: 'Özet',
+  };
+  const PROJE = {
+    locale: 'tr',
+    slug: 'proje',
+    title: 'Proje',
+    summary: 'Özet',
+  };
+
+  it('createPostAction: geçersiz MDX → VALIDATION_ERROR, SERVİSE GİTMİYOR', async () => {
+    const { createPostAction } = await import('@/server/actions/post');
+    const sonuc = await createPostAction({ ...YAZI, content: GECERSIZ_MDX });
+
+    expect(sonuc.ok).toBe(false);
+    if (sonuc.ok) throw new Error('beklenmedik başarı');
+    expect(sonuc.error.code).toBe('VALIDATION_ERROR');
+    expect(sonuc.error.fields?.content).toContain('Expected a closing tag');
+
+    // ⚠️ ASIL ÖLÇÜM: veritabanına hiç gidilmedi ve denetim kaydı yazılmadı.
+    expect(svc.createPost).not.toHaveBeenCalled();
+    expect(auditCreate).not.toHaveBeenCalled();
+    expect(revalidateTag).not.toHaveBeenCalled();
+  });
+
+  it('updatePostAction: geçersiz MDX → VALIDATION_ERROR, servise gitmiyor', async () => {
+    svc.findPostSnapshot.mockResolvedValue({
+      id: ID,
+      locale: 'tr',
+      slug: 'y',
+      title: 'T',
+      status: 'DRAFT',
+      readingMinutes: 1,
+      publishedAt: null,
+    });
+
+    const { updatePostAction } = await import('@/server/actions/post');
+    const sonuc = await updatePostAction({ id: ID, content: GECERSIZ_MDX });
+
+    expect(sonuc.ok).toBe(false);
+    expect(svc.updatePost).not.toHaveBeenCalled();
+  });
+
+  it('createProjectAction: geçersiz MDX → VALIDATION_ERROR, servise gitmiyor', async () => {
+    const { createProjectAction } = await import('@/server/actions/project');
+    const sonuc = await createProjectAction({ ...PROJE, content: GECERSIZ_MDX });
+
+    expect(sonuc.ok).toBe(false);
+    if (sonuc.ok) throw new Error('beklenmedik başarı');
+    expect(sonuc.error.fields?.content).toBeTruthy();
+    expect(svc.createProject).not.toHaveBeenCalled();
+  });
+
+  it('updateProjectAction: geçersiz MDX → servise gitmiyor', async () => {
+    svc.findProjectSnapshot.mockResolvedValue({
+      id: ID,
+      locale: 'tr',
+      slug: 'p',
+      title: 'P',
+      status: 'DRAFT',
+      featured: false,
+      order: 0,
+      publishedAt: null,
+    });
+
+    const { updateProjectAction } = await import('@/server/actions/project');
+    expect((await updateProjectAction({ id: ID, content: GECERSIZ_MDX })).ok).toBe(false);
+    expect(svc.updateProject).not.toHaveBeenCalled();
+  });
+
+  it('GEÇERLİ MDX akışı engellemiyor', async () => {
+    svc.createPost.mockResolvedValue({
+      id: ID,
+      locale: 'tr',
+      slug: 'yazi',
+      status: 'DRAFT',
+      publishedAt: null,
+    });
+
+    const { createPostAction } = await import('@/server/actions/post');
+    const sonuc = await createPostAction({ ...YAZI, content: '# Başlık\n\nMetin.' });
+
+    expect(sonuc.ok).toBe(true);
+    expect(svc.createPost).toHaveBeenCalledOnce();
+  });
+
+  it('`<script>` içeren GEÇERLİ MDX kaydedilebiliyor — sanitize render’da temizler', async () => {
+    svc.createPost.mockResolvedValue({
+      id: ID,
+      locale: 'tr',
+      slug: 'yazi',
+      status: 'DRAFT',
+      publishedAt: null,
+    });
+
+    const { createPostAction } = await import('@/server/actions/post');
+    const sonuc = await createPostAction({
+      ...YAZI,
+      content: '# A\n\n<script>alert(1)</script>\n',
+    });
+
+    // Kaydetmeyi engellemek AYRI bir karardı ve verilmedi.
+    expect(sonuc.ok).toBe(true);
+  });
+
+  it('KISMİ güncellemede content yoksa kapı HİÇ koşmuyor', async () => {
+    svc.findPostSnapshot.mockResolvedValue({
+      id: ID,
+      locale: 'tr',
+      slug: 'y',
+      title: 'Eski',
+      status: 'DRAFT',
+      readingMinutes: 1,
+      publishedAt: null,
+    });
+    svc.updatePost.mockResolvedValue({
+      id: ID,
+      locale: 'tr',
+      slug: 'y',
+      status: 'DRAFT',
+      publishedAt: null,
+    });
+
+    const { updatePostAction } = await import('@/server/actions/post');
+    // Yalnızca başlık düzeltiliyor; derleme maliyeti ödenmemeli.
+    expect((await updatePostAction({ id: ID, title: 'Yeni' })).ok).toBe(true);
+    expect(svc.updatePost).toHaveBeenCalledOnce();
+  });
+});
+
+/* ===========================================================================
+ * T-050/3 — YABANCI ANAHTAR (P2003): var olmayan eklenti kimliği
+ *
+ * `avatarAttachmentId`/`cvAttachmentId` (profil) ve `coverAttachmentId`
+ * (proje + blog) GİZLİ FORM ALANLARINDAN geliyor ve şema yalnızca BİÇİMİ
+ * doğruluyor (`cuidSchema`) — VARLIĞI doğrulamıyor. Var olmayan bir kimlik
+ * gönderilirse kapı veritabanındaki FK kısıtı oluyor.
+ *
+ * ÖLÇÜLEN KUSUR: P2003 için dal yoktu, `internalError`a düşüyordu ve kullanıcı
+ * "Lütfen tekrar deneyin" görüyordu — tekrar denemek ASLA çalışmaz ve hatanın
+ * dosyayla ilgili olduğuna dair hiçbir ipucu yok.
+ * ======================================================================== */
+
+describe('T-050/3 — eklenti FK hatası anlaşılır dönüyor', () => {
+  /** Prisma çalışma zamanı eşlemesi: `ForeignKeyConstraintViolation → P2003`. */
+  const fkHatasi = () =>
+    Object.assign(new Error('Foreign key constraint failed on the field'), {
+      code: 'P2003',
+      meta: { field_name: 'post_coverAttachmentId_fkey (index)' },
+    });
+
+  const YAZI = { locale: 'tr', slug: 'y', title: 'T', excerpt: 'E', content: '# İçerik' };
+
+  it('post: P2003 → VALIDATION_ERROR, INTERNAL_ERROR DEĞİL', async () => {
+    svc.createPost.mockRejectedValue(fkHatasi());
+
+    const { createPostAction } = await import('@/server/actions/post');
+    const sonuc = await createPostAction({
+      ...YAZI,
+      coverAttachmentId: 'clxYOK0000000000000000001',
+    });
+
+    expect(sonuc.ok).toBe(false);
+    if (sonuc.ok) throw new Error('beklenmedik başarı');
+    expect(sonuc.error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('mesaj SEBEBİ ve YAPILACAĞI söylüyor — "tekrar deneyin" demiyor', async () => {
+    svc.createPost.mockRejectedValue(fkHatasi());
+
+    const { createPostAction } = await import('@/server/actions/post');
+    const sonuc = await createPostAction({
+      ...YAZI,
+      coverAttachmentId: 'clxYOK0000000000000000001',
+    });
+
+    if (sonuc.ok) throw new Error('beklenmedik başarı');
+    expect(sonuc.error.message).toContain('Seçilen dosya bulunamadı');
+    expect(sonuc.error.message).toContain('yeniden seçip');
+    // Eski davranışın metni: tekrar denemek bu hatada ASLA çalışmaz.
+    expect(sonuc.error.message).not.toContain('tekrar deneyin');
+  });
+
+  it('project ve profile de aynı yoldan geçiyor', async () => {
+    const { createProjectAction } = await import('@/server/actions/project');
+    svc.createProject.mockRejectedValue(fkHatasi());
+    const proje = await createProjectAction({
+      locale: 'tr',
+      slug: 'p',
+      title: 'T',
+      summary: 'S',
+      content: '# İçerik',
+      coverAttachmentId: 'clxYOK0000000000000000001',
+    });
+    if (proje.ok) throw new Error('beklenmedik başarı');
+    expect(proje.error.code).toBe('VALIDATION_ERROR');
+
+    svc.findProfileSnapshot.mockResolvedValue(null);
+    svc.upsertProfile.mockRejectedValue(fkHatasi());
+    const { saveProfileAction } = await import('@/server/actions/profile');
+    const profil = await saveProfileAction({ avatarAttachmentId: 'clxYOK0000000000000000001' });
+    if (profil.ok) throw new Error('beklenmedik başarı');
+    expect(profil.error.code).toBe('VALIDATION_ERROR');
+  });
+
+  it('`fields` BİLEREK boş — yanlış girdiyi işaretlemek hiç işaretlememekten kötü', async () => {
+    svc.createPost.mockRejectedValue(fkHatasi());
+
+    const { createPostAction } = await import('@/server/actions/post');
+    const sonuc = await createPostAction({
+      ...YAZI,
+      coverAttachmentId: 'clxYOK0000000000000000001',
+    });
+
+    if (sonuc.ok) throw new Error('beklenmedik başarı');
+    /*
+     * Prisma'nın `meta.field_name`i KISIT adını taşıyor
+     * (`post_coverAttachmentId_fkey`), form alan adını değil. Profilde iki
+     * eklenti alanı var (`avatar`, `cv`) ve sezgiselle yanlışını göstermek
+     * kullanıcıyı var olmayan bir hataya yönlendirirdi.
+     */
+    expect(sonuc.error.fields).toBeUndefined();
+  });
+
+  it('OTURUM/denetim tarafı etkilenmiyor — kayıt yazılmadı', async () => {
+    svc.createPost.mockRejectedValue(fkHatasi());
+
+    const { createPostAction } = await import('@/server/actions/post');
+    await createPostAction({ ...YAZI, coverAttachmentId: 'clxYOK0000000000000000001' });
+
+    expect(auditCreate).not.toHaveBeenCalled();
+    expect(revalidateTag).not.toHaveBeenCalled();
+  });
+
+  it('P2003 DIŞI hatalar hâlâ INTERNAL_ERROR — dal fazla geniş değil', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    svc.createPost.mockRejectedValue(new Error('beklenmeyen'));
+
+    const { createPostAction } = await import('@/server/actions/post');
+    const sonuc = await createPostAction(YAZI);
+
+    if (sonuc.ok) throw new Error('beklenmedik başarı');
+    expect(sonuc.error.code).toBe('INTERNAL_ERROR');
+  });
+});
+
+/* ===========================================================================
+ * T-051/B — EKLENTİ REFERANSI: `fields` KESİN ALAN ADIYLA DOLU
+ *
+ * T-050'de `fields` boş bırakılmıştı ve gerekçem "kısıt adından alan türetmek
+ * sezgiseldir" idi. Orkestra Şefi gerçek bir FK ihlali ölçtü ve gerekçeyi
+ * ÇÜRÜTTÜ: kısıt adı alan adını içeriyor ve ayrıştırması mekanik.
+ *
+ * Ama kabuk `meta.driverAdapterError.cause.constraint.index` altında, İÇ İÇE ve
+ * BELGELENMEMİŞ. Bu yüzden kabuğu ayrıştırmak yerine varlık kontrolü YAZMADAN
+ * ÖNCEYE taşındı: alan adı artık kendi sorgumuzdan geliyor, kesin.
+ * ======================================================================== */
+
+describe('T-051/B — eksik eklenti KESİN alanı işaretliyor', () => {
+  const YAZI = { locale: 'tr', slug: 'y', title: 'T', excerpt: 'E', content: '# İçerik' };
+  const YOK = 'clxYOK0000000000000000001';
+
+  /** Sorulan kimliklerden `mevcut` olmayanlar bulunamamış sayılır. */
+  function eklentiler(mevcut: string[]) {
+    attachmentFindMany.mockImplementation((args: { where: { id: { in: string[] } } }) =>
+      Promise.resolve(args.where.id.in.filter((id) => mevcut.includes(id)).map((id) => ({ id }))),
+    );
+  }
+
+  it('post: eksik kapak → fields.coverAttachmentId', async () => {
+    eklentiler([]);
+    const { createPostAction } = await import('@/server/actions/post');
+    const sonuc = await createPostAction({ ...YAZI, coverAttachmentId: YOK });
+
+    expect(sonuc.ok).toBe(false);
+    if (sonuc.ok) throw new Error('beklenmedik başarı');
+    expect(sonuc.error.code).toBe('VALIDATION_ERROR');
+    expect(sonuc.error.fields?.coverAttachmentId).toBeTruthy();
+  });
+
+  it('YAZMA HİÇ DENENMİYOR — kapı yazmadan önce', async () => {
+    eklentiler([]);
+    const { createPostAction } = await import('@/server/actions/post');
+    await createPostAction({ ...YAZI, coverAttachmentId: YOK });
+
+    // Eskiden FK hatası yazma denemesinden SONRA geliyordu.
+    expect(svc.createPost).not.toHaveBeenCalled();
+    expect(auditCreate).not.toHaveBeenCalled();
+  });
+
+  /**
+   * ⚠️ ASIL KAZANÇ BURADA. Profilde İKİ eklenti alanı var ve genel mesaj
+   * hangisinin bozuk olduğunu söyleyemiyordu. Artık söylüyor — ve YALNIZCA
+   * bozuk olanı işaretliyor.
+   */
+  it('profile: SADECE bozuk alan işaretleniyor (avatar eksik, cv sağlam)', async () => {
+    eklentiler(['ek_cv']);
+    svc.findProfileSnapshot.mockResolvedValue(null);
+
+    const { saveProfileAction } = await import('@/server/actions/profile');
+    const sonuc = await saveProfileAction({
+      avatarAttachmentId: YOK,
+      cvAttachmentId: 'ek_cv',
+    });
+
+    if (sonuc.ok) throw new Error('beklenmedik başarı');
+    expect(sonuc.error.fields?.avatarAttachmentId).toBeTruthy();
+    // Sağlam alan İŞARETLENMİYOR — yanlış alanı göstermek hiç göstermemekten kötü.
+    expect(sonuc.error.fields?.cvAttachmentId).toBeUndefined();
+    expect(svc.upsertProfile).not.toHaveBeenCalled();
+  });
+
+  it('profile: İKİSİ de eksikse ikisi de işaretleniyor', async () => {
+    eklentiler([]);
+    svc.findProfileSnapshot.mockResolvedValue(null);
+
+    const { saveProfileAction } = await import('@/server/actions/profile');
+    const sonuc = await saveProfileAction({
+      avatarAttachmentId: YOK,
+      cvAttachmentId: 'clxYOK0000000000000000002',
+    });
+
+    if (sonuc.ok) throw new Error('beklenmedik başarı');
+    expect(Object.keys(sonuc.error.fields ?? {}).sort()).toEqual([
+      'avatarAttachmentId',
+      'cvAttachmentId',
+    ]);
+  });
+
+  it('project: eksik kapak → fields.coverAttachmentId, yazma yok', async () => {
+    eklentiler([]);
+    const { createProjectAction } = await import('@/server/actions/project');
+    const sonuc = await createProjectAction({
+      locale: 'tr',
+      slug: 'p',
+      title: 'T',
+      summary: 'S',
+      content: '# İçerik',
+      coverAttachmentId: YOK,
+    });
+
+    if (sonuc.ok) throw new Error('beklenmedik başarı');
+    expect(sonuc.error.fields?.coverAttachmentId).toBeTruthy();
+    expect(svc.createProject).not.toHaveBeenCalled();
+  });
+
+  it('GEÇERLİ kimlik akışı engellemiyor', async () => {
+    eklentiler(['ek_var']);
+    svc.createPost.mockResolvedValue({
+      id: ID,
+      locale: 'tr',
+      slug: 'y',
+      status: 'DRAFT',
+      publishedAt: null,
+    });
+
+    const { createPostAction } = await import('@/server/actions/post');
+    expect((await createPostAction({ ...YAZI, coverAttachmentId: 'ek_var' })).ok).toBe(true);
+  });
+
+  it('eklenti GÖNDERİLMEMİŞSE sorgu HİÇ açılmıyor — en sık durum bedava', async () => {
+    svc.createPost.mockResolvedValue({
+      id: ID,
+      locale: 'tr',
+      slug: 'y',
+      status: 'DRAFT',
+      publishedAt: null,
+    });
+
+    const { createPostAction } = await import('@/server/actions/post');
+    expect((await createPostAction(YAZI)).ok).toBe(true);
+    expect(attachmentFindMany).not.toHaveBeenCalled();
+  });
+
+  it('KISMİ güncellemede eklenti yoksa kapı koşmuyor', async () => {
+    svc.findPostSnapshot.mockResolvedValue({
+      id: ID,
+      locale: 'tr',
+      slug: 'y',
+      title: 'Eski',
+      status: 'DRAFT',
+      readingMinutes: 1,
+      publishedAt: null,
+    });
+    svc.updatePost.mockResolvedValue({
+      id: ID,
+      locale: 'tr',
+      slug: 'y',
+      status: 'DRAFT',
+      publishedAt: null,
+    });
+
+    const { updatePostAction } = await import('@/server/actions/post');
+    expect((await updatePostAction({ id: ID, title: 'Yeni' })).ok).toBe(true);
+    expect(attachmentFindMany).not.toHaveBeenCalled();
+  });
+
+  it('P2003 HÂLÂ ele alınıyor — yarış koruması duruyor', async () => {
+    // Dosya kontrol ile yazma arasında silinirse FK yine tetiklenir; o durumda
+    // `fields` boş olmak DOĞRU, kullanıcının düzeltebileceği alan yok.
+    eklentiler(['ek_var']);
+    svc.createPost.mockRejectedValue(
+      Object.assign(new Error('FK'), {
+        code: 'P2003',
+        meta: {
+          modelName: 'Post',
+          driverAdapterError: {
+            cause: {
+              originalCode: '23503',
+              kind: 'ForeignKeyConstraintViolation',
+              constraint: { index: 'post_coverAttachmentId_fkey' },
+            },
+          },
+        },
+      }),
+    );
+
+    const { createPostAction } = await import('@/server/actions/post');
+    const sonuc = await createPostAction({ ...YAZI, coverAttachmentId: 'ek_var' });
+
+    if (sonuc.ok) throw new Error('beklenmedik başarı');
+    expect(sonuc.error.code).toBe('VALIDATION_ERROR');
+    expect(sonuc.error.message).toContain('Seçilen dosya bulunamadı');
+    expect(sonuc.error.fields).toBeUndefined();
   });
 });

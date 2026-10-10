@@ -66,7 +66,28 @@ const SECRET_VALUE_PATTERNS: ReadonlyArray<{ label: string; test: RegExp }> = [
   { label: 'argon2/bcrypt hash', test: /\$(?:argon2[id]{1,2}|2[aby])\$/ },
   {
     label: 'kimlik bilgisi içeren bağlantı dizesi',
-    test: /\b[a-z][a-z0-9+.-]*:\/\/[^/\s:@]+:[^/\s@]+@/i,
+    /*
+     * ⚠️ KARAKTER SINIFLARI `"`, `{`, `}` ve `,` İÇERMEZ — T-049g'de daraltıldı.
+     *
+     * Eski hâl (`[^/\s:@]+:[^/\s@]+@`) bu karakterleri KABUL ediyordu ve
+     * küçültülmüş derleme çıktısında İKİ AYRI YER TUTUCUYU köprüleyerek sahte
+     * pozitif üretiyordu (Frontend'in bulgusu, `profil-formu.tsx`):
+     *
+     *   ipucu:"https://ornek.com"},{anahtar:"email",…,ipucu:"ad@
+     *   └─ şema ─┘└──── "kullanıcı" ────┘└ : ┘└─ "parola" ─┘└ @ ┘
+     *
+     * Yani desen, bir URL yer tutucusunun sonundan başka bir nesnenin
+     * `anahtar:` iki noktasına atlayıp sonraki yer tutucunun `@`sine
+     * bağlanıyordu. Gerçek bir kimlik bilgisi değil — JSON/JS sözdizimi.
+     *
+     * Bu dört karakter gerçek bir `userinfo` bileşeninde GEÇEMEZ: RFC 3986
+     * `userinfo`da izinli küme `unreserved / pct-encoded / sub-delims / ":"`
+     * ve `"` ile `{`/`}` o kümede yok; `,` bir sub-delim ama parola/kullanıcı
+     * adında geçtiğinde zaten yüzde kodlanmış olur. Yani daraltma, yakalanan
+     * GERÇEK biçimlerden hiçbirini kaybetmiyor — aşağıdaki blok bunu
+     * mutasyonla doğruluyor.
+     */
+    test: /\b[a-z][a-z0-9+.-]*:\/\/[^/\s:@"{},]+:[^/\s@"{},]+@/i,
   },
 ];
 
@@ -193,6 +214,90 @@ describe('§8.18 dedektörü — ekili sırları yakalıyor mu', () => {
 // ---------------------------------------------------------------------------
 // 2. `.env.example` taraması
 // ---------------------------------------------------------------------------
+
+/* ===========================================================================
+ * 1b. BAĞLANTI DİZESİ DESENİ — daraltma hem KORUYOR hem SAHTE POZİTİF ÜRETMİYOR
+ *
+ * T-049g. Desen küçültülmüş derleme çıktısında iki ayrı yer tutucuyu
+ * köprüleyip §8.18 kapısını haksız yere kırmızıya çeviriyordu (Frontend'in
+ * bulgusu). Daraltma `"`, `{`, `}` ve `,` karakterlerini `userinfo`
+ * bileşeninden çıkarıyor.
+ *
+ * Bu blok daraltmanın İKİ YÖNÜNÜ birden sınıyor ve ikisi de gerekli:
+ *   - GERÇEK kimlik bilgisi biçimleri hâlâ yakalanıyor mu (daraltma fazla mı
+ *     kesti?)
+ *   - Köprü şekli artık eşleşmiyor mu (daraltma yetti mi?)
+ *
+ * Yalnızca ikincisini yazmak, deseni tamamen SİLEN bir değişikliği de yeşil
+ * bırakırdı — negatif iddialar tek başına hiçbir şey korumaz.
+ * ======================================================================== */
+
+describe('§8.18 — bağlantı dizesi deseni (T-049g daraltması)', () => {
+  /** Gerçek sızıntı biçimleri — hepsi YAKALANMALI. */
+  const GERCEK_SIZINTILAR: ReadonlyArray<readonly [string, string]> = [
+    ['postgres (DATABASE_URL biçimi)', 'postgresql://aelaldi:sup3rgizli@db.ornek.com:5432/aelaldi'],
+    ['postgres kısa şema', 'postgres://kullanici:p4rola@127.0.0.1:5432/db'],
+    ['https userinfo', 'https://kullanici:parola@ornek.com/panel'],
+    ['mysql', 'mysql://root:toor@localhost:3306/app'],
+    ['redis', 'redis://default:gizlianahtar@redis.ornek.com:6379'],
+    ['mongodb+srv', 'mongodb+srv://admin:sifre123@kume.mongodb.net/veri'],
+    ['amqp', 'amqp://tavsan:parola@rabbit.ornek.com:5672'],
+  ];
+
+  for (const [ad, deger] of GERCEK_SIZINTILAR) {
+    it(`YAKALAR: ${ad}`, () => {
+      const gerekce = degerSirImzasiTasiyorMu(deger);
+
+      expect(gerekce, `${ad} yakalanmadı — daraltma fazla kesmiş`).not.toBeNull();
+      // Doğru DESENİN yakaladığı da doğrulanıyor: başka bir imza (ör. JWT)
+      // tesadüfen tutarsa daraltmanın kendisi sınanmamış olurdu.
+      expect(gerekce).toContain('bağlantı dizesi');
+    });
+  }
+
+  /**
+   * KÜÇÜLTÜLMÜŞ ÇIKTI ŞEKLİ — eşleşMEMELİ.
+   *
+   * `profil-formu.tsx`teki `SOSYAL_ALANLAR` dizisi küçültüldüğünde bir URL yer
+   * tutucusunun ardından başka bir nesnenin `anahtar:`ı ve sonraki yer
+   * tutucunun `@`si yan yana geliyor. Aşağıdaki iki dize o çıktının birebir
+   * şekli — biri Frontend'in GEÇİCİ kaçınmasıyla (email başta), biri
+   * kaçınma OLMADAN (website sonda, yani sorunu üreten sıra).
+   */
+  const KOPRU_SEKILLERI: ReadonlyArray<readonly [string, string]> = [
+    [
+      'website SONDA (kaçınma olmadan — sorunu üreten sıra)',
+      '[{anahtar:"github",tur:"url",ipucu:"https://github.com/kullanici"},{anahtar:"website",tur:"url",ipucu:"https://ornek.com"},{anahtar:"email",etiket:"E-posta",tur:"email",ipucu:"ad@ornek.com"}]',
+    ],
+    [
+      "email BAŞTA (Frontend'in geçici kaçınması)",
+      '[{anahtar:"email",tur:"email",ipucu:"ad@ornek.com"},{anahtar:"website",tur:"url",ipucu:"https://ornek.com"}]',
+    ],
+  ];
+
+  for (const [ad, deger] of KOPRU_SEKILLERI) {
+    it(`SAHTE POZİTİF ÜRETMEZ: ${ad}`, () => {
+      expect(
+        degerSirImzasiTasiyorMu(deger),
+        'küçültülmüş yer tutucu dizisi kimlik bilgisi sanıldı',
+      ).toBeNull();
+    });
+  }
+
+  /**
+   * ALAN SIRASI KAÇINMASI ARTIK GEREKSİZ — bu testin asıl söylediği şey.
+   *
+   * Yukarıdaki iki şeklin İKİSİ de temiz. Yani `profil-formu.tsx`teki
+   * "`email` bilerek en başta" kaçınması kaldırılabilir: kapı artık sıraya
+   * bakmaksızın sessiz. Gereksiz bir kaçınmayı bırakmak, yarın "bu sıra neden
+   * böyle" sorusuna ve yanlış bir cevaba dönüşürdü.
+   */
+  it('iki alan sırası da temiz — kaçınmaya gerek kalmadı', () => {
+    const sonuclar = KOPRU_SEKILLERI.map(([, deger]) => degerSirImzasiTasiyorMu(deger));
+
+    expect(sonuclar).toEqual([null, null]);
+  });
+});
 
 describe('§8.18 — .env.example', () => {
   const ornekYolu = path.join(PROJECT_ROOT, '.env.example');

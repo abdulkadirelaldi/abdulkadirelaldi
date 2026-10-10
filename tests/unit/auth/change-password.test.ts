@@ -32,15 +32,21 @@ async function kullanici(
     totpSecret: null,
     totpConfirmedAt: null,
     totpBackupCodes: [],
+    writesValidFrom: null,
     ...ustunde,
   };
 }
 
-function istemci(kayit: ChangePasswordUserRecord | null) {
+/** `basarisizSayisi` — hız sınırı sayacının döneceği değer (T-046/3a). */
+function istemci(kayit: ChangePasswordUserRecord | null, basarisizSayisi = 0) {
   const findUnique = vi.fn().mockResolvedValue(kayit);
   const update = vi.fn().mockResolvedValue({});
-  const client: ChangePasswordClient = { user: { findUnique, update } };
-  return { client, findUnique, update };
+  const auditCount = vi.fn().mockResolvedValue(basarisizSayisi);
+  const client: ChangePasswordClient = {
+    user: { findUnique, update },
+    auditLog: { count: auditCount },
+  };
+  return { client, findUnique, update, auditCount };
 }
 
 /** Şemadan geçmiş girdi — action'ın servise verdiği şeklin aynısı. */
@@ -145,11 +151,20 @@ describe('changePassword — doğru akış', () => {
     await expect(verifyPassword(data.passwordHash, MEVCUT)).resolves.toBe(false);
   });
 
-  it('YALNIZCA passwordHash yazılıyor — başka alana dokunulmuyor', async () => {
+  /**
+   * DEĞİŞTİ (T-046/ADR-035/B): artık `writesValidFrom` damgası da AYNI
+   * `update` içinde yazılıyor. Ayrı iki yazma olsaydı araya düşen bir hata
+   * şifreyi değiştirip damgayı atlayabilirdi — kullanıcı değiştirdim sanır,
+   * çalınmış oturum yazmaya devam ederdi.
+   */
+  it('passwordHash VE writesValidFrom yazılıyor — başka alana dokunulmuyor', async () => {
     const { client, update } = istemci(await kullanici());
     await changePassword(KULLANICI_ID, girdi(), client);
 
-    expect(Object.keys(update.mock.calls[0]?.[0].data as object)).toEqual(['passwordHash']);
+    expect(Object.keys(update.mock.calls[0]?.[0].data as object).sort()).toEqual([
+      'passwordHash',
+      'writesValidFrom',
+    ]);
   });
 
   it('kullanıcı `id` ile aranıyor — oturumdaki kimlik', async () => {
@@ -269,10 +284,10 @@ describe('changePassword — 2FA', () => {
     const sonuc = await changePassword(KULLANICI_ID, girdi({ totpCode: KURTARMA }), client);
 
     expect(sonuc).toEqual({ ok: true });
-    // İki yazma: kurtarma kodu tüketimi + yeni şifre hash'i.
-    const yazilanlar = update.mock.calls.map((c) => Object.keys(c[0].data as object));
+    // İki yazma: kurtarma kodu tüketimi + (yeni şifre hash'i & ADR-035 damgası).
+    const yazilanlar = update.mock.calls.map((c) => Object.keys(c[0].data as object).sort());
     expect(yazilanlar).toContainEqual(['totpBackupCodes']);
-    expect(yazilanlar).toContainEqual(['passwordHash']);
+    expect(yazilanlar).toContainEqual(['passwordHash', 'writesValidFrom']);
   });
 
   it('KURTARMA KODU TÜKETİLİYOR — kalıcı arka kapı olmuyor', async () => {

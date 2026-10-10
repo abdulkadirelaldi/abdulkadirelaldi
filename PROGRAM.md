@@ -226,7 +226,17 @@ kartlarında da geçerli: çalışıyormuş gibi görünen hiçbir beyan bırak�
 /panel/icerik/deneyim     Deneyim/eğitim CRUD
 /panel/mesajlar           İletişim formu kutusu → "işe dönüştür" aksiyonu
 /panel/ayarlar            Şifre, 2FA, tema, yedek durumu, denetim kaydı
+/panel/ayarlar/guvenlik   2FA kurulumu, QR, kurtarma kodları (T-018/T-036)
+/panel/ayarlar/denetim    Denetim kaydı listesi (T-052)
+/panel/desenler           Panel desen galerisi — T-032'de kuruldu, kabul edildi
 ```
+
+> **`/panel/desenler` neden listede:** T-032'nin kurduğu altı deseni (veri tablosu,
+> form kabuğu, boş/yükleniyor/hata durumları) tek yerde gösteriyor. Panel içi, `noindex`,
+> ziyaretçiye kapalı. Buraya **sonradan** yazıldı (F3 kabul kontrolü, 2026-10-09) —
+> rotayı §4.2'ye yazmadan kabul etmek, sonraki okuyucuya sapma gibi görünürdü.
+> §4.1'in "bir rota, yayına girdiği turda sitemap'e eklenir" kuralının panel karşılığı:
+> **bir panel rotası, kabul edildiği turda §4.2'ye eklenir.**
 
 ### 4.3 Klasör Yapısı
 
@@ -450,7 +460,10 @@ Bunlar "iyi olur" değil, **kabul şartıdır**. Güvenlik ajanı bunları madde
    2FA'yı açık üretmesi teknik olarak mümkün ama secret'ı kimse bilmediği için kilitlenme
    üretirdi. Zorunluluk kurulum anına taşındı, gevşetilmedi.)*
 2. argon2id ile şifre hash'i, memory ≥ 19MB, iterations ≥ 2
-3. Oturum çerezleri: `httpOnly`, `secure`, `sameSite: lax`, 7 gün
+3. Oturum çerezleri: `httpOnly`, `secure`, `sameSite: lax`, **24 saat** (ADR-035/A —
+   7 günden indirildi; şifre değiştirmek ele geçirilmiş bir oturumu kapatamadığı için
+   maruziyet penceresi tek sabitle %85 daraltıldı. Çerez `maxAge` ve JWT `exp` tek
+   sabitten gelir; biri güncellenip diğeri kalırsa tutarsız ömür çıkar.)
 4. Giriş denemesi: IP başına 15 dakikada 5; aşımda 15 dk kilit + log
 
 **Erişim kontrolü**
@@ -525,6 +538,15 @@ SEO ≥ 95 (public sayfalar).
 | **Frontend** | `src/app/(public)/**`, `src/app/(panel)/**`, `src/app/(auth)/**`, `src/app/layout.tsx`, `src/components/**`, `src/app/globals.css`, `public/**` | Kod |
 | **Güvenlik & Test** | `tests/**`, `src/middleware.ts`, `src/lib/security/**`, `docs/security/**`, `.github/**`, `.nvmrc`, `vitest.config.ts`, `playwright.config.ts`, `lighthouserc.json` | Kod + rapor |
 
+> **§10.1'in tek istisnası — ADR-036.** `tests/unit/rota-kapsami.test.ts` içindeki
+> **`KAPSAM` haritasına satır eklemek, rotayı ekleyen ajanın** işidir; dosyanın geri
+> kalanı (kapı mantığı, türetme, iddialar) Güvenlik'in kalır. Gerekçe: beyanı —
+> *hangi kapı dokunuyor, kanıtı ne, ne ölçülmüyor* — yalnızca rotayı yazan dürüstçe
+> doldurabilir; transkribe eden doğruluğunu sınayamaz. Rota ekleyen ajan beyanını
+> **aynı turda** yazar, yani kapı o turun sonunda yeşil olur. "Kapsanmıyor" gerekçesiyle
+> geçerli bir beyandır. Güvenlik beyanları **denetler**, yazmaz. İstisna bu tek veri
+> yapısıyla sınırlıdır; genişletilmesi yeni bir ADR gerektirir.
+
 **Sınır kuralı:** Bir ajan başkasının dosyasını değiştirmez. İhtiyaç varsa Orkestra
 Şefi'ne **değişiklik talebi** açar, o da ilgili ajana görev yazar. Bu kural projenin
 tutarlılığını koruyan tek mekanizmadır, esnetilmez.
@@ -562,6 +584,29 @@ Orkestra Şefi → STATUS.md'yi günceller, bir sonraki promptu üretir
 - [ ] Ölçülebilir madde
 **Test:** Hangi testler yazılacak/geçmeli
 ```
+
+> **Kart yazım kuralı — Orkestra Şefi için, üç kez ihlal edildikten sonra yazıldı.**
+> **Kapsam dışı satırı, kartın maddelerine karşı tek tek kontrol edilir.**
+>
+> Üç kez aynı hatayı yaptım: kapsam dışı satırına geniş bir yasak yazdım ve
+> maddelerden biri o yasağı ihlal eden bir iş istedi.
+>
+> | Tur | Çelişki |
+> |-----|---------|
+> | T-029c/T2 | "gerçek koşu numarası" istendi, aynı kartta push yasaklandı |
+> | T-048g | "`src/**` → hiçbiri" yazıldı, madde 2 `src/middleware.ts` istedi |
+> | T-053 | "`tests/**` → Güvenlik'in" yazıldı, T-052 `tests/unit/`'i Backend'e verdi |
+>
+> Üçünde de ajan **doğru davrandı**: ikisi yasağa uydu ve çelişkiyi bildirdi, biri
+> daha açık olan maddeye uyup bildirdi. Yani kural zarar görmedi — ama her seferinde
+> bir ajanın turunun bir kısmı benim dikkatsizliğime gitti.
+>
+> Kart yazılıp bitince **son adım**: kapsam dışı satırındaki her yasağı oku, kartın
+> her maddesine bak, çakışma var mı diye sor. Çakışma varsa **yasağı daralt** —
+> maddeyi değil, çünkü madde işin kendisi.
+>
+> İki karttan oluşan bir tur yazılıyorsa (T-052 + T-053 gibi), **ikisinin kapsam
+> satırları birlikte** okunur: ayrı ayrı tutarlı olmaları yetmiyor.
 
 ### 10.4 Ajan Rapor Formatı (zorunlu)
 

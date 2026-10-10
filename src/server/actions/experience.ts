@@ -133,7 +133,19 @@ export async function deleteExperienceAction(raw: unknown): Promise<ApiResponse<
         action: 'DELETE',
         entity: 'Experience',
         entityId: dto.id,
-        diff: { deleted: before },
+        /* BULGU-019 — alanlar tek tek sayılıyor; gerekçe `skill.ts`'te. */
+        diff: {
+          deleted: {
+            organization: before.organization,
+            role: before.role,
+            type: before.type,
+            startDate: before.startDate,
+            endDate: before.endDate,
+            current: before.current,
+            locale: before.locale,
+            order: before.order,
+          },
+        },
       },
       db,
     );
