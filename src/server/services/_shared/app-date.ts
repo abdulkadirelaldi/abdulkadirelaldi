@@ -100,6 +100,108 @@ export function differenceInAppDays(from: AppDay, to: AppDay): number {
 }
 
 /* ===========================================================================
+ * GÜN → AN SINIRLARI — `DateTime` sütunlarını GÜNE göre süzmek için (T-052)
+ *
+ * ⚠️ `appDayToDate` BURADA KULLANILAMAZ ve sebebi ölçüldü.
+ *
+ * O fonksiyon `@db.Date` sütunları için UTC gece yarısı üretiyor ve orada
+ * DOĞRU: sütun saat saklamıyor, UTC seçmek determinizm veriyor. Ama
+ * `AuditLog.createdAt` bir `DateTime` — gerçek bir an. Aynı değeri sınır olarak
+ * kullanmak §4.2 denetim ekranında şu kusuru verir (ölçüldü, 2026-10-10):
+ *
+ *   appDayToDate('2026-10-10') = 2026-10-10T00:00:00Z
+ *                              = Istanbul'da 2026-10-10 **03:00**
+ *
+ *   Istanbul'da 10 Ekim 01:30'da yazılmış satır → 2026-10-09T21:30:00Z
+ *     naif sınır (>= UTC gece yarısı) ile  → DIŞARIDA KALIYOR
+ *     doğru sınır ile                      → içeride
+ *
+ * Yani "10 Ekim'den itibaren" filtresi o günün ilk ÜÇ SAATİNİ sessizce
+ * düşürüyordu. Gece yapılan bir panel değişikliği denetim ekranında HİÇ
+ * GÖRÜNMEZDİ — ve bu dosyanın başındaki uyarının tam olarak aynı sınıfı,
+ * yalnızca ters yönde. Sessiz olduğu için en pahalı sınıftan: filtre çalışıyor
+ * görünür, yalnızca eksik küme döndürür.
+ *
+ * Elle `-3 saat` yazmak reddedildi (bu dosyanın başındaki gerekçe): ofset
+ * ANINDA ÖLÇÜLÜYOR, IANA veritabanından.
+ * ======================================================================== */
+
+const WALL_CLOCK_FORMATTER = new Intl.DateTimeFormat('en-CA', {
+  timeZone: APP_TIME_ZONE,
+  hour12: false,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+});
+
+/**
+ * Verilen ANDA Europe/Istanbul ofseti, milisaniye (UTC+3 → +10_800_000).
+ *
+ * Duvar saati okunup UTC'ymiş gibi yeniden kuruluyor; fark ofsettir. `hour`
+ * bazı çalışma zamanlarında `24` dönebiliyor (gece yarısı) — `0`a indiriliyor,
+ * yoksa gün bir ileri kayardı.
+ */
+function zoneOffsetMs(instant: Date): number {
+  const parts = Object.fromEntries(
+    WALL_CLOCK_FORMATTER.formatToParts(instant).map((part) => [part.type, part.value]),
+  );
+  const hour = Number(parts.hour) % 24;
+
+  const asIfUtc = Date.UTC(
+    Number(parts.year),
+    Number(parts.month) - 1,
+    Number(parts.day),
+    hour,
+    Number(parts.minute),
+    Number(parts.second),
+  );
+
+  return asIfUtc - instant.getTime();
+}
+
+/**
+ * `YYYY-MM-DD` → o günün Europe/Istanbul'daki İLK ANI (yerel 00:00:00.000).
+ *
+ * BİLİNEN SINIR: ofset, UTC gece yarısındaki andan ölçülüyor. Yerel gece yarısı
+ * ile UTC gece yarısı FARKLI ofsetlere düşerse (yaz saati geçişi tam o aralıkta
+ * olursa) sonuç bir saat kayardı. Türkiye 2016'dan beri sabit UTC+3 ve geçiş
+ * yok — ölçüldü: 2026-01, 2026-07 ve 2015-07 için ofset üçünde de +3 saat.
+ * §1.2 tek zaman dilimi sabitliyor; çok dilimli bir ihtiyaç doğarsa burada
+ * ikinci bir ölçüm turu gerekir.
+ */
+export function appDayStartInstant(day: AppDay): Date {
+  const utcMidnight = appDayToDate(day);
+  return new Date(utcMidnight.getTime() - zoneOffsetMs(utcMidnight));
+}
+
+/**
+ * Gün aralığını Prisma `{ gte, lt }` bloğuna çevirir — `to` DAHİL.
+ *
+ * ÜST SINIR DIŞLAYICI (`lt`) ve bu kasıtlı: `lte` ile "günün sonu" yazmak
+ * `23:59:59.999` gibi bir uydurma gerektirir ve o değer milisaniyenin altındaki
+ * bir damgayı dışarıda bırakır. "Ertesi günün ilk anından ÖNCE" sınırı tam
+ * olarak doğru ve uydurma taşımıyor.
+ *
+ * İki uç da opsiyonel; ikisi de yoksa `undefined` döner ve çağıran `where`e
+ * hiçbir şey eklemez — "tarih filtresi verilmedi" ile "hiçbir tarih uymuyor"
+ * karışmasın.
+ */
+export function appDayRangeToInstantFilter(range: {
+  from?: AppDay;
+  to?: AppDay;
+}): { gte?: Date; lt?: Date } | undefined {
+  const filter: { gte?: Date; lt?: Date } = {};
+
+  if (range.from) filter.gte = appDayStartInstant(range.from);
+  if (range.to) filter.lt = appDayStartInstant(addAppDays(range.to, 1));
+
+  return filter.gte || filter.lt ? filter : undefined;
+}
+
+/* ===========================================================================
  * ARALIKLAR — raporlama sorguları bunları kullanır
  * ======================================================================== */
 

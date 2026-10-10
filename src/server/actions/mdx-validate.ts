@@ -1,7 +1,6 @@
 import { compileMDX } from 'next-mdx-remote/rsc';
-import rehypeSanitize, { defaultSchema } from 'rehype-sanitize';
-import remarkGfm from 'remark-gfm';
 
+import { MDX_OPTIONS } from '@/lib/mdx-options';
 import { fail, type ApiFailure } from '@/server/services/_shared';
 
 /**
@@ -50,11 +49,11 @@ import { fail, type ApiFailure } from '@/server/services/_shared';
  * ⚠️ PUBLIC RENDER YOLUYLA AYNI SONUÇ — ÖLÇÜLDÜ
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * `components/public/mdx.tsx` ile AYNI derleyici (`next-mdx-remote/rsc`) ve
- * AYNI eklenti listesi kullanılıyor. Ayrışırlarsa "önizlemede düzgündü ama
- * kaydedilemedi" (ya da tersi) sınıfından bir hata doğar — Frontend bu riski
- * önizlemeyi public bileşene bağlayarak kapattı; kaydetme tarafı da aynı yolu
- * kullanmak zorunda.
+ * `components/public/mdx.tsx` ile AYNI derleyici (`next-mdx-remote/rsc`) ve —
+ * T-053'ten beri — AYNI eklenti NESNESİ kullanılıyor; "aynı liste" değil,
+ * tek bir `MDX_OPTIONS`. Ayrışırlarsa "önizlemede düzgündü ama kaydedilemedi"
+ * (ya da tersi) sınıfından bir hata doğar — Frontend bu riski önizlemeyi public
+ * bileşene bağlayarak kapattı; kaydetme tarafı da aynı yolu kullanmak zorunda.
  *
  * ÖLÇÜLEN DAVRANIŞ (tests/unit/actions/mdx-dogrulama.test.ts):
  *   kapatılmamış <img>, kapatılmamış <div>, bozuk {ifade}  → REDDEDİLİYOR
@@ -71,49 +70,34 @@ import { fail, type ApiFailure } from '@/server/services/_shared';
  * yani render de patlamıyor) — ama kapı "hiçbir 500 kalmadı" diye değil,
  * "ölçülen 500 sınıfı kapandı" diye okunmalı.
  *
- * ⚠️ EKLENTİ LİSTESİ HÂLÂ ÇİFTLENMİŞ — VE NEDEN KALDIRILAMADIĞI ÖLÇÜLDÜ (T-050).
+ * ✅ ÇİFTLENME KALKTI — ÜÇ TURDA, HER ADIMI KENDİ KAPISIYLA (T-053).
  *
- * T-047'de çiftlenme bir BORÇ olarak bırakılmıştı ve kapı testi `mdx.tsx`te
- * `export const MDX_OPTIONS` ARAMIYOR OLDUĞUNU assert ediyordu — ihraç edildiği
- * gün kırılsın diye. Frontend T-049f'te ihracı yaptı, kapı KIRILDI (tasarlandığı
- * gibi) ve çiftlenmeyi kaldırmayı denedim.
+ * Eklenti listesi artık burada TANIMLI DEĞİL: kanonik tanım `@/lib/mdx-options`
+ * ve bu dosya onu İÇE AKTARIYOR. Render yolu (`components/public/mdx.tsx`) da
+ * aynı nesneyi okuyor, yani "önizlemede düzgündü ama kaydedilemedi" sınıfı
+ * artık YAPISAL OLARAK imkânsız — ayrışacak ikinci bir liste yok.
  *
- * KALDIRILAMADI, ve sebebi ölçüm: `MDX_OPTIONS` bir **`.tsx`** modülünde
- * (`components/public/mdx.tsx`). Buradan içe aktarıldığında Vitest'in `unit`
- * projesi bu dosyayı — ve onu içe aktaran DÖRT EYLEMİ — hiç yükleyemiyor:
+ * Kronoloji, çünkü hangi adımın neyi çözdüğü kaybolmasın:
  *
- *   Failed to parse source for import analysis because the content contains
- *   invalid JS syntax … src/components/public/mdx.tsx:80:6
+ *   T-047  liste burada ZORUNLU olarak çiftlendi (`mdx.tsx` ihraç etmiyordu) ve
+ *          borç, ihraç edildiği gün kırılacak bir assert'le bırakıldı.
+ *   T-049f ihraç yapıldı, kapı tasarlandığı gibi kırıldı. Çiftlenmeyi kaldırmayı
+ *          denedim ve ÖLÇÜLEN bir duvara çarptım: `MDX_OPTIONS` bir `.tsx`
+ *          modülündeydi, Vitest'in `unit` projesi (`environment: 'node'`, React
+ *          eklentisi YOK) o dosyayı içe aktaran hiçbir modülü yükleyemiyordu —
+ *          "Failed to parse source for import analysis … mdx.tsx:80:6".
+ *          Üretim sınırı değil, test altyapısı sınırı; ama bağlayıcı.
+ *          Üçüncü bir kopya AÇMADIM; engel bir assert'e bağlandı.
+ *   T-051  Frontend tanımı JSX taşımayan `src/lib/mdx-options.ts`e TAŞIDI
+ *          (çoğaltmadı). Engelin assert'i de tasarlandığı gibi kırıldı.
+ *   T-053  duvar ölçümle kalkmış: kanonik modül `next-mdx-remote/rsc`'i YALNIZCA
+ *          TİP olarak içe aktarıyor, çalışma zamanında yalnızca `rehype-sanitize`
+ *          ve `remark-gfm` yükleniyor — ikisi de düz JS, `unit` projesi yüklüyor.
+ *          Çiftlenme bu turda kaldırıldı.
  *
- * Çünkü `unit` projesi `environment: 'node'` ve React eklentisi YOK (JSX'i
- * yalnızca `component` projesi çözüyor, o da `*.test.tsx` koşuyor).
- *
- * Bu bir ÜRETİM sınırı değil — Next JSX'i her yerde derler. Bir TEST ALTYAPISI
- * sınırı, ama bağlayıcı: `pnpm test` yeşil kalmak zorunda ve dört eylemin
- * birim testi bu modülden geçiyor.
- *
- * ÇÖZÜM, ÇİFTLENMEYİ KALDIRMAK İÇİN: seçenekler `.ts` bir modüle taşınmalı
- * (ör. `src/lib/mdx-options.ts`) ve İKİ taraf da oradan içe aktarmalı.
- * `mdx.tsx` Frontend'in (§10.1), bu yüzden o adım bu turda yapılamadı; rapora
- * bulgu olarak yazıldı. Kendi tarafımda yeni bir tanım AÇMADIM: bugün tek
- * kanonik liste `mdx.tsx`te ve üçüncü bir kopya durumu kötüleştirirdi.
- *
- * O GÜNE KADAR kapı duruyor: `tests/unit/actions/mdx-dogrulama.test.ts`
- * İKİSİNİN EŞLEŞTİĞİNİ kaynaktan doğruluyor, yani sapma sessiz kalamaz.
+ * KAPI ARTIK NEYİ KORUYOR: eşleşme değil, TEKLİK. Gerekçesi testin kendi
+ * başında (`tests/unit/actions/mdx-dogrulama.test.ts`).
  */
-
-/**
- * Public render yolundaki eklenti listesinin AYNISI.
- *
- * Sıra önemli ve `mdx.tsx`ten devralındı: `sanitize` EN SONDA çalışır, yoksa
- * sonraki bir eklentinin ürettiği düğümler denetimden geçmemiş olurdu.
- */
-const MDX_OPTIONS = {
-  mdxOptions: {
-    remarkPlugins: [remarkGfm],
-    rehypePlugins: [[rehypeSanitize, defaultSchema]],
-  },
-} as const;
 
 /**
  * Derleyicinin çok satırlı mesajından YAZARA YARAYAN satırı ayıklar.
@@ -158,10 +142,18 @@ export function mdxErrorReason(error: unknown): string {
  *
  * `fields.content` FORM ALAN ADIYLA birebir: Frontend hatayı doğrudan içerik
  * alanının altına basabilir.
+ *
+ * `options` BİR KAÇIŞ TAŞIMIYOR — T-053'te ölçüldü. T-047'de burada
+ * `MDX_OPTIONS as never` yazıyordu, çünkü yerel tanım `as const` ile
+ * `readonly` diziler üretiyordu ve `SerializeOptions` DEĞİŞTİRİLEBİLİR
+ * `Pluggable[]` istiyor. Kanonik modül tipi `MDXRemoteProps['options']` olarak
+ * beyan ediyor ve `as const` taşımıyor, yani `compileMDX`in beklediği tipin
+ * tam kendisi; kaçış kaldırıldı ve `pnpm typecheck` temiz. Bu önemsiz bir
+ * temizlik değil: `as never` bir tip hatası olsa da susardı.
  */
 export async function mdxCompileFailure(content: string): Promise<ApiFailure | null> {
   try {
-    await compileMDX({ source: content, options: MDX_OPTIONS as never });
+    await compileMDX({ source: content, options: MDX_OPTIONS });
     return null;
   } catch (error) {
     return fail(

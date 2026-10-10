@@ -11,9 +11,10 @@ import { mdxCompileFailure, mdxErrorReason } from '@/server/actions/mdx-validate
  * Ölçülen kusur: geçersiz MDX kaydedilebiliyordu, `/blog/<slug>` 500 veriyordu
  * ve liste + RSS + sitemap o kırık adresi tanıtmaya devam ediyordu.
  *
- * ⚠️ BU DOSYANIN EN ÖNEMLİ BLOĞU "eklenti listesi eşleşiyor" — kapının public
- * render yolundan AYRIŞMASI, bu görevin açıkça uyardığı hata sınıfı
- * ("önizlemede düzgündü ama kaydedilemedi", ya da tersi).
+ * ⚠️ BU DOSYANIN EN ÖNEMLİ BLOĞU EN ALTTAKİ: kapının public render yolundan
+ * AYRIŞMASI, bu görevin açıkça uyardığı hata sınıfı ("önizlemede düzgündü ama
+ * kaydedilemedi", ya da tersi). T-053'te o blok "iki liste eşleşiyor"dan
+ * "liste TEK YERDE tanımlı"ya geçti — gerekçe bloğun kendi başında.
  */
 
 const KOK = resolve(__dirname, '../../..');
@@ -137,25 +138,59 @@ describe('GEÇERLİ MDX kaydedilebiliyor — sanitize render’da temizliyor', (
 
 describe('kapı public render yolundan AYRIŞMIYOR', () => {
   /**
-   * `mdx.tsx` eklenti listesini İHRAÇ ETMİYOR ve o dosya Frontend'in (§10.1),
-   * bu yüzden liste `mdx-validate.ts`te ÇİFTLENMİŞ durumda. Çiftlenme sessizce
-   * sapabilir: Frontend bir eklenti eklerse kapı eski yolu ölçmeye devam eder
-   * ve "önizlemede düzgündü ama kaydedilemedi" (ya da tersi) doğar.
+   * ═════════════════════════════════════════════════════════════════════════
+   * KAPI DEĞİŞTİ — "EŞLEŞME" DEĞİL, "TEKLİK" ÖLÇÜLÜYOR (T-053)
+   * ═════════════════════════════════════════════════════════════════════════
    *
-   * Bu blok iki kaynağı okuyup eşleştiriyor. Kalıcı çözüm listenin tek yerden
-   * ihracı; raporda bulgu olarak açıldı. O gelene kadar kapı burada.
+   * T-053'e kadar bu blok İKİ ÇİFTLENMİŞ LİSTEYİ karşılaştırıyordu: `mdx.tsx`
+   * ve `mdx-validate.ts` ayrı ayrı `remarkPlugins`/`rehypePlugins` tanımlıyor,
+   * kapı ikisinin aynı olduğunu kaynaktan doğruluyordu. Çiftlenme kalktı ve o
+   * beş iddia tasarlandığı gibi kırıldı.
+   *
+   * ⚠️ ESKİ İDDİALARI "DÜZELTMEK" YANLIŞ OLURDU. İki tarafın aynı listeyi
+   * yazdığını assert etmek, artık VAR OLMAYAN bir sapmayı ölçmek demek: tek
+   * kaynak olduğunda ayrışma yapısal olarak imkânsız, dolayısıyla o assert
+   * hiçbir koşulda kırılmaz — ve T-050'de kendi testlerimde bulduğum sınıfın
+   * aynısı olurdu ("izlediği şeyi okumayan değişmezlik testi hiçbir şey
+   * korumaz"). Sapmayı ölçen bir kapıyı, sapma imkânsızlaştığında SİLMEK ya da
+   * SORUYU DEĞİŞTİRMEK gerekir.
+   *
+   * KAPININ AMACI AYNI KALIYOR: kaydetme kapısı ile render yolu ayrışmasın.
+   * Ama bugün o amacı tehdit eden tek şey ayrışma değil, GERİLEME: biri
+   * (bir eklenti eklemek için, ya da bir içe aktarma döngüsünü çözmek için)
+   * kendi tarafında YEREL BİR KOPYA açarsa çiftlenme geri gelir ve o gün
+   * hiçbir test kırılmaz — iki kopya da doğru çalışır, sadece birlikte
+   * değişmezler. T-047'de üç tur süren borç tam olarak buydu.
+   *
+   * Yani kapı artık şunu soruyor: **eklenti listesi KAÇ YERDE TANIMLI.**
+   * Cevap "bir" olmak zorunda ve bu iddia kırılabilir — yerel bir kopya açmak
+   * onu kırar. Eşleşme iddiasının aksine bu, bugün geçerli bir riski izliyor.
    */
   const kod = (yol: string) =>
     readFileSync(join(KOK, yol), 'utf8')
       .replace(/\/\*[\s\S]*?\*\//g, ' ')
       .replace(/\/\/.*$/gm, ' ');
 
+  const KANONIK_YOL = 'src/lib/mdx-options.ts';
+
   const PUBLIC_MDX = kod('src/components/public/mdx.tsx');
   const KAPI = kod('src/server/actions/mdx-validate.ts');
+  const KANONIK = kod(KANONIK_YOL);
 
-  it('tarama vakum değil — iki kaynak da okundu', () => {
-    expect(PUBLIC_MDX).toContain('MDXRemote');
+  it('tarama vakum değil — üç kaynak da okundu', () => {
+    /*
+     * Sahte yeşil koruması. `toContain('MDXRemote')` İDDİASI KALDIRILDI ve
+     * sebebi Frontend'in ölçümü: o dize `mdx.tsx`te artık yalnızca
+     * `type MDXRemoteProps` içinde geçiyordu, yani iddia TESADÜFEN geçiyordu —
+     * render yolunun gerçekten derleme yaptığını ölçmüyordu.
+     *
+     * `compileMDX` daha güçlü: İKİ TARAF DA onu çağırıyor, yani iddia
+     * eşdeğerliğin kendisine dokunuyor. Kullanılan API değişirse burası önce
+     * kırılır.
+     */
+    expect(PUBLIC_MDX).toContain('compileMDX');
     expect(KAPI).toContain('compileMDX');
+    expect(KANONIK).toContain('MDX_OPTIONS');
   });
 
   it('AYNI paketten geliyor: next-mdx-remote/rsc', () => {
@@ -163,50 +198,91 @@ describe('kapı public render yolundan AYRIŞMIYOR', () => {
     expect(KAPI).toContain("from 'next-mdx-remote/rsc'");
   });
 
-  it('remark eklentileri AYNI', () => {
-    for (const kaynak of [PUBLIC_MDX, KAPI]) {
-      expect(kaynak).toMatch(/remarkPlugins:\s*\[remarkGfm\]/);
+  /* ─────────────────────────────────────────────────────────────────────────
+   * ⚠️⚠️ TEKLİK — bu bloğun kalbi
+   * ──────────────────────────────────────────────────────────────────────── */
+
+  it('İKİ TARAF DA kanonik modülden okuyor', () => {
+    for (const [ad, kaynak] of [
+      ['mdx.tsx (render)', PUBLIC_MDX],
+      ['mdx-validate.ts (kaydetme kapısı)', KAPI],
+    ] as const) {
+      expect(kaynak, `${ad} MDX_OPTIONS'ı kanonik modülden içe aktarmıyor`).toMatch(
+        /import\s*\{[^}]*MDX_OPTIONS[^}]*\}\s*from\s*'@\/lib\/mdx-options'/,
+      );
     }
   });
 
-  it('rehype eklentileri ve SANITIZE ŞEMASI aynı', () => {
-    for (const kaynak of [PUBLIC_MDX, KAPI]) {
-      // Şema açıkça veriliyor; `defaultSchema` yerine genişletilmiş bir şemaya
-      // geçilirse iki taraf birlikte geçmek zorunda.
-      expect(kaynak).toMatch(/rehypePlugins:\s*\[\[rehypeSanitize,\s*defaultSchema\]\]/);
-    }
-  });
-
-  /**
-   * HATIRLATICI ATEŞLENDİ — ve yerine ÖLÇÜLMÜŞ bir engel kaydı geçti (T-050).
-   *
-   * T-047'de bu assert'in TERSİ vardı (`not.toMatch`): borç, ihraç edildiği gün
-   * kırılacak bir kapıyla bırakılmıştı. Frontend T-049f'te ihracı yaptı, kapı
-   * kırıldı — tasarlandığı gibi — ve çiftlenmeyi kaldırmayı denedim.
-   *
-   * KALDIRILAMADI: `MDX_OPTIONS` bir `.tsx` modülünde ve Vitest'in `unit`
-   * projesi (environment `node`, React eklentisi YOK) o dosyayı içe aktaran
-   * hiçbir modülü yükleyemiyor — dört eylemin birim testi düşüyor. Üretim
-   * sınırı değil, test altyapısı sınırı; ama `pnpm test` yeşil kalmak zorunda.
-   *
-   * Çözüm seçeneklerin `.ts` bir modüle taşınması; `mdx.tsx` Frontend'in,
-   * dolayısıyla o adım onların turunda. Bu iki assert o durumu SABİTLİYOR:
-   * ihraç var (borcun yarısı kapandı), ama çiftlenme sürüyor (yarısı açık).
-   */
-  it('ihraç YAPILDI — borcun yarısı kapandı', () => {
-    expect(PUBLIC_MDX).toMatch(/export\s+const\s+MDX_OPTIONS/);
-  });
-
-  it('ama kanonik liste HÂLÂ `.tsx` içinde — çiftlenme bu yüzden sürüyor', () => {
+  it('EKLENTİ LİSTESİ TEK YERDE TANIMLI — yerel kopya YOK', () => {
     /*
-     * Bu assert kırıldığı gün (`.ts` modüle taşındığı gün) çiftlenme
-     * kaldırılabilir hâle gelir. Yani engel de kendini hatırlatıyor — T-047'de
-     * borcun kendisi için kurulan kalıbın aynısı, bir seviye yukarıda.
+     * İddianın kırılma yolu somut: biri `mdx.tsx`e ya da `mdx-validate.ts`e
+     * kendi `remarkPlugins`/`rehypePlugins` bloğunu yazarsa çiftlenme geri
+     * gelir. Eklenti PAKETLERİNİN içe aktarılması da aranıyor, çünkü yerel bir
+     * liste kurmanın ilk adımı o.
      */
-    const kanonikYol = 'src/components/public/mdx.tsx';
-    expect(kanonikYol.endsWith('.tsx')).toBe(true);
-    // Seçenekleri taşıyacak `.ts` modül HENÜZ YOK.
-    expect(existsSync(join(KOK, 'src/lib/mdx-options.ts'))).toBe(false);
+    for (const [ad, kaynak] of [
+      ['mdx.tsx', PUBLIC_MDX],
+      ['mdx-validate.ts', KAPI],
+    ] as const) {
+      expect(kaynak, `${ad} yerel bir remark listesi tanımlıyor`).not.toMatch(/remarkPlugins\s*:/);
+      expect(kaynak, `${ad} yerel bir rehype listesi tanımlıyor`).not.toMatch(/rehypePlugins\s*:/);
+      expect(kaynak, `${ad} rehype-sanitize'ı doğrudan içe aktarıyor`).not.toContain(
+        "from 'rehype-sanitize'",
+      );
+      expect(kaynak, `${ad} remark-gfm'i doğrudan içe aktarıyor`).not.toContain(
+        "from 'remark-gfm'",
+      );
+      expect(kaynak, `${ad} ikinci bir MDX_OPTIONS tanımlıyor`).not.toMatch(
+        /const\s+MDX_OPTIONS\s*[:=]/,
+      );
+    }
+  });
+
+  it('kanonik modül listeyi GERÇEKTEN taşıyor ve SANİTİZE ŞEMASI açık', () => {
+    /*
+     * Yukarıdaki iki iddia "başka yerde yok" diyor; bu iddia "burada var"
+     * diyor. İkisi olmadan teklik ölçülmüş olmaz: listenin hiçbir yerde
+     * olmadığı bir durumda da ilk ikisi yeşil kalırdı.
+     *
+     * Şema açıkça veriliyor — `defaultSchema` yerine genişletilmiş bir şemaya
+     * geçmek saldırı yüzeyini genişletir ve bu assert o geçişi sessiz
+     * bırakmıyor (`mdx.tsx`in başında varsayılan şemanın neyi kapattığı
+     * ölçümle yazılı).
+     */
+    expect(KANONIK).toMatch(/remarkPlugins:\s*\[remarkGfm\]/);
+    expect(KANONIK).toMatch(/rehypePlugins:\s*\[\[rehypeSanitize,\s*defaultSchema\]\]/);
+    expect(KANONIK).toMatch(/export\s+const\s+MDX_OPTIONS/);
+  });
+
+  /* ─────────────────────────────────────────────────────────────────────────
+   * ÇİFTLENMEYİ KALDIRMANIN ÖNKOŞULU — ölçülmüş duvar, kapıya bağlandı
+   * ──────────────────────────────────────────────────────────────────────── */
+
+  it('kanonik modül JSX TAŞIMAYAN bir `.ts` dosyası', () => {
+    /*
+     * T-049f'te çiftlenme TAM OLARAK bu yüzden kaldırılamadı: liste bir `.tsx`
+     * modülündeydi ve Vitest'in `unit` projesi (`environment: 'node'`, React
+     * eklentisi YOK) onu içe aktaran hiçbir modülü yükleyemiyordu —
+     * "Failed to parse source for import analysis … mdx.tsx:80:6".
+     *
+     * Duvar kalktığı için bu assert bugün yeşil; ama kalıcı, çünkü aynı duvara
+     * geri yürümek mümkün. Geri yürünürse `pnpm test` zaten gürültülü bir
+     * ayrıştırma hatasıyla düşer — bu assert o hatayı TEŞHİSE çeviriyor:
+     * "modül yüklenemedi" yerine "kanonik modül `.tsx` olmuş" der.
+     */
+    expect(existsSync(join(KOK, KANONIK_YOL))).toBe(true);
+    expect(KANONIK_YOL.endsWith('.ts')).toBe(true);
+  });
+
+  it('kanonik modül next-mdx-remote`u YALNIZCA TİP olarak içe aktarıyor', () => {
+    /*
+     * Duvarın kalkmasının ölçülen sebebi bu (Orkestra Şefi, T-053): çalışma
+     * zamanında yalnızca `rehype-sanitize` ve `remark-gfm` yükleniyor, ikisi
+     * de düz JS. Değer içe aktarmasına çevrilirse modül React'in JSX
+     * çalışma zamanını node ortamına taşır ve duvar geri gelebilir.
+     */
+    expect(KANONIK).toMatch(/import\s+type\s*\{[^}]*MDXRemoteProps[^}]*\}\s*from/);
+    expect(KANONIK).not.toMatch(/import\s*\{[^}]*compileMDX[^}]*\}\s*from/);
   });
 });
 

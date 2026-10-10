@@ -118,6 +118,9 @@ export type * from './content-dto';
 export * from './attachment';
 export * from './contact-message';
 
+// §4.2 denetim kaydı — OKUMA yolu (T-052). Yazma yolu `_shared/audit.ts`te.
+export * from './audit-log';
+
 // ADR-026 — içerik servisleri (F2 public okuma tarafı)
 export * from './experience';
 export * from './post';

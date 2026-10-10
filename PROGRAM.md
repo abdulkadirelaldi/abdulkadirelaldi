@@ -585,6 +585,29 @@ Orkestra Şefi → STATUS.md'yi günceller, bir sonraki promptu üretir
 **Test:** Hangi testler yazılacak/geçmeli
 ```
 
+> **Kart yazım kuralı — Orkestra Şefi için, üç kez ihlal edildikten sonra yazıldı.**
+> **Kapsam dışı satırı, kartın maddelerine karşı tek tek kontrol edilir.**
+>
+> Üç kez aynı hatayı yaptım: kapsam dışı satırına geniş bir yasak yazdım ve
+> maddelerden biri o yasağı ihlal eden bir iş istedi.
+>
+> | Tur | Çelişki |
+> |-----|---------|
+> | T-029c/T2 | "gerçek koşu numarası" istendi, aynı kartta push yasaklandı |
+> | T-048g | "`src/**` → hiçbiri" yazıldı, madde 2 `src/middleware.ts` istedi |
+> | T-053 | "`tests/**` → Güvenlik'in" yazıldı, T-052 `tests/unit/`'i Backend'e verdi |
+>
+> Üçünde de ajan **doğru davrandı**: ikisi yasağa uydu ve çelişkiyi bildirdi, biri
+> daha açık olan maddeye uyup bildirdi. Yani kural zarar görmedi — ama her seferinde
+> bir ajanın turunun bir kısmı benim dikkatsizliğime gitti.
+>
+> Kart yazılıp bitince **son adım**: kapsam dışı satırındaki her yasağı oku, kartın
+> her maddesine bak, çakışma var mı diye sor. Çakışma varsa **yasağı daralt** —
+> maddeyi değil, çünkü madde işin kendisi.
+>
+> İki karttan oluşan bir tur yazılıyorsa (T-052 + T-053 gibi), **ikisinin kapsam
+> satırları birlikte** okunur: ayrı ayrı tutarlı olmaları yetmiyor.
+
 ### 10.4 Ajan Rapor Formatı (zorunlu)
 
 ```markdown
