@@ -369,21 +369,23 @@ jobs:
            * içinde bir ADVISORY-NNN kaydıdır. Kayıtsız satır yazılmaz.
            */
           const ISTISNALAR = [
-            {
-              ghsa: 'GHSA-ggr8-5vv4-36mx',
-              paket: 'deepmerge-ts',
-              // Maruziyet ölçümü BU YOLA dayanıyor: deepmerge yalnızca
-              // `@prisma/config`in c12 birleştiricisi olarak, yalnızca CLI
-              // zamanında, yalnızca bizim yazdığımız `prisma.config.ts` için
-              // çağrılıyor. Başka bir yoldan gelirse ölçüm geçersizdir.
-              yolIcermeli: '@prisma/config@',
-              bitis: '2026-11-22',
-              kayit: 'ADVISORY-002',
-              neden:
-                'Yama 8.0.0, mevcut 7.1.5 — MAJÖR ATLAMA. Üst paket sürümü ' +
-                'TAM SABİTLİYOR ("deepmerge-ts": "7.1.5"), yani override üst ' +
-                "paketin açık sözleşmesini çiğnerdi (oyunkitabı katman C/D).",
-            },
+            /*
+             * ADVISORY-002 (GHSA-ggr8-5vv4-36mx, deepmerge-ts) BURADAN KALDIRILDI
+             * — T-054g'de KATMAN B ile ÇÖZÜLDÜ, süresi dolmadan 42 gün önce.
+             *
+             * Eski gerekçe şuydu: "üst paket sürümü TAM SABİTLİYOR, override
+             * açık sözleşmeyi çiğnerdi". Bu bir ÇIKARIMDI, ölçüm değil — pin'in
+             * varlığından uyumsuzluk SONUCU çıkarılmıştı. T-054g'de ölçüldü:
+             * `pnpm.overrides` ile `deepmerge-ts@8.0.2` zorlandığında
+             * `@prisma/config` çalışmaya devam ediyor (validate · generate ·
+             * migrate status · db execute, hepsi config yükleyerek geçti) ve
+             * yükleyicinin O KOPYAYI kullandığı kopyayı bozup CLI'nin düşmesiyle
+             * KESİN olarak doğrulandı.
+             *
+             * Dersin adı: ÖLÇÜLMEMİŞ GEREKÇE. Zamanlı istisna doğru aracı ama
+             * dayandığı önerme sınanmadığı sürece istisna, gereksiz de olabilir.
+             * Tam ölçüm zinciri docs/security/README.md → ADVISORY-002.
+             */
             {
               ghsa: 'GHSA-vfj7-8cjw-p6xm',
               paket: 'braces',

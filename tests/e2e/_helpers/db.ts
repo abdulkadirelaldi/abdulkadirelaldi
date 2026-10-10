@@ -209,3 +209,26 @@ export async function iletisimMesajlariniTemizle(konuOneki: string): Promise<num
   );
   return silinen;
 }
+
+/**
+ * Denetim ekranına bilinen bir `diff` yazar ve satır kimliğini döner.
+ *
+ * Gerekçe ve neden `writeAuditLog` kullanılmadığı: `db-task.ts` →
+ * `denetimSondasiYaz`.
+ */
+export async function denetimSondasiYaz(sonda: {
+  entity: string;
+  entityId: string;
+  diff: Record<string, unknown>;
+}): Promise<string> {
+  const { id } = await runTask<{ id: string }>('denetimSondasiYaz', JSON.stringify(sonda));
+  return id;
+}
+
+export async function denetimSondasiSil(id: string): Promise<number> {
+  const { silinen } = await runTask<{ silinen: number }>(
+    'denetimSondasiSil',
+    JSON.stringify({ id }),
+  );
+  return silinen;
+}

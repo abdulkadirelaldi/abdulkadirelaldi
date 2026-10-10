@@ -42,6 +42,7 @@
 | ADR-034 | `redactAuditDiff` emniyet ağıdır, korumanın kendisi değil | 2026-09-19 | Kabul edildi |
 | ADR-035 | Oturum geçersizleştirme üç katmanda; kapsamlar adlarında | 2026-09-20 | Kabul edildi |
 | ADR-036 | `KAPSAM` beyanını rotayı yazan doldurur (§10.1 istisnası) | 2026-10-07 | Kabul edildi |
+| ADR-037 | Bir istisnanın kendi gerekçesi de ölçülür | 2026-10-10 | Kabul edildi |
 
 ---
 
@@ -1860,3 +1861,65 @@ bir veri yapısı.
   ve kapı kurulduğundan beri **üç gerçek yakalama** yaptı.
 - **Rota envanterinden beyanı otomatik üretmek** — **reddedildi**: "ne ölçülmüyor"
   türetilemez. Türetilebilen bir beyan, beyan değildir.
+
+---
+
+## ADR-037 — Bir İstisnanın Kendi Gerekçesi de Ölçülür
+
+**Tarih:** 2026-10-10 · **Durum:** Kabul edildi · **Kaynak:** T-054g (Güvenlik)
+
+### Bağlam
+ADVISORY-002 (`deepmerge-ts` GHSA-ggr8-5vv4-36mx) üç aydır süreli istisnadaydı.
+Gerekçesi T-005d'de şöyle yazılmıştı:
+
+> *"`pin` TAM SABİTLİYOR, yani override açık sözleşmeyi çiğnerdi."*
+
+Güvenlik T-054g'de bu cümleyi ayrıştırdı: **ilk yarısı ölçüm, ikinci yarısı
+çıkarım.** `@prisma/config`'in `deepmerge-ts@7.1.5`'i tam sabitlediği ölçülmüştü.
+Ama "o hâlde override uyumsuzluk üretir" sonucu **pin'in varlığından çıkarılmıştı
+ve uyumsuzluk hiç denenmemişti.**
+
+Denediler: override ile `deepmerge-ts@8.0.2` çözüldü, `prisma validate` /
+`generate` / `migrate status` / `db execute` / `pnpm test` hepsi geçti, kilit
+deltası 11 satır ve yalnızca bu zincir.
+
+**İşlevsel yeşili yeterli saymadılar** — yükleyici `deepmerge`'i hiç çağırmıyor
+olsa tablo yine yeşil görünürdü. 8.0.2'nin girişini geçici olarak `throw` yaptılar
+→ `prisma validate` tam o hatayla düştü. **Yama o kod yolunda.**
+
+İstisna silindi; üç aylık bir "bekle" kararı, gerekçesinin kendisi ölçülünce
+otuz dakikada çözüldü.
+
+### Karar
+**Bir istisna, muafiyet ya da "yapılamaz" kaydı yazılırken, gerekçesinin hangi
+kısmı ölçüm ve hangi kısmı çıkarım olduğu AYRIŞTIRILIR.** Çıkarım olan kısım,
+istisnanın her gözden geçirilmesinde **yeniden denenebilir bir deney** olarak
+yazılır.
+
+İstisna metni şu iki soruyu ayrı ayrı cevaplamalıdır:
+1. **Ne ölçtük?** (olgu)
+2. **Ondan ne çıkardık, ve o çıkarımı nasıl sınarız?** (deney)
+
+İkincisi yazılmazsa istisna, ölçülmemiş bir varsayımın üzerinde süresiz yaşar —
+"süreli istisna" mekanizmasının (ADVISORY-002'de kurulan) engellemek için var
+olduğu şeyin ta kendisi, bir kademe yukarıda.
+
+**Bu ADR geriye dönük uygulanır:** açık her istisna ve "yapılamaz" kaydı, sonraki
+gözden geçirmesinde bu ayrıştırmadan geçer.
+
+### Sonuçlar
+- **Olumlu:** Üç aylık bir istisna kapandı ve `deepmerge-ts` artık yamalı.
+- **Olumlu:** Kural mekanik — istisna metninde iki başlık aranır, "dikkatli ol" değil.
+- **Olumlu:** İşlevsel yeşilin yetmediği de kalıba girdi: **yamanın gerçekten o kod
+  yolunda olduğu**, girişi bozup hatanın geldiğini görerek sınanır.
+- **Olumsuz / kabul edilen:** İstisna yazmak pahalılaşıyor. Kabul edildi: T-054g
+  üç aylık bir beklemeyi otuz dakikada çözdü, oran lehimize.
+
+### Alternatifler ve neden reddedildi
+- **Yalnızca ADVISORY-002'yi kapatıp dersi yazmamak** — **reddedildi**: aynı hata
+  biçimi bu projede tanıdık. Kusur `deepmerge-ts`'e özgü değil, **gerekçe yazma
+  biçimine** özgü.
+- **Her istisnayı her turda yeniden ölçmek** — **reddedildi**: maliyeti gerçek ve
+  istisnaların çoğu gerçekten bekliyor. Gözden geçirme anı yeterli.
+- **"Süreli istisna" mekanizmasını kaldırmak** — **reddedildi**: mekanizma çalıştı,
+  iki kez ateşlendi. Sorun mekanizmada değil, içine yazılan gerekçedeydi.

@@ -75,6 +75,7 @@ açığın ayrıntısı artık saldırgana bir şey kazandırmaz.
 | 2026-08-12 | T-029a | Lighthouse'a masaüstü + koyu profil (WebGL yolu), üç durumlu WebGL doğrulaması, koşu değişkenliği kararı | **BULGU-010 açıldı**: WebGL yolu hiçbir CI koşusunda ölçülmüyordu. Profil kuruldu ve doğrulandı; ölçüm T-021'in hero'yu bağlamasını bekliyor (kontrol kendi kendine zorunlu hâle geliyor). Değişkenliğin **ilk koşuya** ait olduğu ölçüldü; `numberOfRuns` 5, `aggregationMethod` açıkça medyan. |
 | 2026-08-17 | T-029d | Ölçüm yüzeyi dışındaki SEO/OG rotaları (BULGU-015) | **BULGU-015 kapandı** — `tests/e2e/seo-routes.spec.ts`: robots.txt, sitemap.xml, rss.xml, `/og` ve `/og/proje/<slug>` artık her koşumda isteniyor. PNG imza baytlarından, XML gerçek ayrıştırıcıyla doğrulanıyor. Kapsam iki katmanlı: sözleşme testleri + sitemap taraması (yeni sayfa kendiliğinden kapsanır). Mutasyonla kanıtlandı: düzeltme öncesi font aynı render yolunda BULGU-014'ün `TypeError`'ını veriyor. **BULGU-016 açıldı** — sitemap üç adet 404 adresi bildiriyor. |
 | 2026-08-16 | T-029c | Ölçüm işinin veri kurulumu (BULGU-013) + §8.24 haftalık zamanlayıcı | **BULGU-013 açıldı ve düzeltildi**: `lighthouse` işi ayrı koşucuda `services:` bloğu olmadan koşuyordu; ADR-026 sonrası `/` 500 dönüyor, üç profil düşüyor, artifact üretilmiyordu. Kendi Postgres'i kuruldu (yol **a**). İki yeni nöbet: ölçüm ön koşulu ve ayırt edicide durum kodu kontrolü — ikincisi olmadan arıza "⏳ BEKLEMEDE" diye yeşil görünüyordu. §8.24 artık **haftalık** de koşuyor (`17 6 * * 1`). |
+| 2026-10-10 | T-054g | Denetim ekranının yeni yüzeyi (RSC yükü + beyaz liste polaritesi), ADVISORY-002, ADR-036 ikinci beyan denetimi | **ADVISORY-002 KAPANDI — katman B, süresinden 42 gün önce.** Üç kaldırma koşulu yine sağlanmadı (`latest` hâlâ **8.0.0-rc.22**, `@prisma/config@7.10.0` hâlâ `7.1.5` sabitliyor, yamalı aralık `>=8.0.0` → 7.1.6 de yamalı değil), ama istisnanın KENDİ GEREKÇESİ sınandı ve devrildi: "pin varsa override sözleşmeyi çiğner" bir ölçüm değil **çıkarımdı**. Override uygulandı → `@prisma/config` `deepmerge-ts@8.0.2` ile çalışıyor (validate · generate · migrate status · db execute · `pnpm test` hepsi geçti, kilit deltası 11 satır ve yalnızca bu zincir). İşlevsel yeşil YETERLİ SAYILMADI: yamalı kopyanın girişi geçici olarak `throw` edecek hâle getirildi ve CLI o hatayla düştü → yama **o kod yolunda**. CI istisnası silindi (kapının "ölü istisna" dalı zaten kırmızıya çevirecekti), haftalık tazelik nöbeti override'ı kendiliğinden izliyor. **Denetim ekranı iki kapıyla ölçüldü:** (a) `panel-denetim-diff.spec.ts` — ham `diff`in ne ilk gezinme belgesinde ne de saf `?_rsc=` yükünde olmadığı; ekran bir `'use client'` bileşeni ve DTO ona prop olarak geçtiği için yük T-041f'nin yüzeyi. Üç çapa negatiflerden ÖNCE koşuyor, üçüncüsü **izinli bir değerin GÖRÜNMESİNİ** şart koşuyor — yoksa özet DTO'dan tamamen kaldırılsa bile kapı yeşil kalırdı. `toListDto`ya ham `diff` eklenince kapı tam beklenen mesajla kırmızı, geri alma md5 ile doğrulandı. Bir yarış koşulu da burada yakalandı: yumuşak gezinme yanıtının gövdesi sonradan okunamıyor → `page.route` eliyle, sayfa tüketmeden önce. (b) `denetim-beyaz-liste-polarite.test.ts` — ada eklemenin BEDELİ: `buildDiff` çıktısı (`{before,after}`) eklenen adla bile **değer basmıyor** (ikinci, biçime dayalı bariyer), ama **elle yazılmış ilkel değer ÇIKAR** ve ad **her derinlikte** açılır. Kural: ada eklemek, o adın altına asla kayıt içeriği yazılmadığını kanıtlamayı gerektirir. **BULGU-023 açıldı** (düşük, Backend): `socialsChanged` adlarını serbest `Json` sütunundan topluyor → beklenmeyen bir ad ekranda görünebilir; değer görünmüyor, ölçüldü. **ADR-036 denetimi:** iki beyanın yapısal iddiaları doğru, kapı 36/36. **Karar:** ADR-034'ün gerekçesi beyana AİT DEĞİL (tek kaynak servis + ADR; kopya sessizce sapar), beyana ait olan ölçüm durumuydu ve beyan onu dürüstçe kendisi yazmıştı — o boşluk yukarıdaki iki kapıyla kapatıldı. `/panel/ayarlar/sifre` beyanındaki `ADR_035_MESAJ` boşluğu **T-057g'ye önerildi**. **§9/7** T-051/E kararıyla tam kapalı. |
 | 2026-10-09 | T-051 | §8.24 dördüncü tetiklenme (11 danışma), donmuş taban nöbeti, ömür sabiti geçişi, BULGU-021 incelik kararı | **Kapı EXIT 0.** Yedi paket **katman A** ile düzeldi — onarım override tabanı yükseltmek değil **kilidi yeniden çözdürmek**ti (sharp 0.35.5, nanoid 3.3.20, source-map-js 1.2.2, brace-expansion 1.1.21+5.0.12, fast-uri 3.1.8, postcss 8.5.29, mysql2 3.24.5). **İki override ÖLÜ AĞIRLIK çıktı ve silindi** (`sharp`, `nanoid`): üst paket aralıkları yamalı sürümü zaten kapsıyordu, yani tek etkileri paketi kendi tabanında dondurmaktı. Kalan ikisi yük taşıyor (`next` postcss'i, `prisma` mysql2'yi TAM SABİTLİYOR). **YAPISAL ÇÖZÜM kuruldu:** `ci.yml` → "Override tazeliği" adımı, her override için kayıt sunucusuna aralığın en yenisini sordurup kilitle karşılaştırıyor; **yalnızca haftalık koşumda** (her PR'da koşsaydı üst paketin her yama sürümü ilgisiz PR'ı kırmızıya çevirirdi — haksız düşen kapı). Üç hâl ayrı: taze · donmuş · **ölçülemedi** (BULGU-013 dersi). İlk koşumunda `mysql2`yi 3.24.4'te donmuş yakaladı; iki dalı mutasyonla doğrulandı. Adımın kendisi de bir kusur üretti ve gerçek ağaçta koşturulduğu için yakalandı (`@tailwindcss/postcss` satırını "postcss" sanıyordu → ad sınırı eklendi). **ADVISORY-006 açıldı** (`braces`): yamalı sürüm YOK, paket 2024-09-18'den beri bakımsız, üst zincirin yeni sürümleri de micromatch taşıyor → katman D, bitiş 2027-01-09; maruziyet dört ölçümde sıfır, kaldırma koşulu üç yollu yazıldı. **ADVISORY-002 44 gün öncesinden yeniden ölçüldü:** üç koşulun hiçbiri sağlanmadı (kararlı hat 7.10.0, `latest` → 8.0.0-**rc.22**, `@prisma/config@7.10.0` hâlâ 7.1.5 sabitliyor) → 22 Kasım kararı ölçümle hazırlandı, önerilen yeni bitiş 2027-02-22. **Madde A:** `session-omru.test.ts` literal iddiası → "auth.ts kanonik modülden İÇE AKTARIYOR" iddiasına çevrildi, çapraz kontrol silindi, Edge-güvenliği dalı kaldı; iddia İKİ YÖNDE doğrulandı (Backend'in değişikliği geçici uygulandı → 12/12 yeşil, geri alındı → kırmızı, md5 eşleşti). Ağaç Backend'in tarafı gelene kadar **bilerek kırmızı**. **Madde E kararı:** çekmece monte edilmeyecek, `aria-controls` kalacak — `hidden` takası ölçülebilir bir özelliği tanımsız bir iyileştirme için verirdi; iddia ipucunun eyleme dönüşebildiği tek duruma (açık) kapsamlandı. ⚠️ Kapsamım dışında: `next@15.5.25` iki **moderate** danışma taşıyor (yama >=15.5.27) — kapıyı bloke etmiyor, yükseltme Orkestra Şefi'nin. |
 | 2026-10-07 | T-049g | §8.18 deseni daraltıldı, ömür sabiti taşındı, ADR-036'nın ilk beyan denetimi | **§8.18 sahte pozitifi kapandı:** desen küçültülmüş çıktıda iki yer tutucuyu köprülüyordu; `userinfo` sınıflarından `" { } ,` çıkarıldı (RFC 3986 kaybı yok). İKİ YÖNLÜ mutasyon: geniş desen → köprü testleri kırmızı (daraltma gerekli), desen etkisiz → gerçek sızıntı testleri kırmızı (fazla kesmemiş). Yedi gerçek biçim + iki köprü şekli teste bağlandı. **Frontend'in alan sırası kaçınması artık gereksiz — kaldırabilir** (ölçüldü: iki sıra da temiz). **`SESSION_MAX_AGE_SECONDS` `src/lib/security/session`e taşındı ve ihraç edildi** — T-048g'nin semptom çözümü (iki yerde yazılı sayı + kaynak taraması) yerine kök neden kapatıldı: E2E yardımcısı artık içe aktarıyor, kopyalanacak sayı yok. Geçiş YARIM (auth.ts hâlâ kendi kopyasını kullanıyor → **T-050**), bu yüzden geçici çapraz kontrol eklendi; dört yeni dal mutasyonla doğrulandı (Edge-güvenliği dalı dahil). **ADR-036 ilk denetim:** `/panel/icerik/profil` beyanının beş yapısal iddiası kodla karşılaştırıldı, hepsi doğru; beyan dürüst ve fazla iyimser değil. Dördüncü "ölçülmeyen" başlığının bugün ölçülebilir yarısı ölçüldü → **BULGU-022**: geçerli biçimli ama var olmayan eklenti kimliği P2003 üretiyor, `toFailure` onu eşlemediği için kullanıcı tetikli `INTERNAL_ERROR` çıkıyor (sızıntı yok; kodun P2002 gerekçesi birebir geçerli). Düzeltme Backend'in. **BULGU-021 KAPANDI** (Frontend `id="panel-menu"` ekledi) → `panel-mobil.spec.ts` yeşil, **§9/7 kapandı**, sayaç **6 kapalı / 0 kısmi / 1 açık**. Not: `tests/unit/actions/mdx-dogrulama.test.ts` şu an kırmızı — Frontend'in kendi kapısı, kendi devam eden düzeltmesine (`export const MDX_OPTIONS`) tepki veriyor; benim değişikliklerimle ilgisi yok, iddia onların turunda çevrilmeli. |
 | 2026-09-21 | T-048g | Üç blog rotası beyanı, §8.3 sapması, BULGU-021, §9/7 | **Kapı yeşil** (36/36) — üç blog rotası `kapsanmiyor` + gerekçeyle beyan edildi; aynı `panel-form`/action/ADR-029 zinciri `projeler` tarafında ölçülüyor ve `post.ts` onun birebir kardeşi. **MDX önizlemesinin istemcide derlenmesi: kabul edilen risk** — güvenilmeyen girdi yolu yok (tek yazar, kendi tarayıcısı), public taraf sunucuda derleyip `rehype-sanitize`den geçiyor; değerlendirmenin düşeceği iki koşul yazıldı (çok yazarlılık, dışarıdan içerik). **§8.3 sapması bulundu:** ADR-035/A ömrü 24 saate indirdi ama Backend'in ömür kapısı yalnızca `src/server/auth.ts`i tarıyordu ve `tests/e2e/_helpers/session.ts` **7 gün üretmeye devam ediyordu** — E2E paketi üretimde artık üretilemeyen bir jeton biçimiyle koşuyordu. Yardımcı düzeltildi, kapı genişletildi (üretim sabiti + test jetonu birlikte taranıyor), mutasyonla doğrulandı. Belgede dört bayat "7 gün" düzeltildi; **§8 tablosu satır 3 iki kez bayattı** (süre 7 gün, durum ⏳) → **✅ 24 saat**. `src/middleware.ts:21` yorumu ADR-035/A'ya göre güncellendi. **BULGU-021 açıldı ve kapıya bağlandı:** mobil menü düğmesinin `aria-controls="panel-menu"` hedefi DOM'da yok (ölçüldü: 0 eşleşme) — görsel hiçbir test yakalamaz, düzeltmesi tek satır ve Frontend'in. §9/7 specı yazıldı (menü · kırıntı yolu · tablo taşması, iddia görünüme göre seçiliyor — atlanan test yok); **tek kırmızı bu iddia, bilerek bırakıldı** (BULGU-016 kalıbı). §9 sayacı **5 kapalı / 1 kısmi / 1 açık** — §9/7 o satır düzelince kapanır. |
@@ -3061,7 +3062,16 @@ iç ağında farklı olabilir) ve Node ara katmanının soğuk başlatma maliyet
 
 ---
 
-## §9 sayacı — T-049g sonrası: **6 kapalı · 0 kısmi · 1 açık**
+## §9 sayacı — T-054g sonrası: **6 kapalı · 0 kısmi · 1 açık**
+
+> **§9/7 TAM KAPANDI.** Geriye kalan tek şey çekmece takasının kararıydı ve o
+> T-051/E'de verilip gerekçesiyle yazıldı (aşağıda: "BULGU-021'in bıraktığı
+> incelik"). T-054g'de yeniden okundu, karar **değişmedi** ve bir ölçümle
+> desteklendi: `panel-mobil.spec.ts` iki görünümde de yeşil. Kararın özü
+> değişmediği için metni tekrarlanmıyor — ikinci bir kopya, sapmanın kapısıdır.
+>
+> Açık kalan tek madde **§9/1** (dış bağlantı ölçülürken üçüncü tarafa istek
+> atılmaması) ve önceliği en düşük.
 
 > §9/7 T-049g'de kapandı (BULGU-021 düzeltildi, `panel-mobil.spec.ts` yeşil).
 > Kalan tek açık madde **§9/5** — finans modülü F4/F5'te, ölçülecek akış henüz
@@ -3441,7 +3451,87 @@ kontrol ettiği bir desen; bizde desenleri biz yazıyoruz.
 
 ---
 
-## ADVISORY-002 — 44 gün kaldı, bugünden ölçüldü (T-051)
+## ADVISORY-002 — **ÇÖZÜLDÜ** (T-054g, katman B, süresinden 42 gün önce)
+
+> **Durum: KAPALI.** `pnpm.overrides` → `deepmerge-ts: ">=8.0.0 <9.0.0"`.
+> CI'daki süreli istisna **kaldırıldı** (kapının "artık bildirilmeyen istisna"
+> dalı zaten kırmızıya çevirecekti).
+
+### Çözülmesini sağlayan şey yeni bir sürüm değil — ÖLÇÜLMEMİŞ BİR GEREKÇEYDİ
+
+T-051'de kaldırma koşullarının üçü de sağlanmıyordu ve bu BUGÜN DE GEÇERLİ:
+
+| Koşul | 2026-10-10 ölçümü | Sağlandı mı |
+| ----- | ----------------- | ----------- |
+| Kararlı `prisma` yamalı `deepmerge-ts` getirir | `prev: 7.10.0` kararlı hat; `latest: 8.0.0-rc.22` → **`latest` etiketi hâlâ bir RC** | ❌ |
+| 7.x hattına backport | `@prisma/config@7.10.0` **hâlâ `deepmerge-ts: "7.1.5"`** (aralık değil, TAM sabit) | ❌ |
+| Advisory geri çekilir | Hâlâ bildiriliyor; yamalı aralık `>=8.0.0`, yani **7.1.6 de yamalı değil** | ❌ |
+
+Yani üç kapı da kapalı. İstisna uzatılacaktı. Uzatmayı gereksiz kılan şey,
+istisnanın **kendi gerekçesini sınamak** oldu. Gerekçe şöyle yazılmıştı:
+
+> "Üst paket sürümü TAM SABİTLİYOR (`"deepmerge-ts": "7.1.5"`), yani override
+> üst paketin açık sözleşmesini çiğnerdi."
+
+Bu cümlenin ilk yarısı bir **ölçüm**, ikinci yarısı bir **çıkarım**: pin'in
+VARLIĞINDAN uyumsuzluk SONUCU çıkarılmış, uyumsuzluk hiç denenmemişti. Pin bir
+uyum beyanı değil, bir dilektir.
+
+### Ölçüm — override uygulanıp CLI'nin tamamı koşturuldu
+
+| Ölçüm | Sonuç |
+| ----- | ----- |
+| `@prisma/config` neye bağlandı | `deepmerge-ts@8.0.2` (symlink doğrulandı; kilitte tek sürüm) |
+| `prisma validate` | ✅ config yüklendi, şema geçerli |
+| `prisma generate` | ✅ istemci üretildi |
+| `prisma migrate status` | ✅ 4 göç, şema güncel |
+| `prisma db execute` | ✅ config yüklendi, betik koştu |
+| `pnpm test` | ✅ exit 0 (kapsam: satır %94.93) |
+| `pnpm audit --audit-level high` | ✅ deepmerge-ts danışması **listede yok** |
+| Kilit deltası | 11 satır, **yalnızca** bu zincir — başka hiçbir paket oynamadı |
+
+**Ve işlevsel "çalışıyor" kanıtı yeterli sayılmadı.** "Komutlar geçiyor" ile
+"yamalı kopya o yolda gerçekten koşuyor" aynı şey değil: config yükleyicisi
+deepmerge'i hiç çağırmıyor olsaydı bütün tablo yine yeşil görünürdü — klasik
+vakum. Bu yüzden **8.0.2'nin giriş dosyası geçici olarak `throw` edecek hâle
+getirildi** ve `prisma validate` koşturuldu:
+
+```
+Unknown error during config file loading: Error: T-054g SONDA: deepmerge-ts@8.0.2 bu yolda YÜKLENDİ
+```
+
+Kopya geri konduğunda şema yine geçerli. Yani yama **o kod yolunda** ve karar
+varsayıma değil ölçüme dayanıyor.
+
+### Neden katman B burada meşru — ve sınırı
+
+Oyun kitabı katman B'yi (üst paketin pinini aşan override) "üst paketin
+çalıştığı ÖLÇÜLDÜYSE" meşru sayıyor. Burada ölçüldü. Yüzey de küçük:
+`@prisma/config`in deepmerge'ten kullandığı tek şey birleştirme çağrısı ve
+`deepmerge-ts@8` hem CJS hem ESM girişi yayınlıyor (`engines: node >=16.9.0`,
+bizde 22.x).
+
+**Sınır dürüstçe:** bu, üst paketin desteklemediği bir bileşimdir. `prisma`
+yükseltildiğinde override'ın hâlâ gerekli ve hâlâ uyumlu olduğu **yeniden**
+ölçülmelidir; `@prisma/config` bir gün deepmerge 8'de olmayan bir API'ye
+geçerse kırılma CLI'da görünür (sessiz değil — yukarıdaki sonda bunu kanıtlıyor).
+Override sınırlı (`<9.0.0`) olduğu için **haftalık tazelik kapısı** (§8.24,
+`pnpm.overrides`u dinamik okuyor) donmuş tabana karşı onu da izliyor.
+
+### Yan ölçüm — `latest` etiketi kararlı değil, ikinci kez
+
+T-043g'de "`latest` etiketine karar bağlamayın" diye kaydedilen uyarı bugün
+somutlaştı: `prisma@latest` = **8.0.0-rc.22**, kararlı hat ise `prev` =
+**7.10.0**. `npm i prisma@latest` demek bugün bir RC'yi veri katmanına almak
+demek. (Ayrıca bilgi olarak: bizdeki 7.9.1, kararlı 7.10.0'ın bir minör
+gerisinde — ayrı bir iş, danışmayla ilgisi yok.)
+
+---
+
+## ADVISORY-002 — önceki tur: 44 gün kaldı, bugünden ölçüldü (T-051)
+
+> Aşağısı T-054g'den ÖNCEKİ kayıttır; karar yukarıda değişti. Silinmiyor çünkü
+> hangi gerekçenin hangi ölçümle devrildiği görünür kalsın.
 
 Bitiş **2026-11-22**. Karar gününde acele etmemek için üç kaldırma koşulu
 bugün yeniden ölçüldü:
@@ -3499,10 +3589,209 @@ sözü kapıya yazmak olurdu (T-043g'deki "Göster/Gizle" kararının aynı mant
 
 ---
 
+## Denetim ekranı — yeni yüzey ÖLÇÜLDÜ (T-054g)
+
+`/panel/ayarlar/denetim` ADR-034'ün yüzeyini gerçekten büyütüyor: `diff`
+bugüne kadar yalnızca YAZILIYORDU, artık OKUNUP ekrana basılıyor. Yazılmış bir
+satır veritabanı erişimiyle okunur; ekrana basılan satır **oturum ele
+geçirmekle** okunur. İki ölçüm yapıldı.
+
+### Ölçüm 1 — ham `diff` yanıt gövdesine girmiyor (RSC yükü DAHİL)
+
+Birim testleri (`tests/unit/services/denetim-kaydi.test.ts`, Backend) DTO'yu
+çok iyi ölçüyor ve **önkoşul iddiası** bile var: gerçek `redactAuditDiff`in
+sızdırdığını önce KANITLIYOR, sonra özette o değerlerin olmadığını gösteriyor.
+Ölçemediği tek şey **DTO ile tarayıcıya giden bayt arasındaki mesafe** — ve o
+mesafe burada boş değil: `DenetimEkrani` bir `'use client'` bileşeni ve sayfa
+ona `kayitlar={liste.items}` veriyor, yani DTO olduğu gibi **RSC yüküne
+serileşiyor** (T-041f'nin dersi: prop olarak geçen veri ekranda gösterilmese
+bile yükte durur).
+
+Yeni kapı: **`tests/e2e/panel-denetim-diff.spec.ts`**. Bilinen bir `diff`
+yazılıyor ve iki yüzey okunuyor:
+
+| Yüzey | Nasıl okunuyor |
+| ----- | -------------- |
+| İlk gezinme belgesi (HTML + `self.__next_f` uçuş parçaları) | `page.goto()` **gezinme yanıtının** gövdesi |
+| Yumuşak gezinme (saf `?_rsc=` uçuş yükü) | `page.route` eliyle, sayfa tüketmeden önce |
+
+**İki vakum tuzağı bilerek kuruldu** (T-043g'de ikisine de düşülmüştü:
+`request` fixture'ı çerez taşımıyor, `page.request` yönlendirmeyi izliyor —
+ikisi de giriş sayfasının 200'ünü döndürüyordu). Negatiflerden ÖNCE üç çapa
+koşuyor: adres doğru mu · sonda satırı yükte mi · **beyaz listedeki `context`
+değeri yükte mi**.
+
+Üçüncüsü kapının mutasyona dayanıklılığı: negatif iddialar tek başına, `diff`
+özeti DTO'dan **tamamen kaldırılsa** bile yeşil kalırdı — korumanın
+kaldırılmasıyla korumanın çalışmasını ayırt edemezdi. İzinli bir değerin
+GÖRÜNMESİNİ şart koşmak, gövdenin diff değeri taşıyabildiğini kanıtlıyor.
+
+Üçüncü bir tuzak koşarken çıktı ve kaydı burada: ilk kurulum RSC gövdesini
+`waitForResponse(...).text()` ile okuyordu ve *"Response body is not available
+for a response that was navigated away from"* ile düştü. Yumuşak gezinme
+tamamlandığı an tarayıcı kaydı atıyor; gövdeyi sonradan okumak yarış koşulu.
+`page.route` eliyle okumak (T-029'daki iptal edilmiş gezinme kalıbı) bunu
+kesinleştirdi.
+
+**Mutasyonla doğrulandı.** `toListDto`ya geçici olarak `hamDiff: row.diff`
+eklendi; kapı tam beklenen mesajla kırmızıya döndü:
+
+```
+ilk gezinme belgesi: yeniSifre DEĞERİ yanıt gövdesine girdi — ADR-034 sınırı arayüzde aşıldı.
+```
+
+Dosya `git checkout` ile geri alındı ve **md5 ile birebir** doğrulandı
+(`103ac3b249e9a47ff60123593273cb42`). Sonuç: bugün sızıntı **yok**, ve sayfanın
+bir gün ham satır çekmesi artık sessiz kalmıyor.
+
+### Ölçüm 2 — beyaz listeye yeni bir ad eklenirse polarite korunuyor mu
+
+Backend'in birim paketi beyaz listeyi **kilitliyor** (üç adın dışına çıkan
+değişiklik testi kırar, yani ekleyen gerekçe yazmak zorunda). Kilit kararı
+görünür kılıyor ama **bedelini ölçmüyor** — ve gerekçe yazacak kişinin elinde
+ölçüm yoksa karar sezgiyle verilir. Yeni kapı
+**`tests/unit/denetim-beyaz-liste-polarite.test.ts`** o bedeli çalıştırılabilir
+hâlde yazıyor (küme koşum sırasında geçici olarak genişletilip `afterEach`te
+geri alınıyor; `ReadonlySet` bir derleyici sözüdür, kilit değil):
+
+| Eklenen adın altındaki şekil | Sonuç |
+| ---------------------------- | ----- |
+| `buildDiff` çıktısı `{ before, after }` | ✅ **değer BASILMIYOR** — çift yaprak sayılıyor, `toShownValue` nesneyi reddediyor |
+| Elle yazılmış **ilkel** değer (`{ slug: 'x' }`) | ⚠️ **DEĞER EKRANA ÇIKAR** |
+| Her derinlikteki aynı ad (`deleted.slug`, `a.b.slug`) | ⚠️ hepsi açılır — kural son parçaya bakıyor |
+| Dizi (`['bir','iki']`) | ⚠️ üyeler basılır |
+
+İlk satır önemli bir iyi haber: beyaz listenin arkasında **ikinci ve BİÇİME
+dayalı** bir bariyer var, yani koruma yalnızca "o üç ad değer değil ad taşır"
+gözlemine dayanmıyor. Ama ikinci bariyer biçime bağlı, niyete değil:
+`buildDiff` kullanmayan bir yazma (seed, göç betiği, elle kurulmuş `diff`)
+anahtarın altına doğrudan dize koyabilir.
+
+**Kural bu yüzden şu:** beyaz listeye bir ad eklemek, o adın altına ASLA kayıt
+içeriği yazılmadığını kanıtlamayı gerektirir. *"`buildDiff` zaten çift
+üretiyor"* yeterli gerekçe DEĞİL.
+
+Kapının kendi vakumu da kapatıldı: `geciciEkle` eklemenin **gerçekleştiğini**
+doğruluyor — küme bir gün donarsa `add` sessizce etkisiz kalır ve "değer
+basılmıyor" iddiaları YANLIŞ SEBEPLE yeşile dönerdi.
+
+---
+
+## BULGU-023 — `socialsChanged` serbest `Json` sütunundan ad topluyor (düşük, Backend)
+
+Beyaz listedeki üç addan ikisi (`context`, `changed`) eylem dosyalarında ELLE
+yazılmış nesne literallerinden geliyor — yani kapalı bir küme.
+**`socialsChanged` gelmiyor:** anahtar adlarını `profile.socials` serbest `Json`
+sütunundan topluyor. Sonuç: panel arayüzünden hiç girilmemiş bir ad — seed, göç
+betiği ya da elle yapılmış bir yazma — denetim ekranında görünebilir.
+
+Yüzey DAR ve ölçüldü (`denetim-beyaz-liste-polarite.test.ts`):
+
+- ✅ görünen şey yalnızca **anahtar adı**; sosyal bağlantının DEĞERİ (URL,
+  kullanıcı adı) `socialsChanged` listesine hiç girmiyor
+- ✅ ad yerine nesne/iç içe yapı düşerse **tamamı** düşüyor — kısmi gösterim yok
+
+Yani bu bir **sızıntı değil**, öngörülemeyen bir dizenin ekranda belirmesi.
+Bugünkü bedeli ekranda uzun/garip bir etiketten fazlası değil. Backend'in
+kendi beyanında dürüstçe yazdığı sınırın kayda geçmiş hâli; düzeltme sahibi
+Backend ve aciliyeti yok. Kaydedilme sebebi: bir gün o sütuna kullanıcı girdisi
+akarsa (çok dilli sosyal ad, özel alan) bu satır onun ÖN KOŞULU olur.
+
+---
+
+## ADR-036 ikinci beyan denetimi — `/panel/ayarlar/denetim` ve `/panel/ayarlar/sifre` (T-054g)
+
+İki beyanın yapısal iddiaları kodla karşılaştırıldı. **Hepsi doğru:** kimlik
+zinciri, `robots` üstverisi, `fetchAuditLog`un Server Action'dan DEĞİL servisten
+çağrılması, `auditLogFilterSchema`dan geçen filtre, ters aralıkta süzgeçsiz ilk
+sayfaya düşüp bunu kullanıcıya SÖYLEMESİ, `userAgent`ın DTO'da hiç seçilmemesi
+(ve bu yüzden detay rotasının yazılmamış olması). Dead beyan, yanlış kanıt
+dizesi, gerekçesiz "kapsanmiyor" yok — kapı 36/36.
+
+### Karar: ADR-034'ün "neden" cümlesi beyana mı, servise mi ait
+
+Kart haklı bir eksiklik soruyor: *"values ekrana basılıyor"* demek yanlış
+değil ama **eksik** olur; değerlerin neden boş geldiğini beyan taşımalı mı?
+
+**KARAR: hayır — beyan SINIRI taşır, GEREKÇEYİ taşımaz.** Üç sebep:
+
+1. **Gerekçenin tek sahibi olmalı.** ADR-034'ün muhakemesi (üç sızıntı
+   sınıfının üçü de DEĞER sızıntısıdır, bu yüzden değer hiç göstermemek yüzeyin
+   TAMAMINI ada bakmadan kapatır) ADR-034'te ve servis dosyasının karar
+   başlığında yazılı. Rota beyanına kopyalamak **ikinci bir kaynak** yaratır ve
+   muhakeme geliştiğinde beyan sessizce sapar — bu projenin tam da yapısal
+   olarak önlemeye çalıştığı sapma sınıfı (bkz. `SESSION_MAX_AGE_SECONDS`
+   taşıması).
+2. **Beyanın işi farklı.** ADR-036'daki beyan "bu rotada hangi mekanizmalar var,
+   hangileri ÖLÇÜLÜYOR, hangileri ÖLÇÜLMÜYOR" sorusunu cevaplıyor. Gerekçe
+   değil, **kapsam** belgesi. Oraya muhakeme yazmak onu üçüncü bir ADR kopyasına
+   çevirir.
+3. **Beyan şu hâliyle zaten yeterince söylüyor.** "`diff.values` (yalnızca
+   `SHOWN_DIFF_VALUE_KEYS`)" ifadesi **beyaz liste** olduğunu — yani varsayılanın
+   REDDETMEK olduğunu — belirtiyor; "ham `diff` DTO'da hiç yok" ise sınırın
+   nerede durduğunu söylüyor. Okuyucuyu ADR-034'ün yanlış okumasına (redaksiyon
+   = koruma) düşürecek bir boşluk bırakmıyor.
+
+**Beyana ait olan ve EKSİK olan tek şey ölçüm durumuydu** — ve beyan onu
+dürüstçe kendisi yazmış: *"`diff` değerlerinin ekrana çıkmadığı ARAYÜZDE
+doğrulanmadı … `fields`/`values` dışına çıkan bir düzenleme sessiz kalır."* O
+boşluk ADR-036'ya göre **beyan sahibinin değil kapı sahibinin** işi; yukarıdaki
+iki kapıyla kapatıldı ve beyandaki "ölçülmeyen (1)" satırı artık geçersiz.
+Güncellemesi Frontend'in (beyan onun dosyası değil — KAPSAM haritası rotayı
+ekleyenin).
+
+### Denetim sırasında KENDİ kapımda bir kör nokta çıktı — kapatıldı
+
+Beyanı kodla karşılaştırırken kapsam kapısının aynasının bir yüzünün açık
+olduğu görüldü. Yedi kırmızı dalın hepsi haritanın **FAZLA** iddia etmesine
+karşı kurulmuştu ("kapsanıyor" diyen satırın kanıtı kaynakta duruyor mu).
+Tersi — **EKSİK** iddia — hiç ölçülmüyordu, ve bu turda somut olarak gerçekleşti:
+`/panel/ayarlar/denetim` için E2E paketi yazıldı, beyan `kapsanmiyor` demeye
+devam etti, **hiçbir kapı kırmızıya dönmedi**.
+
+Bunun bedeli "yanlış ama zararsız bir satır" değil. Harita ölçülmeyen yüzeyi
+görünür kılmak için var (T-016b); eksik iddia eden satır bir paketi **sahipsiz**
+gösterir ve bir gün "bu rota zaten kapsanmıyor" diye okuyan biri paketi silerse
+hiçbir şey ses çıkarmaz. **Kapsamı eksik bildirmek, fazla bildirmekten daha
+sessiz bir yanlıştır.**
+
+Sekizinci dal eklendi: `kapsanmiyor` diyen her rota için E2E kaynağında
+gezinme aranıyor (sınır eşleşmesi zorunlu — düz alt dize araması her ebeveyn
+yolu `/panel/ayarlar` ↔ `/panel/ayarlar/denetim` üzerinden yanlışlıkla
+suçlardı). Dal **yapay mutasyona gerek kalmadan** doğrulandı: gerçek ağaçta
+koşturulduğunda tam o bayat satırda kırmızıya döndü. Ölçüldüğünde etkilenen
+rota sayısı **1**, yani başka bayat kayıt yok.
+
+Beyanın `kapilar`/`kanit` alanları güncellendi — `not` metnine dokunulmadı
+(ADR-036: anlatı rotayı ekleyenin, kapı tarafı benim). Kapı 38/38.
+
+### `/panel/ayarlar/sifre` — beyan doğru, bir boşluğu kayda değer
+
+"Kapsanmıyor" gerekçesi sağlam: şifre değiştirmenin tamamı (yanlış mevcut
+şifre, TOTP gerekliliği, hız sınırı, ADR-035 oturum geçersizleştirme, denetim
+kaydının şifre TAŞIMAMASI) birim testlerinde ölçülüyor ve arayüz yalnızca
+`fields` anahtarlarını alan altına basıyor.
+
+Dört "ölçülmeyen" satırından biri bir **sessiz sapma** sınıfı ve sahibi benim
+olabilir: ADR-035'in bağlayıcı metni `sifre-formu.tsx`te `ADR_035_MESAJ`
+sabitinde duruyor ve hiçbir kapı onu dizeyle karşılaştırmıyor — *"Tüm
+cihazlardan çıkış yapıldı"* gibi **yanlış bir güvence** cümlesine kayması
+testle yakalanmaz. Kullanıcıya verilen güvencenin doğruluğu bir güvenlik
+özelliğidir. **Bu turda yazılmadı** (kart bu kalemi vermedi, uydurma kapsam
+açmıyorum); **T-057g için önerilmiştir** ve tek satırlık bir kaynak taraması.
+
+---
+
 ## §8 Güvenlik Gereksinimleri — Durum Tablosu
 
-**Ölçüm tarihi:** 2026-10-09 · **Faz:** F3 (sürüyor) · **Son görev:** T-051
+**Ölçüm tarihi:** 2026-10-10 · **Faz:** F3 (sürüyor) · **Son görev:** T-054g
 · **Dağılım:** ✅ 10 · ⚠️ 6 · ❌ 0 · ⏳ 9
+
+> T-054g'de dağılım DEĞİŞMEDİ ve bu bilinçli: denetim ekranı yeni bir yüzey
+> açtı, iki kapıyla ölçüldü ve sızıntı çıkmadı — yani mevcut maddeler
+> güçlendi, yeni bir madde karşılanmadı. Durum kodu kazanmayan ölçüm de
+> ölçümdür; tabloyu kıpırdatmak için madde terfi ettirmek, tablonun anlamını
+> bozar.
 
 > T-039'da üç satır **bayat çıktığı için** güncellendi (6, 8 ve 15): ikisi
 > "henüz Server Action yok" diyordu, oysa action'lar T-031'de gelmişti. Tablo

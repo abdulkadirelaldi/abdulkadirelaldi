@@ -164,6 +164,30 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     kanit: ['TWO_FACTOR_SETUP_PATH'],
     not: 'Adres e2e içinde düz metin değil, `src/lib/security/two-factor` sabitinden geliyor; sabitin bu rotaya çözüldüğü aşağıda ayrıca doğrulanıyor.',
   },
+  '/panel/ayarlar/sifre': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: "T-054f ile eklendi (ADR-036). Kimlik zinciri `(panel)` düzeni + ara katman + §8.1 2FA kapısı; `robots: noindex/nofollow/nocache`. Okuma `getTotpStatus()` (2FA açık mı — doğrulama kodu alanı buna göre çiziliyor), yazma TEK Server Action `changePasswordAction`. E2E'ye alınmadı çünkü ölçülecek yeni mekanizma arayüzde DEĞİL: şifre değiştirmenin tamamı — yanlış mevcut şifre, TOTP gerekliliği, hız sınırı, ADR-035 oturum geçersizleştirme ve denetim kaydının şifre TAŞIMAMASI — `tests/unit/actions/sifre-degistirme.test.ts` ve `tests/unit/auth/change-password.test.ts` tarafından ölçülüyor; arayüz yalnızca `fields` anahtarlarını alanların altına basıyor ve o eşleme `panel-form` kabuğunda tek yerde. ÖLÇÜLMEYEN: (1) ADR-035'in BAĞLAYICI METNİ ekranda birebir duruyor mu — metin `sifre-formu.tsx`te `ADR_035_MESAJ` sabitinde ve hiçbir kapı onu dizeyle karşılaştırmıyor; 'Tüm cihazlardan çıkış yapıldı' gibi yasak bir cümleye kayması testle yakalanmaz. (2) `RATE_LIMITED` yanıtının `fields`i YOK, yani mesaj GENEL uyarı olarak çıkıyor; bu dalın ekranda gerçekten alan altına DÜŞMEDİĞİ denenmedi. (3) 2FA KAPALI hesapta `totpCode` alanı hiç çizilmiyor ve `gorunmezAlanlar` ile form düzeyine yükseltiliyor — sunucunun o alana hata basıp basmadığı (teorik olarak basamaz) ölçülmedi. (4) Başarıdan sonra formun temizlendiği (`temizle: true`, şifre alanları ekranda kalmasın) doğrulanmadı.",
+  },
+  '/panel/ayarlar/denetim': {
+    /*
+     * ⚠️ KAPI ALANLARI T-054g'DE GÜVENLİK TARAFINDAN GÜNCELLENDİ.
+     *
+     * ADR-036 beyanın `not` metnini rotayı ekleyene bırakıyor ve o metne
+     * DOKUNULMADI. `kapilar`/`kanit` ise beyanın kapı tarafı: T-054g'de bu
+     * rotaya bir E2E paketi yazıldı (`panel-denetim-diff.spec.ts`) ve satır
+     * `kapsanmiyor` demeye devam ediyordu. Kendi yazdığım kapıyı bildirmemek,
+     * haritayı kendi ölçtüğü şeye kör bırakmak olurdu.
+     *
+     * `not` içindeki "ÖLÇÜLMEYEN (1)" satırı artık GEÇERSİZ — iddia edilen
+     * boşluk (ham `diff`in arayüzde/yanıt gövdesinde doğrulanmaması) ölçüldü
+     * ve kapatıldı. Metnin güncellenmesi beyan sahibinin (Frontend);
+     * gerekçesi docs/security/README.md → "ADR-036 ikinci beyan denetimi".
+     */
+    kapilar: ['e2e'],
+    kanit: ["page.goto('/panel/ayarlar/denetim')"],
+    not: "T-054f ile eklendi (ADR-036). Kimlik zinciri `(panel)` düzeni + ara katman + §8.1 2FA kapısı; `robots: noindex/nofollow/nocache`. Okuma `fetchAuditLog` SERVİSTEN doğrudan, Server Action'dan DEĞİL — yeniden ihraç edilmesi denetim kaydının tamamını kimlik doğrulamasız bir POST ucuna çevirirdi ve bu ayrı bir kapı tarafından kaynaktan taranıyor. Filtre `auditLogFilterSchema`'dan geçiyor (adres çubuğu kullanıcı girdisi, ADR-032); ters aralık reddedilince süzgeçsiz ilk sayfaya düşülüyor ve kullanıcıya SÖYLENİYOR. ⚠️ ADR-034 SINIRI ARAYÜZDE: ekran `diff.fields` (alan ADLARI) ve `diff.values` (yalnızca `SHOWN_DIFF_VALUE_KEYS`) basıyor; ham `diff` DTO'da hiç yok, yani 'arayüz süzsün' demek tipi değiştirmeyi gerektirir. `ip` listede (karşılaştırmalı değeri var), `userAgent` DTO'da HİÇ SEÇİLMİYOR — bu yüzden DETAY ROTASI YAZILMADI, çağıranı olmazdı. ÖLÇÜLMEYEN: (1) `diff` değerlerinin ekrana çıkmadığı ARAYÜZDE doğrulanmadı — sözleşme DTO tipiyle korunuyor ve birim testleri DTO'yu ölçüyor, ama 'bu bileşen ham diff basmıyor' iddiası için bir kapı yok; `fields`/`values` dışına çıkan bir düzenleme sessiz kalır. (2) Sayfa boyutu SABİT 50, adresten verilemiyor — kaynak tüketimi denenmedi. (3) `entity`, `entityId`, `actorId` filtreleri sözleşmede VAR ama arayüzde YÜZEYLENMEDİ: tek kullanıcılı sistemde `actorId` ayırt etmiyor, diğer ikisi için kullanıcı akışı yok; yüzeylendiğinde burası güncellenmeli. (4) Tarih aralığının `to` DAHİL olduğu etiketle söyleniyor ama sınır davranışı (o günün son anı) arayüzden ölçülmedi — servis birim testlerinde.",
+  },
   '/panel/desenler': {
     kapilar: ['kapsanmiyor'],
     kanit: [],
@@ -415,6 +439,42 @@ describe('rota envanteri × kapı kapsamı', () => {
       .map(([yol]) => yol);
 
     expect(gerekcesiz, `Gerekçesiz "kapsanmiyor": ${gerekcesiz.join(', ')}`).toEqual([]);
+  });
+
+  /**
+   * TERS YÖN — "kapsanmiyor" diyen rota ASLINDA kapsanıyor olabilir mi?
+   *
+   * Yukarıdaki dallar haritanın FAZLA iddia etmesini engelliyor: "kapsanıyor"
+   * diyen bir satırın kanıtı kaynakta gerçekten duruyor mu. T-054g'de aynanın
+   * öteki yüzü açıktaydı ve somut olarak gerçekleşti: `/panel/ayarlar/denetim`
+   * için bir E2E paketi yazıldı, beyan `kapsanmiyor` demeye devam etti ve
+   * HİÇBİR KAPI kırmızıya dönmedi.
+   *
+   * Bunun bedeli "yanlış ama zararsız bir satır" değil. Harita, ölçülmeyen
+   * yüzeyi görünür kılmak için var (T-016b); EKSİK iddia eden bir satır o
+   * paketi SAHİPSİZ gösterir, ve bir gün "bu rota zaten kapsanmıyor" diye
+   * okuyan biri paketi silerse hiçbir şey ses çıkarmaz. Kapsamı eksik bildirmek,
+   * fazla bildirmekten daha sessiz bir yanlıştır.
+   *
+   * SINIR EŞLEŞMESİ ZORUNLU: düz alt dize araması `/panel/ayarlar` satırını
+   * `/panel/ayarlar/denetim` gezinmesiyle eşleştirir ve her ebeveyn yolu
+   * yanlışlıkla suçlardı. Yolun ardından tırnak, `?` veya `#` gelmesi şart.
+   */
+  it('"kapsanmiyor" diyen rotaya E2E gezinmesi YOK', () => {
+    const celiskili = Object.entries(KAPSAM)
+      .filter(([yol, b]) => {
+        if (!b.kapilar.includes('kapsanmiyor')) return false;
+        const desen = new RegExp(`${yol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}(?=['"\`?#])`);
+        return desen.test(E2E_KAYNAK);
+      })
+      .map(([yol]) => yol);
+
+    expect(
+      celiskili,
+      `Bu rotalar "kapsanmiyor" diyor ama E2E kaynağında geziliyor: ${celiskili.join(', ')}\n` +
+        'Paket yazıldıysa KAPSAM satırı da kapıyı ve kanıtı bildirmeli — yoksa harita ' +
+        'kendi ölçtüğü şeyi görmüyor demektir.',
+    ).toEqual([]);
   });
 
   it('her beyan en az bir kapı ve (kapsanıyorsa) kanıt bildiriyor', () => {

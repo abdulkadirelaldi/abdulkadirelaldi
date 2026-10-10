@@ -4,6 +4,7 @@ import { hashBackupCodes } from '@/server/auth/backup-codes';
 import { hashEmail } from '@/server/auth/login-attempt';
 import { encryptSecret } from '@/server/auth/totp';
 import { db } from '@/server/db';
+import type { Prisma } from '@/server/generated/prisma/client';
 
 /**
  * E2E veritabanı görevleri — AYRI BİR NODE SÜRECİNDE koşar.
@@ -270,6 +271,59 @@ const komutlar: Record<string, (arg?: string) => Promise<unknown>> = {
     const { count } = await db.contactMessage.deleteMany({
       where: { subject: { startsWith: konuOneki } },
     });
+    return { silinen: count };
+  },
+
+  /**
+   * Denetim ekranına BİLİNEN bir `diff` yazar — T-054g sızıntı ölçümü için.
+   *
+   * ⚠️ `writeAuditLog` KULLANILMIYOR, SATIR DOĞRUDAN YAZILIYOR. Sebep: amaç
+   * redaksiyonu ölçmek DEĞİL (onu `tests/unit/services/denetim-kaydi.test.ts`
+   * gerçek `redactAuditDiff` ile ölçüyor), OKUMA YOLUNU ölçmek. ADR-034
+   * redaksiyonun bilmediği adı koruyamadığını kanıtladı; yani üretimde `diff`
+   * sütununda SIZMIŞ bir değer BULUNABİLİR. Bu sonda tam o satırı taklit ediyor:
+   * redaksiyondan geçirsem `yeniSifre` yine geçerdi ama `password` maskelenir ve
+   * ölçtüğüm şey bulanıklaşırdı.
+   *
+   * İşaretler çağıran tarafta üretiliyor ve geri DÖNDÜRÜLMÜYOR (§8.20 alışkanlığı):
+   * buradan yalnızca satır kimliği çıkıyor.
+   */
+  async denetimSondasiYaz(arg) {
+    const { entity, entityId, diff } = JSON.parse(arg ?? '{}') as {
+      entity: string;
+      entityId: string;
+      /* `Json` sütununun girdi tipi: `Record<string, unknown>` kabul edilmiyor
+         çünkü `unknown` serileşemeyen bir değer de olabilir. Argüman zaten
+         `JSON.parse`tan geldiği için serileşebilir olduğu kanıtlı. */
+      diff: Prisma.InputJsonObject;
+    };
+    if (!entity || !entityId) {
+      throw new Error('denetimSondasiYaz: `entity` ve `entityId` zorunlu.');
+    }
+
+    const user = await requireAdmin();
+    const satir = await db.auditLog.create({
+      data: {
+        actorId: user.id,
+        actorEmailHash: hashEmail(user.email),
+        action: 'UPDATE',
+        entity,
+        entityId,
+        diff,
+        ip: '203.0.113.77',
+      },
+      select: { id: true },
+    });
+
+    return { id: satir.id };
+  },
+
+  /** Sondayı siler — KİMLİĞE göre, çünkü iki Playwright projesi aynı anda koşuyor. */
+  async denetimSondasiSil(arg) {
+    const { id } = JSON.parse(arg ?? '{}') as { id: string };
+    if (!id) throw new Error('denetimSondasiSil: `id` zorunlu.');
+
+    const { count } = await db.auditLog.deleteMany({ where: { id } });
     return { silinen: count };
   },
 
