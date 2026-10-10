@@ -13,10 +13,19 @@ export const metadata: Metadata = {
 /**
  * §4.2 — `/panel/ayarlar`: şifre, 2FA, tema, yedek durumu, denetim kaydı.
  *
- * Beş bölümün ikisi bugün çalışıyor (2FA ekranı ve tema anahtarı); üçü henüz
- * yok ve AÇIKÇA "Yakında" olarak işaretli. Ölü bağlantı bırakılmadı — sidebar'daki
- * "Ayarlar" bağlantısının bu görevden önce 404 vermesi tam olarak bu sınıf bir
- * hataydı (T-036 / ENGEL-3).
+ * T-054f'te dördü çalışır hâle geldi (şifre, 2FA, tema, denetim kaydı); geriye
+ * yalnızca yedek durumu kaldı ve o F6/T-066'ya bağlı. Ölü bağlantı yok —
+ * sidebar'daki "Ayarlar" bağlantısının bir zamanlar 404 vermesi tam olarak bu
+ * sınıf bir hataydı (T-036 / ENGEL-3).
+ *
+ * ⚠️ "YEDEK DURUMU" METNİ GELECEK ZAMANA ÇEKİLDİ (T-054f).
+ *
+ * Eski metin "Son gece yedeğinin zamanı, boyutu ve bütünlük doğrulaması."
+ * diyordu — ŞİMDİKİ ZAMANDA, var olmayan bir özelliği anlatarak. Ölü düğme
+ * değildi (T-018 ihlali yok) ama tutulamayacak söz sınıfına yakındı: okuyan,
+ * bu bilgilerin bir yerde durduğunu sanır. Bölümü kaldırmak yerine metni
+ * düzelttim; bölüm §4.2'de tanımlı ve kaldırmak onu envanterden düşürürdü.
+ * Yeni metin olguyu söylüyor: yedekleme kurulmadı, kurulduğunda ne gösterecek.
  */
 export default function AyarlarPage() {
   return (
@@ -35,6 +44,7 @@ export default function AyarlarPage() {
               icon={KeyRound}
               baslik="Şifre"
               aciklama="Panel şifreni değiştir. Mevcut şifren sorulur, yeni şifre en az 12 karakter olmalıdır."
+              href="/panel/ayarlar/sifre"
             />
 
             <SettingsSection
@@ -54,13 +64,14 @@ export default function AyarlarPage() {
             <SettingsSection
               icon={DatabaseBackup}
               baslik="Yedek durumu"
-              aciklama="Son gece yedeğinin zamanı, boyutu ve bütünlük doğrulaması. Geri yükleme prosedürü ayrıca belgelenir."
+              aciklama="Otomatik yedekleme henüz kurulmadı. Kurulduğunda son yedeğin zamanı, boyutu ve bütünlük doğrulaması burada görünecek; geri yükleme prosedürü ayrıca belgelenecek."
             />
 
             <SettingsSection
               icon={ScrollText}
               baslik="Denetim kaydı"
-              aciklama="Panelde yapılan her değişikliğin kaydı: ne, ne zaman, hangi IP'den."
+              aciklama="Panelde yapılan her değişikliğin kaydı: ne, ne zaman, hangi IP'den. Değişen alanların adları görünür, değerleri görünmez."
+              href="/panel/ayarlar/denetim"
             />
           </div>
         </div>

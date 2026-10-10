@@ -84,12 +84,29 @@ export const PANEL_GRUPLARI: ReadonlyArray<{
   },
 ] as const;
 
-/** Menüde tanımlı olmayan ama kırıntıda görünen alt yollar. */
+/**
+ * Menüde tanımlı olmayan ama kırıntıda görünen alt yollar.
+ *
+ * ⚠️ `HAZIR_EK_YOLLAR` ile BİRLİKTE tutulmalı: etiket burada, tıklanabilirlik
+ * orada. T-054f'te üç yol oldu ve `rotaHazirMi`nin tek yola sabitlenmiş
+ * `=== '/panel/ayarlar/guvenlik'` kontrolü o anda YANLIŞ cevap vermeye başladı —
+ * yeni sayfalar yazıldığı hâlde kırıntıda tıklanamıyordu. Küme hâline getirmek,
+ * bir sonraki eklemede aynı hatanın tekrarlanmamasını sağlıyor.
+ */
 const EK_ETIKETLER: Record<string, string> = {
   '/panel/ayarlar/guvenlik': 'Güvenlik',
+  '/panel/ayarlar/sifre': 'Şifre',
+  '/panel/ayarlar/denetim': 'Denetim kaydı',
   /* `/panel/icerik` bir sayfa DEĞİL, yalnızca kırıntı yolundaki ara segment. */
   '/panel/icerik': 'İçerik',
 };
+
+/** `EK_ETIKETLER` içinden GERÇEKTEN sayfası olanlar — `/panel/icerik` hariç. */
+const HAZIR_EK_YOLLAR: ReadonlySet<string> = new Set([
+  '/panel/ayarlar/guvenlik',
+  '/panel/ayarlar/sifre',
+  '/panel/ayarlar/denetim',
+]);
 
 const ETIKETLER: Record<string, string> = {
   ...Object.fromEntries(PANEL_GRUPLARI.flatMap((g) => g.items.map((i) => [i.href, i.label]))),
@@ -107,6 +124,6 @@ export function rotaEtiketi(yol: string): string {
 
 /** Bu yol tıklanabilir mi (sayfa yazıldı mı). */
 export function rotaHazirMi(yol: string): boolean {
-  if (yol in EK_ETIKETLER) return yol === '/panel/ayarlar/guvenlik';
+  if (yol in EK_ETIKETLER) return HAZIR_EK_YOLLAR.has(yol);
   return PANEL_GRUPLARI.some((g) => g.items.some((i) => i.href === yol && i.hazir));
 }
