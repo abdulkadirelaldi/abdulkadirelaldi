@@ -44,6 +44,7 @@
 | ADR-036 | `KAPSAM` beyanını rotayı yazan doldurur (§10.1 istisnası) | 2026-10-07 | Kabul edildi |
 | ADR-037 | Bir istisnanın kendi gerekçesi de ölçülür | 2026-10-10 | Kabul edildi |
 | ADR-038 | Mutasyon anlık görüntüyle geri alınır; commit rapor başına | 2026-10-12 | Kabul edildi |
+| ADR-039 | Kategori türü ile işlem türü eşleşmek zorunda değil; uyuşmazlık gizlenmez | 2026-10-12 | Kabul edildi |
 
 ---
 
@@ -2045,3 +2046,79 @@ kendi hatasını raporluyor ve tam o anda ölçmekten çok hatırlamaya yakınd�
   aracı ve defalarca sahte yeşil yakaladı. Araç değil, geri alma yöntemi kusurluydu.
 - **Kuralı yalnızca görev kartlarına yazmak** — **reddedildi**: üç ajanın hepsini ve
   gelecekteki her turu bağlıyor; kartta kalırsa bir kart onu yazmayı unutur.
+
+---
+
+## ADR-039 — Kategori Türü ile İşlem Türü Eşleşmek Zorunda Değil; Uyuşmazlık Gizlenmez
+
+**Tarih:** 2026-10-12 · **Durum:** Kabul edildi
+**Kaynak:** T-104 (Frontend sordu), T-102 (Backend ölçtü), Orkestra Şefi kararı
+
+### Bağlam
+Frontend sordu: *"Kategori türü işlem türüyle eşleşmek zorunda değil. Şema bunu
+dayatmıyor — gelir işlemine gider kategorisi bağlanabilir ve sunucu kabul eder.
+Arayüz engellemiyor (şemanın söylemediği bir kuralı dayatmamak için). Bunun
+bilinçli olduğu ölçülmedi."*
+
+Soru yerinde ve cevabı T-102'nin ölçümünde duruyor. Backend canlı ölçtü:
+
+```
+Kategori "Proje Geliri" GELİR iken 1.000 TL gelir işlemi girildi
+Kullanıcı kategoriyi GİDER'e çevirdi  (T-101 buna izin veriyor)
+
+DOĞRU  → islemTuru=INCOME  katTuru=EXPENSE  UYUŞMAZ=true
+NAİF   → 1.000 TL GELİR, GİDER kefesine yazılırdı
+```
+
+### Karar
+**Eşleşme zorunlu tutulmaz.** Üç gerekçe, üçü de ölçüme dayanıyor:
+
+**1. Uyuşmazlık meşru bir durumdan doğuyor.** Kategorinin türü **sonradan
+değiştirilebiliyor** ve altındaki işlemler **kendi türünü koruyor.** Yazma anında
+eşleşme zorlanırsa iki kötü seçenekten biri çıkar: kategori türünü değiştirmek
+**engellenir** (oysa yeniden sınıflandırma meşru bir ihtiyaç), ya da değiştirmek
+geçmiş satırları **sessizce geçersiz kılar.**
+
+**2. Defterin gerçeği işlemin kendi türüdür.** Kategori bir **etikettir**; bir
+gelir hareketi, etiketi değiştiği için gider olmaz. Bu yüzden kategori dağılımı
+`Transaction.type` üzerinden hesaplanıyor (T-102) — kategorinin türü üzerinden
+hesaplamak *"toplamlar yine tutar, yalnızca yanlış kümede"* sınıfından sessiz bir
+hata üretirdi.
+
+**3. Arayüz, şemanın söylemediği bir kuralı dayatmaz.** Frontend'in refleksi
+doğruydu. Arayüzde sert bir engel, sunucunun kabul ettiği bir kaydı imkânsız
+gösterir ve iki katman birbirini tutmaz.
+
+**Ama gizlenmez de.** Üç yerde görünür olmak **bağlayıcı**:
+
+- **Rapor:** `typeMismatch` alanı o satırı işaretliyor (T-102). *Arayüz durumu
+  açıklamak zorunda, saklamamalı* — kullanıcı *"neden gider kategorisinde gelir
+  var"* diye sorabilmeli.
+- **Seçici:** kategori seçeneklerinde **türü yazılı** (T-104 böyle yaptı), yani
+  kullanıcı uyuşmaz bir seçim yaptığını **görerek** yapıyor.
+- **Oluşturma anı:** bir **yumuşak uyarı** savunulabilir ve **sert engel değildir** —
+  çünkü oluşturma anındaki uyuşmazlık muhtemelen kullanıcı hatası, meşru vaka ise
+  **sonradan yeniden sınıflandırmadan** doğuyor. Bu ayrımı yapan bir uyarı
+  yazılabilir; **zorunlu tutulmuyor** ve yazılırsa gönderimi **engellemeyecek.**
+
+### Sonuçlar
+- **Olumlu:** Yeniden sınıflandırma meşru kalıyor ve geçmiş veri bozulmuyor.
+- **Olumlu:** Rapor doğru kümeyi sayıyor ve uyuşmazlık **görünür** — sessiz değil.
+- **Olumlu:** Şema ile arayüz aynı şeyi söylüyor; ikisi birbirini tutmuyor hâli yok.
+- **Olumsuz / kabul edilen:** Kullanıcı oluşturma anında yanlış kategori seçebilir
+  ve kayıt kabul edilir. Kabul edildi: düzeltilebilir bir hata, ve alternatifi
+  (yeniden sınıflandırmayı engellemek ya da geçmişi geçersiz kılmak) geri alınamaz.
+
+### Alternatifler ve neden reddedildi
+- **Şemada `CHECK` kısıtı** — **reddedildi**: kategori türünü değiştirmeyi kalıcı
+  olarak engeller, çünkü mevcut satırlar kısıtı ihlal eder. Yeniden sınıflandırma
+  meşru bir ihtiyaç ve bu onu öldürür.
+- **Yazma anında serviste reddetmek** — **reddedildi**: aynı sonuç, bir katman
+  yukarıda; ve kategori türü değiştiğinde geçmiş satırlar **zaten** uyuşmaz hâle
+  geleceği için kural baştan tutarsız olur.
+- **Arayüzde seçenekleri işlem türüne göre süzmek** — **reddedildi**: sunucunun
+  kabul ettiği bir kaydı imkânsız gösterir, ve arşivli kategoriye bağlı eski bir
+  işlemi düzenlerken T-103/T-104'te çözülen *"bağ koparma"* kusurunun aynısını
+  üretir.
+- **Uyuşmazlığı hiç yüzeye çıkarmamak** — **reddedildi**: `typeMismatch` olmadan
+  kullanıcı rakama bakıp hatayı **veride** arar. T-102'nin ölçümü tam bunu gösterdi.

@@ -607,6 +607,35 @@ Orkestra Şefi → STATUS.md'yi günceller, bir sonraki promptu üretir
 >
 > İki karttan oluşan bir tur yazılıyorsa (T-052 + T-053 gibi), **ikisinin kapsam
 > satırları birlikte** okunur: ayrı ayrı tutarlı olmaları yetmiyor.
+>
+> **İkinci kart yazım kuralı — bir dersi taşırken KAPSAMI kontrol edilir (T-102).**
+>
+> T-053'te ölçülen bir kusuru (`appDayToDate` UTC gece yarısı üretiyor, sınır
+> İstanbul'da üç saat kayıyor) T-102'nin kartına taşıdım ve *"`appDayStartInstant`
+> kullan"* yazdım. **Yanlıştı.** O ders `audit_log.createdAt` içindi — bir
+> `timestamp`. `transaction.date` ise `@db.Date`, yani saat saklamıyor.
+>
+> ```
+> transaction.date     = date        ← saat SAKLAMIYOR
+> transaction.paidAt   = timestamp
+> audit_log.createdAt  = timestamp   ← T-053'ün tuzağı BURADA
+> ```
+>
+> İki ajan talimata **bağımsız olarak ölçümle itiraz etti** ve ikisi de haklıydı.
+> Dersin kendisi doğruydu; **kapsamı sütun tipiydi ve ben kontrol etmeden taşıdım.**
+>
+> **Kural:** bir karta geçmiş bir dersi yazarken, o dersin ölçüldüğü bağlam ile
+> yeni bağlamın **aynı olup olmadığı yazılır.** Aynı değilse ders bir **soru**
+> olarak taşınır (*"bu sütun hangi tipte, hangi yardımcı doğru?"*), **talimat**
+> olarak değil.
+>
+> Gerekçe: bir talimat ölçümün önüne geçer. Ajan talimata uyarsa kusur üretir;
+> uymazsa turunun bir kısmı itirazı gerekçelendirmeye gider. İkisi de maliyet, ve
+> ikisi de kartı yazanın hatasıdır.
+>
+> Bu, ADR-037'nin kart düzeyindeki karşılığıdır: **gerekçenin hangi kısmı ölçüm,
+> hangi kısmı çıkarım.** "T-053'te şu ölçüldü" ölçümdür; "o hâlde burada da
+> geçerlidir" çıkarımdır ve kartta **deney olarak** yazılmalıdır.
 
 ### 10.4 Ajan Rapor Formatı (zorunlu)
 
