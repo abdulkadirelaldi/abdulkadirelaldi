@@ -121,6 +121,10 @@ export * from './contact-message';
 // §4.2 denetim kaydı — OKUMA yolu (T-052). Yazma yolu `_shared/audit.ts`te.
 export * from './audit-log';
 
+// F4 §4.2/§6 — iş & müşteri (T-100). Para kuralları ADR-014, `job.ts` içinde.
+export * from './client';
+export * from './job';
+
 // ADR-026 — içerik servisleri (F2 public okuma tarafı)
 export * from './experience';
 export * from './post';
