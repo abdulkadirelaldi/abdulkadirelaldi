@@ -1,4 +1,5 @@
 import { dateToAppDay, type AppDay } from './app-date';
+import { toScaledInt } from './money';
 
 /**
  * Kişisel rekor yeniden hesaplayıcısı — ADR-021.
@@ -30,14 +31,30 @@ export interface RecordCandidate {
   workoutSetId: string;
 }
 
-/** Ondalık dizeleri kayan noktaya çevirmeden karşılaştırır (kuruş mantığının kilo hâli). */
+/** `Decimal(6,2)` — `WorkoutSet.weightKg` sütununun ondalık basamak sayısı. */
+const WEIGHT_SCALE = 2;
+
+/**
+ * Ondalık dizeleri kayan noktaya çevirmeden karşılaştırır (kuruş mantığının
+ * kilo hâli).
+ *
+ * ⚠️ ÖLÇEKLEME ARTIK YEREL DEĞİL — BULGU-024 kapandı (T-102).
+ *
+ * Burada `BigInt(whole + fraction.padEnd(2,'0'))` yapan yerel bir kopya vardı
+ * ve Güvenlik'in biçim kapısı onu gerekçeli bir istisna olarak kaydetmişti.
+ * Teşhis doğruydu ve kopya bir dikkatsizlik değildi: `money.ts` ölçekleme
+ * ilkelini İHRAÇ ETMİYORDU, yani içe aktarılacak bir şey yoktu. T-102'de
+ * `toScaledInt` ihraç edildi ve kopya silindi.
+ *
+ * KAZANÇ SADECE "TEK TANIM" DEĞİL: yerel kopya İŞARETİ ELE ALMIYORDU
+ * (`-12.5` → `BigInt('-125')` yerine `BigInt('-12' + '50')` gibi bir sonuç).
+ * Ağırlık negatif olmadığı için davranışsal hata doğmuyordu — ama kural
+ * `money.ts`in güvencesinden ZAYIFTI ve bir gün negatif bir ölçüm alanına
+ * kopyalanırsa sessizce yanlış olurdu.
+ */
 function compareDecimalStrings(a: string, b: string): number {
-  const scale = (value: string): bigint => {
-    const [whole = '0', fraction = ''] = value.split('.');
-    return BigInt(whole + fraction.padEnd(2, '0').slice(0, 2));
-  };
-  const left = scale(a);
-  const right = scale(b);
+  const left = toScaledInt(a, WEIGHT_SCALE);
+  const right = toScaledInt(b, WEIGHT_SCALE);
   return left === right ? 0 : left > right ? 1 : -1;
 }
 

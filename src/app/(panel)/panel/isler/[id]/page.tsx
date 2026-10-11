@@ -3,12 +3,13 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
+import { IsBakiye } from '@/components/panel/is-bakiye';
 import { IsFormu } from '@/components/panel/is-formu';
 import { paraBicim, paraBicimVeyaYok } from '@/components/panel/para-bicim';
 import { Topbar } from '@/components/panel/topbar';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { fetchClientsForPanel } from '@/server/services/client';
-import { fetchJobForPanel } from '@/server/services/job';
+import { fetchJobFinancials, fetchJobForPanel } from '@/server/services/job';
 import { Currency } from '@/types';
 
 export const metadata: Metadata = {
@@ -45,11 +46,17 @@ export default async function IsDuzenlePage({ params }: SayfaProps) {
 
   if (!is) notFound();
 
-  const musteriler = await fetchClientsForPanel({
-    page: 1,
-    perPage: SECICI_UST_SINIR,
-    isArchived: false,
-  });
+  const [musteriler, bakiyeler] = await Promise.all([
+    fetchClientsForPanel({ page: 1, perPage: SECICI_UST_SINIR, isArchived: false }),
+    /*
+      TOPLU İMZA tek kayıt için de kullanılıyor — Backend `jobIds` dizisi
+      alıyor ve iki sorgu atıyor. Tek kayıt için ayrı bir imza istemek, aynı
+      hesabı iki yerde tutmak olurdu.
+    */
+    fetchJobFinancials([id]),
+  ]);
+
+  const bakiye = bakiyeler[id];
 
   return (
     <>
@@ -65,6 +72,28 @@ export default async function IsDuzenlePage({ params }: SayfaProps) {
               isArchived: m.isArchived,
             }))}
           />
+
+          {/*
+            BAKİYE — T-104'te geldi. T-103'te yer AYIRMAMIŞTIM ve doğruydu;
+            veri olmadan kart iskeleti çizmek boş kartın kılık değiştirmiş
+            hâli olurdu (T-054f'in dersi).
+
+            `bakiye` tanımsız olabilir: `fetchJobFinancials` yalnızca İŞLEMİ
+            OLAN işler için kayıt döndürüyor olabilir. O durumda kart hiç
+            çizilmiyor — "0,00 ₺" dört kez yazmak, hiç işlem olmadığını
+            "hepsi sıfır" diye söylemek olurdu ve kullanıcı bunu bir hesap
+            sonucu sanardı.
+          */}
+          {bakiye ? (
+            <IsBakiye bakiye={bakiye} />
+          ) : (
+            <p className="text-muted text-sm">
+              Bu işe bağlı işlem yok — bakiye hesaplanacak bir şey bulunmuyor.{' '}
+              <Link href="/panel/muhasebe/yeni" className="focus-ring link rounded">
+                İşlem ekle
+              </Link>
+            </p>
+          )}
 
           {/* ── TUTAR ÖZETİ — kaydedilmiş hâl, salt okunur ───────────────── */}
           <Card>

@@ -58,7 +58,7 @@ export const PANEL_GRUPLARI: ReadonlyArray<{
   {
     title: 'İş',
     items: [
-      { href: '/panel/muhasebe', label: 'Muhasebe', icon: Wallet },
+      { href: '/panel/muhasebe', label: 'Muhasebe', icon: Wallet, hazir: true },
       { href: '/panel/isler', label: 'İşler', icon: Briefcase, hazir: true },
       { href: '/panel/musteriler', label: 'Müşteriler', icon: Users, hazir: true },
       { href: '/panel/mesajlar', label: 'Mesajlar', icon: Mail, hazir: true },
@@ -97,6 +97,7 @@ const EK_ETIKETLER: Record<string, string> = {
   '/panel/ayarlar/guvenlik': 'Güvenlik',
   '/panel/ayarlar/sifre': 'Şifre',
   '/panel/ayarlar/denetim': 'Denetim kaydı',
+  '/panel/muhasebe/kategoriler': 'Kategoriler',
   /* `/panel/icerik` bir sayfa DEĞİL, yalnızca kırıntı yolundaki ara segment. */
   '/panel/icerik': 'İçerik',
 };
@@ -106,6 +107,7 @@ const HAZIR_EK_YOLLAR: ReadonlySet<string> = new Set([
   '/panel/ayarlar/guvenlik',
   '/panel/ayarlar/sifre',
   '/panel/ayarlar/denetim',
+  '/panel/muhasebe/kategoriler',
 ]);
 
 const ETIKETLER: Record<string, string> = {

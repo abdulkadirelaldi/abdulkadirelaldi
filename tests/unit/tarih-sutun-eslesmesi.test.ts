@@ -1,0 +1,377 @@
+import { readFileSync, readdirSync, statSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+
+import { describe, expect, it } from 'vitest';
+
+import {
+  appDayStartInstant,
+  appDayToDate,
+  appMonthRange,
+} from '@/server/services/_shared/app-date';
+
+/**
+ * TARİH YARDIMCISI ↔ SÜTUN TİPİ EŞLEŞMESİ — ÖNCÜL KAPISI (T-107b).
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * NE DENETLENDİ, NE BULUNDU
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * T-107b kartı bana *"Backend'e `appDayStartInstant` kullanmasını yazdım —
+ * KULLANDIĞINI ölç"* dedi. Ölçtüm ve **kart yanlıştı**: Backend talimata
+ * ölçümle itiraz etmiş ve itirazı DOĞRU. `report.ts` bilerek `appDayToDate`
+ * kullanıyor.
+ *
+ * Kendi hesabımla doğruladım (2026 Mart, İstanbul):
+ *
+ *     appDayToDate       → 2026-03-01T00:00Z … 2026-03-31T00:00Z   ✅ DOĞRU
+ *     appDayStartInstant → 2026-02-28T21:00Z … 2026-03-30T21:00Z   ❌ YANLIŞ
+ *
+ * İkincisi pencereyi ÜÇ SAAT geriye kaydırıyor: **28 Şubat'ı içine alıyor ve
+ * 31 Mart'ı TAMAMEN DÜŞÜRÜYOR.** Kartın korktuğu kusurun (bir aylık raporun
+ * ilk üç saatini düşürmek) tam tersi yönde, ama aynı büyüklükte.
+ *
+ * Sebep tek ve ölçülebilir: **`Transaction.date` bir `@db.Date` sütunu** —
+ * takvim günü, zaman damgası değil. Postgres `date` değerleri UTC gece
+ * yarısına hizalanır; anlık (instant) tabanlı bir filtre o hizayı bozar.
+ * `appDayStartInstant` DOĞRU araçtır ama `AuditLog.createdAt` gibi GERÇEK bir
+ * zaman damgası sütunu için (T-052'de orada kullanıldı ve orada doğru).
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * ⚠️ O HÂLDE KAPI NEYİ ÖLÇÜYOR: KARARI DEĞİL, KARARIN ÖNCÜLÜNÜ
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Backend `tests/unit/services/rapor.test.ts`te ay sınırını zaten çok iyi
+ * ölçüyor (1 Mart/31 Mart, `lte` dahil, artık yıl, `appDayStartInstant`
+ * kullanılmadığının kaynak taraması). Denetledim — **doğru ve yeterli.**
+ * Paralel bir kapı yazmak, iki turdur kapattığım çiftlenmenin kendisi olurdu.
+ *
+ * Ölçülmeyen şey KARARIN DAYANAĞI: o testler **taklit istemci** kullanıyor,
+ * yani şema hiç devreye girmiyor. `Transaction.date` bir gün düz `DateTime`a
+ * (zaman damgasına) çevrilirse:
+ *
+ *   - `appDayToDate` ANINDA YANLIŞ araç olur (pencere 3 saat kayar)
+ *   - Backend'in elli iddiasının HİÇBİRİ kırılmaz — hiçbiri şemaya bakmıyor
+ *   - ve kayma ilk üç saatlik işlemleri sessizce başka aya yazar
+ *
+ * ADR-037'nin tarif ettiği sınıf: **kapı çalışıyor, öncülü bayatlıyor.**
+ * Bu dosya o öncülü izliyor.
+ */
+
+const KOK = resolve(__dirname, '..', '..');
+const SEMA = readFileSync(join(KOK, 'prisma/schema.prisma'), 'utf8');
+
+function kod(yol: string): string {
+  return readFileSync(join(KOK, yol), 'utf8')
+    .replace(/\/\*[\s\S]*?\*\//g, ' ')
+    .replace(/\/\/.*$/gm, ' ');
+}
+
+/* ===========================================================================
+ * SAF ÇEKİRDEK — mutasyon sentetik girdiyle sınanıyor (ADR-038)
+ * ======================================================================== */
+
+/** Şemadaki bir alanın bildirim satırı. */
+export function alanSatiri(sema: string, model: string, alan: string): string | null {
+  const blok = new RegExp(`model\\s+${model}\\s*\\{([\\s\\S]*?)\\n\\}`).exec(sema);
+  if (!blok?.[1]) return null;
+
+  for (const satir of blok[1].split('\n')) {
+    if (/^\s*\/\//.test(satir)) continue;
+    if (new RegExp(`^\\s*${alan}\\s`).test(satir)) return satir.trim();
+  }
+  return null;
+}
+
+/** Alan TAKVİM GÜNÜ mü (`@db.Date`), yoksa zaman damgası mı? */
+export function takvimGunuMu(satir: string): boolean {
+  return /@db\.Date\b/.test(satir);
+}
+
+/** Dosya hangi tarih yardımcısı ailesini kullanıyor. */
+export function yardimciAilesi(kaynak: string): { gun: boolean; anlik: boolean } {
+  return {
+    gun: /\bappDayToDate\s*\(/.test(kaynak),
+    anlik: /\b(?:appDayStartInstant|appDayRangeToInstantFilter)\s*\(/.test(kaynak),
+  };
+}
+
+/* ===========================================================================
+ * BİLDİRİLEN EŞLEŞMELER — her satırın ÖNCÜLÜ şemadan doğrulanıyor
+ * ======================================================================== */
+
+interface Eslesme {
+  servis: string;
+  model: string;
+  alan: string;
+  /** `gun` = `@db.Date` bekleniyor, `anlik` = zaman damgası bekleniyor. */
+  beklenen: 'gun' | 'anlik';
+  not: string;
+}
+
+const ESLESMELER: Eslesme[] = [
+  {
+    servis: 'src/server/services/report.ts',
+    model: 'Transaction',
+    alan: 'date',
+    beklenen: 'gun',
+    not:
+      'Dönem raporları takvim gününe göre süzülüyor. Sütun `@db.Date` olduğu sürece ' +
+      '`appDayToDate` doğru araç; zaman damgasına çevrilirse pencere 3 saat kayar ve ' +
+      'ayın ilk/son günü yanlış kovaya düşer.',
+  },
+  {
+    servis: 'src/server/services/job.ts',
+    model: 'Job',
+    alan: 'dueDate',
+    beklenen: 'gun',
+    not: '`dueDate` bir TERMİN GÜNÜ — saati yok. Aynı kural.',
+  },
+  {
+    servis: 'src/server/services/transaction.ts',
+    model: 'Transaction',
+    alan: 'date',
+    beklenen: 'gun',
+    not:
+      'İşlem listesi tarih aralığıyla süzülüyor. Dosyanın kendi yorumu öncülü ZATEN ' +
+      'yazıyor ("`date` bir `@db.Date` — yani `appDayToDate`"); bu satır o öncülü ' +
+      'ŞEMADAN doğruluyor, yoruma güvenmiyor.',
+  },
+  {
+    servis: 'src/server/services/experience.ts',
+    model: 'Experience',
+    alan: 'startDate',
+    beklenen: 'gun',
+    not:
+      'Burada yardımcı SÜZME değil YAZMA yönünde kullanılıyor (`AppDay` → sütun). ' +
+      'Öncül aynı: sütun takvim günüyse UTC gece yarısına hizalamak doğru; zaman ' +
+      'damgasına çevrilirse yazılan değer kullanıcının gününden 3 saat kayar.',
+  },
+  {
+    servis: 'src/server/services/audit-log.ts',
+    model: 'AuditLog',
+    alan: 'createdAt',
+    beklenen: 'anlik',
+    not:
+      'Denetim kaydı GERÇEK bir zaman damgası tutuyor (olayın anı). T-052 burada ' +
+      '`appDayStartInstant` kullandı ve DOĞRU olan o: gün sınırı kullanıcının saat ' +
+      'diliminde başlar, UTC gece yarısında değil.',
+  },
+];
+
+/**
+ * Yardımcıyı kullanan ama bir SÜTUN EŞLEŞMESİ kararı vermeyen dosyalar.
+ *
+ * Muafiyet gerekçeli, çünkü sebepsiz bir muafiyet bir gün gerçek bir
+ * eşleşme kararını maskeler. İkisi de ölçülerek belirlendi — tahminle değil:
+ * sayım kapısı önce kırmızıya döndü ve her birini okumaya zorladı.
+ *
+ * ⚠️ BURAYA ÜÇÜNCÜ BİR SATIR YAZMIŞTIM VE KAPI SİLDİRDİ: `period-key.ts`
+ * muafiyete alınmıştı ama ÖLÇMEMİŞTİM — o dosya hiçbir tarih yardımcısı
+ * kullanmıyor, yani muafiyet doğduğu anda ÖLÜYDÜ. "Ölü muafiyet" iddiası
+ * kırıldı ve satırı sildirdi. Varsayımla yazılmış bir muafiyet, kapının
+ * kapsamını sessizce daraltır — kapının kendi mekanizması bunu yakaladı.
+ */
+const MUAF_DOSYALAR: { yol: string; gerekce: string }[] = [
+  {
+    yol: 'src/server/services/_shared/app-date.ts',
+    gerekce:
+      'Yardımcıların KENDİ evi: hem `appDayToDate` hem `appDayStartInstant` burada ' +
+      'tanımlanıyor. Bir sütun süzmüyor.',
+  },
+  {
+    yol: 'src/server/services/_shared/stats.ts',
+    gerekce:
+      '⚠️ ÖLÇÜLDÜ: `fullYearsBetween` `appDayToDate`i SORGU İÇİN değil TAKVİM ' +
+      'DOĞRULAMASI için çağırıyor — "2026-02-30" orada patlasın diye (ADR-016). ' +
+      'Dönüş değeri kullanılmıyor bile. Sütun eşleşmesi kararı yok.',
+  },
+];
+
+function servisDosyalari(): string[] {
+  const kokDizin = 'src/server/services';
+  const toplanan: string[] = [];
+
+  const gez = (goreli: string): void => {
+    for (const ad of readdirSync(join(KOK, kokDizin, goreli))) {
+      const yol = goreli ? `${goreli}/${ad}` : ad;
+      if (statSync(join(KOK, kokDizin, yol)).isDirectory()) gez(yol);
+      else if (ad.endsWith('.ts')) toplanan.push(`${kokDizin}/${yol}`);
+    }
+  };
+  gez('');
+
+  return toplanan;
+}
+
+describe('ADR-037 — tarih kararının ÖNCÜLÜ: sütun tipi', () => {
+  it('önkoşul — şema okunuyor ve alan satırları bulunuyor', () => {
+    // Ayıklama bozulursa `takvimGunuMu(null)` hiç çağrılmaz ve aşağıdaki
+    // iddialar "satır yok" diye yanlış sebeple kırılır/geçer.
+    expect(SEMA.length).toBeGreaterThan(1000);
+    expect(alanSatiri(SEMA, 'Transaction', 'date'), 'Transaction.date bulunamadı').toBeTruthy();
+    expect(alanSatiri(SEMA, 'AuditLog', 'createdAt'), 'AuditLog.createdAt bulunamadı').toBeTruthy();
+  });
+
+  for (const eslesme of ESLESMELER) {
+    it(`${eslesme.model}.${eslesme.alan} → ${eslesme.beklenen === 'gun' ? '@db.Date' : 'zaman damgası'} (öncül)`, () => {
+      const satir = alanSatiri(SEMA, eslesme.model, eslesme.alan);
+      expect(satir, `${eslesme.model}.${eslesme.alan} şemada yok`).toBeTruthy();
+
+      const gun = takvimGunuMu(satir ?? '');
+
+      expect(
+        gun,
+        `${eslesme.model}.${eslesme.alan} sütun tipi DEĞİŞTİ.\n` +
+          `  Bildirim: ${satir}\n` +
+          `  Beklenen: ${eslesme.beklenen === 'gun' ? '@db.Date (takvim günü)' : 'düz DateTime (zaman damgası)'}\n` +
+          `  ${eslesme.not}\n` +
+          `  ⚠️ ${eslesme.servis} bu öncüle göre yardımcı seçti. Öncül düştüyse ` +
+          'yardımcı seçimi de yeniden ölçülmeli — taklit istemciyle koşan birim ' +
+          'testleri bu değişikliği GÖRMEZ.',
+      ).toBe(eslesme.beklenen === 'gun');
+    });
+
+    it(`${eslesme.servis.split('/').pop()} doğru yardımcı ailesini kullanıyor`, () => {
+      const aile = yardimciAilesi(kod(eslesme.servis));
+
+      if (eslesme.beklenen === 'gun') {
+        expect(aile.gun, `${eslesme.servis}: takvim günü sütunu için appDayToDate bekleniyor`).toBe(
+          true,
+        );
+        expect(
+          aile.anlik,
+          `${eslesme.servis}: ANLIK yardımcı kullanıyor ama ${eslesme.model}.${eslesme.alan} bir ` +
+            'takvim günü — pencere 3 saat kayar (28 Şubat girer, 31 Mart düşer).',
+        ).toBe(false);
+      } else {
+        expect(aile.anlik, `${eslesme.servis}: zaman damgası için anlık yardımcı bekleniyor`).toBe(
+          true,
+        );
+      }
+    });
+  }
+
+  it('muafiyetler GEREKÇELİ ve dosyaları hâlâ yardımcıyı kullanıyor', () => {
+    /*
+     * Ölü muafiyet, ölü istisnanın aynısı (ADVISORY-001'in dersi): bir gün
+     * gerçek bir eşleşme kararını maskeler. İki yönlü kontrol — dosya hâlâ
+     * yardımcı kullanıyor mu, ve gerekçe yazılı mı.
+     */
+    for (const muaf of MUAF_DOSYALAR) {
+      const aile = yardimciAilesi(kod(muaf.yol));
+      expect(
+        aile.gun || aile.anlik,
+        `${muaf.yol} artık tarih yardımcısı KULLANMIYOR — muafiyet ÖLÜ, silinmeli`,
+      ).toBe(true);
+      expect(muaf.gerekce.length, `${muaf.yol}: gerekçesiz muafiyet yazılmaz`).toBeGreaterThan(60);
+    }
+  });
+
+  it('⚠️ BİLDİRİLMEYEN hiçbir servis tarih yardımcısı kullanmıyor', () => {
+    /*
+     * Sayım kapısı (rota kapsamı kalıbı): yeni bir servis tarih süzmeye
+     * başladığında bu kapı öter ve yazarı eşleşme tablosuna satır eklemek —
+     * yani SÜTUN TİPİNİ ÖLÇMEK — zorunda kalır. F5'te on üç `@db.Date`
+     * sütunu bekliyor (sağlık, spor, alışkanlık, günlük), yani bu kapının
+     * ötme ihtimali yüksek ve ötmesi doğru.
+     */
+    const bildirilen = new Set([
+      ...ESLESMELER.map((e) => e.servis),
+      ...MUAF_DOSYALAR.map((m) => m.yol),
+    ]);
+
+    const bildirilmeyen = servisDosyalari().filter((yol) => {
+      if (bildirilen.has(yol)) return false;
+      const aile = yardimciAilesi(kod(yol));
+      return aile.gun || aile.anlik;
+    });
+
+    expect(
+      bildirilmeyen,
+      'Bu servisler tarih yardımcısı kullanıyor ama eşleşme tablosunda YOK:\n' +
+        `${bildirilmeyen.join('\n')}\n` +
+        'Tabloya satır ekle: hangi model/alan, sütun tipi ne, hangi yardımcı doğru. ' +
+        'Öncül yazılmazsa karar ölçülemez (ADR-037).',
+    ).toEqual([]);
+  });
+});
+
+describe('ÖNCÜLÜN SONUCU — iki yardımcı GERÇEKTEN farklı pencere üretiyor', () => {
+  /**
+   * Bu blok öncülün NEDEN önemli olduğunu ölçüyor.
+   *
+   * Yukarıdaki iddialar "sütun tipi şu" diyor; ama tip değiştiğinde ne
+   * kaybedileceği ölçülmezse, kapı bir gün "bu kısıt neden var" diye
+   * kaldırılabilir. Sayılar burada duruyor ve kendileri için konuşuyor.
+   */
+  const r = appMonthRange(2026, 3) as unknown;
+  const [bas, son] = Array.isArray(r)
+    ? (r as [string, string])
+    : [(r as { from: string }).from, (r as { to: string }).to];
+
+  it('aralık Mart ayının iki ucu', () => {
+    expect([bas, son]).toEqual(['2026-03-01', '2026-03-31']);
+  });
+
+  it('`appDayToDate` UTC gece yarısına hizalıyor — `@db.Date` ile aynı hiza', () => {
+    expect(appDayToDate(bas).toISOString()).toBe('2026-03-01T00:00:00.000Z');
+    expect(appDayToDate(son).toISOString()).toBe('2026-03-31T00:00:00.000Z');
+  });
+
+  it('⚠️ `appDayStartInstant` pencereyi ÜÇ SAAT geriye kaydırıyor', () => {
+    /*
+     * Kartın talimatı buydu ve ölçüm reddetti. Alt sınır 28 Şubat'a düşüyor
+     * (o güne ait kayıtlar Mart raporuna girer) ve üst sınır 30 Mart 21:00'da
+     * kapanıyor (31 Mart'ın TAMAMI düşer). İki hata aynı anda.
+     */
+    expect(appDayStartInstant(bas).toISOString()).toBe('2026-02-28T21:00:00.000Z');
+    expect(appDayStartInstant(son).toISOString()).toBe('2026-03-30T21:00:00.000Z');
+
+    const sapmaSaat =
+      (appDayToDate(bas).getTime() - appDayStartInstant(bas).getTime()) / (60 * 60 * 1000);
+    expect(sapmaSaat, 'İstanbul UTC+3 — sapma tam üç saat').toBe(3);
+  });
+});
+
+/* ===========================================================================
+ * MUTASYON — sentetik girdi (ADR-038: kimsenin dosyasına dokunulmuyor)
+ * ======================================================================== */
+
+describe('MUTASYON · çekirdek gerçekten ısırıyor', () => {
+  const SEMA_ORNEK = [
+    'model Ornek {',
+    '  id String @id',
+    '  gun DateTime @db.Date',
+    '  an  DateTime @default(now())',
+    '  // yorum DateTime @db.Date — sayılmamalı',
+    '}',
+  ].join('\n');
+
+  it('`@db.Date` ile düz `DateTime` ayırt ediliyor', () => {
+    expect(takvimGunuMu(alanSatiri(SEMA_ORNEK, 'Ornek', 'gun') ?? '')).toBe(true);
+    expect(takvimGunuMu(alanSatiri(SEMA_ORNEK, 'Ornek', 'an') ?? '')).toBe(false);
+  });
+
+  it('YORUM satırı alan sayılmıyor', () => {
+    expect(alanSatiri(SEMA_ORNEK, 'Ornek', 'yorum')).toBeNull();
+  });
+
+  it('SÜTUN TİPİ DEĞİŞİRSE öncül iddiası kırılır', () => {
+    // `@db.Date` kaldırılmış bir bildirim: kapı bunu takvim günü SAYMAMALI.
+    const bozuk = SEMA_ORNEK.replace('gun DateTime @db.Date', 'gun DateTime');
+    expect(takvimGunuMu(alanSatiri(bozuk, 'Ornek', 'gun') ?? '')).toBe(false);
+  });
+
+  it('yardımcı ailesi tespiti ÇAĞRIYI sayıyor, içe aktarmayı DEĞİL', () => {
+    expect(yardimciAilesi('const d = appDayToDate(gun);')).toEqual({ gun: true, anlik: false });
+    expect(yardimciAilesi('const i = appDayStartInstant(gun);')).toEqual({
+      gun: false,
+      anlik: true,
+    });
+    // Yalnızca içe aktarma ya da yorumda geçmesi "kullanıyor" değildir.
+    expect(yardimciAilesi("import { appDayToDate } from '@/x';")).toEqual({
+      gun: false,
+      anlik: false,
+    });
+  });
+});

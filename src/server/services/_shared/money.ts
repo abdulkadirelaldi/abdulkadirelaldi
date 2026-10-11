@@ -17,8 +17,40 @@ const RATE_PATTERN = /^\d{1,10}(?:\.\d{1,8})?$/;
 const MONEY_SCALE = 2;
 const RATE_SCALE = 8;
 
-/** `"12.5"` → `1250n` (scale 2). Ondalık kısım kırpılmaz, sağa sıfırla doldurulur. */
-function toScaledInt(value: string, scale: number): bigint {
+/**
+ * `"12.5"` → `1250n` (scale 2). Ondalık kısım kırpılmaz, sağa sıfırla doldurulur.
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * ⚠️ İHRAÇ EDİLİYOR — BULGU-024'ÜN KALDIRMA KOŞULU (T-102)
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Bu ilkel T-102'ye kadar modül-özeldi ve sonucu ölçüldü:
+ * `_shared/personal-record.ts` aynı ölçeklemeyi YEREL olarak yapıyordu. O kopya
+ * bir dikkatsizlik DEĞİLDİ — ihraç edilmeyen bir şey içe aktarılamaz, yani
+ * çiftlenme KANONİK MODÜLÜN EKSİĞİNİN sonucuydu. Güvenlik'in biçim kapısı
+ * (`saf-yardimci-tek-tanim.test.ts`) istisnayı tam bu gerekçeyle kaydetmiş ve
+ * kaldırma koşulunu yazmıştı: *"money.ts ölçekleme ilkelini ihraç eder ve o
+ * dosya onu içe aktarır."*
+ *
+ * İhraç o koşulu karşılıyor. ⚠️ AMA İHRAÇ ETMEK YÜZEYİ GENİŞLETİR, bu yüzden
+ * sözleşme burada yazılı:
+ *
+ *   - `scale` ONDALIK BASAMAK SAYISIDIR ve ÇAĞIRANIN sorumluluğundadır. Para
+ *     için 2, kur için 8, kilo için 2 — sütunun `Decimal(p,s)` tanımıyla
+ *     eşleşmek zorunda. Yanlış ölçek SESSİZCE yüz kat sapma üretir.
+ *   - GİRDİ DOĞRULANMAZ. `computeBaseAmount`/`sumMoney` kendi desen
+ *     kontrollerini yapıyor; bu ilkel yapmıyor. Doğrulanmamış bir dizeyle
+ *     çağırmak `BigInt()` fırlatmasına yol açabilir ve bu DOĞRU davranış —
+ *     sessizce `0n` dönmekten iyidir.
+ *   - İŞARET KORUNUR (`-12.5` → `-1250n`), ve bu yerel kopyanın taşımadığı
+ *     güvencelerden biriydi.
+ *
+ * TUTAR ARİTMETİĞİ İÇİN BU İLKELİ DOĞRUDAN KULLANMAYIN: `sumMoney`,
+ * `subtractMoney` ve `computeBaseAmount` zaten var ve doğrulama yapıyor.
+ * İlkel yalnızca PARA OLMAYAN ondalık karşılaştırmaları için (ADR-021 kilo
+ * kıyası gibi) açıldı.
+ */
+export function toScaledInt(value: string, scale: number): bigint {
   const negative = value.startsWith('-');
   const unsigned = negative ? value.slice(1) : value;
   const [whole = '0', fraction = ''] = unsigned.split('.');

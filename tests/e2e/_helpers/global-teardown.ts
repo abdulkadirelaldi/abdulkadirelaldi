@@ -20,8 +20,13 @@ export default async function globalTeardown(): Promise<void> {
 
   // Veritabanı bağlantısı `db-task.ts` alt sürecine ait ve her çağrıda
   // kendisi kapatıyor — burada kapatılacak bir bağlantı yok.
-  const { resetAuthState, projeleriTemizle, iletisimMesajlariniTemizle, E2E_ICERIK_ONEKI } =
-    await import('./db');
+  const {
+    resetAuthState,
+    projeleriTemizle,
+    iletisimMesajlariniTemizle,
+    e2eKalintisi,
+    E2E_ICERIK_ONEKI,
+  } = await import('./db');
 
   try {
     const startedAt = process.env.E2E_STARTED_AT;
@@ -37,13 +42,43 @@ export default async function globalTeardown(): Promise<void> {
      * bir gün Lighthouse ölçümünün girdisi olur (ADR-030: seed ölçüm
      * sözleşmesidir — test verisi o sözleşmeye sızmamalı).
      */
-    const proje = await projeleriTemizle(E2E_ICERIK_ONEKI);
-    const mesaj = await iletisimMesajlariniTemizle(E2E_ICERIK_ONEKI);
+    const silinenProje = await projeleriTemizle(E2E_ICERIK_ONEKI);
+    const silinenMesaj = await iletisimMesajlariniTemizle(E2E_ICERIK_ONEKI);
 
-    // `console.info` değil — gerekçe `global-setup.ts` içinde.
+    /*
+     * ⚠️ İKİ AYRI SAYI — T-107b'de ayrıldılar ve sebebi ölçülmüş bir kusur.
+     *
+     * Eskiden tek satır basılıyordu: "artık proje: 0, mesaj: 1". Sayılar
+     * SİLİNEN satırlardı, etiket ise KALAN diyordu. Yanlış etiket tek başına
+     * kozmetik olurdu; tehlikeli olan şu: silinen sayısı hem her şey temizken
+     * HEM DE süpürme yanlış öneki ararken 0 çıkar. Yani gerçek bir kalıntı
+     * "0" olarak raporlanır ve T-016'nın izolasyon güvencesi tam o sayıya
+     * dayanıyordu.
+     *
+     * Artık süpürmenin EYLEMİ ile ortamın DURUMU ayrı ölçülüyor ve asıl
+     * iddia ("kalıntı yok") ayrı bir sorgudan geliyor.
+     */
+    const kalinti = await e2eKalintisi();
+
     process.stdout.write(
-      `[e2e] veritabanı seed durumuna döndürüldü (artık proje: ${proje}, mesaj: ${mesaj}).\n`,
+      `[e2e] temizlik: ${silinenProje} proje + ${silinenMesaj} mesaj SİLİNDİ · ` +
+        `KALAN test izi: ${kalinti.toplam} ` +
+        `(proje ${kalinti.proje}, mesaj ${kalinti.mesaj}, denetim ${kalinti.denetim}).\n`,
     );
+
+    /*
+     * Kalıntı varsa SESSİZ GEÇİLMEZ. Bir sonraki koşum onu seed verisi sanır
+     * (ADR-030: seed bir ölçüm sözleşmesidir) ve Lighthouse ya da liste
+     * sayıları sessizce kayar. Fırlatmak koşumu kırmızıya çevirir — doğru
+     * davranış: temizliği kaçıran paket bulunup düzeltilsin.
+     */
+    if (kalinti.toplam > 0) {
+      throw new Error(
+        `E2E test izi KALDI (${kalinti.toplam} satır). Süpürme yalnızca ` +
+          `"${E2E_ICERIK_ONEKI}" önekini arıyor; başka işaret kullanan bir paket ` +
+          'kendi `afterAll` temizliğini kaçırmış olabilir.',
+      );
+    }
   } catch (error) {
     // Sessizce geçilmez: bozuk kalan durum bir sonraki koşumu yanıltır ve
     // en kötü hâlde site sahibini kendi panelinden kilitler.

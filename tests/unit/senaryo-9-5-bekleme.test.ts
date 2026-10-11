@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 
 import { describe, expect, it } from 'vitest';
@@ -88,9 +88,52 @@ function yazmaYoluVar(): boolean {
  */
 export const aylikToplamDeseni = (kaynak: string): boolean => /\bappMonthRange\s*\(/.test(kaynak);
 
+/**
+ * ⚠️ YOKLAMA T-102'DE GENİŞLETİLDİ — KÖR NOKTASI ÖLÇÜLEREK BULUNDU.
+ *
+ * Önceki hâli DÖRT DOSYA ADI sayıyordu:
+ * `['transaction.ts', 'job.ts', 'stats.ts', 'index.ts']`.
+ *
+ * T-102 aylık toplam servisini yazdı ve doğru mimari yere koydu:
+ * `services/report.ts` (dönem bazlı toplamlar ne `Transaction`ın ne `Job`un bir
+ * alanı; `stats.ts`in kendisi de ADR-027 türetilmiş SİTE istatistikleri için
+ * ayrı bir modül — yani "türetilmiş okuma kendi modülünde" bu depoda zaten
+ * kurulu kalıp). Dosya listesinde olmadığı için YOKLAMA GÖRMEDİ:
+ *
+ *   report.ts      → `appMonthRange(` × 2   ✅ halka GERÇEKTEN hazır
+ *   transaction.ts → 0 · job.ts → 0 · stats.ts → 0 · index.ts → 0
+ *
+ * Yani kapı 3. halkayı "yok" okumaya devam ediyordu. ⚠️ ATEŞLENMEYEN BİR KAPI,
+ * KIRMIZIYA DÖNEN BİR KAPIDAN DAHA KÖTÜ: bekleme sessizce bayatlar.
+ *
+ * Kök neden, bu deponun defalarca adını koyduğu sınıf: yoklama izlediği şeyi
+ * ÖLÇMEK yerine NEREDE OLACAĞINI MODELLİYORDU (T-050'nin dersi). Yeni hâli
+ * `src/server/services/**` altındaki TÜM `.ts` dosyalarını tarıyor — "aylık
+ * toplam üreten bir servis var mı" sorusunun gerçek karşılığı. Yeni bir servis
+ * dosyası eklendiğinde liste güncellemek de gerekmiyor.
+ *
+ * ⚠️ BEKLENEN SAYI T-107b'DE 1 → 3 YAPILDI (Güvenlik kararı). Ölçümü düzeltmek
+ * Backend'in işiydi, beklemenin ne anlama geldiğine karar vermek Güvenlik'in:
+ * üç halka hazır, eksik olan TEK ŞEY toplamın bir ekrana ulaşması.
+ */
+function servisDosyalari(): string[] {
+  const dizin = join(KOK, 'src/server/services');
+  const toplanan: string[] = [];
+
+  const gez = (goreli: string): void => {
+    for (const ad of readdirSync(join(dizin, goreli))) {
+      const yol = goreli ? `${goreli}/${ad}` : ad;
+      if (statSync(join(dizin, yol)).isDirectory()) gez(yol);
+      else if (ad.endsWith('.ts')) toplanan.push(`src/server/services/${yol}`);
+    }
+  };
+  gez('');
+
+  return toplanan;
+}
+
 function aylikToplamVar(): boolean {
-  const servisler = ['transaction.ts', 'job.ts', 'stats.ts', 'index.ts'];
-  return servisler.some((ad) => aylikToplamDeseni(kod(`src/server/services/${ad}`)));
+  return servisDosyalari().some((yol) => aylikToplamDeseni(kod(yol)));
 }
 
 /**
@@ -129,26 +172,35 @@ describe('§9/5 — açık bekleme (son halka T-104/T-105)', () => {
     ).toBe(true);
   });
 
-  it('1/4 — işlem kaydı EKRANI henüz yok (T-104 bekliyor)', () => {
+  it('1/4 — işlem kaydı EKRANI ✅ GELDİ (T-104)', () => {
+    /*
+     * T-107b'de kapı tasarımı gereği öttü. `/panel/muhasebe` yazıldı: kullanıcı
+     * gelir kaydını artık ARAYÜZDEN girebiliyor, yani senaryonun ilk adımı
+     * gerçek akıştan başlatılabilir — T-039'un kuralı (akışın nereden başladığı
+     * senaryonun parçasıdır) artık karşılanabilir durumda.
+     */
     expect(
       islemEkraniVar(),
-      '`/panel/muhasebe` ARTIK VAR. §9/5 zincirinin ilk halkası geldi: kullanıcı ' +
-        'gelir kaydını artık arayüzden girebiliyor. Senaryonun bu adımı yazılabilir — ' +
-        'ama akışın NEREDEN başladığı senaryonun parçasıdır (T-039), yani adım ' +
-        "ekrandan başlamalı, Server Action'a elle POST atmaktan değil.",
-    ).toBe(false);
+      '`/panel/muhasebe` KAYBOLDU — halka geri gitti, bekleme yeniden değerlendirilmeli.',
+    ).toBe(true);
   });
 
-  it('3/4 — aylık toplam SERVİSİ henüz yok (T-105 bekliyor)', () => {
+  it('3/4 — aylık toplam SERVİSİ ✅ GELDİ (T-102 · `report.ts`)', () => {
+    /*
+     * `services/report.ts` → `fetchMonthlyReport` / `fetchYearlyReport`.
+     * Bu halkanın gelişi kapının YOKLAMASINDAKİ bir kör noktayı da açığa
+     * çıkardı: dört servis dosyası adını ELLE yazmıştım ve `report.ts` listede
+     * olmadığı için yoklama onu görmüyordu. Düzeltildi (artık `services/**`
+     * taranıyor) ve ders kayda geçti — aynı turda "listeyi elle yazma,
+     * kaynaktan türet" yazdığım hâlde bu dosyada dört ad sabitlemiştim.
+     */
     expect(
       aylikToplamVar(),
-      'Aylık toplam üreten bir servis ARTIK VAR (`appMonthRange` çağrılıyor). ' +
-        '§9/5 ölçülebilir hâle geldi: "kayıt → aylık toplam" halkası artık ' +
-        'birim testiyle de, dashboard bağlandığında E2E ile de ölçülebilir.',
-    ).toBe(false);
+      'Aylık toplam üreten servis KAYBOLDU — `appMonthRange` çağıranı yok.',
+    ).toBe(true);
   });
 
-  it('4/4 — dashboard gelir/gider KARTI henüz yok (T-054f BİLEREK yazmadı)', () => {
+  it('4/4 — toplam EKRANA ulaşmıyor: TEK EKSİK HALKA (T-105 bekliyor)', () => {
     expect(
       dashboardKartiVar(),
       'Dashboard artık bir finans servisini içe aktarıyor — yani gerçek bir ' +
@@ -173,7 +225,7 @@ describe('§9/5 — açık bekleme (son halka T-104/T-105)', () => {
       hazir,
       `§9/5 zincirinde hazır halka sayısı DEĞİŞTİ (${hazir}/4). Beklemeyi yeniden ` +
         'değerlendir: hangi adım artık ölçülebilir, senaryo yazılabilir mi?',
-    ).toBe(1);
+    ).toBe(3);
   });
 });
 
@@ -222,6 +274,13 @@ describe('MUTASYON · yoklama halka geldiğinde GÖRÜYOR', () => {
      * gelebilirdi.
      */
     expect(existsSync(join(KOK, 'src/app/(panel)/panel/page.tsx'))).toBe(true);
-    expect(existsSync(join(KOK, 'src/app/(panel)/panel/muhasebe/page.tsx'))).toBe(false);
+    /*
+     * ⚠️ NEGATİF ÖRNEK T-107b'DE DEĞİŞTİ. Eskiden `muhasebe/page.tsx` idi ve
+     * halka geldiğinde bu mutasyon testi kırıldı — yani negatif örneğini
+     * BEKLENEN BİR DEĞİŞİKLİĞE bağlamak, mekanizma kanıtını o değişiklikte
+     * çöpe atıyor. Artık asla var olmayacak sentetik bir yol kullanılıyor;
+     * mekanizma kanıtı halkaların gelişinden BAĞIMSIZ.
+     */
+    expect(existsSync(join(KOK, 'src/app/(panel)/panel/__olmayan-ekran__/page.tsx'))).toBe(false);
   });
 });

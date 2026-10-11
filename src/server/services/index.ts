@@ -130,6 +130,10 @@ export * from './job';
 export * from './transaction';
 export * from './transaction-category';
 
+// F4 §4.2 — rapor hesaplayıcıları (T-102). İki ESAS ayrı döner: alan adları
+// `collected`/`invoiced` hangisi olduğunu söylüyor.
+export * from './report';
+
 // ADR-026 — içerik servisleri (F2 public okuma tarafı)
 export * from './experience';
 export * from './post';

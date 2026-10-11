@@ -275,6 +275,42 @@ const komutlar: Record<string, (arg?: string) => Promise<unknown>> = {
   },
 
   /**
+   * ⚠️ TEST KALINTISI — SİLİNEN DEĞİL, KALAN (T-107b).
+   *
+   * `global-teardown.ts` koşum sonunda şunu basıyordu:
+   *
+   *     [e2e] ... (artık proje: 0, mesaj: 1)
+   *
+   * Sayılar `projeleriTemizle`/`iletisimMesajlariniTemizle`'den geliyordu, yani
+   * **SİLİNEN** satır sayısı — ama etiket "artık" (KALAN) diyordu. "mesaj: 1"
+   * aslında "süpürme 1 mesaj sildi" demekti ve tablo gerçekten boştu.
+   *
+   * Kusur etiketten daha derin, ve tehlikeli yönü şu: silinen sayısı **hem her
+   * şey temizken hem de SÜPÜRME YANLIŞ ÖNEKİ ARARKEN 0 çıkar.** Yani gerçek
+   * bir kalıntı "0" olarak raporlanır — T-016'da kurulan izolasyon güvencesi
+   * tam o sayıya dayanıyordu. Ölçülmesi gereken EYLEM ("sildim") değil, İDDİA
+   * ("kalıntı yok").
+   *
+   * ⚠️ ÖNEK `e2e-t039` DEĞİL: süpürme tek bir göreve ait öneki arıyor, oysa
+   * paketler başka işaretler de yazıyor (ör. T-054g denetim sondası
+   * `E2EDenetimSondasi`). Kalıntı sayımı `e2e`/`E2E` ile başlayan HER izi
+   * sayıyor — böylece kendi `afterAll`'u çöken bir paketin bıraktığı satır da
+   * görünür.
+   *
+   * SINIR, dürüstçe: `e2e` ile başlamayan bir işaret bu sayıma da görünmez.
+   * Mitigasyon bir SÖZLEŞME (test verisi `e2e`/`E2E` ile başlar), kanıt değil.
+   */
+  async e2eKalintisi() {
+    const [proje, mesaj, denetim] = await Promise.all([
+      db.project.count({ where: { slug: { startsWith: 'e2e', mode: 'insensitive' } } }),
+      db.contactMessage.count({ where: { subject: { startsWith: 'e2e', mode: 'insensitive' } } }),
+      db.auditLog.count({ where: { entity: { startsWith: 'e2e', mode: 'insensitive' } } }),
+    ]);
+
+    return { proje, mesaj, denetim, toplam: proje + mesaj + denetim };
+  },
+
+  /**
    * Denetim ekranına BİLİNEN bir `diff` yazar — T-054g sızıntı ölçümü için.
    *
    * ⚠️ `writeAuditLog` KULLANILMIYOR, SATIR DOĞRUDAN YAZILIYOR. Sebep: amaç
