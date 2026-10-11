@@ -299,19 +299,42 @@ describe('ADR-037 — saf `_shared` yardımcıları TEK TANIM (sınıf kapısı)
  * §8.24'ün süreli istisna mekanizmasının kod tarafındaki karşılığı: istisna
  * KAYITLI, GEREKÇELİ ve kaldırma koşulu yazılı — susturulmuş değil.
  */
-const OLCEKLI_ARITMETIK_ISTISNALARI: { yol: string; kayit: string; gerekce: string }[] = [
-  {
-    yol: 'src/server/services/_shared/personal-record.ts',
-    kayit: 'BULGU-024',
-    gerekce:
-      '`compareDecimalStrings` ağırlık dizelerini kıyaslamak için ölçeklemeyi YEREL yapıyor. ' +
-      'SEBEP ÖLÇÜLDÜ: `money.ts` ölçekleme ilkelini (`toScaledInt`) ihraç ETMİYOR, yani ' +
-      'içe aktarılacak bir şey yok — kopya bir dikkatsizlik değil, kanonik modülün ' +
-      'eksiğinin sonucu. Davranışsal hata YOK (negatif işaret ve kırpma `money.ts` ile ' +
-      'tutarlı, ölçüldü). KALDIRMA KOŞULU: `money.ts` ölçekleme ilkelini ihraç eder ' +
-      've bu dosya onu içe aktarır — o gün bu satır silinir ve kapı kendiliğinden daralır.',
-  },
-];
+/**
+ * ⚠️ LİSTE BOŞ — BULGU-024 KAPANDI (T-102) VE KAPI KENDİLİĞİNDEN DARALDI.
+ *
+ * Burada `_shared/personal-record.ts` için gerekçeli bir istisna duruyordu.
+ * Kaldırma koşulu şöyle yazılmıştı: *"`money.ts` ölçekleme ilkelini ihraç eder
+ * ve bu dosya onu içe aktarır — o gün bu satır silinir."*
+ *
+ * T-102'de koşul karşılandı: `toScaledInt` ihraç edildi, `compareDecimalStrings`
+ * onu içe aktardı, yerel kopya silindi. Ve ⚠️ İSTİSNAYI SİLMEYİ BANA BU KAPI
+ * SÖYLEDİ: "istisna listesi ÖLÜ SATIR taşımıyor" iddiası kırıldı ve mesajı
+ * "BULGU-024 istisnası ÖLÜ, silinmeli" dedi. Yani mekanizma iki yönde de
+ * çalışıyor — kopya eklenirse de, kopya kalkıp istisna ölürse de.
+ *
+ * Teşhisin değeri kaydedilmeye değer: kopya bir dikkatsizlik DEĞİLDİ, kanonik
+ * modülün eksiğiydi. İhraç edilmeyen bir şey içe aktarılamaz.
+ *
+ * Liste boş kalınca kapı artık "money.ts DIŞINDA ölçekli aritmetik YOK" diyor —
+ * istisnasız. Yeni bir istisna yazan kişi gerekçeyi ve KALDIRMA KOŞULUNU
+ * buraya yazmak zorunda (§8.24 kalıbı).
+ */
+const OLCEKLI_ARITMETIK_ISTISNALARI: { yol: string; kayit: string; gerekce: string }[] = [];
+
+/**
+ * İstisna mekanizmasının SENTETİK sınanması için sabit bir yol.
+ *
+ * ⚠️ NEDEN GEREKLİ: aşağıdaki iki mutasyon testi eskiden
+ * `OLCEKLI_ARITMETIK_ISTISNALARI[0]?.yol ?? ''` yazıyordu. Liste boşalınca o
+ * ifade `''` döner ve İKİ TEST DE SESSİZCE ANLAMINI YİTİRİRDİ — biri boş yolu
+ * izinli kümeye koyup hiçbir şeyi ölçmez, diğeri boş yolu yakalayıp "mekanizma
+ * çalışıyor" der. Yeşil kalırlar ve hiçbir şey korumazlar (T-050'de ölçülen
+ * sınıf).
+ *
+ * Mekanizma artık canlı bir istisnaya BAĞLI DEĞİL: sentetik bir yolla iki
+ * yönde sınanıyor, yani liste boşken de kanıtlı kalıyor.
+ */
+const SENTETIK_ISTISNA_YOLU = 'src/server/services/_shared/ornek-istisna.ts';
 
 describe('ADR-014 — ölçekli tamsayı aritmetiği tek yerde (biçim kapısı)', () => {
   const KANONIK = 'src/server/services/_shared/money.ts';
@@ -350,33 +373,44 @@ describe('ADR-014 — ölçekli tamsayı aritmetiği tek yerde (biçim kapısı)
     dosyalar.filter((d) => !izinli.has(d.yol) && BIGINT_IZI.test(d.kaynak)).map((d) => d.yol);
 
   it('MUTASYON · üçüncü bir dosya ölçekleme yaparsa yakalanıyor', () => {
-    const izinli = new Set([KANONIK, OLCEKLI_ARITMETIK_ISTISNALARI[0]?.yol ?? '']);
+    // Sentetik istisna (gerekçe `SENTETIK_ISTISNA_YOLU`nun yanında): mekanizma
+    // canlı bir istisna satırına bağlı kalmadan iki yönde sınanıyor.
+    const izinli = new Set([KANONIK, SENTETIK_ISTISNA_YOLU]);
 
     const kacaklar = kacaklariBul(
       [
         { yol: KANONIK, kaynak: 'const x = BigInt("10");' },
-        { yol: OLCEKLI_ARITMETIK_ISTISNALARI[0]?.yol ?? '', kaynak: 'BigInt(whole + fraction);' },
+        { yol: SENTETIK_ISTISNA_YOLU, kaynak: 'BigInt(whole + fraction);' },
         { yol: 'src/server/services/health.ts', kaynak: 'const kilo = BigInt(tam + kesir);' },
         { yol: 'src/server/services/temiz.ts', kaynak: 'const toplam = sumMoney(values);' },
       ],
       izinli,
     );
 
-    // Kanonik ve kayıtlı istisna geçiyor, YENİ dosya yakalanıyor, temiz dosya değil.
+    // Kanonik ve KAYITLI istisna geçiyor, YENİ dosya yakalanıyor, temiz dosya değil.
     expect(kacaklar).toEqual(['src/server/services/health.ts']);
   });
 
   it('MUTASYON · istisna satırı KALDIRILIRSA kayıtlı dosya da yakalanıyor', () => {
     /*
-     * İstisnanın YÜK TAŞIDIĞININ kanıtı. Bu iddia olmadan istisna listesi
+     * İstisnanın YÜK TAŞIDIĞININ kanıtı. Bu iddia olmadan istisna mekanizması
      * dekoratif olabilirdi: hiçbir şeyi geçirmeyen bir liste de yeşil kalırdı.
      */
     const kacaklar = kacaklariBul(
-      [{ yol: OLCEKLI_ARITMETIK_ISTISNALARI[0]?.yol ?? '', kaynak: 'BigInt(whole + fraction);' }],
+      [{ yol: SENTETIK_ISTISNA_YOLU, kaynak: 'BigInt(whole + fraction);' }],
       new Set([KANONIK]),
     );
 
-    expect(kacaklar).toHaveLength(1);
+    expect(kacaklar).toEqual([SENTETIK_ISTISNA_YOLU]);
+  });
+
+  it('⚠️ İSTİSNA LİSTESİ BUGÜN BOŞ — kapı istisnasız (BULGU-024 kapandı)', () => {
+    /*
+     * Durumu SABİTLİYOR: biri yeni bir istisna eklerse bu iddia kırılır ve
+     * eklemenin görünür olmasını zorlar. Gerekçesiz/koşulsuz bir istisna
+     * sessizce listeye giremez.
+     */
+    expect(OLCEKLI_ARITMETIK_ISTISNALARI).toEqual([]);
   });
 
   it('⚠️ `money.ts` DIŞINDA kayıtsız ölçekli aritmetik YOK', () => {

@@ -210,6 +210,18 @@ export async function iletisimMesajlariniTemizle(konuOneki: string): Promise<num
   return silinen;
 }
 
+/** Koşum sonunda KALAN test izi — gerekçe `db-task.ts` → `e2eKalintisi`. */
+export interface E2EKalintisi {
+  proje: number;
+  mesaj: number;
+  denetim: number;
+  toplam: number;
+}
+
+export async function e2eKalintisi(): Promise<E2EKalintisi> {
+  return runTask<E2EKalintisi>('e2eKalintisi');
+}
+
 /**
  * Denetim ekranına bilinen bir `diff` yazar ve satır kimliğini döner.
  *

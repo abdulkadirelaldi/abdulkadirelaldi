@@ -75,6 +75,7 @@ açığın ayrıntısı artık saldırgana bir şey kazandırmaz.
 | 2026-08-12 | T-029a | Lighthouse'a masaüstü + koyu profil (WebGL yolu), üç durumlu WebGL doğrulaması, koşu değişkenliği kararı | **BULGU-010 açıldı**: WebGL yolu hiçbir CI koşusunda ölçülmüyordu. Profil kuruldu ve doğrulandı; ölçüm T-021'in hero'yu bağlamasını bekliyor (kontrol kendi kendine zorunlu hâle geliyor). Değişkenliğin **ilk koşuya** ait olduğu ölçüldü; `numberOfRuns` 5, `aggregationMethod` açıkça medyan. |
 | 2026-08-17 | T-029d | Ölçüm yüzeyi dışındaki SEO/OG rotaları (BULGU-015) | **BULGU-015 kapandı** — `tests/e2e/seo-routes.spec.ts`: robots.txt, sitemap.xml, rss.xml, `/og` ve `/og/proje/<slug>` artık her koşumda isteniyor. PNG imza baytlarından, XML gerçek ayrıştırıcıyla doğrulanıyor. Kapsam iki katmanlı: sözleşme testleri + sitemap taraması (yeni sayfa kendiliğinden kapsanır). Mutasyonla kanıtlandı: düzeltme öncesi font aynı render yolunda BULGU-014'ün `TypeError`'ını veriyor. **BULGU-016 açıldı** — sitemap üç adet 404 adresi bildiriyor. |
 | 2026-08-16 | T-029c | Ölçüm işinin veri kurulumu (BULGU-013) + §8.24 haftalık zamanlayıcı | **BULGU-013 açıldı ve düzeltildi**: `lighthouse` işi ayrı koşucuda `services:` bloğu olmadan koşuyordu; ADR-026 sonrası `/` 500 dönüyor, üç profil düşüyor, artifact üretilmiyordu. Kendi Postgres'i kuruldu (yol **a**). İki yeni nöbet: ölçüm ön koşulu ve ayırt edicide durum kodu kontrolü — ikincisi olmadan arıza "⏳ BEKLEMEDE" diye yeşil görünüyordu. §8.24 artık **haftalık** de koşuyor (`17 6 * * 1`). |
+| 2026-10-11 | T-107b | F4 rapor hesaplayıcılarının denetimi, tarih öncülü kapısı, E2E kalıntı ölçümü, §9/5 yeniden değerlendirme | **Kartın bir talimatı YANLIŞTI ve ölçüm reddetti:** kart `appDayStartInstant` kullanılmasını istiyordu, Backend ölçümle itiraz etmişti, bağımsız doğruladım — `appDayToDate` 1–31 Mart verirken `appDayStartInstant` **28 Şubat 21:00 – 30 Mart 21:00** veriyor, yani Şubat'ı içine alıp **31 Mart'ı tamamen düşürüyor** (sapma tam 3 saat, İstanbul UTC+3). Sebep: `Transaction.date` bir `@db.Date` sütunu — takvim günü. Backend'in `rapor.test.ts`i (50+ iddia) ay sınırını, kategori gruplamasını ve isimlendirmeyi zaten kapsıyor; DENETLENDİ, doğru ve yeterli — paralel kapı yazmak çiftlenmenin kendisi olurdu. **Ölçülmeyen şey KARARIN ÖNCÜLÜYDÜ:** o testler taklit istemci kullanıyor, şema hiç devreye girmiyor; sütun düz `DateTime`a çevrilse `appDayToDate` anında yanlış araç olur ve elli iddianın HİÇBİRİ kırılmaz. **`tarih-sutun-eslesmesi.test.ts`** kuruldu: her bildirilen eşleşmenin sütun tipini şemadan doğruluyor, yanlış pencereyi SAYILARLA iddia ediyor (kısıtın neden var olduğu da ölçülü) ve bildirilmeyen servisin tarih yardımcısı kullanmasını yasaklıyor. Kapı kurulurken kırmızıya döndü ve üç servisi daha okumaya zorladı: `transaction.ts` + `experience.ts` (yazma yönünde dönüşüm) bildirildi, `_shared/stats.ts` muaf — `fullYearsBetween` yardımcıyı SORGU için değil TAKVİM DOĞRULAMASI için çağırıyor, dönüş değeri kullanılmıyor bile. **Kapı kendi uydurduğum muafiyeti sildirdi:** `period-key.ts`i ölçmeden muafiyete yazmıştım, o dosya hiç tarih yardımcısı kullanmıyor — muafiyet doğduğu anda ÖLÜYDÜ ve "ölü muafiyet" iddiası satırı sildirdi. F5'te 13 `@db.Date` sütunu bekliyor, kapı onları da kapsıyor. **(a)/(b) Backend kartın istediğinden iyi çözmüş:** kategori dağılımı işlemin kendi türüne göre gruplanıyor ve `typeMismatch` DTO'da YÜZEYLENMİŞ; "gelir" adı çıplak DEĞİL — `income.collected` (nakit) / `income.invoiced` (tahakkuk), netler `net.cash`/`net.accrual`, çapraz esas karışımı yapısal olarak imkânsız. Decimal yüzey sayımım `report.ts`in dört yüzeyini de gördü ve dördü doğrudan iddiaya bağlı çıktı. **E2E TEMİZLİK RAPORU YANLIŞ ŞEYİ ÖLÇÜYORDU:** "artık proje: 0, mesaj: 1" sayıları SİLİNEN satırlardı, etiket KALAN diyordu; tablo gerçekten boştu (bağımsız doğruladım: `e2eKalintisi` → toplam 0). Kozmetik değil, çünkü silinen sayısı **hem ortam temizken hem süpürme YANLIŞ ÖNEĞİ ararken 0 çıkar** — T-016'nın izolasyon güvencesi kendisini çürütemeyen bir ölçüme dayanıyordu. Kör nokta somut: süpürme `e2e-t039` arıyor, T-054g sondası `E2EDenetimSondasi` yazıyor ve süpürme onu HİÇ görmüyor. **EYLEM ile DURUM ayrıldı:** `e2eKalintisi` üç tabloda `e2e`/`E2E` ile başlayan KALAN satırları sayıyor (harf duyarsız), teardown ikisini ayrı basıyor ve kalıntıda FIRLATIYOR (ADR-030: kalıntı bir sonraki koşumda seed sanılır). `e2e-kalinti-kapisi.test.ts` gerilemeyi engelliyor. **§9/5 hazır halka 1 → 3:** ekran (T-104), yazma yolu, aylık toplam servisi (T-102) geldi; eksik olan TEK şey toplamın bir ekrana ulaşması — muhasebe ekranının `toplam`ı SATIR SAYISI, para toplamı değil (ölçüldü). Beklenen sayı Güvenlik kararıyla 3'e çekildi. ⚠️ **Kapının yoklamasında kendi yazdığım kör nokta çıktı:** dört servis dosyası adını ELLE saymıştım, `report.ts` listede olmadığı için halka hazır olduğu hâlde kapı "yok" okumaya devam ediyordu — ateşlenmeyen kapı, kırmızıya dönenden KÖTÜDÜR. Aynı turda (T-107a) "listeyi elle yazma, kaynaktan türet" yazmışım; kural yazmak kurala uymak değil. Bir mutasyon testim de negatif örneğini `muhasebe/page.tsx`in YOKLUĞUNA bağladığı için halka gelince kırıldı → sentetik yola çevrildi. **Senaryo bu turda YAZILMADI ve gerekçesi:** e2e koşumu bende değil, koşturulamayan bir paket doğrulanmamış bir kapıdır (BULGU-016'nın tersi hatası). **BULGU-024 KAPANDI** ve istisnayı kapının kendisi sildirdi; liste boşalınca iki mutasyon testim `ISTISNALAR[0]?.yol ?? ''` yüzünden sessizce anlamını yitirecekti → sentetik yola bağlandı. **ADVISORY-006:** yama yok, zincir aynı, deney yeniden koşturuldu (EXIT 0), §8.24 EXIT 0, 90 gün; braces md5 birebir geri geldi (ADR-038 anlık görüntüsüyle). ⚠️ `pnpm test:e2e` bu turda **koşturulmadı** — Orkestra Şefi koşturuyor; teardown değişikliği ilk koşumda görünecek. |
 | 2026-10-11 | T-107a | F4 para kapılarının denetimi, çiftlenme sınıfının kapısı, §9/5 açık beklemesi | **`baseAmount` kapıları GERÇEK kapı:** koşulsuz yeniden türetme koşullu yapıldı → `updateJob` 2, `updateTransaction` 6 iddia kırmızı; beklenen `100000.00`, gelen `85625.00` — 14.375 TL sapması birebir. **`Decimal` dedektörü kusurlu DEĞİL, çağrı yerleri eksikti:** `Decimal` modellerine dokunan servislerde 12 DTO yüzeyinden 6'sı iddiaya bağlı değildi ve ALTISI DA YAZMA YOLU. Sızıntı yok çünkü yazma yolları okumanın eşleyicisini paylaşıyor — ama PAYLAŞIMI HİÇBİR ŞEY ÖLÇMÜYORDU (ADR-037: yazılı bir çıkarım). **`decimal-yuzey-sayimi.test.ts`** kuruldu: yüzey listesi ŞEMADAN türetiliyor (ilk denemem DTO kaynaklarından çıkarmaktı ve ölçtüm — iç içe alan taşıyan `JobPanelDto`yu sessizce atlıyordu); kapalılık ya doğrudan iddiayla ya PAYLAŞILAN EŞLEYİCİNİN KAYNAKTAN ÖLÇÜLMESİYLE sağlanıyor. **Kapı F5'i kendiliğinden kapsıyor** — `Decimal` yalnızca para değil (`HealthLog.weightKg`/`sleepHours`/`bodyFatPct`, `WorkoutSet`, `PersonalRecord`) ve bu kapsam ayrı bir iddiayla kilitlendi. Kapıyı yazarken KENDİ KAPIMDA bir vakum çıktı: dönüş tipi deseni `\\bDto\\b` idi ve `JobPanelDto`da hiç eşleşmiyordu → tarama SIFIR yüzey bulup boş kümede yeşil kalmıştı; sentetik mutasyon testi yakaladı (çapayı modeller/servisler/iddialar için yazmıştım, SAYIMIN KENDİSİ için yazmamıştım). Gerçek ağaçta koşturmak üç sahte pozitif gösterdi: iki değişken dolaylaması (çözüldü) ve `convertMessageToJob` (para alanı hiç taşımıyor → gerekçeli muafiyet, ölü satıra ve asılsız gerekçeye karşı mekanik sınanıyor). **Çiftlenme sınıfı:** Backend'in `para-tek-tanim.test.ts`i DENETLENDİ — iddiaları doğru, deseni silinen kopyanın gerçek metnine karşı sınanmış; kapsamadığı şey LİSTESİNİN SABİT olması (dört para adı). **`saf-yardimci-tek-tanim.test.ts`** sınıfı kapatıyor: saf `_shared` modülleri ve ihraçları TÜRETİLİYOR, "saf" ölçütü ÖLÇÜLÜYOR (`^import` yok) ve sınıfın kökü tam orada — saf modül her yerden okunabilir, kopyanın teknik mazereti yok. Desen dört tanım biçimini tanıyor (sınıf metodu + nesne özelliği eklendi). ⚠️ **Kapı AD çiftlenmesini ölçüyor, KURAL çiftlenmesini değil — ve bu çıkarımın yanlışlığı VARSAYILMADI, ÖLÇÜLDÜ:** BULGU-024 açıldı, `personal-record.ts` `compareDecimalStrings` adıyla ölçeklemeyi yerel yapıyor; davranışsal hata yok, SEBEBİ YENİ BİLGİ: `money.ts` `toScaledInt`i ihraç etmiyor, yani kopya dikkatsizlik değil kanonik modülün eksiği. İkinci blok ADA DEĞİL BİÇİME bakıyor (`BigInt` izi yalnızca `money.ts`te + gerekçeli istisna, üçüncü dosyada kırmızı). **Mutasyon kanıtları SENTETİK:** her iki kapının çekirdeği saf yapıldı, çünkü dosyadan okuyan bir kapıyı mutasyonla sınamak ADR-038'in doğduğu olayın ta kendisiydi — artık kimsenin dosyasına dokunulmuyor ve kanıt CI'da her koşumda yeniden üretiliyor. **§9/5 AÇIK BEKLEME kapıya bağlandı** (`senaryo-9-5-bekleme.test.ts`): 4 halkadan 1'i hazır (`createTransactionAction`), ekran/aylık toplam/dashboard kartı T-104-T-105 bekliyor; `appMonthRange`in HİÇ ÇAĞIRANI YOK diye ölçüldü. Kapı halka geldiği gün kırmızıya döner, hazır halka SAYISINI kilitliyor ve yoklama kendi kendini doğruluyor (hazır olan halkanın `true` çıkması ayrıca iddia ediliyor). **ADVISORY-006 gözden geçirildi:** yama yok, zincir aynı, deneyin geçerlilik koşulu (`rootDir` ayarlı değil) korunuyor, deney YENİDEN KOŞTURULDU → `pnpm lint` EXIT 0, kod yolu hâlâ koşmuyor; §8.24 EXIT 0, 90 gün. ⚠️ **ADR-038'i doğuran olay bu turda benim hatamdı** ve envanterim de hatalıydı (üç saydım, dört vardı) — düzeltmeler ilgili bölümde. ⚠️ **`pnpm test:e2e` bu turda koşturulmadı** (kullanıcı reddetti); üç kapı da birim düzeyinde ve e2e yüzeyine dokunmuyor. |
 | 2026-10-10 | T-055g | ADR-035 bağlayıcı metninin dize kapısı; ADR-037'nin geriye dönük ilk uygulaması | **ADR-035 metni kapıya bağlandı** (`adr-035-metni.test.ts`, 23 iddia). Kapı beklenen cümleyi ELLE YAZMIYOR — `docs/DECISIONS.md` içindeki ADR bloğundan ayıklayıp bileşendeki sabitle birebir karşılaştırıyor; elle yazmak cümlenin ÜÇÜNCÜ kopyasını doğurur ve ADR düzeltildiğinde kapı eski cümleyi savunmaya devam ederdi. Sapma iki yönde kırmızı. Pozitif + negatif birlikte: yalnızca "yasak ifade yok" denseydi SABİTİ SİLEN değişiklik de yeşil kalırdı (§8.18 dersi) — M2 mutasyonu bunu doğruladı. Yasak liste İKİ KADEMELİ ve ayrım ölçüme dayanıyor: "çıkış yapıldı" gerçek bir çıkıştan sonra DOĞRU, yalnızca şifre değiştirmenin sonucu olarak yanlış; bugün panelde meşru böyle bir metin yok (çıkış düğmesi panel dizinleri dışında ve mesaj basmıyor). Yorum sıyırmanın ZORUNLU olduğu da ayrı bir iddiayla kilitlendi — bileşenin yorumu yasağı alıntılıyor, ham taramayla kapı her zaman kırmızı olurdu. Dört mutasyon (yasak cümle · sabit silindi · "bu cihaz dahil" atlandı · ADR değişti) 9/5/2/2 iddia kırdı, md5 ile birebir geri alındı. **Ayıklayıcı ilk kurulumda BOŞ DİZE döndürdü** — cümlenin içinde noktalı virgül var ve "`;`'e kadar oku" deseni ortadan kesiyordu; önkoşul bloğu yakaladı, yoksa sessizce hiçbir şey ölçmeyen bir kapı CI'ya girecekti. **ADR-037 geriye dönük tarandı ve ADVISORY-006'nın bir OLGUSU YANLIŞ çıktı:** kayıt "`pnpm lint` sırasında braces HİÇ yüklenmiyor" diyordu, oysa yükleniyor (`@next/eslint-plugin-next/get-root-dirs` → fast-glob → micromatch → braces; aynı izleyiciyle, kaydın adlandırdığı komutla doğrulandı). Yanlış satır T-042g'de prisma akışlarında yapılan ölçümün lint'e GENELLENMESİNDEN doğmuş — yani maruziyet tablosunun içine saklanmış bir çıkarım. Çıkarım ("maruziyet kabul edilebilir") ise DOĞRU çıktı ve artık dolaylı gerekçe değil DENEY: braces'in girişi throw edecek hâle getirildi, `pnpm lint` EXIT 0 → savunmasız kod yolu HİÇ KOŞMUYOR. Sebebi de ölçüldü: `get-root-dirs` yalnızca `settings.next.rootDir` verilmişse `globSync` çağırıyor, bizde ayarlı değil. Deneyin geçerlilik KOŞULU kayda geçti (rootDir eklenirse ters sonuç verir) ve kaldırma koşulu 3'e bağlandı. braces md5 ile birebir geri geldi. **Oyunkitabının "tam sabit pin" ölçütü çürüdü ve düzeltildi:** pin katman A'yı eler, B'yi ELEMEZ — B'yi bir deneye bağlar. **En önemli bulgu:** karşı kanıt zaten elimizdeydi — `mysql2` override'ı `prisma`nın `"3.15.3"` tam pinini aşıyor ve T-042g'den beri çalışıyor; iki olgu hiç bağlanmadı ve üç aylık beklemeye mal oldu. Yeni kural: bir katmanı elemeden önce o katmanın bu projede çalıştığı bir kayıt var mı diye bakılır. Katman D ölçütüne ADR-037 zorunluluğu (iki başlık) eklendi; BULGU-020'nin "mümkün değil" kaydı zaten uyumlu çıktı. |
 | 2026-10-10 | T-054g | Denetim ekranının yeni yüzeyi (RSC yükü + beyaz liste polaritesi), ADVISORY-002, ADR-036 ikinci beyan denetimi | **ADVISORY-002 KAPANDI — katman B, süresinden 42 gün önce.** Üç kaldırma koşulu yine sağlanmadı (`latest` hâlâ **8.0.0-rc.22**, `@prisma/config@7.10.0` hâlâ `7.1.5` sabitliyor, yamalı aralık `>=8.0.0` → 7.1.6 de yamalı değil), ama istisnanın KENDİ GEREKÇESİ sınandı ve devrildi: "pin varsa override sözleşmeyi çiğner" bir ölçüm değil **çıkarımdı**. Override uygulandı → `@prisma/config` `deepmerge-ts@8.0.2` ile çalışıyor (validate · generate · migrate status · db execute · `pnpm test` hepsi geçti, kilit deltası 11 satır ve yalnızca bu zincir). İşlevsel yeşil YETERLİ SAYILMADI: yamalı kopyanın girişi geçici olarak `throw` edecek hâle getirildi ve CLI o hatayla düştü → yama **o kod yolunda**. CI istisnası silindi (kapının "ölü istisna" dalı zaten kırmızıya çevirecekti), haftalık tazelik nöbeti override'ı kendiliğinden izliyor. **Denetim ekranı iki kapıyla ölçüldü:** (a) `panel-denetim-diff.spec.ts` — ham `diff`in ne ilk gezinme belgesinde ne de saf `?_rsc=` yükünde olmadığı; ekran bir `'use client'` bileşeni ve DTO ona prop olarak geçtiği için yük T-041f'nin yüzeyi. Üç çapa negatiflerden ÖNCE koşuyor, üçüncüsü **izinli bir değerin GÖRÜNMESİNİ** şart koşuyor — yoksa özet DTO'dan tamamen kaldırılsa bile kapı yeşil kalırdı. `toListDto`ya ham `diff` eklenince kapı tam beklenen mesajla kırmızı, geri alma md5 ile doğrulandı. Bir yarış koşulu da burada yakalandı: yumuşak gezinme yanıtının gövdesi sonradan okunamıyor → `page.route` eliyle, sayfa tüketmeden önce. (b) `denetim-beyaz-liste-polarite.test.ts` — ada eklemenin BEDELİ: `buildDiff` çıktısı (`{before,after}`) eklenen adla bile **değer basmıyor** (ikinci, biçime dayalı bariyer), ama **elle yazılmış ilkel değer ÇIKAR** ve ad **her derinlikte** açılır. Kural: ada eklemek, o adın altına asla kayıt içeriği yazılmadığını kanıtlamayı gerektirir. **BULGU-023 açıldı** (düşük, Backend): `socialsChanged` adlarını serbest `Json` sütunundan topluyor → beklenmeyen bir ad ekranda görünebilir; değer görünmüyor, ölçüldü. **ADR-036 denetimi:** iki beyanın yapısal iddiaları doğru, kapı 36/36. **Karar:** ADR-034'ün gerekçesi beyana AİT DEĞİL (tek kaynak servis + ADR; kopya sessizce sapar), beyana ait olan ölçüm durumuydu ve beyan onu dürüstçe kendisi yazmıştı — o boşluk yukarıdaki iki kapıyla kapatıldı. `/panel/ayarlar/sifre` beyanındaki `ADR_035_MESAJ` boşluğu **T-057g'ye önerildi**. **§9/7** T-051/E kararıyla tam kapalı. |
@@ -3085,11 +3086,11 @@ iç ağında farklı olabilir) ve Node ara katmanının soğuk başlatma maliyet
 
 ---
 
-## §9 sayacı — T-107a sonrası: **6 kapalı · 0 kısmi · 1 açık (KAPIYA BAĞLI)**
+## §9 sayacı — T-107b sonrası: **6 kapalı · 0 kısmi · 1 açık (3/4 halka hazır)**
 
-> **§9/5 açık ve bu turda değişmedi — ama artık unutulamaz.** Zincirin dört
-> halkasından biri hazır (`createTransactionAction`); üçü T-104/T-105'i
-> bekliyor. Bekleme bir yorum satırı değil, bir kapı:
+> **§9/5 açık ama ÜÇ halkası hazır (T-107b).** Ekran (T-104), yazma yolu
+> (T-101) ve aylık toplam servisi (T-102) geldi; eksik olan TEK şey toplamın
+> bir ekrana ulaşması (T-105). Bekleme bir yorum satırı değil, bir kapı:
 > `tests/unit/senaryo-9-5-bekleme.test.ts` son halka geldiği gün kırmızıya
 > döner. Ayrıntı: "§9/5 — AÇIK BEKLEME" bölümü.
 
@@ -4211,9 +4212,222 @@ Değişen bir şey yok; istisna geçerli.
 
 ---
 
+## F4 rapor hesaplayıcıları — DENETİM, ve kartın bir talimatı YANLIŞTI (T-107b)
+
+Backend `tests/unit/services/rapor.test.ts`te elli üzerinde iddia yazdı ve
+kartın üç endişesini de kapsıyor: ay sınırı (1–31 Mart, `lte` dahil, artık yıl),
+kategori dağılımının işlemin kendi türüne göre gruplanması, ve çıplak bir `net`
+alanının olmaması. **Denetledim — doğru ve yeterli.** Paralel kapı yazmak, iki
+turdur kapattığım çiftlenmenin kendisi olurdu.
+
+### (c) Tarih sınırı — kart `appDayStartInstant` dedi, ÖLÇÜM reddetti
+
+Kart bana *"Backend'e `appDayStartInstant` kullanmasını yazdım — kullandığını
+ölç"* dedi. Ölçtüm: Backend talimata **ölçümle itiraz etmiş** ve itirazı
+**doğru**. Kendi hesabımla bağımsız doğruladım (2026 Mart, İstanbul):
+
+| Yardımcı | Pencere | Sonuç |
+| -------- | ------- | ----- |
+| `appDayToDate` | `2026-03-01T00:00Z` … `2026-03-31T00:00Z` | ✅ doğru |
+| `appDayStartInstant` | `2026-02-28T21:00Z` … `2026-03-30T21:00Z` | ❌ **28 Şubat'ı içine alıyor, 31 Mart'ı TAMAMEN düşürüyor** |
+
+Sapma tam **üç saat** (İstanbul UTC+3) ve iki hata aynı anda oluşuyor. Sebep
+tek ve ölçülebilir: **`Transaction.date` bir `@db.Date` sütunu** — takvim günü,
+zaman damgası değil. Postgres `date` değerleri UTC gece yarısına hizalanır.
+`appDayStartInstant` doğru araçtır ama `AuditLog.createdAt` gibi **gerçek bir
+zaman damgası** için (T-052'de orada kullanıldı ve orada doğru).
+
+### Kapı: `tests/unit/tarih-sutun-eslesmesi.test.ts` — kararı değil ÖNCÜLÜ ölçüyor
+
+Backend'in testleri **taklit istemci** kullanıyor, yani şema hiç devreye
+girmiyor. `Transaction.date` bir gün düz `DateTime`a çevrilirse:
+
+- `appDayToDate` anında **yanlış** araç olur (pencere 3 saat kayar)
+- Backend'in elli iddiasının **hiçbiri kırılmaz** — hiçbiri şemaya bakmıyor
+- ve kayma ilk/son günün işlemlerini sessizce başka aya yazar
+
+ADR-037'nin sınıfı: **kapı çalışıyor, öncülü bayatlıyor.** Kapı o öncülü
+izliyor: her bildirilen eşleşme için sütunun tipini şemadan doğruluyor, ve
+`appDayStartInstant`in ürettiği yanlış pencereyi **sayılarla** iddia ediyor —
+yani kısıtın neden var olduğu da ölçülü, bir gün "bu neden burada" diye
+kaldırılamaz.
+
+**Eşleşme tablosu + sayım kapısı:** bildirilmeyen hiçbir servis tarih
+yardımcısı kullanamaz. Kapı kurulurken **kırmızıya döndü ve üç servisi daha
+okumaya zorladı** — `transaction.ts` (`Transaction.date`, süzme),
+`experience.ts` (`Experience.startDate`, **yazma** yönünde dönüşüm) ve
+`_shared/stats.ts`. Üçüncüsü ölçüldü ve muaf: `fullYearsBetween`
+`appDayToDate`i sorgu için değil **takvim doğrulaması** için çağırıyor
+("2026-02-30" orada patlasın diye), dönüş değeri kullanılmıyor bile.
+
+F5'te **on üç `@db.Date` sütunu** bekliyor (sağlık, spor, alışkanlık, günlük),
+yani bu kapının ötme ihtimali yüksek ve ötmesi doğru.
+
+#### Kapı kendi uydurduğum bir muafiyeti sildirdi
+
+Muafiyet listesine `_shared/period-key.ts`i de yazmıştım — **ölçmeden,
+varsayarak.** O dosya hiçbir tarih yardımcısı kullanmıyor, yani muafiyet
+doğduğu anda ÖLÜYDÜ. "Ölü muafiyet" iddiası kırıldı ve satırı sildirdi.
+Varsayımla yazılmış bir muafiyet kapının kapsamını **sessizce daraltır**;
+kapının kendi mekanizması bunu yakaladı.
+
+### (a) ve (b) — Backend kartın istediğinden iyi çözmüş
+
+**(a) Kategori dağılımı** `groupBy(['categoryId', 'type', 'isPaid'])` ile
+**işlemin kendi türüne** göre gruplanıyor; ayrıca `categoryType` ve
+`typeMismatch` alanları DTO'da yüzeylenmiş, yani "gider kategorisinde gelir
+işlemi" hem doğru kovaya düşüyor hem **görünür** oluyor. Backend'in testleri
+kategori türünün sorguya girmediğini ayrıca ölçüyor.
+
+**(b) "Gelir" adı** — çıplak bir `income` alanı **yok**:
+`income.collected` (nakit esası) ve `income.invoiced` (tahakkuk esası), gider
+tarafında `paid`/`incurred`, ve netler `net.cash`/`net.accrual`. **Çapraz esas
+karışımı yapısal olarak imkânsız.** Kart "adın kararı söylediğini doğrula"
+dedi; ad kararı söylüyor ve ayrımı DTO tipine gömüyor — ADR-035 metin
+kararının (T-055g) aynı ailesi: adlandırma bir güvenlik özelliğidir.
+
+**Decimal yüzey sayımım `report.ts`i gördü:** dört yüzeyi de enumerasyona
+girdi ve dördü de doğrudan `decimalKalanlar` iddiasına bağlı çıktı
+(`report.ts`te yerel eşleyici yok, yani dolaylı kapsama imkânsız — yeşilliği
+anlamlı).
+
+---
+
+## E2E temizlik raporu yanlış şeyi ölçüyordu (T-107b)
+
+Orkestra Şefi bir tutarsızlık ölçtü: teardown *"artık proje: 0, mesaj: 1"*
+diyordu ama `contact_message` tablosunda **0 satır** vardı.
+
+**Teşhis:** sayılar süpürme işlevlerinin dönüşüydü — yani **SİLİNEN** satır
+sayısı — ama etiket "artık" (**KALAN**) diyordu. "mesaj: 1" aslında "süpürme 1
+mesaj sildi" demekti; tablo gerçekten boştu. Bağımsız doğruladım:
+`e2eKalintisi` → `{proje: 0, mesaj: 0, denetim: 0, toplam: 0}`.
+
+### Neden kozmetik değil — sayı İKİ durumda sıfır çıkıyor
+
+| Durum | Raporlanan |
+| ----- | ---------- |
+| Ortam gerçekten temiz | 0 |
+| **Süpürme YANLIŞ ÖNEĞİ arıyor** | 0 |
+
+İkincisinde gerçek bir kalıntı vardır ve rapor "0" der. **T-016'da kurduğum
+izolasyon güvencesi tam o sayıya dayanıyordu** — yani güvence, kendisini
+çürütemeyen bir ölçüme bağlıydı. Bu deponun defalarca adını koyduğu sınıf:
+ölçtüğünü sanan ama yanlış şeye bakan kapı.
+
+Ve kör nokta soyut değil: süpürme `E2E_ICERIK_ONEKI` (`e2e-t039`) arıyor, oysa
+T-054g denetim sondası `E2EDenetimSondasi` yazıyor ve süpürme onu **hiç
+görmüyor** (kendi `afterAll`'u siliyor; o çökerse kalıntı görünmez olur).
+
+### Düzeltme — EYLEM ile DURUM ayrıldı
+
+`e2eKalintisi` görevi eklendi: `project.slug`, `contactMessage.subject` ve
+`auditLog.entity` sütunlarında `e2e`/`E2E` ile başlayan **kalan** satırları
+sayıyor (büyük/küçük harf duyarsız — `E2E...` işaretleri kaçmasın). Teardown
+artık ikisini ayrı basıyor ve **kalıntı varsa fırlatıyor**: raporlamak yetmez,
+çünkü bir sonraki koşum kalıntıyı seed verisi sanar (ADR-030: seed bir ölçüm
+sözleşmesidir) ve liste sayıları ya da Lighthouse girdisi sessizce kayar.
+
+`tests/unit/e2e-kalinti-kapisi.test.ts` bunun gerilemesini engelliyor: kalıntı
+sorgusunun üç tabloya baktığı, **görev önekine daralmadığı**, teardown'ın onu
+çağırdığı ve kalıntıda fırlattığı ölçülüyor; eski yanlış etiketin geri sızması
+ayrıca yasak.
+
+**Sınır, dürüstçe:** `e2e` ile başlamayan bir işaret bu sayıma da görünmez.
+Mitigasyon bir **sözleşme**, kanıt değil — ve kapı sözleşmenin teardown'a bağlı
+kaldığını ölçüyor, sözleşmeye uyulduğunu değil.
+
+---
+
+## §9/5 — üç halka hazır, TEK eksik kaldı (T-107b)
+
+Kapı tasarımı gereği öttü: hazır halka sayısı **1 → 3**.
+
+| # | Halka | Durum | Not |
+| - | ----- | ----- | --- |
+| 1 | İşlem kaydı EKRANI | ✅ **geldi** (T-104) | `/panel/muhasebe` |
+| 2 | Yazma yolu | ✅ var (T-101) | `createTransactionAction` |
+| 3 | Aylık toplam servisi | ✅ **geldi** (T-102) | `report.ts` → `fetchMonthlyReport` |
+| 4 | Toplamın **ekrana ulaşması** | ✗ **tek eksik** | T-105; hiçbir ekran `report.ts`i tüketmiyor |
+
+Eksik halkanın adı T-107b'de netleşti: sorun "dashboard kartı yok" değil,
+**toplamın herhangi bir ekrana ulaşmaması**. Muhasebe ekranı `toplam` basıyor
+ama o **satır sayısı** (sayfalama), para toplamı değil — ölçtüm.
+
+**Beklenen sayı 1 → 3 yapıldı** ve bu bir Güvenlik kararı: ölçümü düzeltmek
+Backend'in işiydi, beklemenin ne anlama geldiğine karar vermek benim.
+
+### Kapının YOKLAMASINDA bir kör nokta çıktı — ve benim yazdığım kör noktaydı
+
+3. halkanın gelişi, yoklamanın `['transaction.ts', 'job.ts', 'stats.ts',
+'index.ts']` diye **dört dosya adını elle saydığını** açığa çıkardı.
+`report.ts` listede olmadığı için **halka hazır olduğu hâlde kapı "yok"
+okumaya devam ediyordu.**
+
+> ⚠️ Ateşlenmeyen bir kapı, kırmızıya dönen bir kapıdan daha kötüdür: bekleme
+> sessizce bayatlar.
+
+Düzeltildi (`services/**` taranıyor). Dersin acı tarafı: **aynı turda**
+(T-107a) *"listeyi elle yazma, kaynaktan türet"* diye yazmışım ve başka bir
+kapıda dört dosya adı sabitlemişim. "Sayılı olanlar" kalıbı kendi işime de
+giriyor — kural yazmak, kurala uymak değil.
+
+Bir mutasyon testim de aynı gelişte kırıldı: negatif örneği
+`muhasebe/page.tsx`in **yokluğuna** bağlamıştım. Negatif örneği beklenen bir
+değişikliğe bağlamak, mekanizma kanıtını o değişiklikte çöpe atıyor — artık
+asla var olmayacak sentetik bir yol kullanılıyor.
+
+### Bugün yazılabilen ve YAZILMAYAN — T-039 ayrımı
+
+Üç halka hazır olduğu için *"ekrandan girilen kayıt aylık toplama giriyor"*
+iddiası artık **yazılabilir** (arayüzden kayıt → `fetchMonthlyReport` onu
+sayıyor). Bu turda **yazılmadı** ve sebebi dürüstçe: e2e koşumum geçen turda
+reddedildi, bu turda da Orkestra Şefi koşturuyor. **Koşturulamayan bir e2e
+paketi yazmak, doğrulanmamış bir kapı eklemektir** — BULGU-016'nın tersi
+hatası: kırmızıyı susturmak değil, hiç ölçülmemişi yeşil sanmak. Senaryo
+T-108'de, dördüncü halka geldiğinde tek parça yazılacak; bekleme kapısı o günü
+zaten bildirecek.
+
+---
+
+## ADVISORY-006 (braces) — durum değişmedi (T-107b)
+
+| Kontrol | Sonuç |
+| ------- | ----- |
+| Yama | ✗ hâlâ 3.0.3 / 2024-09-18 |
+| Zincir | ✗ aynı (`@next/eslint-plugin-next 15.5.22 → fast-glob 3.3.1 → micromatch 4.0.8`) |
+| Deneyin geçerlilik koşulu | ✓ `settings.next.rootDir` hâlâ ayarlanmamış |
+| Deney yeniden koşturuldu | ✓ `braces` girişi `throw` → `pnpm lint` **EXIT 0** → kod yolu koşmuyor |
+| §8.24 kapısı | ✓ EXIT 0, **90 gün** kaldı |
+
+Dosya ADR-038 disipliniyle (scratchpad anlık görüntüsü) geri yazıldı, md5
+birebir: `c930a02f71a7a9e836b9f5dd5ae5ee28`.
+
+---
+
+## BULGU-024 — KAPANDI ve istisnayı kapı sildirdi (T-107b)
+
+Kaldırma koşulu şöyle yazılmıştı: *"`money.ts` ölçekleme ilkelini ihraç eder ve
+bu dosya onu içe aktarır — o gün bu satır silinir."* T-102'de koşul karşılandı:
+`toScaledInt` ihraç edildi, `compareDecimalStrings` onu içe aktardı, yerel
+kopya silindi.
+
+**İstisnayı silmeyi kapının kendisi söyledi:** "istisna listesi ölü satır
+taşımıyor" iddiası kırıldı ve mesajı *"BULGU-024 istisnası ÖLÜ, silinmeli"*
+dedi. Mekanizma iki yönde de çalışıyor — kopya eklenirse de, kopya kalkıp
+istisna ölürse de. ADVISORY-001'in ölü override dersi kod tarafında da tuttu.
+
+Liste boşalınca iki mutasyon testim `ISTISNALAR[0]?.yol ?? ''` yazdığı için
+**sessizce anlamını yitirecekti** (biri boş yolu izinli sayıp hiçbir şey
+ölçmez, diğeri boş yolu yakalayıp "mekanizma çalışıyor" der — ikisi de yeşil).
+Sentetik bir yola bağlandı; mekanizma kanıtı artık canlı bir istisnaya bağlı
+değil.
+
+---
+
 ## §8 Güvenlik Gereksinimleri — Durum Tablosu
 
-**Ölçüm tarihi:** 2026-10-11 · **Faz:** F4 (sürüyor) · **Son görev:** T-107a
+**Ölçüm tarihi:** 2026-10-11 · **Faz:** F4 (sürüyor) · **Son görev:** T-107b
 · **Dağılım:** ✅ 10 · ⚠️ 6 · ❌ 0 · ⏳ 9
 
 > T-054g'de dağılım DEĞİŞMEDİ ve bu bilinçli: denetim ekranı yeni bir yüzey
