@@ -104,9 +104,10 @@ describe('ADR-037 — para kuralları TEK TANIM', () => {
       }
     }
 
-    expect(ihlaller, `para kuralı yerel olarak yeniden tanımlanmış:\n${ihlaller.join('\n')}`).toEqual(
-      [],
-    );
+    expect(
+      ihlaller,
+      `para kuralı yerel olarak yeniden tanımlanmış:\n${ihlaller.join('\n')}`,
+    ).toEqual([]);
   });
 
   it('kapı GERÇEKTEN kırılıyor — desen yerel bir tanımı yakalıyor', () => {
@@ -116,7 +117,9 @@ describe('ADR-037 — para kuralları TEK TANIM', () => {
      * `seed.ts`in SİLİNEN kopyasının gerçek metniyle sınanıyor.
      */
     const silinenKopya = 'function computeBaseAmount(amount: string, fxRate: string): string {';
-    const desen = new RegExp('(?:function\\s+computeBaseAmount\\b|(?:const|let|var)\\s+computeBaseAmount\\s*[:=])');
+    const desen = new RegExp(
+      '(?:function\\s+computeBaseAmount\\b|(?:const|let|var)\\s+computeBaseAmount\\s*[:=])',
+    );
 
     expect(desen.test(silinenKopya)).toBe(true);
     expect(desen.test('const x = computeBaseAmount(a, b);')).toBe(false);

@@ -28,10 +28,7 @@ import { closeDatabase, db } from '@/server/db';
 // BULGU-012: barrel yerine DOĞRUDAN modül — seed düz Node ile koşar, bkz.
 // `_shared/index.ts` başlığı. Saf barrel de güvenli; doğrudan import zinciri
 // en kısa tutuyor.
-import {
-  computeBaseAmount,
-  deriveBaseAmount,
-} from '@/server/services/_shared/money';
+import { computeBaseAmount, deriveBaseAmount } from '@/server/services/_shared/money';
 import { calculateReadingMinutes } from '@/server/services/_shared/reading-time';
 
 /**

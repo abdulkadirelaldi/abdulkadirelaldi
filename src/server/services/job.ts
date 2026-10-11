@@ -9,9 +9,11 @@ import type { Currency, JobStatus } from '@/types';
 
 import {
   appDayToDate,
-  computeBaseAmount,
   dateToAppDay,
+  deriveBaseAmount,
   panelSkipTake,
+  subtractMoney,
+  sumMoney,
   toMoneyString,
   toPagedResult,
   toRateString,
@@ -170,42 +172,32 @@ const defaultRunInTransaction: RunInTransaction = (client, work) =>
   (client as unknown as TransactionCapableClient).$transaction(work);
 
 /* ===========================================================================
- * ⚠️⚠️ ADR-014 — `baseAmount` TÜRETİLİR, GİRİLMEZ. TEK TANIM BURADA.
- * ======================================================================== */
-
-/**
- * `baseAmount = agreedAmount × fxRate` — ADR-014'ün birinci kuralı.
+ * ⚠️⚠️ ADR-014 — `baseAmount` TÜRETİLİR, GİRİLMEZ
  *
- * ═══════════════════════════════════════════════════════════════════════════
- * NEDEN BU FONKSİYON VAR (üç satırlık bir hesap için)
- * ═══════════════════════════════════════════════════════════════════════════
+ * KURALIN TANIMI BURADA DEĞİL: kanonik tanım `_shared/money.ts` içinde
+ * (`deriveBaseAmount`). T-100'de bu dosyada yazılmıştı — ilk ihtiyaç duyulduğu
+ * yer burasıydı — ve T-101'de oraya TAŞINDI. Sebep ölçülmüş: kural saf ve
+ * `Job`a özel değil, ama bu dosya `@/server/db` çekiyor; dolayısıyla düz Node
+ * ile koşan `prisma/seed.ts` oradan okuyamıyor ve kuralı ÜÇÜNCÜ kez yazmak
+ * zorunda kalmış görünüyordu. `money.ts` hiç `import` taşımıyor (ölçüldü).
  *
- * Çünkü kural İKİ yazma yolunda geçerli (`createJob`, `updateJob`) ve iki yerde
- * ayrı yazılması tam olarak ADR-014'ün uyardığı hatayı üretirdi: biri
- * güncellenip diğeri kalınca kayıt KENDİ İÇİNDE tutarsız olur — `agreedAmount`
- * 2500 USD, `baseAmount` eski kurdan 85.000 TRY — ve **hiçbir şey kırmızıya
- * dönmez.** Rapor yanlış toplar, grafik yanlış çizer, kimse fark etmez.
+ * Aşağıdaki yeniden ihraç, T-100'ün çağıranlarını değiştirmemek için duruyor —
+ * değerin kendisi ve gerekçesi orada, burada İKİNCİ BİR TANIM YOK.
  *
- * `agreedAmount` NULL İSE `baseAmount` DA NULL. `0.00` DEĞİL, ve bu ayrım
- * anlamlı: `LEAD` aşamasında tutar HENÜZ BİLİNMİYOR (T-038'in kararı), `0.00`
- * ise "bu iş bedava" demek olurdu. Raporlama ikisini ayırt etmek zorunda —
- * ortalama iş bedeli hesabında bilinmeyen bir tutar DIŞLANIR, sıfır ise
- * ortalamayı aşağı çeker.
- *
- * ⚠️ `prisma/seed.ts` BU KURALDAN SAPIYOR (T-100'de ölçüldü, satır ~477):
- * `computeBaseAmount(input.agreedAmount ?? '0', input.fxRate)` yazıyor, yani
- * tutarsız bir iş için `0.00` üretirdi. Bugün sapma GÖRÜNMÜYOR çünkü seed'in
- * iki işinin ikisinde de tutar dolu; ama ADR-030 seed'i ölçüm sözleşmesi
- * saydığı için tutarsız bir `LEAD` eklendiği gün yanlış veri üretir. Raporlandı.
+ * ⚠️ İKİNCİ TANIM OLMAMASI DERLEME TARAFINDAN DA ZORLANIYOR: `services/index.ts`
+ * hem `./_shared`ı hem bu dosyayı yeniden ihraç ediyor, dolayısıyla burada
+ * yerel bir `deriveBaseAmount` TANIMI olursa `tsc` TS2308 ile kırılır
+ * ("already exported a member named 'deriveBaseAmount'"). T-101b'de tam olarak
+ * bu görüldü: tanım geri geldiğinde barrel derlenmedi. Yani çiftlenme bu
+ * dosyada sessiz kalamıyor.
  *
  * KDV VE STOPAJ YOK — v1 kapsamı DIŞI (ADR-014/B8, kullanıcı onaylı).
  * `agreedAmount` BRÜT tutardır. Burada bir vergi hesabı ARAMAYIN: eksik değil,
  * kapsam dışı. Eklenirse `baseAmount`ın brüt mü net mi olduğu ayrıca
  * kararlaştırılmalı, çünkü tüm raporlama bu alana bağlı.
- */
-export function deriveBaseAmount(agreedAmount: string | null, fxRate: string): string | null {
-  return agreedAmount === null ? null : computeBaseAmount(agreedAmount, fxRate);
-}
+ * ======================================================================== */
+
+export { deriveBaseAmount };
 
 /* ===========================================================================
  * PANEL OKUMA — DTO'LAR
@@ -824,4 +816,238 @@ export async function changeJobStatus(
   });
 
   return toJobDetailDto(row);
+}
+
+/* ===========================================================================
+ * ⚠️⚠️ BAKİYE — TÜRETİLİR, SÜTUN DEĞİL (ADR-014/B8) · T-101
+ * ======================================================================== */
+
+/**
+ * Bir işin finansal özeti — HİÇBİRİ SÜTUN DEĞİL, hepsi `Transaction` toplaması.
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * ⚠️⚠️ İŞARET SORUNU — EN PAHALI HATA SINIFI, VE CEVABI "NETLEME" DEĞİL
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * `TransactionType` gelir/gider ayrımı taşıyor ve şema bir işe GİDER bağlanmasını
+ * engellemiyor — meşru çünkü engellenmemeli: taşeron ödemesi, stok görsel
+ * lisansı, baskı masrafı o işin gerçek maliyetidir.
+ *
+ * NAİF UYGULAMA `sumMoney(hepsi)` YAZARDI VE SESSİZCE YANLIŞ OLURDU. T-101'de
+ * canlı ölçüldü (seed verisi + geri alınan transaction, gerçek Prisma):
+ *
+ *   İŞ: anlaşma 85.625,00 · tahsil 42.812,50
+ *   + işe bağlı GİDER 10.000 ve ÖDENMEMİŞ GELİR 5.000 eklendi
+ *
+ *   doğru  → tahsil 42.812,50 · bekleyen 5.000 · gider 10.000 · KALAN 42.812,50
+ *   naif   → hepsini `collected`a toplar (57.812,50) · KALAN 27.812,50
+ *
+ * Yani müşteri borcu **15.000 TL eksik** görünürdü ve fatura kesilmezdi. Oysa
+ * müşteri o parayı borçlu değil; ben harcadım. İki tamamen farklı iş durumu,
+ * tek ve yanlış bir sayı.
+ *
+ * ⚠️ KARAR: NETLEME YOK. GİDER TAHSİLATTAN DÜŞÜLMEZ — AMA GİZLENMEZ DE.
+ *
+ * Alacak hesabı yalnızca GELİR üzerinden yürür; gider AYRI BİR SAYI olarak
+ * döner. "Dışlanmış" olması "görünmez" demek değil — gideri hiç döndürmemek,
+ * işe para harcandığını ekrandan silmek olurdu ve o da bir sessizlik olurdu.
+ *
+ * ───────────────────────────────────────────────────────────────────────────
+ * ⚠️ `isPaid` İKİNCİ BİR İŞARET TUZAĞI — VE ASİMETRİK ELE ALINIYOR
+ * ───────────────────────────────────────────────────────────────────────────
+ *
+ * `Transaction.isPaid` varsayılanı `true`, ama `false` olabiliyor: kesilmiş ama
+ * TAHSİL EDİLMEMİŞ fatura. Onu `collected`a saymak, fatura kesmeyi para almak
+ * saymak olurdu — "tahsil edilen" sözcüğünün tam zıddı.
+ *
+ * ASİMETRİ KASITLI VE GEREKÇELİ:
+ *   `collected` → GELİR ∧ `isPaid`      "elimdeki para"
+ *   `pending`   → GELİR ∧ ¬`isPaid`     "kesildi, gelmedi"
+ *   `expense`   → GİDER (ÖDENSİN YA DA ÖDENMESİN)  "bu işin bana maliyeti"
+ *
+ * Gider tarafında `isPaid` ayrımı yapılmıyor çünkü soru farklı: gelen bir
+ * fatura, henüz ödenmemiş olsa da o işin maliyetidir. İki alan iki ayrı soruya
+ * cevap verdiği için `isPaid`i aynı şekilde ele almaları GEREKMİYOR; aynı
+ * şekilde ele almak, sorulardan birini bozmak olurdu.
+ *
+ * ───────────────────────────────────────────────────────────────────────────
+ * `remaining` VE SINIR DURUMLARI
+ * ───────────────────────────────────────────────────────────────────────────
+ *
+ * `remaining = agreedAmount − collected` — müşterinin HÂLÂ borçlu olduğu tutar.
+ * `pending` bu tutarın İÇİNDEDİR (kesilmiş fatura de tahsil edilmemiştir).
+ *
+ * `agreedAmount` NULL İSE `remaining` DA NULL — `0.00` değil. `deriveBaseAmount`
+ * ile aynı kural ve aynı sebep: `LEAD` aşamasında anlaşma tutarı BİLİNMİYOR,
+ * "borcu yok" demek yanlış olurdu.
+ *
+ * `remaining` NEGATİF OLABİLİR ve sıfıra KIRPILMIYOR: fazla tahsilat ya bir veri
+ * girişi hatasıdır ya da gerçek bir avanstır; ikisi de GÖRÜLMELİ. Kırpmak, tam
+ * olarak ADR-014'ün kaçındığı şeyi yapar — bir tutarsızlığı gizlemek.
+ *
+ * ⚠️ KDV/STOPAJ YOK (ADR-014/B8, v1 kapsamı dışı): `agreedAmount` brüt, bu yüzden
+ * `collected` ile karşılaştırması tutarlı. Vergi eklendiğinde `remaining`in brüt
+ * mü net mü olduğu AYRICA kararlaştırılmalı.
+ *
+ * ⚠️ `net` (kârlılık) BİLEREK YOK. `collected − expense` arayüzde iki alandan
+ * türetilebiliyor; burada üçüncü bir alan olarak sunmak onu bir KÂR İDDİASI
+ * yapardı ve v1 vergiyi hesaplamadığı için o iddia dürüst olmaz. Genel gider
+ * payı da modellenmiyor.
+ */
+export interface JobFinancialsDto {
+  jobId: string;
+  /** Anlaşma tutarının TRY karşılığı (`Job.baseAmount`). Bilinmiyorsa `null`. */
+  agreedBaseAmount: string | null;
+  /** GELİR ∧ ödenmiş — elimdeki para. */
+  collected: string;
+  /** GELİR ∧ ödenmemiş — kesilmiş, tahsil edilmemiş. `remaining` içinde. */
+  pending: string;
+  /** GİDER (ödenme durumuna bakılmaz) — bu işin maliyeti. Tahsilattan DÜŞÜLMEZ. */
+  expense: string;
+  /** `agreedBaseAmount − collected`. Tutar bilinmiyorsa `null`. Negatif olabilir. */
+  remaining: string | null;
+  /** Bu işe bağlı işlem sayısı (gelir + gider). */
+  transactionCount: number;
+}
+
+/** `fetchJobFinancials`ın Prisma'dan ihtiyaç duyduğu yüzey. */
+export interface JobFinancialsClient {
+  transaction: {
+    groupBy(args: {
+      by: ['jobId', 'type', 'isPaid'];
+      where: { jobId: { in: string[] } };
+      _sum: { baseAmount: true };
+      _count: true;
+    }): Promise<
+      {
+        jobId: string | null;
+        type: 'INCOME' | 'EXPENSE';
+        isPaid: boolean;
+        _sum: { baseAmount: DecimalLike | null };
+        _count: number;
+      }[]
+    >;
+  };
+  job: {
+    findMany(args: {
+      where: { id: { in: string[] } };
+      select: { id: true; baseAmount: true };
+    }): Promise<{ id: string; baseAmount: DecimalLike | null }[]>;
+  };
+}
+
+/**
+ * Uyum kapısı — gerçek istemci dar arayüze OTURUYOR. Çalışma zamanı etkisi yok.
+ *
+ * ⚠️ `_count: true` GERÇEKTEN `number` DÖNDÜRÜYOR — T-101'de canlı ölçüldü
+ * (`_count=2 (number)`). Prisma'nın `groupBy` imzası bazı biçimlerde
+ * `{ _all: number }` döndürebildiği için bu, modellenmiş değil ÖLÇÜLMÜŞ bir
+ * varsayım.
+ */
+const _finansUyumKontrolu: JobFinancialsClient = db;
+void _finansUyumKontrolu;
+
+/**
+ * Verilen işlerin finansal özetleri — `jobId` ile anahtarlanmış.
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * NEDEN AYRI FONKSİYON, NEDEN TOPLU
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * `fetchJobForPanel`ı genişletmek REDDEDİLDİ ve gerekçe kardinalite:
+ *   - Bakiye `Job`un bir ALANI DEĞİL, bağlı tabloya yapılan bir TOPLAMADIR.
+ *     Job okumasına gömülürse HER iş okuması bir `Transaction` toplaması yapar
+ *     — kanban'ın 250 kartı dahil, ve kanban bakiyeye HİÇ BAKMIYOR.
+ *   - Ayrı tutulunca "maliyeti yalnızca ihtiyaç duyan ekran öder".
+ *
+ * TOPLU (`jobIds`), tekil değil: iş listesinde bakiye kolonu gösterilmek
+ * istenirse tekil imza N+1 üretirdi. İki sorgu — `groupBy` + işlerin
+ * `baseAmount`ı — kaç iş sorulduğundan BAĞIMSIZ.
+ *
+ * `groupBy` ÜÇ ANAHTARLA (`jobId`, `type`, `isPaid`): dört kategoriyi
+ * (gelir-ödenmiş, gelir-bekleyen, gider-ödenmiş, gider-bekleyen) tek sorguda
+ * ayırıyor. Ayrı sorgular yazmak dört gidiş-dönüş olurdu.
+ *
+ * SORULAN AMA İŞLEMİ OLMAYAN İŞ DE DÖNER (sıfırlarla): çağıran taraf
+ * `financials[jobId]` yazdığında `undefined` görmemeli — yoksa her kullanım
+ * yerinde bir `?? sıfırlar` nöbeti gerekirdi ve biri onu unuttuğunda ekranda
+ * boşluk çıkardı.
+ */
+export async function fetchJobFinancials(
+  jobIds: readonly string[],
+  client: JobFinancialsClient = db,
+): Promise<Record<string, JobFinancialsDto>> {
+  const aranacak = [...new Set(jobIds.filter((id) => id !== ''))];
+  if (aranacak.length === 0) return {};
+
+  const [gruplar, isler] = await Promise.all([
+    client.transaction.groupBy({
+      by: ['jobId', 'type', 'isPaid'],
+      where: { jobId: { in: aranacak } },
+      _sum: { baseAmount: true },
+      _count: true,
+    }),
+    client.job.findMany({
+      where: { id: { in: aranacak } },
+      select: { id: true, baseAmount: true },
+    }),
+  ]);
+
+  const anlasma = new Map(isler.map((row) => [row.id, toMoneyString(row.baseAmount)]));
+
+  /** Her iş için sıfır tabanı — işlemi olmayan iş de tam DTO döner. */
+  const sonuc: Record<string, JobFinancialsDto> = {};
+  for (const jobId of aranacak) {
+    const agreedBaseAmount = anlasma.get(jobId) ?? null;
+    sonuc[jobId] = {
+      jobId,
+      agreedBaseAmount,
+      collected: '0.00',
+      pending: '0.00',
+      expense: '0.00',
+      remaining: agreedBaseAmount,
+      transactionCount: 0,
+    };
+  }
+
+  for (const grup of gruplar) {
+    // `jobId` tipte nullable (`groupBy` genel imzası) ama `where` onu
+    // sınırlandırıyor; yine de daraltılıyor — `null` anahtarla kayıt yazmak
+    // sessizce yanlış bir girdi üretirdi.
+    const hedef = grup.jobId === null ? undefined : sonuc[grup.jobId];
+    if (!hedef) continue;
+
+    const toplam = toMoneyString(grup._sum.baseAmount) ?? '0.00';
+    hedef.transactionCount += grup._count;
+
+    if (grup.type === 'INCOME') {
+      // ⚠️ İŞARET KARARI BURADA: yalnızca ÖDENMİŞ gelir tahsilattır.
+      if (grup.isPaid) hedef.collected = sumMoney([hedef.collected, toplam]);
+      else hedef.pending = sumMoney([hedef.pending, toplam]);
+    } else {
+      // ⚠️ GİDER TAHSİLATTAN DÜŞÜLMEZ — ayrı sayı, `isPaid` ayrımı yapılmaz.
+      hedef.expense = sumMoney([hedef.expense, toplam]);
+    }
+  }
+
+  for (const dto of Object.values(sonuc)) {
+    // Anlaşma tutarı bilinmiyorsa kalan da BİLİNMİYOR — `0.00` değil.
+    dto.remaining =
+      dto.agreedBaseAmount === null ? null : subtractMoney(dto.agreedBaseAmount, dto.collected);
+  }
+
+  return sonuc;
+}
+
+/**
+ * İş VAR MI — işlem yazmadan önceki kapı (T-051/B kalıbı, T-101'de eklendi).
+ *
+ * `Transaction.jobId` opsiyonel ama `onDelete: Restrict`; `cuidSchema` yalnızca
+ * biçimi doğruluyor. `clientExists` (T-100) ve `transactionCategoryExists`
+ * (T-101) ile aynı imza ve aynı gerekçe: kapıyı yazmanın önüne almak, hangi
+ * ALANIN bozuk olduğunu bir hata kabuğu ayrıştırmadan kesin bildiriyor.
+ */
+export async function jobExists(id: string, client: JobPanelClient = db): Promise<boolean> {
+  const row = await client.job.findUnique({ where: { id }, select: PANEL_DETAIL_SELECT });
+  return row !== null;
 }

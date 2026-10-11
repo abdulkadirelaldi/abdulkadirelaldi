@@ -129,14 +129,12 @@ function grup(
 
 function finansIstemci(gruplar: unknown[], isler: { id: string; baseAmount: string | null }[]) {
   const groupBy = vi.fn().mockResolvedValue(gruplar);
-  const findMany = vi
-    .fn()
-    .mockResolvedValue(
-      isler.map((is) => ({
-        id: is.id,
-        baseAmount: is.baseAmount === null ? null : decimal(is.baseAmount),
-      })),
-    );
+  const findMany = vi.fn().mockResolvedValue(
+    isler.map((is) => ({
+      id: is.id,
+      baseAmount: is.baseAmount === null ? null : decimal(is.baseAmount),
+    })),
+  );
   const client = {
     transaction: { groupBy },
     job: { findMany },
@@ -323,7 +321,10 @@ describe('⚠️ fetchJobFinancials — işaret sorunu', () => {
     // Savunmacı: `null` ya da beklenmeyen bir `jobId` ile kayıt yazmak sessizce
     // yanlış bir girdi üretirdi.
     const { client } = finansIstemci(
-      [grup('job_1', 'INCOME', true, '100.00'), { ...grup('x', 'INCOME', true, '9.00'), jobId: null }],
+      [
+        grup('job_1', 'INCOME', true, '100.00'),
+        { ...grup('x', 'INCOME', true, '9.00'), jobId: null },
+      ],
       [{ id: 'job_1', baseAmount: '100.00' }],
     );
 
@@ -382,7 +383,10 @@ describe('Transaction baseAmount türetmesi', () => {
     // Orkestra Şefi'nin bağımsız ölçümü: 2500×34,25 = 85.625 vs 2500×40 =
     // 100.000 → yalnızca kur güncellenseydi 14.375 TL sessiz sapma.
     const { client, update } = islemIstemci();
-    await updateTransaction(updateTransactionSchema.parse({ id: 'trx_1', fxRate: '40.00' }), client);
+    await updateTransaction(
+      updateTransactionSchema.parse({ id: 'trx_1', fxRate: '40.00' }),
+      client,
+    );
 
     expect(update.mock.calls[0]?.[0].data.baseAmount).toBe('100000.00');
     expect(update.mock.calls[0]?.[0].data.baseAmount).not.toBe('85625.00');
@@ -390,7 +394,10 @@ describe('Transaction baseAmount türetmesi', () => {
 
   it('⚠️ update — YALNIZCA tutar gönderilince de yeniden hesaplanıyor', async () => {
     const { client, update } = islemIstemci();
-    await updateTransaction(updateTransactionSchema.parse({ id: 'trx_1', amount: '100.00' }), client);
+    await updateTransaction(
+      updateTransactionSchema.parse({ id: 'trx_1', amount: '100.00' }),
+      client,
+    );
 
     // Kayıttaki kur (34.25) kullanılıyor — gönderilmeyen alan KAYITTAN okunuyor.
     expect(update.mock.calls[0]?.[0].data.baseAmount).toBe('3425.00');
@@ -456,17 +463,25 @@ describe('Transaction baseAmount türetmesi', () => {
     const { client, update, findUnique } = islemIstemci();
     findUnique.mockResolvedValue(null);
 
-    expect(await updateTransaction(updateTransactionSchema.parse({ id: 'yok' }), client)).toBeNull();
+    expect(
+      await updateTransaction(updateTransactionSchema.parse({ id: 'yok' }), client),
+    ).toBeNull();
     expect(update).not.toHaveBeenCalled();
   });
 
   it('TRY kuru 1 — şema tutarsız kuru REDDEDİYOR', () => {
     const temel = { type: 'INCOME', amount: '100.00', date: '2026-03-10', categoryId: 'cat_1' };
     // TRY'de kur 1 olmalı.
-    expect(createTransactionSchema.safeParse({ ...temel, currency: 'TRY', fxRate: '34.25' }).success).toBe(false);
+    expect(
+      createTransactionSchema.safeParse({ ...temel, currency: 'TRY', fxRate: '34.25' }).success,
+    ).toBe(false);
     // TRY dışında 1 OLAMAZ — 1 bırakılırsa yabancı para TRY sanılır.
-    expect(createTransactionSchema.safeParse({ ...temel, currency: 'USD', fxRate: '1' }).success).toBe(false);
-    expect(createTransactionSchema.safeParse({ ...temel, currency: 'USD', fxRate: '34.25' }).success).toBe(true);
+    expect(
+      createTransactionSchema.safeParse({ ...temel, currency: 'USD', fxRate: '1' }).success,
+    ).toBe(false);
+    expect(
+      createTransactionSchema.safeParse({ ...temel, currency: 'USD', fxRate: '34.25' }).success,
+    ).toBe(true);
   });
 });
 
@@ -692,10 +707,7 @@ describe('buildTransactionWhere', () => {
     const { client, findMany } = islemIstemci();
     await fetchTransactionsForPanel(transactionFilterSchema.parse({}), client);
 
-    expect(findMany.mock.calls[0]?.[0].orderBy).toEqual([
-      { date: 'desc' },
-      { createdAt: 'desc' },
-    ]);
+    expect(findMany.mock.calls[0]?.[0].orderBy).toEqual([{ date: 'desc' }, { createdAt: 'desc' }]);
   });
 
   it('`sort=asc` İKİ anahtarı birlikte çeviriyor', async () => {

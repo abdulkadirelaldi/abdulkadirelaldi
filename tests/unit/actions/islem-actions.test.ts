@@ -80,9 +80,8 @@ const { dbMock } = vi.hoisted(() => {
 
 vi.mock('@/server/db', () => ({ db: dbMock }));
 
-const { createTransactionAction, updateTransactionAction } = await import(
-  '@/server/actions/transaction'
-);
+const { createTransactionAction, updateTransactionAction } =
+  await import('@/server/actions/transaction');
 const {
   archiveTransactionCategoryAction,
   createTransactionCategoryAction,
@@ -403,9 +402,9 @@ describe('kategori benzersizliği ve hata yolları', () => {
       Object.assign(new Error('missing'), { code: 'P2025' }),
     );
 
-    expect(
-      (await updateTransactionCategoryAction({ id: 'yok', name: 'X' })).ok === false,
-    ).toBe(true);
+    expect((await updateTransactionCategoryAction({ id: 'yok', name: 'X' })).ok === false).toBe(
+      true,
+    );
   });
 
   it('arşivlemede P2025 → NOT_FOUND', async () => {

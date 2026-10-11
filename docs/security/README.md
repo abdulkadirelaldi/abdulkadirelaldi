@@ -75,6 +75,7 @@ açığın ayrıntısı artık saldırgana bir şey kazandırmaz.
 | 2026-08-12 | T-029a | Lighthouse'a masaüstü + koyu profil (WebGL yolu), üç durumlu WebGL doğrulaması, koşu değişkenliği kararı | **BULGU-010 açıldı**: WebGL yolu hiçbir CI koşusunda ölçülmüyordu. Profil kuruldu ve doğrulandı; ölçüm T-021'in hero'yu bağlamasını bekliyor (kontrol kendi kendine zorunlu hâle geliyor). Değişkenliğin **ilk koşuya** ait olduğu ölçüldü; `numberOfRuns` 5, `aggregationMethod` açıkça medyan. |
 | 2026-08-17 | T-029d | Ölçüm yüzeyi dışındaki SEO/OG rotaları (BULGU-015) | **BULGU-015 kapandı** — `tests/e2e/seo-routes.spec.ts`: robots.txt, sitemap.xml, rss.xml, `/og` ve `/og/proje/<slug>` artık her koşumda isteniyor. PNG imza baytlarından, XML gerçek ayrıştırıcıyla doğrulanıyor. Kapsam iki katmanlı: sözleşme testleri + sitemap taraması (yeni sayfa kendiliğinden kapsanır). Mutasyonla kanıtlandı: düzeltme öncesi font aynı render yolunda BULGU-014'ün `TypeError`'ını veriyor. **BULGU-016 açıldı** — sitemap üç adet 404 adresi bildiriyor. |
 | 2026-08-16 | T-029c | Ölçüm işinin veri kurulumu (BULGU-013) + §8.24 haftalık zamanlayıcı | **BULGU-013 açıldı ve düzeltildi**: `lighthouse` işi ayrı koşucuda `services:` bloğu olmadan koşuyordu; ADR-026 sonrası `/` 500 dönüyor, üç profil düşüyor, artifact üretilmiyordu. Kendi Postgres'i kuruldu (yol **a**). İki yeni nöbet: ölçüm ön koşulu ve ayırt edicide durum kodu kontrolü — ikincisi olmadan arıza "⏳ BEKLEMEDE" diye yeşil görünüyordu. §8.24 artık **haftalık** de koşuyor (`17 6 * * 1`). |
+| 2026-10-11 | T-107a | F4 para kapılarının denetimi, çiftlenme sınıfının kapısı, §9/5 açık beklemesi | **`baseAmount` kapıları GERÇEK kapı:** koşulsuz yeniden türetme koşullu yapıldı → `updateJob` 2, `updateTransaction` 6 iddia kırmızı; beklenen `100000.00`, gelen `85625.00` — 14.375 TL sapması birebir. **`Decimal` dedektörü kusurlu DEĞİL, çağrı yerleri eksikti:** `Decimal` modellerine dokunan servislerde 12 DTO yüzeyinden 6'sı iddiaya bağlı değildi ve ALTISI DA YAZMA YOLU. Sızıntı yok çünkü yazma yolları okumanın eşleyicisini paylaşıyor — ama PAYLAŞIMI HİÇBİR ŞEY ÖLÇMÜYORDU (ADR-037: yazılı bir çıkarım). **`decimal-yuzey-sayimi.test.ts`** kuruldu: yüzey listesi ŞEMADAN türetiliyor (ilk denemem DTO kaynaklarından çıkarmaktı ve ölçtüm — iç içe alan taşıyan `JobPanelDto`yu sessizce atlıyordu); kapalılık ya doğrudan iddiayla ya PAYLAŞILAN EŞLEYİCİNİN KAYNAKTAN ÖLÇÜLMESİYLE sağlanıyor. **Kapı F5'i kendiliğinden kapsıyor** — `Decimal` yalnızca para değil (`HealthLog.weightKg`/`sleepHours`/`bodyFatPct`, `WorkoutSet`, `PersonalRecord`) ve bu kapsam ayrı bir iddiayla kilitlendi. Kapıyı yazarken KENDİ KAPIMDA bir vakum çıktı: dönüş tipi deseni `\\bDto\\b` idi ve `JobPanelDto`da hiç eşleşmiyordu → tarama SIFIR yüzey bulup boş kümede yeşil kalmıştı; sentetik mutasyon testi yakaladı (çapayı modeller/servisler/iddialar için yazmıştım, SAYIMIN KENDİSİ için yazmamıştım). Gerçek ağaçta koşturmak üç sahte pozitif gösterdi: iki değişken dolaylaması (çözüldü) ve `convertMessageToJob` (para alanı hiç taşımıyor → gerekçeli muafiyet, ölü satıra ve asılsız gerekçeye karşı mekanik sınanıyor). **Çiftlenme sınıfı:** Backend'in `para-tek-tanim.test.ts`i DENETLENDİ — iddiaları doğru, deseni silinen kopyanın gerçek metnine karşı sınanmış; kapsamadığı şey LİSTESİNİN SABİT olması (dört para adı). **`saf-yardimci-tek-tanim.test.ts`** sınıfı kapatıyor: saf `_shared` modülleri ve ihraçları TÜRETİLİYOR, "saf" ölçütü ÖLÇÜLÜYOR (`^import` yok) ve sınıfın kökü tam orada — saf modül her yerden okunabilir, kopyanın teknik mazereti yok. Desen dört tanım biçimini tanıyor (sınıf metodu + nesne özelliği eklendi). ⚠️ **Kapı AD çiftlenmesini ölçüyor, KURAL çiftlenmesini değil — ve bu çıkarımın yanlışlığı VARSAYILMADI, ÖLÇÜLDÜ:** BULGU-024 açıldı, `personal-record.ts` `compareDecimalStrings` adıyla ölçeklemeyi yerel yapıyor; davranışsal hata yok, SEBEBİ YENİ BİLGİ: `money.ts` `toScaledInt`i ihraç etmiyor, yani kopya dikkatsizlik değil kanonik modülün eksiği. İkinci blok ADA DEĞİL BİÇİME bakıyor (`BigInt` izi yalnızca `money.ts`te + gerekçeli istisna, üçüncü dosyada kırmızı). **Mutasyon kanıtları SENTETİK:** her iki kapının çekirdeği saf yapıldı, çünkü dosyadan okuyan bir kapıyı mutasyonla sınamak ADR-038'in doğduğu olayın ta kendisiydi — artık kimsenin dosyasına dokunulmuyor ve kanıt CI'da her koşumda yeniden üretiliyor. **§9/5 AÇIK BEKLEME kapıya bağlandı** (`senaryo-9-5-bekleme.test.ts`): 4 halkadan 1'i hazır (`createTransactionAction`), ekran/aylık toplam/dashboard kartı T-104-T-105 bekliyor; `appMonthRange`in HİÇ ÇAĞIRANI YOK diye ölçüldü. Kapı halka geldiği gün kırmızıya döner, hazır halka SAYISINI kilitliyor ve yoklama kendi kendini doğruluyor (hazır olan halkanın `true` çıkması ayrıca iddia ediliyor). **ADVISORY-006 gözden geçirildi:** yama yok, zincir aynı, deneyin geçerlilik koşulu (`rootDir` ayarlı değil) korunuyor, deney YENİDEN KOŞTURULDU → `pnpm lint` EXIT 0, kod yolu hâlâ koşmuyor; §8.24 EXIT 0, 90 gün. ⚠️ **ADR-038'i doğuran olay bu turda benim hatamdı** ve envanterim de hatalıydı (üç saydım, dört vardı) — düzeltmeler ilgili bölümde. ⚠️ **`pnpm test:e2e` bu turda koşturulmadı** (kullanıcı reddetti); üç kapı da birim düzeyinde ve e2e yüzeyine dokunmuyor. |
 | 2026-10-10 | T-055g | ADR-035 bağlayıcı metninin dize kapısı; ADR-037'nin geriye dönük ilk uygulaması | **ADR-035 metni kapıya bağlandı** (`adr-035-metni.test.ts`, 23 iddia). Kapı beklenen cümleyi ELLE YAZMIYOR — `docs/DECISIONS.md` içindeki ADR bloğundan ayıklayıp bileşendeki sabitle birebir karşılaştırıyor; elle yazmak cümlenin ÜÇÜNCÜ kopyasını doğurur ve ADR düzeltildiğinde kapı eski cümleyi savunmaya devam ederdi. Sapma iki yönde kırmızı. Pozitif + negatif birlikte: yalnızca "yasak ifade yok" denseydi SABİTİ SİLEN değişiklik de yeşil kalırdı (§8.18 dersi) — M2 mutasyonu bunu doğruladı. Yasak liste İKİ KADEMELİ ve ayrım ölçüme dayanıyor: "çıkış yapıldı" gerçek bir çıkıştan sonra DOĞRU, yalnızca şifre değiştirmenin sonucu olarak yanlış; bugün panelde meşru böyle bir metin yok (çıkış düğmesi panel dizinleri dışında ve mesaj basmıyor). Yorum sıyırmanın ZORUNLU olduğu da ayrı bir iddiayla kilitlendi — bileşenin yorumu yasağı alıntılıyor, ham taramayla kapı her zaman kırmızı olurdu. Dört mutasyon (yasak cümle · sabit silindi · "bu cihaz dahil" atlandı · ADR değişti) 9/5/2/2 iddia kırdı, md5 ile birebir geri alındı. **Ayıklayıcı ilk kurulumda BOŞ DİZE döndürdü** — cümlenin içinde noktalı virgül var ve "`;`'e kadar oku" deseni ortadan kesiyordu; önkoşul bloğu yakaladı, yoksa sessizce hiçbir şey ölçmeyen bir kapı CI'ya girecekti. **ADR-037 geriye dönük tarandı ve ADVISORY-006'nın bir OLGUSU YANLIŞ çıktı:** kayıt "`pnpm lint` sırasında braces HİÇ yüklenmiyor" diyordu, oysa yükleniyor (`@next/eslint-plugin-next/get-root-dirs` → fast-glob → micromatch → braces; aynı izleyiciyle, kaydın adlandırdığı komutla doğrulandı). Yanlış satır T-042g'de prisma akışlarında yapılan ölçümün lint'e GENELLENMESİNDEN doğmuş — yani maruziyet tablosunun içine saklanmış bir çıkarım. Çıkarım ("maruziyet kabul edilebilir") ise DOĞRU çıktı ve artık dolaylı gerekçe değil DENEY: braces'in girişi throw edecek hâle getirildi, `pnpm lint` EXIT 0 → savunmasız kod yolu HİÇ KOŞMUYOR. Sebebi de ölçüldü: `get-root-dirs` yalnızca `settings.next.rootDir` verilmişse `globSync` çağırıyor, bizde ayarlı değil. Deneyin geçerlilik KOŞULU kayda geçti (rootDir eklenirse ters sonuç verir) ve kaldırma koşulu 3'e bağlandı. braces md5 ile birebir geri geldi. **Oyunkitabının "tam sabit pin" ölçütü çürüdü ve düzeltildi:** pin katman A'yı eler, B'yi ELEMEZ — B'yi bir deneye bağlar. **En önemli bulgu:** karşı kanıt zaten elimizdeydi — `mysql2` override'ı `prisma`nın `"3.15.3"` tam pinini aşıyor ve T-042g'den beri çalışıyor; iki olgu hiç bağlanmadı ve üç aylık beklemeye mal oldu. Yeni kural: bir katmanı elemeden önce o katmanın bu projede çalıştığı bir kayıt var mı diye bakılır. Katman D ölçütüne ADR-037 zorunluluğu (iki başlık) eklendi; BULGU-020'nin "mümkün değil" kaydı zaten uyumlu çıktı. |
 | 2026-10-10 | T-054g | Denetim ekranının yeni yüzeyi (RSC yükü + beyaz liste polaritesi), ADVISORY-002, ADR-036 ikinci beyan denetimi | **ADVISORY-002 KAPANDI — katman B, süresinden 42 gün önce.** Üç kaldırma koşulu yine sağlanmadı (`latest` hâlâ **8.0.0-rc.22**, `@prisma/config@7.10.0` hâlâ `7.1.5` sabitliyor, yamalı aralık `>=8.0.0` → 7.1.6 de yamalı değil), ama istisnanın KENDİ GEREKÇESİ sınandı ve devrildi: "pin varsa override sözleşmeyi çiğner" bir ölçüm değil **çıkarımdı**. Override uygulandı → `@prisma/config` `deepmerge-ts@8.0.2` ile çalışıyor (validate · generate · migrate status · db execute · `pnpm test` hepsi geçti, kilit deltası 11 satır ve yalnızca bu zincir). İşlevsel yeşil YETERLİ SAYILMADI: yamalı kopyanın girişi geçici olarak `throw` edecek hâle getirildi ve CLI o hatayla düştü → yama **o kod yolunda**. CI istisnası silindi (kapının "ölü istisna" dalı zaten kırmızıya çevirecekti), haftalık tazelik nöbeti override'ı kendiliğinden izliyor. **Denetim ekranı iki kapıyla ölçüldü:** (a) `panel-denetim-diff.spec.ts` — ham `diff`in ne ilk gezinme belgesinde ne de saf `?_rsc=` yükünde olmadığı; ekran bir `'use client'` bileşeni ve DTO ona prop olarak geçtiği için yük T-041f'nin yüzeyi. Üç çapa negatiflerden ÖNCE koşuyor, üçüncüsü **izinli bir değerin GÖRÜNMESİNİ** şart koşuyor — yoksa özet DTO'dan tamamen kaldırılsa bile kapı yeşil kalırdı. `toListDto`ya ham `diff` eklenince kapı tam beklenen mesajla kırmızı, geri alma md5 ile doğrulandı. Bir yarış koşulu da burada yakalandı: yumuşak gezinme yanıtının gövdesi sonradan okunamıyor → `page.route` eliyle, sayfa tüketmeden önce. (b) `denetim-beyaz-liste-polarite.test.ts` — ada eklemenin BEDELİ: `buildDiff` çıktısı (`{before,after}`) eklenen adla bile **değer basmıyor** (ikinci, biçime dayalı bariyer), ama **elle yazılmış ilkel değer ÇIKAR** ve ad **her derinlikte** açılır. Kural: ada eklemek, o adın altına asla kayıt içeriği yazılmadığını kanıtlamayı gerektirir. **BULGU-023 açıldı** (düşük, Backend): `socialsChanged` adlarını serbest `Json` sütunundan topluyor → beklenmeyen bir ad ekranda görünebilir; değer görünmüyor, ölçüldü. **ADR-036 denetimi:** iki beyanın yapısal iddiaları doğru, kapı 36/36. **Karar:** ADR-034'ün gerekçesi beyana AİT DEĞİL (tek kaynak servis + ADR; kopya sessizce sapar), beyana ait olan ölçüm durumuydu ve beyan onu dürüstçe kendisi yazmıştı — o boşluk yukarıdaki iki kapıyla kapatıldı. `/panel/ayarlar/sifre` beyanındaki `ADR_035_MESAJ` boşluğu **T-057g'ye önerildi**. **§9/7** T-051/E kararıyla tam kapalı. |
 | 2026-10-09 | T-051 | §8.24 dördüncü tetiklenme (11 danışma), donmuş taban nöbeti, ömür sabiti geçişi, BULGU-021 incelik kararı | **Kapı EXIT 0.** Yedi paket **katman A** ile düzeldi — onarım override tabanı yükseltmek değil **kilidi yeniden çözdürmek**ti (sharp 0.35.5, nanoid 3.3.20, source-map-js 1.2.2, brace-expansion 1.1.21+5.0.12, fast-uri 3.1.8, postcss 8.5.29, mysql2 3.24.5). **İki override ÖLÜ AĞIRLIK çıktı ve silindi** (`sharp`, `nanoid`): üst paket aralıkları yamalı sürümü zaten kapsıyordu, yani tek etkileri paketi kendi tabanında dondurmaktı. Kalan ikisi yük taşıyor (`next` postcss'i, `prisma` mysql2'yi TAM SABİTLİYOR). **YAPISAL ÇÖZÜM kuruldu:** `ci.yml` → "Override tazeliği" adımı, her override için kayıt sunucusuna aralığın en yenisini sordurup kilitle karşılaştırıyor; **yalnızca haftalık koşumda** (her PR'da koşsaydı üst paketin her yama sürümü ilgisiz PR'ı kırmızıya çevirirdi — haksız düşen kapı). Üç hâl ayrı: taze · donmuş · **ölçülemedi** (BULGU-013 dersi). İlk koşumunda `mysql2`yi 3.24.4'te donmuş yakaladı; iki dalı mutasyonla doğrulandı. Adımın kendisi de bir kusur üretti ve gerçek ağaçta koşturulduğu için yakalandı (`@tailwindcss/postcss` satırını "postcss" sanıyordu → ad sınırı eklendi). **ADVISORY-006 açıldı** (`braces`): yamalı sürüm YOK, paket 2024-09-18'den beri bakımsız, üst zincirin yeni sürümleri de micromatch taşıyor → katman D, bitiş 2027-01-09; maruziyet dört ölçümde sıfır, kaldırma koşulu üç yollu yazıldı. **ADVISORY-002 44 gün öncesinden yeniden ölçüldü:** üç koşulun hiçbiri sağlanmadı (kararlı hat 7.10.0, `latest` → 8.0.0-**rc.22**, `@prisma/config@7.10.0` hâlâ 7.1.5 sabitliyor) → 22 Kasım kararı ölçümle hazırlandı, önerilen yeni bitiş 2027-02-22. **Madde A:** `session-omru.test.ts` literal iddiası → "auth.ts kanonik modülden İÇE AKTARIYOR" iddiasına çevrildi, çapraz kontrol silindi, Edge-güvenliği dalı kaldı; iddia İKİ YÖNDE doğrulandı (Backend'in değişikliği geçici uygulandı → 12/12 yeşil, geri alındı → kırmızı, md5 eşleşti). Ağaç Backend'in tarafı gelene kadar **bilerek kırmızı**. **Madde E kararı:** çekmece monte edilmeyecek, `aria-controls` kalacak — `hidden` takası ölçülebilir bir özelliği tanımsız bir iyileştirme için verirdi; iddia ipucunun eyleme dönüşebildiği tek duruma (açık) kapsamlandı. ⚠️ Kapsamım dışında: `next@15.5.25` iki **moderate** danışma taşıyor (yama >=15.5.27) — kapıyı bloke etmiyor, yükseltme Orkestra Şefi'nin. |
@@ -3084,7 +3085,13 @@ iç ağında farklı olabilir) ve Node ara katmanının soğuk başlatma maliyet
 
 ---
 
-## §9 sayacı — T-054g sonrası: **6 kapalı · 0 kısmi · 1 açık**
+## §9 sayacı — T-107a sonrası: **6 kapalı · 0 kısmi · 1 açık (KAPIYA BAĞLI)**
+
+> **§9/5 açık ve bu turda değişmedi — ama artık unutulamaz.** Zincirin dört
+> halkasından biri hazır (`createTransactionAction`); üçü T-104/T-105'i
+> bekliyor. Bekleme bir yorum satırı değil, bir kapı:
+> `tests/unit/senaryo-9-5-bekleme.test.ts` son halka geldiği gün kırmızıya
+> döner. Ayrıntı: "§9/5 — AÇIK BEKLEME" bölümü.
 
 > **§9/7 TAM KAPANDI.** Geriye kalan tek şey çekmece takasının kararıydı ve o
 > T-051/E'de verilip gerekçesiyle yazıldı (aşağıda: "BULGU-021'in bıraktığı
@@ -3971,9 +3978,242 @@ Bundan çıkan ek kural (oyunkitabına işlendi): bir katmanı elemeden önce
 
 ---
 
+## F4'ün para kapıları ve çiftlenme sınıfı (T-107a)
+
+### `baseAmount` kapıları GERÇEK kapı — mutasyon sapmayı birebir üretti
+
+Backend her üç ADR-014 kuralı için test yazdı; benim işim kapı olup
+olmadıklarını sınamaktı. Koşulsuz yeniden türetmeyi **koşullu** yaptım
+(yalnızca tutar alanı gönderilince türet):
+
+| Mutasyon | Sonuç |
+| -------- | ----- |
+| `updateJob` → koşullu türetme | **2 iddia kırmızı**: *"YALNIZCA fxRate gönderilince baseAmount YENİDEN hesaplanıyor"* ve *"PARA ALANI HİÇ GÖNDERİLMESE BİLE baseAmount yazılıyor"*. Beklenen `100000.00`, gelen `85625.00` — kartın 14.375 TL sapması birebir |
+| `updateTransaction` → koşullu türetme | **6 iddia kırmızı** |
+
+### `Decimal` dedektörü — kartın sorusuna ölçülmüş cevap
+
+Kart *"dedektör TÜM DTO yüzeylerini mi geziyor, yoksa sayılı üçünü mü"* diye
+sordu. Cevap ikisi de değil ve ayrım önemli: **dedektör kusurlu değil**,
+kendisine verilen nesneyi her derinlikte geziyor. Kusur **çağrı
+yerlerindeydi** — ona yalnızca OKUMA yolları veriliyordu.
+
+`Decimal` sütunu olan modellere dokunan servislerde **12 DTO yüzeyi** var ve
+**6'sı** bir `decimalKalanlar` iddiasına bağlı değildi — **altısı da yazma
+yolu**: `createJob`, `updateJob`, `changeJobStatus`, `convertMessageToJob`,
+`createTransaction`, `updateTransaction`.
+
+Bugün sızıntı yok, çünkü yazma yolları okuma yollarının eşleyicisini
+(`toJobDetailDto` / `toDetailDto`) paylaşıyor. **Ama paylaşımı hiçbir şey
+ölçmüyordu:** satır içi eşleyen bir gelecek yazma yolu, bütün okuma iddiaları
+yeşilken sızdırırdı. ADR-037'nin dili: *"yazma yolları okumayla aynı
+eşleyiciden geçiyor"* yazılı bir **çıkarımdı**, ölçüm değil.
+
+### Yeni kapı: `tests/unit/decimal-yuzey-sayimi.test.ts`
+
+Yüzey listesi **şemadan türetiliyor** ve sebebi şu: ilk denemem "hangi DTO para
+taşıyor"u DTO kaynaklarından çıkarmaktı ve **ölçtüm — sessizce eksik saydı**
+(iç içe alan taşıyan `JobPanelDto` hiç görünmedi). Çıkarımı tahmin etmek yerine
+yetkili kaynağa gitmek gerekiyordu:
+
+> ⚠️ `Decimal` kaçağı ancak `Decimal` SÜTUNU olan bir modelden doğabilir —
+> yani `prisma/schema.prisma` bu sorunun tek yetkili cevabı.
+
+Bir yüzey iki yoldan kapalı sayılıyor: **doğrudan** (adı bir `decimalKalanlar`
+iddiasında geçiyor) ya da **dolaylı** (çağırdığı eşleyiciyi doğrudan kapalı bir
+yüzey de çağırıyor). İkincisi bir çıkarım değil, kaynaktan **ölçüm** — ve yazma
+yolu satır içi eşlemeye geçtiği an paylaşım kaybolur, yüzey ölçülmeyen listesine
+düşer.
+
+**Kapı F5'i KENDİLİĞİNDEN kapsıyor.** `Decimal` yalnızca para değil:
+`HealthLog.weightKg`/`sleepHours`/`bodyFatPct`, `WorkoutSet.weightKg`,
+`PersonalRecord.weightKg` de `Decimal` ve ADR-014/3 hepsini kapsıyor. Sağlık ve
+spor servisleri yazıldığı gün kapı onların yüzeylerini de sayacak; elle
+güncellenecek hiçbir liste yok. Bu kapsam ayrı bir iddiayla **kilitlendi** —
+listeden düşerse kapı sessizce "para-only"ye dönüşmüş olurdu.
+
+#### Kapıyı yazarken kendi kapımda bir vakum ve iki sahte pozitif yakalandı
+
+| Kusur | Nasıl yakalandı |
+| ----- | --------------- |
+| Dönüş tipi deseni `\bDto\b` idi ve `JobPanelDto` gibi adlarda **hiç eşleşmiyordu** ("Foo" ile "Dto" arasında sözcük sınırı yok). Tarama **sıfır** yüzey buldu, "ölçülmeyen yüzey yok" iddiası **boş kümede** yeşil kaldı | **Sentetik mutasyon testi.** Modeller, servisler ve iddialar için çapa yazmıştım — SAYIMIN KENDİSİ için yazmamıştım |
+| İki sahte pozitif: testler `const sayfa = await fetchJobsForPanel(…)` yazıp `decimalKalanlar(sayfa)` diyor, yani ad iddianın içinde geçmiyordu | **Gerçek ağaçta koşturmak.** Değişken dolaylaması artık `it` bloğu içinde çözülüyor |
+| Üçüncü sahte pozitif: `convertMessageToJob` hiç para alanı taşımıyor (`JobConversionDto` = id/title/status/createdAt + `ClientRefDto`) | Gerçek ağaç. **Gerekçeli muafiyet** yazıldı; muafiyet ölü satır ve asılsız gerekçeye karşı mekanik olarak sınanıyor |
+
+Sahte pozitif bu kapıda özellikle pahalı: ölçülmüş bir yüzeyi "ölçülmeyen"
+göstermek, **kapının susturulmasını haklı gösterir.** Ölçüt bilerek geniş
+tutuldu (güvenli yönde hata yapar) ve bedeli muafiyetle ödeniyor — susturmayla
+değil.
+
+---
+
+## Çiftlenme sınıfı — SINIFI kapatan kapı (T-107a)
+
+### Backend'in kapısının denetimi: iddiaları doğru, **listesi sabit**
+
+`tests/unit/services/para-tek-tanim.test.ts` (T-101) iyi kurulmuş: vakum
+koruması var, deseni `prisma/seed.ts`ten **silinen kopyanın gerçek metnine**
+karşı sınanmış, çağrı ve içe aktarmayı tanım saymadığı ayrıca ölçülmüş.
+Denetledim — **doğru**.
+
+Kapsamadığı şey listesinin elle yazılmış olması: dört **para** adı. `money.ts`
+beşinci bir işlev ihraç ettiğinde kapı onu görmez, ve `_shared` altındaki diğer
+saf modüller (`app-date`, `decimal`, `reading-time`, `rss`, `site-url`,
+`notification`) hiç kapsanmıyor.
+
+Bu, projede üçüncü kez rastladığım **"sayılı olanlar"** kalıbı: rota kapsamı
+haritası, `Decimal` dedektörünün çağrı yerleri, ve şimdi bu. Çözüm her
+seferinde aynı: **listeyi elle yazma, kaynaktan türet.**
+
+### Kapı: `tests/unit/saf-yardimci-tek-tanim.test.ts`
+
+Modül listesi ve ihraç listesi **türetiliyor**. "Saf" ölçütü varsayılmıyor,
+ölçülüyor (dosyada hiç `^import` satırı yok) — ve sınıfın kökü tam orada: üç
+örneğin üçünde de kopyalama sebebi **içe aktarma zincirinin pahalı ya da
+imkânsız görünmesiydi.** Saf bir modül her yerden okunabilir (`prisma/seed.ts`
+dahil), dolayısıyla kopyasının hiçbir teknik mazereti yok.
+
+Desen dört tanım biçimini tanıyor; sınıf metodu ve nesne özelliği biçimleri
+T-107a'da eklendi (ölçtüm: bugün hiçbir yerde yok, yani sahte pozitif
+üretmiyorlar — ama `{ computeBaseAmount: (a, b) => … }` bir gün yazılırsa eski
+desen onu kaçırırdı).
+
+### ⚠️ Bu kapının ölçtüğü şey AD çiftlenmesi — KURAL çiftlenmesi değil
+
+ADR-037'nin dili:
+
+- **OLGU** — ihraç edilen adların hiçbiri başka yerde tanımlı değil (ölçülüyor)
+- **ÇIKARIM** — *"o hâlde kural tek kaynakta"* → **BU ÇIKARIM YANLIŞ**
+
+Ve yanlışlığı varsayılmadı, **ölçüldü** → BULGU-024. Bu yüzden ikinci bir blok
+var ve o **ada değil BİÇİME** bakıyor: ölçekli tamsayı aritmetiği
+(`BigInt(` izi) yalnızca `money.ts`te olabilir. Bugün bir **gerekçeli
+istisna** taşıyor ve üçüncü bir dosya eklendiğinde kırmızıya döner — §8.24'ün
+süreli istisna mekanizmasının kod tarafındaki karşılığı: kayıtlı, gerekçeli,
+kaldırma koşulu yazılı; **susturulmuş değil.**
+
+### Mutasyon kanıtları SENTETİK — ve bu ADR-038'in sonucu
+
+Her iki kapının çekirdeği **saf** bir işleve çıkarıldı. Sebebi doğrudan
+ADR-038: dosya sisteminden okuyan bir kapıyı mutasyonla sınamak, başka bir
+ajanın dosyasını geçici olarak bozmak demekti — **ADR-038'in doğduğu olayın ta
+kendisi.** Çekirdek saf olduğu için ihlal sentetik girdiyle üretiliyor:
+
+| Mutasyon | Doğrulanan |
+| -------- | ---------- |
+| `prisma/seed.ts`te yerel `computeBaseAmount` | para adının kopyası yakalanıyor |
+| `src/app/...`te yerel `calculateReadingMinutes` | **para dışı** saf yardımcı da yakalanıyor (Backend'in kapsamadığı yer) |
+| Kanonik modülün kendi tanımı | ihlal **sayılmıyor** (ters yön) |
+| Üçüncü dosyada `BigInt(` | biçim kapısı ısırıyor |
+| İstisna satırı kaldırıldı | istisna **yük taşıyor**, dekoratif değil |
+
+Kimsenin dosyasına dokunulmadı ve mutasyon kanıtı **CI'da her koşumda yeniden
+üretiliyor** — bir kerelik elle yapılan deney olarak kalmıyor.
+
+---
+
+## BULGU-024 — `compareDecimalStrings` ölçeklemeyi YEREL yapıyor (düşük, Backend)
+
+`src/server/services/_shared/personal-record.ts:34` ondalık dizeleri
+kıyaslamak için `money.ts`in ölçekli tamsayı dönüşümünü yeniden yazıyor —
+yorumu bile *"kuruş mantığının kilo hâli"* diyor. Çiftlenme sınıfının
+**dördüncü** örneği ve ilk üçünden bir farkı var: **adı farklı**, bu yüzden ad
+tabanlı kapı onu görmüyor.
+
+**Davranışsal hata YOK, ölçüldü:** negatif işaret (`'-1.50'` → `-150n`) ve
+ikiden fazla ondalığın kırpılması `money.ts` ile tutarlı.
+
+**Sebep yeni bilgi ve asıl değerli kısmı bu:** `money.ts` ölçekleme ilkelini
+(`toScaledInt`) **ihraç etmiyor** — özel bir yardımcı. Yani içe aktarılacak bir
+şey yoktu; kopya bir dikkatsizlik değil, **kanonik modülün eksiğinin sonucu.**
+Önceki üç örnekte sebep "zincir pahalı görünüyordu", burada "ortada alınacak
+bir şey yok".
+
+**Kaldırma koşulu:** `money.ts` ölçekleme ilkelini ihraç eder ve bu dosya onu
+içe aktarır — o gün biçim kapısındaki istisna satırı silinir ve kapı
+kendiliğinden daralır. Düzeltme sahibi Backend; aciliyeti yok.
+
+---
+
+## §9/5 — AÇIK BEKLEME, kapıya bağlandı (T-107a)
+
+§9'un son açık maddesi bugün uçtan uca **yazılamaz**. Kart iki yolu açıkça
+yasakladı: yarısını yazıp gerisini TODO bırakmak, ve `test.skip`/`test.fixme`
+(T-005b nöbeti). Üçüncü yol **beklemenin kendisini ölçmek** —
+`tests/unit/senaryo-9-5-bekleme.test.ts`.
+
+| # | Halka | Durum (2026-10-11) | Bekleyen |
+| - | ----- | ------------------ | -------- |
+| 1 | İşlem kaydı EKRANI | ✗ yok — `/panel/muhasebe` yazılmadı | T-104 |
+| 2 | Yazma yolu (Server Action) | ✅ **VAR** — `createTransactionAction` | — (T-101) |
+| 3 | Aylık toplam servisi | ✗ yok — `appMonthRange`in **hiç çağıranı yok** | T-105 |
+| 4 | Dashboard kartı | ✗ yok — T-054f **bilerek** yazmadı | T-105 |
+
+Dördüncüsü bir eksik değil bir **karar**: *"uydurma bir sayı göstermemeyi
+tercih ediyoruz."* Yer tutucu dört kart ("Bu ay gelir 48.250,00") silindi
+çünkü doğrulanamayan bir sayı, panelde verilmiş yanlış bir sözdür — ADR-035
+metin kararının (T-055g) aynı ailesi.
+
+**Kapı, halka geldiği gün KIRMIZIYA döner** ve mesajı "artık §9/5'i yaz" der;
+ayrıca hazır halka sayısını (1/4) kilitliyor, yani **tek bir halka** gelse de
+bekleme yeniden değerlendirilir. İlk halka için mesaj T-039'un dersini de
+taşıyor: *akışın nereden başladığı senaryonun parçasıdır* — adım ekrandan
+başlamalı, Server Action'a elle POST atmaktan değil.
+
+**Yoklama mekanizması kendi kendini doğruluyor:** dört halkadan biri (2) bugün
+VAR ve `true` çıkması ayrıca iddia ediliyor. Yoklama bozulursa o da `false`
+okunur ve kapı derhal kırılır — çapa dışarıdan eklenmiş bir kontrol değil,
+zincirin kendi içinde.
+
+---
+
+## ADR-038'in doğduğu olay — kendi disiplinimdeki kusur (T-107a)
+
+`baseAmount` mutasyonunu geri alırken `git checkout -- src/server/services/job.ts`
+kullandım. Dosya **takipli ve Backend tarafından değiştirilmiş** olduğu için
+checkout onu *benim düzenlemem öncesine* değil **HEAD'e** döndürdü ve T-101'in
+commit edilmemiş işini sildi. `transaction.ts` **takipsiz** olduğu için aynı
+komut hiç tutmadı ve mutasyonum bir süre ağaçta kaldı.
+
+> **git checkout bir geri-alma aracı değildir** — paylaşılan bir çalışma
+> ağacında başka ajanın commit'siz işini de alır. **Doğrulama aracını onarım
+> aracı sandım:** `md5` sapmayı tespit etti ama geri alamadı.
+
+Kurtarma denendi ve yok: vite önbelleği, `.next`, VS Code yerel geçmişi.
+
+**Envanterimin kendisi de hatalıydı:** üç kalem saydım, dördü vardı
+(`fetchJobFinancials`'ı "HEAD'de duruyor" sanmıştım; Orkestra Şefi
+`git show` ile ölçtü — T-101'in çıktısıydı). Bu, ADR-038'in üçüncü kuralının
+gerekçesi oldu: *hasar bildiren bir rapor, hasarın kapsamı için en az
+güvenilir olduğu andır* — ajan kendi hatasını raporlarken ölçmekten çok
+hatırlamaya yakındır.
+
+**Yürürlükteki disiplinim:** mutasyondan önce dosya **içeriği** scratchpad'e
+kopyalanır, geri yazma **oradan** yapılır; `git checkout/restore/stash`
+takipli dosyada yasak. Bu turda braces deneyi bu yöntemle koşturuldu ve dosya
+md5 ile birebir geri geldi. Daha iyisi: iki yeni kapının çekirdeği saf
+yapıldığı için mutasyon artık **hiçbir dosyaya dokunmadan** sınanıyor.
+
+---
+
+## ADVISORY-006 (braces) — ADR-037 gözden geçirmesi (T-107a)
+
+| Kontrol | Sonuç |
+| ------- | ----- |
+| Yama çıktı mı | ✗ `braces` hâlâ **3.0.3 / 2024-09-18** |
+| Zincir değişti mi | ✗ aynı: `@next/eslint-plugin-next 15.5.22 → fast-glob 3.3.1 → micromatch 4.0.8 → braces 3.0.3` |
+| Deneyin geçerlilik KOŞULU | ✓ korunuyor — `eslint.config.mjs`te `settings.next.rootDir` **hâlâ ayarlanmamış** |
+| **Deney yeniden koşturuldu** | ✓ `braces` girişi `throw` edecek hâle getirildi → `pnpm lint` **EXIT 0** → savunmasız kod yolu **hâlâ koşmuyor** |
+| §8.24 kapısı | ✓ EXIT 0, 90 gün kaldı |
+
+Dosya `md5` ile birebir geri geldi (`c930a02f71a7a9e836b9f5dd5ae5ee28`).
+Değişen bir şey yok; istisna geçerli.
+
+---
+
 ## §8 Güvenlik Gereksinimleri — Durum Tablosu
 
-**Ölçüm tarihi:** 2026-10-10 · **Faz:** F3 (sürüyor) · **Son görev:** T-055g
+**Ölçüm tarihi:** 2026-10-11 · **Faz:** F4 (sürüyor) · **Son görev:** T-107a
 · **Dağılım:** ✅ 10 · ⚠️ 6 · ❌ 0 · ⏳ 9
 
 > T-054g'de dağılım DEĞİŞMEDİ ve bu bilinçli: denetim ekranı yeni bir yüzey
