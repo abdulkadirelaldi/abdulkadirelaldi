@@ -121,9 +121,14 @@ export * from './contact-message';
 // §4.2 denetim kaydı — OKUMA yolu (T-052). Yazma yolu `_shared/audit.ts`te.
 export * from './audit-log';
 
-// F4 §4.2/§6 — iş & müşteri (T-100). Para kuralları ADR-014, `job.ts` içinde.
+// F4 §4.2/§6 — iş & müşteri (T-100). Para kuralları ADR-014, `_shared/money.ts`.
 export * from './client';
 export * from './job';
+
+// F4 §6 — muhasebe (T-101). "Aynı veri iki yere girilmez": tek yazma yolu
+// `createTransaction`, gelir tablosu o satırlar üzerinde bir OKUMA.
+export * from './transaction';
+export * from './transaction-category';
 
 // ADR-026 — içerik servisleri (F2 public okuma tarafı)
 export * from './experience';

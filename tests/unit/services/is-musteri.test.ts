@@ -3,6 +3,8 @@ import { join, resolve } from 'node:path';
 
 import { describe, expect, it, vi } from 'vitest';
 
+import { decimal, decimalKalanlar, dedektorCalisiyor } from '../_helpers/decimal-kacak';
+
 import {
   clientFilterSchema,
   createClientSchema,
@@ -47,11 +49,6 @@ import {
  */
 
 const KOK = resolve(__dirname, '../../..');
-
-/** Prisma `Decimal` taklidi — tek ihtiyacımız `toFixed` (bkz. `_shared/decimal.ts`). */
-function decimal(value: string) {
-  return { toFixed: (n = 2) => Number(value).toFixed(n) };
-}
 
 function jobSatiri(ek: Record<string, unknown> = {}) {
   return {
@@ -240,17 +237,11 @@ describe('DTO sınırında Decimal kaçağı YOK', () => {
    * bir `Decimal.js` NESNESİDİR, Server → Client sınırında serialize edilemez
    * (R4, F0'da kaydedilmiş risk) ve sızdığı yerde derleme GEÇER — hata çalışma
    * zamanında, kullanıcının ekranında çıkar.
+   *
+   * ⚠️ DEDEKTÖR ARTIK `tests/unit/_helpers/decimal-kacak.ts` İÇİNDE. T-101
+   * `Transaction` için aynı ölçümü gerektirdi ve ikinci bir kopya açmak, o
+   * turda `prisma/seed.ts`ten silinen şeyin aynısı olurdu (ADR-037).
    */
-  function decimalKalanlar(value: unknown, yol = ''): string[] {
-    if (value === null || value === undefined) return [];
-    if (typeof value === 'object') {
-      // `toFixed` taşıyan her nesne bir `Decimal` adayıdır (`isDecimalLike`).
-      if (typeof (value as { toFixed?: unknown }).toFixed === 'function') return [yol || '<kök>'];
-      if (value instanceof Date) return [];
-      return Object.entries(value).flatMap(([k, v]) => decimalKalanlar(v, yol ? `${yol}.${k}` : k));
-    }
-    return [];
-  }
 
   it('liste DTO`sunda Decimal YOK, üç para alanı da `string`', async () => {
     const { client } = jobIstemci();
@@ -279,9 +270,8 @@ describe('DTO sınırında Decimal kaçağı YOK', () => {
 
   it('kaçak DEDEKTÖRÜ ÇALIŞIYOR — vakum değil', () => {
     // Dedektör gerçekten `Decimal` yakalıyor mu: yakalamıyorsa yukarıdaki üç
-    // assert sahte yeşil verirdi.
-    expect(decimalKalanlar({ a: { b: decimal('1') } })).toEqual(['a.b']);
-    expect(decimalKalanlar({ a: '1.00' })).toEqual([]);
+    // assert sahte yeşil verirdi. Sağlama yardımcının kendi içinde.
+    expect(dedektorCalisiyor()).toEqual([['a.b'], []]);
   });
 
   it('tutar null ise DTO`da null — `"null"` dizesi DEĞİL', async () => {

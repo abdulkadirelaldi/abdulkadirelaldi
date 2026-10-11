@@ -360,6 +360,15 @@ describe('clientId varlık kapısı', () => {
     expect(sonuc.ok === false && sonuc.error.fields?.clientId).toBeTruthy();
   });
 
+  it('GÜNCELLEMEDE de P2003 yarışı müşteri mesajı dönüyor', async () => {
+    dbMock.job.update.mockRejectedValueOnce(Object.assign(new Error('fk'), { code: 'P2003' }));
+
+    const sonuc = await updateJobAction({ id: 'job_1', clientId: 'cli_1' });
+
+    expect(sonuc.ok === false && sonuc.error.code).toBe('VALIDATION_ERROR');
+    expect(sonuc.ok === false && sonuc.error.message).toContain('müşteri');
+  });
+
   it('EKLENTİ yolunun P2003 metni DEĞİŞMEDİ — varsayılan korundu', async () => {
     const { toFailure } = await import('@/server/actions/_shared');
     const hata = Object.assign(new Error('fk'), { code: 'P2003' });

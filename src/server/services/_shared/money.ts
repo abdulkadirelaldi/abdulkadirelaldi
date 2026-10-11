@@ -69,6 +69,37 @@ export function computeBaseAmount(amount: string, fxRate: string): string {
   return fromScaledInt(negative ? -rounded : rounded, MONEY_SCALE);
 }
 
+/**
+ * `baseAmount = agreedAmount × fxRate`, TUTAR YOKSA `null` — ADR-014'ün 1. kuralı.
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * NEDEN BU DOSYADA (T-101'de BURAYA TAŞINDI)
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * T-100'de `services/job.ts` içinde yazılmıştı — ilk ihtiyaç duyulduğu yer
+ * orasıydı. Ama kuralın kendisi `Job`a özel DEĞİL ve fonksiyon tamamen SAF.
+ * `job.ts` `@/server/db` içe aktarıyor, yani oradan okumak Prisma'yı zincire
+ * sokuyordu; `prisma/seed.ts` tam bu yüzden kuralı ÜÇÜNCÜ kez yazmak zorunda
+ * kalmış görünüyordu (gerçekte kalmamıştı — bkz. aşağıdaki not).
+ *
+ * Buraya taşınınca kural `computeBaseAmount`ın YANINDA duruyor ve `money.ts`
+ * hiç `import` taşımadığı için düz Node ile koşan seed de doğrudan okuyabiliyor.
+ * `services/job.ts` yeniden ihraç ediyor, yani T-100'ün çağıranları değişmedi.
+ *
+ * ⚠️ `agreedAmount` NULL İSE `baseAmount` DA NULL — `0.00` DEĞİL.
+ *
+ * Ayrım anlamlı ve ölçülebilir sonucu var: `LEAD` aşamasında tutar HENÜZ
+ * BİLİNMİYOR, `0.00` ise "bu iş bedava" demek olurdu. Raporlamada bilinmeyen
+ * tutar DIŞLANIR, sıfır ise ortalamayı aşağı çeker.
+ *
+ * `prisma/seed.ts` T-101'e kadar bu kuralı BİLMİYORDU (`?? '0'` yazıyordu) ve
+ * sebebi kendi yerel kopyasıydı — ADR-037'nin tarif ettiği sınıf. Kopya
+ * silindi; artık tek tanım burada.
+ */
+export function deriveBaseAmount(agreedAmount: string | null, fxRate: string): string | null {
+  return agreedAmount === null ? null : computeBaseAmount(agreedAmount, fxRate);
+}
+
 /** Para dizelerini kuruş hassasiyetinde toplar. Boş liste `"0.00"` döner. */
 export function sumMoney(values: readonly string[]): string {
   let total = 0n;

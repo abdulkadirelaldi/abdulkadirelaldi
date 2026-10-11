@@ -59,8 +59,8 @@ export const PANEL_GRUPLARI: ReadonlyArray<{
     title: 'İş',
     items: [
       { href: '/panel/muhasebe', label: 'Muhasebe', icon: Wallet },
-      { href: '/panel/isler', label: 'İşler', icon: Briefcase },
-      { href: '/panel/musteriler', label: 'Müşteriler', icon: Users },
+      { href: '/panel/isler', label: 'İşler', icon: Briefcase, hazir: true },
+      { href: '/panel/musteriler', label: 'Müşteriler', icon: Users, hazir: true },
       { href: '/panel/mesajlar', label: 'Mesajlar', icon: Mail, hazir: true },
     ],
   },
