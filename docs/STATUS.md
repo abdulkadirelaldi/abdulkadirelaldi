@@ -191,7 +191,7 @@ ederken karşılığında şart koştuğu koruma.
 
 ---
 
-### F3 — Panel Çekirdek 🔵
+### F3 — Panel Çekirdek 🟢 **KAPANDI** *(T-037 hariç — R2 hesabı bekliyor)*
 
 | #      | Görev                                                                             | Ajan               | Bağımlılık   |
 | ------ | --------------------------------------------------------------------------------- | ------------------ | ------------ |
@@ -241,7 +241,7 @@ ve bu turda Frontend'in ölçüm görevi var (ADR-023: iki ölçüm görevi para
 
 ---
 
-### F4 — İş & Muhasebe ⚪
+### F4 — İş & Muhasebe 🔵 **BAŞLADI**
 
 | #     | Görev                                                                                        | Ajan     | Bağımlılık   |
 | ----- | -------------------------------------------------------------------------------------------- | -------- | ------------ |
@@ -1287,3 +1287,78 @@ kural olmadığı için kimse de hatırlatmadı.
 
 **F3 kapanış şartı:** yukarıdaki beşi + §4.2'nin F3 satırlarının tamamının işlevsel
 olması. *Yedek durumu* bilerek F6'ya bırakıldı ve bağımlılığı yazılı.
+
+---
+
+## F3 KAPANDI — T-037 hariç (Orkestra Şefi, 2026-10-11)
+
+`main = ea6f7bd` · **1391 birim + 95 E2E, 0 atlanan** · `src/server` %94
+
+### Kapanış kararı ve gerekçesi
+
+T-037 (R2 yükleme) **açık kaldı.** R2 anahtarlarını iki kez istedim, `.env`'de beş
+alanın beşi de boş. F4 tamamen açık durumdaydı, yani alternatif **tıkanmaktı.**
+
+**Karar:** F3'ü *"T-037 hariç"* kapat, F4'e geç. Anahtarlar geldiği an T-037 araya
+sokulur — geri dönülmez bir şey değil.
+
+**Taşınan borç (açıkça):** proje kapakları · galeri · blog kapakları · CV indirme ·
+`LogoLoop` müşteri logoları. **Beşi de yayına kadar yer tutucu kalır.**
+F7/`T-073` (gece yedeklemesi) de aynı hesaba muhtaç, yani erteleme işi yok etmiyor.
+
+### F3'ün kapanış sayıları
+
+| | |
+|---|---|
+| §9 senaryoları | **6 kapalı · 0 kısmi · 1 açık** (finans — F4/F5'e bağlı) |
+| §8 maddeleri | ✅ 11 · ⚠️ 6 · ❌ 0 · ⏳ 8 |
+| Testler | 1391 birim (62 → 63 dosya) · 95 E2E · rota kapsamı 38/38 |
+| Danışmalar | 1 açık (`braces`, yamalı sürüm yok, **deneye bağlı** istisna) |
+| Panel rotaları | 16 — §4.2'nin F3 satırlarının tamamı işlevsel |
+
+F3'e **2 kapalı senaryoyla** girildi, **6 kapalı** ile çıkıldı.
+
+### F3'te doğan ve kalıcı olan kurallar
+
+| ADR | Ne |
+|-----|-----|
+| **ADR-033** | `z.coerce.boolean()` yasak — `"false"` → `true` idi, sekiz şemada on bir kullanım |
+| **ADR-034** | `redactAuditDiff` **emniyet ağı**, koruma değil — ada bağlı, üç ölçümle sabit |
+| **ADR-035** | Oturum geçersizleştirme üç katmanda, kapsamlar **adlarında** (`writesValidFrom`) |
+| **ADR-036** | `KAPSAM` beyanını **rotayı yazan** doldurur — §10.1'in tek istisnası |
+| **ADR-037** | Bir istisnanın **kendi gerekçesi** de ölçülür + karşı kanıt maddesi |
+| §4.2 kuralı | Bir panel rotası, **kabul edildiği turda** §4.2'ye eklenir |
+| §10.3 kuralı | Kapsam dışı satırı, kartın **maddelerine karşı** kontrol edilir |
+
+### F3'ün en pahalı dersi
+
+Üç ayrı biçimde aynı şey çıktı: **doğru görünen bir kontrol, yanlış şeyi ölçüyordu.**
+
+- `redactAuditDiff` koruma sanılıyordu — **ada bağlıydı** (ADR-034)
+- T-040'ın değişmezlik testleri koruyor sanılıyordu — **izlediği şeyi okumuyorlardı**
+- ADVISORY-002'nin gerekçesi ölçüm sanılıyordu — **yarısı çıkarımdı** ve karşı kanıt
+  kendi `package.json`'ımızda duruyordu (`mysql2` override'ı `prisma`'nın tam pinini
+  dokuz minör aşıyor, T-042g'den beri)
+
+*"Yeşil bir paket, doğru şeyi ölçtüğünün kanıtı değil"* — F0'da yazılmıştı; F3 bunu
+üç kez ödetti.
+
+---
+
+## F4 başladı — sıra ve dikkat noktaları
+
+**Sıra:** **T-100** → T-101 → T-102 → (T-103 ∥ T-104) → T-105 → T-106 → T-107
+
+**F4'ün F3'ten farkı: para.** ADR-014 üç kural koydu ve üçü de sessiz hata üretmeye
+açık:
+
+1. `baseAmount = agreedAmount × fxRate` — **türetilir, girilmez.** Biri güncellenip
+   diğeri kalırsa kayıt kendi içinde tutarsız olur ve hiçbir şey kırmızıya dönmez.
+2. **Bakiye sütun değil** — bağlı `Transaction` toplamından türetilir. İki yerde
+   tutulan tutar birbirini tutmaz.
+3. **DTO sınırında `string`** — `Decimal.js` Server → Client sınırında serialize
+   edilemez (R4, F0'da kaydedildi). Tip sistemi bu kaçağı **göremez**.
+
+KDV ve stopaj **v1 kapsamı dışı** (ADR-014/B8, kullanıcı onaylı). `agreedAmount` brüt.
+
+**§9/5** (gelir kaydı → dashboard toplamı) F4'te kapanacak ve §9'un son açık maddesi.

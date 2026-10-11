@@ -125,10 +125,23 @@ describe('§8.6 — yetkisiz erişim', () => {
     expect((await archiveContactMessageAction({ id: ID })).ok).toBe(false);
   });
 
-  it('beş eylemin tamamı listede — kapsam eksiksiz', async () => {
-    // 4 mesaj kutusu eylemi + 1 dönüşüm. Sayı sabit ki yeni bir eylem
-    // eklendiğinde bu test kırılsın ve §8.6 kapsamı unutulmasın.
-    expect(Object.keys(await eylemler())).toHaveLength(5);
+  it('sekiz eylemin tamamı listede — kapsam eksiksiz', async () => {
+    /*
+     * 4 mesaj kutusu + 1 dönüşüm + 3 F4 iş eylemi (T-100: `createJobAction`,
+     * `updateJobAction`, `changeJobStatusAction`).
+     *
+     * ⚠️ BU SAYI T-100'DE KIRILDI VE TASARLANDIĞI GİBİ KIRILDI. T-038 sabiti
+     * tam bunun için koymuştu: `actions/job.ts`e yeni bir eylem eklendiğinde
+     * §8.6 kapsamının unutulmaması. Yukarıdaki döngü üç yeni eylemi de
+     * OTOMATİK olarak sınadı ve üçü de `UNAUTHORIZED` döndü — yani kapı
+     * yalnızca haber vermekle kalmadı, kapsamı da genişletti.
+     *
+     * `createClientAction` ve kardeşleri BU SAYIDA YOK: onlar
+     * `actions/client.ts`te ve kendi dosyasında (`is-musteri-actions.test.ts`)
+     * aynı döngüyle sınanıyor. İki dosyayı burada birleştirmek, mesaj kutusu
+     * testini F4'ün tamamının bekçisi yapardı.
+     */
+    expect(Object.keys(await eylemler())).toHaveLength(8);
   });
 
   it('OKUMALAR bu dosyadan İHRAÇ EDİLMİYOR — §7.1', async () => {

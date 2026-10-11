@@ -94,11 +94,34 @@ function prismaErrorCode(error: unknown): string | null {
  * kullanıcıya "slug zaten kullanılıyor" demek ANLAMSIZDIR — ortada slug yok.
  * Varsayılanı bozmadan, çağıranın kendi metnini vermesine izin veriliyor.
  */
+/** Varsayılan metnin yanlış kaldığı durumlarda çağıranın verdiği metinler. */
+export interface FailureOverrides {
+  /** P2002 — benzersizlik ihlali. Varsayılan metin slug'a özeldir. */
+  conflict?: { message: string; fields?: Record<string, string> };
+  /**
+   * P2003 — yabancı anahtar ihlali. Varsayılan metin EKLENTİYE özeldir.
+   *
+   * ⚠️ T-100'DE GEREKLİ OLDU VE SEBEBİ AYNI SINIF. P2003 dalı T-050'de
+   * eklendiğinde bu yola giren TEK şey eklenti kimlikleriydi, dolayısıyla
+   * "Seçilen dosya bulunamadı" doğru bir varsayılandı. F4 ikinci bir kaynak
+   * açıyor: `Job.clientId` (`onDelete: Restrict`). Var olmayan bir müşteri
+   * kimliği gönderilince kullanıcıya DOSYADAN bahsetmek, düzeltebileceği şeyi
+   * yanlış adlandırmak olurdu — yani varsayılan metin bir yalana dönüşürdü.
+   *
+   * Çözüm `conflict` için verilen kararın AYNISI (yukarıdaki yorum): varsayılanı
+   * bozmadan çağıranın kendi metnini vermesine izin ver. Üçüncü bir kaynak
+   * açıldığında da aynı kapı kullanılır.
+   */
+  foreignKey?: { message: string; fields?: Record<string, string> };
+}
+
 export function toFailure(
   context: string,
   error: unknown,
-  conflict?: { message: string; fields?: Record<string, string> },
+  overrides?: FailureOverrides,
 ): ApiFailure {
+  const { conflict, foreignKey } = overrides ?? {};
+
   switch (prismaErrorCode(error)) {
     case 'P2002':
       return conflict
@@ -159,11 +182,13 @@ export function toFailure(
      * elle müdahale) için son savunma olarak duruyor.
      */
     case 'P2003':
-      return fail(
-        'VALIDATION_ERROR',
-        'Seçilen dosya bulunamadı — yüklenmemiş ya da silinmiş olabilir. ' +
-          'Dosyayı yeniden seçip kaydedin.',
-      );
+      return foreignKey
+        ? fail('VALIDATION_ERROR', foreignKey.message, foreignKey.fields)
+        : fail(
+            'VALIDATION_ERROR',
+            'Seçilen dosya bulunamadı — yüklenmemiş ya da silinmiş olabilir. ' +
+              'Dosyayı yeniden seçip kaydedin.',
+          );
     default:
       return internalError(context, error);
   }
