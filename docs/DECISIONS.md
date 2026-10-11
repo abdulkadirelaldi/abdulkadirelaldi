@@ -43,6 +43,7 @@
 | ADR-035 | Oturum geçersizleştirme üç katmanda; kapsamlar adlarında | 2026-09-20 | Kabul edildi |
 | ADR-036 | `KAPSAM` beyanını rotayı yazan doldurur (§10.1 istisnası) | 2026-10-07 | Kabul edildi |
 | ADR-037 | Bir istisnanın kendi gerekçesi de ölçülür | 2026-10-10 | Kabul edildi |
+| ADR-038 | Mutasyon anlık görüntüyle geri alınır; commit rapor başına | 2026-10-12 | Kabul edildi |
 
 ---
 
@@ -1962,3 +1963,85 @@ başka bir komuttan genellenmişse o bir çıkarımdır.
   istisnaların çoğu gerçekten bekliyor. Gözden geçirme anı yeterli.
 - **"Süreli istisna" mekanizmasını kaldırmak** — **reddedildi**: mekanizma çalıştı,
   iki kez ateşlendi. Sorun mekanizmada değil, içine yazılan gerekçedeydi.
+
+---
+
+## ADR-038 — Mutasyon Anlık Görüntüyle Geri Alınır; Commit Rapor Başına Atılır
+
+**Tarih:** 2026-10-12 · **Durum:** Kabul edildi · **Kaynak:** T-103 olayı
+**Değiştirir:** ADR-028'i **tamamlar** (geçersiz kılmaz)
+
+### Bağlam
+ADR-028 dal disiplinini çözdü: ajanlar dal açmaz, commit atmaz, push etmez;
+Orkestra Şefi yapar. Üç turda üç kez yaşanan dal çakışmasını kapattı ve **çalıştı.**
+
+Ama bir şeyi korumasız bıraktı ve T-103'te bedeli ödendi: **commit'siz iş, paylaşılan
+bir çalışma ağacında bir tur boyunca savunmasız duruyor.**
+
+Olay: bir ajan `baseAmount` mutasyonunu geri alırken
+`git checkout -- src/server/services/job.ts` kullandı. Dosya **takipli** ve **başka
+bir ajan tarafından değiştirilmiş** olduğu için `checkout` dosyayı o ajanın
+düzenlemesi öncesine değil **HEAD'e** döndürdü — yani paralel ajanın commit'siz
+işini sildi. Dört kalem kayboldu; `md5` sapmayı **tespit etti ama geri alamadı.**
+
+Ajanın kendi tespiti kuralın özü:
+
+> *"`git checkout` bir geri-alma aracı değil — paylaşılan bir çalışma ağacında başka
+> ajanın commit'siz işini de alır. Doğrulama aracını onarım aracı sandım."*
+
+Kurtarma denendi ve **yok**: Vite önbelleği, `.next`, editör yerel geçmişi —
+hiçbirinde kopya yoktu.
+
+### Karar
+
+**1. Mutasyon, anlık görüntüyle geri alınır. `git checkout --` YASAK.**
+
+Ölçüm için takipli bir dosyayı geçici olarak bozan ajan, **bozmadan önce** dosyanın
+içeriğini scratchpad'e kopyalar ve geri alırken **oradan** yazar. `git`'in geri-alma
+komutları (`checkout --`, `restore`, `stash`) takipli dosyalarda **kullanılmaz**:
+hepsi HEAD'i referans alır ve HEAD, paralel ajanın işini içermez.
+
+`md5` doğrulaması **kalır** — ama ne olduğu artık yazılı: bir **tespit** aracıdır,
+onarım aracı değildir.
+
+**2. Orkestra Şefi commit'i RAPOR BAŞINA atar, tur başına değil.**
+
+Asıl kök neden buydu. Üç ajanın işi tek bir commit'i beklerken ağaçta birikti; ilk
+rapor geldiğinde commit atılmış olsaydı, ikinci ajanın `checkout`'u **HEAD'e** dönerdi
+ve HEAD **birinci ajanın işini içeriyor** olurdu — kayıp olmazdı.
+
+ADR-028'in "bir tur, bir PR" kuralı **korunuyor**: commit ≠ PR. Rapor başına commit
+atılır, PR tur sonunda açılır. Kırık bir ara commit kabul edilebilir ve **açıkça
+`wip(` ile işaretlenir** — kırık bir commit, kaybolmuş bir turdan iyidir.
+
+**3. Kayıp envanteri ÖLÇÜLÜR, rapordan alınmaz.**
+
+Bu olayda rapor üç kalem saydı ve dördüncüsünü *"kayıp değil, HEAD'de duruyor"*
+diye geçti. `git show HEAD:<dosya>` ile ölçüldü: **yanlıştı** — o kalem de kayıptı.
+Üçünü geri yazıp dördüncüyü atlamak ağacı kırık bırakırdı.
+
+Hasar bildiren bir rapor, hasarın kapsamını **en az güvenilir** olduğu andır: ajan
+kendi hatasını raporluyor ve tam o anda ölçmekten çok hatırlamaya yakındır.
+**Orkestra Şefi envanteri `git` ile bağımsız doğrular.**
+
+### Sonuçlar
+- **Olumlu:** Kayıp penceresi bir turdan bir rapora iniyor.
+- **Olumlu:** Kural mekanik — "`git checkout --` kullanma" denetlenebilir,
+  "dikkatli ol" değil.
+- **Olumlu:** `md5`'in ne olduğu yazılı hâle geldi: tespit, onarım değil.
+- **Olumsuz / kabul edilen:** Ara commit'ler kırık olabiliyor ve geçmiş gürültülü
+  görünüyor. Kabul edildi: PR squash edildiği için `main`'in geçmişi temiz kalıyor.
+- **Olumsuz / kabul edilen:** Orkestra Şefi'nin iş yükü artıyor (tur başına üç commit).
+  Kabul edildi; bu turda kaybedilen iş o maliyetin kat kat üstünde.
+
+### Alternatifler ve neden reddedildi
+- **Her ajana kendi `git worktree`'si** — kayıp sınıfını tamamen kapatırdı;
+  **reddedildi**: ajanlar tek bir checkout paylaşıyor ve bunu değiştirmek projenin
+  çalışma düzenini baştan kurmayı gerektirir. Yeniden değerlendirilebilir, ama bu
+  olayın gerektirdiği müdahale bu değil.
+- **Ajanlara commit yetkisi vermek** — ADR-028'in üç turda ölçülerek çözdüğü dal
+  çakışmasını geri getirirdi. **Reddedildi.**
+- **Mutasyon testini yasaklamak** — **reddedildi**: mutasyon bu projenin en değerli
+  aracı ve defalarca sahte yeşil yakaladı. Araç değil, geri alma yöntemi kusurluydu.
+- **Kuralı yalnızca görev kartlarına yazmak** — **reddedildi**: üç ajanın hepsini ve
+  gelecekteki her turu bağlıyor; kartta kalırsa bir kart onu yazmayı unutur.
