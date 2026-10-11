@@ -28,6 +28,7 @@ import { closeDatabase, db } from '@/server/db';
 // BULGU-012: barrel yerine DOĞRUDAN modül — seed düz Node ile koşar, bkz.
 // `_shared/index.ts` başlığı. Saf barrel de güvenli; doğrudan import zinciri
 // en kısa tutuyor.
+import { computeBaseAmount, deriveBaseAmount } from '@/server/services/_shared/money';
 import { calculateReadingMinutes } from '@/server/services/_shared/reading-time';
 
 /**
@@ -73,32 +74,33 @@ function toDbDate(isoDay: string): Date {
   return new Date(`${isoDay}T00:00:00.000Z`);
 }
 
-/**
- * `baseAmount = amount × fxRate` — ADR-014.
+/* ===========================================================================
+ * ⚠️ YEREL `computeBaseAmount` SİLİNDİ — ÖNCÜLÜ BAYATTI (T-101, ADR-037)
+ * ===========================================================================
  *
- * Kayan noktalı çarpım KULLANILMAZ: `1250.00 * 34.12345678` IEEE-754'te kuruş
- * sapması üretir ve bu sapma aylık toplamlarda birikir. Hesap tamsayı (BigInt)
- * üzerinden yapılır: tutar kuruşa, kur 8 ondalıklı tamsayıya çevrilir.
+ * Burada ADR-014'ün çarpımını yapan yerel bir kopya vardı ve yorumu şöyle
+ * diyordu: *"Bu yardımcı seed'e özeldir. Üretimdeki karşılığı T-015'te servis
+ * katmanında yazılacak."*
  *
- * NOT: Bu yardımcı seed'e özeldir. Üretimdeki karşılığı T-015'te servis
- * katmanında yazılacak ve §9 gereği birim testi olacak.
- */
-function computeBaseAmount(amount: string, fxRate: string): string {
-  const toScaled = (value: string, scale: number): bigint => {
-    const [whole = '0', fraction = ''] = value.split('.');
-    return BigInt(whole + fraction.padEnd(scale, '0').slice(0, scale));
-  };
-
-  const amountCents = toScaled(amount, 2); // 10^2
-  const rateScaled = toScaled(fxRate, 8); // 10^8
-
-  // (cents × rate) / 10^8, yarımı yukarı yuvarla
-  const numerator = amountCents * rateScaled;
-  const divisor = 10n ** 8n;
-  const result = (numerator + divisor / 2n) / divisor;
-
-  return `${result / 100n}.${(result % 100n).toString().padStart(2, '0')}`;
-}
+ * T-015 YAZILDI. `_shared/money.ts` tam o işlevi taşıyor, HİÇ `import`
+ * içermiyor (ölçüldü — tamamen saf, düz Node ile yüklenir) ve bu dosya zaten
+ * yukarıda `_shared/reading-time`'dan doğrudan içe aktarıyor, yani yol
+ * çalışıyor. Çiftlenmenin kalan gerekçesi yoktu; yorum, yazıldığı gün doğru
+ * olan bir öncülü kimse geri dönmediği için yanlış taşıyordu.
+ *
+ * VE SAPMA TAM BURADAN DOĞUYORDU: yerel kopya `null → null` kuralını
+ * bilmiyordu, bu yüzden çağrı noktaları `?? '0'` yazmak zorunda kalmıştı ve
+ * tutarı bilinmeyen bir `LEAD` işi için `baseAmount = 0.00` üretiyordu —
+ * "bedava iş". ADR-030 seed'i ölçüm sözleşmesi saydığı için bu, servisin
+ * ÜRETEMEYECEĞİ bir fikstür demekti.
+ *
+ * Kopya ayrıca `money.ts`in iki güvencesini de taşımıyordu: girdi biçimi
+ * doğrulaması yok, ve negatif tutarda işaret yönetimi yok.
+ *
+ * Bu, bu depoda aynı sınıfın ÜÇÜNCÜ örneği (`MDX_OPTIONS` T-047→T-053,
+ * `SESSION_MAX_AGE_SECONDS` T-048g→T-051, bu). Çiftlenmenin GERİ GELMESİNİ
+ * `tests/unit/services/para-tek-tanim.test.ts` engelliyor.
+ * ======================================================================== */
 
 /* ===========================================================================
  * BAĞLANTI
@@ -474,7 +476,7 @@ async function seedClientsAndJobs(categories: Map<string, string>): Promise<{
     startDate: job1Input.startDate ? toDbDate(job1Input.startDate) : null,
     dueDate: job1Input.dueDate ? toDbDate(job1Input.dueDate) : null,
     deliveredAt: job1Input.deliveredAt ? new Date(job1Input.deliveredAt) : null,
-    baseAmount: computeBaseAmount(job1Input.agreedAmount ?? '0', job1Input.fxRate),
+    baseAmount: deriveBaseAmount(job1Input.agreedAmount ?? null, job1Input.fxRate),
   };
   await db.job.upsert({
     where: { id: 'seed_job_kurumsal' },
@@ -497,7 +499,7 @@ async function seedClientsAndJobs(categories: Map<string, string>): Promise<{
     ...job2Input,
     startDate: job2Input.startDate ? toDbDate(job2Input.startDate) : null,
     dueDate: job2Input.dueDate ? toDbDate(job2Input.dueDate) : null,
-    baseAmount: computeBaseAmount(job2Input.agreedAmount ?? '0', job2Input.fxRate),
+    baseAmount: deriveBaseAmount(job2Input.agreedAmount ?? null, job2Input.fxRate),
   };
   await db.job.upsert({
     where: { id: 'seed_job_landing' },
