@@ -219,13 +219,37 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     not: "T-103 ile eklendi. Okuma `fetchJobForPanel` (TEK KAYIT: `description`, `client`, `sourceMessage`) + seçici için `fetchClientsForPanel({ isArchived: false })`. ⚠️ ARŞİVLİ MÜŞTERİ ↔ BAĞLI İŞ ÇÖZÜMÜ BURADA: seçici aktifleri getiriyor, form kaydın KENDİ müşterisi arşivliyse onu seçeneklere EK OLARAK koyup '(arşivli)' işaretiyle çiziyor. Çözüm olmasa `<select>` değeri eşleşmez, tarayıcı ilk seçeneğe düşer ve KAYDETMEK işi BAŞKA BİR MÜŞTERİYE bağlardı — sessiz veri kaybı. `JobPanelDto.client.isArchived` tam bunun için var. TUTAR İKİ YERDE: `agreedAmount` formda düzenlenebilir (kaydın kendi gerçeği), `baseAmount` SALT OKUNUR ve etiketli (TRY karşılığı); kanban ve liste yalnızca `agreedAmount` gösteriyor. `sourceMessage` GÖVDE TAŞIMIYOR (§8.20) — tam metin için mesaj rotasına bağlantı var ve o rota gerçekten mevcut. ÖLÇÜLMEYEN: (1) Arşivli müşteri çözümü bu turda ÖLÇÜLDÜ (fikstürle) ama bir KAPI yok: çözümü kaldıran bir düzenleme sessiz kalır ve sonucu veri kaybı olur — E2E adayı olarak en yüksek değerli satır bu. (2) Var olmayan kimlikte 404 dışı davranış. (3) Kimlik numaralandırma (cuid tahmin edilemez VARSAYILDI). (4) `Job` SİLME bu turda YOK (Backend eylemi yazmadı) — ölü düğme konmadı; silme geldiğinde burası güncellenmeli.",
   },
   '/panel/muhasebe': {
-    kapilar: ['kapsanmiyor'],
-    kanit: [],
+    /*
+     * ⚠️ KAPI ALANLARI T-107c'DE GÜNCELLENDİ (Güvenlik).
+     *
+     * ADR-036 `not` metnini rotayı ekleyene bırakıyor ve o metne DOKUNULMADI.
+     * `kapilar`/`kanit` beyanın kapı tarafı: §9/5 senaryosu
+     * (`tests/e2e/panel-gelir-rapor.spec.ts`) bu rotayı artık geziyor ve satır
+     * `kapsanmiyor` demeye devam ediyordu. Kendi yazdığım kapıyı bildirmemek,
+     * haritayı kendi ölçtüğü şeye kör bırakırdı (T-054g'nin sekizinci dalı
+     * bunu zaten kırmızıya çevirdi).
+     *
+     * §9/5 senaryosu listeyi hem akışın BAŞLANGICI olarak ("Yeni işlem" bağlantısı) hem kaydın yazıldığının çapası olarak kullanıyor.
+     */
+    kapilar: ['e2e'],
+    kanit: ["page.goto('/panel/muhasebe')"],
     not: "T-104 ile eklendi (ADR-036). Kimlik zinciri `(panel)` düzeni + ara katman + §8.1 2FA kapısı; `robots: noindex/nofollow/nocache`. Okuma `fetchTransactionsForPanel` + süzgeç açılır listesi için `fetchTransactionCategoriesForPanel` (ARŞİV DAHİL — süzgecin işi geçmişi okumak ve arşivli kategoriye bağlı eski işlemler duruyor). Yazma yok. Filtre `transactionFilterSchema`'dan geçiyor; ters aralık reddedilince süzgeçsiz ilk sayfaya düşülüyor ve kullanıcıya SÖYLENİYOR. ⚠️ HİÇBİR SÜTUN İSTEMCİDE SIRALANMIYOR ve bu Backend'in bağlayıcı notu: sıralama `date desc, createdAt desc` ve ikincil anahtar ZORUNLU — `date` bir GÜN, aynı güne düşen işlemlerde tek anahtarla sayfalama kararsız olur ve aynı kayıt iki sayfada görünebilir; istemci `createdAt`i sütun olarak görmediği için o sıralamayı üretemez. `siralamaDegeri` hiçbir sütunda verilmiyor, yani tıklanıp hiçbir şey yapmayan başlık da yok. ⚠️ SİLME DÜĞMESİ YOK: Backend eylemi yazmadı ('bir işlemi silmek defteri geriye dönük değiştirmektir'); yanlış giriş düzeltilir. ÖLÇÜLMEYEN: (1) Sayfa boyutu SABİT 25, adresten verilemiyor. (2) `sort` parametresi şemada var ama arayüzden açılmıyor (hep `desc`) — ters sıralamanın sayfalama kararlılığı denenmedi. (3) `q`, `method`, `currency`, `clientId`, `jobId` filtreleri sözleşmede VAR ama arayüzde YÜZEYLENMEDİ; `jobId` özellikle eksik ve iş bakiyesindeki bağlantı bu yüzden işe göre süzemiyor (metin bunu söylüyor). (4) Beş görünümün süzme doğruluğu birim testlerinde.",
   },
   '/panel/muhasebe/yeni': {
-    kapilar: ['kapsanmiyor'],
-    kanit: [],
+    /*
+     * ⚠️ KAPI ALANLARI T-107c'DE GÜNCELLENDİ (Güvenlik).
+     *
+     * ADR-036 `not` metnini rotayı ekleyene bırakıyor ve o metne DOKUNULMADI.
+     * `kapilar`/`kanit` beyanın kapı tarafı: §9/5 senaryosu
+     * (`tests/e2e/panel-gelir-rapor.spec.ts`) bu rotayı artık geziyor ve satır
+     * `kapsanmiyor` demeye devam ediyordu. Kendi yazdığım kapıyı bildirmemek,
+     * haritayı kendi ölçtüğü şeye kör bırakırdı (T-054g'nin sekizinci dalı
+     * bunu zaten kırmızıya çevirdi).
+     *
+     * §9/5 senaryosu formu arayüzden dolduruyor (tür, tarih, kategori, tutar) — akış ekrandan başlıyor (T-039).
+     */
+    kapilar: ['e2e'],
+    kanit: ['/panel/muhasebe/yeni'],
     not: "T-104 ile eklendi. Okuma `fetchTransactionCategoriesForPanel({ isArchived: false })` — SEÇİCİ İÇİN, AÇIKÇA — ve `fetchJobsForPanel`. Yazma `createTransactionAction`. ⚠️ Backend'in bağlayıcı notu: kategori LİSTESİNİN varsayılanı arşivi gizlemiyor ama SEÇİCİ gizlemek ZORUNDA, yoksa arşivleme anlamını yitirir. HIZLI EKLEME varsayılanları: tarih bugün, yöntem havale, ödenmiş işaretli — en sık girilen hâl. `baseAmount` FORMDA YOK (sunucuda türetiliyor). ÖLÇÜLMEYEN: (1) `isFxRateConsistent` dalı arayüzden denenmedi (şema birim testlerinde ölçülü). (2) Kategori/iş seçicisi ÜST SINIRI 100; aşıldığında seçici eksik kalır ve kullanıcıya SÖYLENMİYOR — bilinen sınır, T-103'teki müşteri seçicisiyle aynı. (3) KATEGORİ TÜRÜ İŞLEM TÜRÜYLE EŞLEŞMEK ZORUNDA DEĞİL: şema bunu dayatmıyor, yani gelir işlemine gider kategorisi bağlanabilir ve sunucu kabul eder; arayüz engellemiyor (uydurma kural koymamak için) ama seçeneklerde türü YAZIYOR. Bu davranışın bilinçli olduğu ölçülmedi, karar olarak duruyor. (4) Aktif kategori HİÇ YOKSA form kaydedilemez ve uyarı gösteriliyor; o dal arayüzden denenmedi.",
   },
   '/panel/muhasebe/[id]': {
@@ -247,6 +271,23 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     kapilar: ['kapsanmiyor'],
     kanit: [],
     not: "T-104 ile eklendi. Okuma `fetchTransactionCategoryForPanel`; yazma `updateTransactionCategoryAction`. `isArchived` BU FORMDA YOK ve olmamalı: arşivleme ayrı bir eylem ve `updateTransactionCategoryAction` o alanı hiç almıyor (T-103'te müşteri formunda verilen kararın aynısı). ÖLÇÜLMEYEN: (1) Kategori TÜRÜNÜ değiştirmek bağlı kayıtların kırılımını değiştirir; form bunu yardım metninde söylüyor ama davranışın kendisi (eski işlemlerin raporlamada nereye düştüğü) ölçülmedi — T-105'in konusu. (2) Var olmayan kimlikte 404 dışı davranış. (3) Kimlik numaralandırma.",
+  },
+  '/panel/muhasebe/raporlar': {
+    /*
+     * ⚠️ KAPI ALANLARI T-107c'DE GÜNCELLENDİ (Güvenlik).
+     *
+     * ADR-036 `not` metnini rotayı ekleyene bırakıyor ve o metne DOKUNULMADI.
+     * `kapilar`/`kanit` beyanın kapı tarafı: §9/5 senaryosu
+     * (`tests/e2e/panel-gelir-rapor.spec.ts`) bu rotayı artık geziyor ve satır
+     * `kapsanmiyor` demeye devam ediyordu. Kendi yazdığım kapıyı bildirmemek,
+     * haritayı kendi ölçtüğü şeye kör bırakırdı (T-054g'nin sekizinci dalı
+     * bunu zaten kırmızıya çevirdi).
+     *
+     * §9/5 senaryosu aylık toplamı ÖNCE/SONRA okuyup farkın girilen tutara eşit olduğunu ölçüyor.
+     */
+    kapilar: ['e2e'],
+    kanit: ['Tahsil edilen'],
+    not: "T-105 ile eklendi (ADR-036). Kimlik zinciri `(panel)` düzeni + ara katman + §8.1 2FA kapısı; `robots: noindex/nofollow/nocache`. Okuma DÖRT paralel servis: `fetchMonthlyReport`, `fetchYearlyReport`, `fetchCategoryBreakdown(aylik.range)`, `fetchOutstandingSummary`. Yazma YOK — bu bir okuma yüzeyi. ⚠️ §9/5'İN DÖRDÜNCÜ HALKASI BURADA: Güvenlik'in ölçtüğü ince ayrım 'dashboard kartı yok' değil, 'muhasebe ekranının toplamı SATIR SAYISI, para toplamı değil'di; bu sayfa ilk kez gerçek bir para toplamı ekrana getiriyor, yani `senaryo-9-5-bekleme.test.ts` artık tamamen kırmızıya dönüyor ve senaryo yazılabilir (T-107c). ⚠️ İKİ ESAS AYRI BLOKLARDA ve her başlık hangi esasa baktığını YAZIYOR (nakit: `collected`/`paid`/`net.cash` · tahakkuk: `invoiced`/`incurred`/`net.accrual`); arayüz ÇIKARMA YAPMIYOR, `net` sunucudan geldiği gibi basılıyor — Backend'in `net`i döndürme sebebi tam bu riski arayüze taşımamaktı. ⚠️ ADR-039 GÖRÜNÜR: `typeMismatch` taşıyan satırlar kategori dağılımında rozetle işaretli ve altta ne demek olduğu yazılı; satır anahtarı (kategori, İŞLEM TÜRÜ) çifti olduğu için bir kategori iki satır üretebiliyor. §5.2: Recharts `next/dynamic` + `ssr:false` ile TEMBEL; iskelet grafikle aynı yükseklikte (`h-80`). ÖLÇÜLMEYEN: (1) Dönem seçimi adres çubuğundan geliyor ama `fetchMonthlyReport(year, month)` imzası İKİ SAYI alıyor, yani `safeParse` edilecek bir ŞEMA YOK — doğrulama sayfada ve DAR (`2000..9999`, `1..12`, dışı sessizce bugüne düşüyor). Şemaya taşımak Backend'in işi; uydurma şema yazmadım ve bu yüzden sınır dışı değerlerin davranışı kapı ile korunmuyor. (2) Kategori dağılımı AYLIK aralığı kullanıyor, yıllık dağılım yüzeylenmedi. (3) Grafiğin çizdiği sayı ile yazılan sayının ayrışmadığı bu turda ÖLÇÜLDÜ (tooltip `etiket`ten, geometri `deger`den, ikisi aynı dizeden) ama KAPI YOK: tooltip'i Recharts'ın varsayılanına çeviren bir düzenleme sessiz kalır ve iki biçim ayrışır. (4) Recharts yığınının açılışta inmediği ÖLÇÜLDÜ (chunk listesiyle) ama kapı yok; `dynamic`i statik içe aktarıma çeviren bir düzenleme yalnızca Lighthouse'ta görünür.",
   },
   '/panel/desenler': {
     kapilar: ['kapsanmiyor'],

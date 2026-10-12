@@ -150,7 +150,7 @@ function dashboardKartiVar(): boolean {
   return dashboardKartDeseni(kod('src/app/(panel)/panel/page.tsx'));
 }
 
-describe('§9/5 — açık bekleme (son halka T-104/T-105)', () => {
+describe("§9/5 — zincir gerileme kapısı (bekleme T-107c'de kapandı)", () => {
   it('ÇAPA — yoklama mekanizması çalışıyor: yazma yolu VAR', () => {
     /*
      * Zincirin içindeki çapa. Bu iddia kırılırsa aşağıdaki "yok" iddialarının
@@ -200,32 +200,54 @@ describe('§9/5 — açık bekleme (son halka T-104/T-105)', () => {
     ).toBe(true);
   });
 
-  it('4/4 — toplam EKRANA ulaşmıyor: TEK EKSİK HALKA (T-105 bekliyor)', () => {
+  it('4/4 — toplam EKRANA ULAŞTI ✅ (T-105 · `/panel/muhasebe/raporlar`)', () => {
+    /*
+     * T-107c'de geldi ve BEKLEME BİTTİ. Eksik halkanın adı T-107b'de
+     * düzeltilmişti: sorun "dashboard kartı yok" değildi — muhasebe
+     * listesindeki `toplam` SATIR SAYISI'ydı. §9/5'in "toplam" dediği şey
+     * artık rapor ekranında ve senaryo tek parça yazıldı.
+     */
     expect(
       dashboardKartiVar(),
-      'Dashboard artık bir finans servisini içe aktarıyor — yani gerçek bir ' +
-        'gelir/gider sayısı basıyor. §9/5 ARTIK UÇTAN UCA YAZILABİLİR ve ' +
-        'yazılmalı: `tests/e2e/` altında "gelir kaydı girilir → dashboard ' +
-        'toplamına yansır". Bu kapı o gün silinir.',
-    ).toBe(false);
+      'Toplamı basan ekran KAYBOLDU — §9/5 senaryosu artık ölçemez.',
+    ).toBe(true);
   });
 
-  it('§9/5 BUGÜN uçtan uca yazılamaz — ve sebebi tek bir halka değil', () => {
+  it('⚠️ DÖRT HALKA DA HAZIR — ve senaryo YAZILDI', () => {
     /*
-     * Bu iddia sayıyı kilitliyor: dört halkadan kaçı hazır. Birden fazla halka
-     * eksikken "neredeyse tamam" demek, T-039'da kaçınılan hatanın aynısı.
-     * Hazır halka sayısı DEĞİŞTİĞİNDE burası kırılır ve bekleme yeniden
-     * değerlendirilir — tek bir halka gelince de, hepsi gelince de.
+     * ═══════════════════════════════════════════════════════════════════
+     * BU DOSYA ARTIK BİR BEKLEME DEĞİL, BİR GERİLEME KAPISI
+     * ═══════════════════════════════════════════════════════════════════
+     *
+     * T-107a'da kurulduğunda iddia `toBe(1)` idi ve mesajı "beklemeyi yeniden
+     * değerlendir" diyordu. Üç turda 1 → 3 → 4 oldu; her seferinde kapı
+     * tasarımı gereği öttü ve beklemenin bayatlamasını engelledi.
+     *
+     * Bekleme bittiğine göre dosyanın işi değişti: artık ZİNCİRİN
+     * ÇÖZÜLMEDİĞİNİ ölçüyor. Bir halka kaybolursa (ekran silinir, servis
+     * yeniden adlandırılır) burası kırılır ve E2E paketinin neden ölçemez
+     * hâle geldiğini TEK CÜMLEYLE söyler — Playwright hatasını okumaya
+     * gerek kalmadan.
+     *
+     * Senaryo dosyasının varlığı da kilitli: silinmesi, dört turluk bir
+     * beklemenin sessizce boşa gitmesi olurdu.
      */
     const hazir = [islemEkraniVar(), yazmaYoluVar(), aylikToplamVar(), dashboardKartiVar()].filter(
       Boolean,
     ).length;
 
-    expect(
-      hazir,
-      `§9/5 zincirinde hazır halka sayısı DEĞİŞTİ (${hazir}/4). Beklemeyi yeniden ` +
-        'değerlendir: hangi adım artık ölçülebilir, senaryo yazılabilir mi?',
-    ).toBe(3);
+    expect(hazir, '§9/5 zincirinde bir halka KAYBOLDU').toBe(4);
+
+    const senaryo = join(KOK, 'tests/e2e/panel-gelir-rapor.spec.ts');
+    expect(existsSync(senaryo), '§9/5 E2E paketi silinmiş — senaryo artık ölçülmüyor').toBe(true);
+
+    const kaynak = readFileSync(senaryo, 'utf8');
+    // Akışın EKRANDAN başladığı da kilitli (T-039): paket bir gün Server
+    // Action'a doğrudan POST atmaya çevrilirse burası söyler.
+    expect(kaynak, 'senaryo "Yeni işlem" bağlantısından başlamıyor').toContain(
+      "name: 'Yeni işlem'",
+    );
+    expect(kaynak, 'senaryo rapor ekranını okumuyor').toContain('Tahsil edilen');
   });
 });
 

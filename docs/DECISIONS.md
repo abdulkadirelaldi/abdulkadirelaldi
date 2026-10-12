@@ -2005,6 +2005,26 @@ hepsi HEAD'i referans alır ve HEAD, paralel ajanın işini içermez.
 `md5` doğrulaması **kalır** — ama ne olduğu artık yazılı: bir **tespit** aracıdır,
 onarım aracı değildir.
 
+**1b. Anlık görüntünün adı YOLU taşır, `basename` yetmez (T-106).**
+
+Backend kuralı uygularken kuralın kendisinde bir boşluk buldu: iki takipli dosyayı
+yedekledi, ikisinin `basename`'i aynıydı (`src/lib/schemas/job.ts` ve
+`src/server/services/job.ts`), ve **ikinci kopya birincisini ezdi.** Yedek sessizce
+tek dosyaya düşmüştü.
+
+Yani ADR-038'in birinci kuralı, kendi koruduğu kayıp sınıfını `basename`
+çakışmasıyla **yeniden üretebiliyordu** — ve bu projede `job.ts`, `transaction.ts`,
+`project.ts`, `client.ts` adları `schemas/`, `services/` ve `actions/` altında
+**üç kez** tekrarlanıyor, yani çakışma istisna değil kural.
+
+Anlık görüntü adı **tam yolu** kodlar (ör. `src--server--services--job.ts` ya da
+dizin yapısını koruyan bir kopya). Backend ayrı adlarla yeniden aldı ve `md5`
+eşleşmesini ölçtü.
+
+**Ders, kuralın kendisinden daha genel:** bir koruma mekanizması, koruduğu hata
+sınıfını kendi içinde yeniden üretebilir. ADR-038 yazıldığında bu ölçülmedi;
+ilk uygulamada ortaya çıktı.
+
 **2. Orkestra Şefi commit'i RAPOR BAŞINA atar, tur başına değil.**
 
 Asıl kök neden buydu. Üç ajanın işi tek bir commit'i beklerken ağaçta birikti; ilk

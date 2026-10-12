@@ -34,6 +34,8 @@ export * from './job';
 export * from './transaction-category';
 export * from './transaction';
 export * from './recurring-transaction';
+// Rapor dönemi + CSV dışa aktarım sözleşmesi (T-106). Yıl sınırı ÖLÇÜLDÜ.
+export * from './report';
 
 // Sağlık & spor
 export * from './health-log';

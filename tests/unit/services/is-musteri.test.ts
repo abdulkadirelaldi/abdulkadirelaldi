@@ -7,6 +7,7 @@ import { decimal, decimalKalanlar, dedektorCalisiyor } from '../_helpers/decimal
 
 import {
   clientFilterSchema,
+  convertMessageToJobSchema,
   createClientSchema,
   createJobSchema,
   jobFilterSchema,
@@ -218,6 +219,70 @@ describe('ADR-014 — baseAmount türetmesi', () => {
     expect(update.mock.calls[0]?.[0].data.baseAmount).toBe('85625.00');
   });
 
+  /* ───────────────────────────────────────────────────────────────────────
+   * ⚠️ TUTAR TEMİZLEME — T-106'nın yeni yolu
+   * ──────────────────────────────────────────────────────────────────── */
+
+  it('⚠️ `agreedAmount: null` TUTARI DA `baseAmount`I DA temizliyor', async () => {
+    /*
+     * Yeni yol: `.nullable()` ile "tutarı sildim" ifade edilebiliyor. Kritik
+     * olan `baseAmount`ın da null'a çekilmesi — bırakılsaydı `LEAD`e dönen bir
+     * işin TRY karşılığı 85.000 kalır ve raporlar onu saymaya devam ederdi.
+     */
+    const { client, update } = jobIstemci();
+    await updateJob(updateJobSchema.parse({ id: 'job_1', agreedAmount: null }), client);
+
+    const data = update.mock.calls[0]?.[0].data as Record<string, unknown>;
+    expect(data.agreedAmount).toBeNull();
+    expect(data.baseAmount).toBeNull();
+    // `0.00` DEĞİL — "bilinmiyor" ile "bedava" ayrı şeyler (ADR-014).
+    expect(data.baseAmount).not.toBe('0.00');
+  });
+
+  it('`undefined` ile `null` AYRI — dokunma vs temizle', async () => {
+    // Kayıtta 2500 USD × 34.25 var.
+    const { client: c1, update: u1 } = jobIstemci();
+    await updateJob(updateJobSchema.parse({ id: 'job_1', title: 'Yeni ad' }), c1);
+    const dokunma = u1.mock.calls[0]?.[0].data as Record<string, unknown>;
+    expect('agreedAmount' in dokunma).toBe(false);
+    expect(dokunma.baseAmount).toBe('85625.00'); // korunuyor (kendi kendini onaran yazma)
+
+    const { client: c2, update: u2 } = jobIstemci();
+    await updateJob(updateJobSchema.parse({ id: 'job_1', agreedAmount: null }), c2);
+    const temizle = u2.mock.calls[0]?.[0].data as Record<string, unknown>;
+    expect(temizle.agreedAmount).toBeNull();
+    expect(temizle.baseAmount).toBeNull();
+  });
+
+  it('temizlenen tutar KUR gönderilmiş olsa bile null kalıyor', async () => {
+    // `null × kur` diye bir şey yok: tutar bilinmiyorsa karşılığı da bilinmiyor.
+    const { client, update } = jobIstemci();
+    await updateJob(
+      updateJobSchema.parse({ id: 'job_1', agreedAmount: null, fxRate: '40.00' }),
+      client,
+    );
+
+    const data = update.mock.calls[0]?.[0].data as Record<string, unknown>;
+    expect(data.fxRate).toBe('40.00');
+    expect(data.baseAmount).toBeNull();
+  });
+
+  it('şema `null` KABUL EDİYOR, geçersiz dizeyi REDDEDİYOR', () => {
+    expect(updateJobSchema.safeParse({ id: 'job_1', agreedAmount: null }).success).toBe(true);
+    expect(createJobSchema.safeParse({ title: 'X', agreedAmount: null }).success).toBe(true);
+    // `.nullable()` doğrulamayı GEVŞETMİYOR: biçim kuralı hâlâ yürürlükte.
+    expect(createJobSchema.safeParse({ title: 'X', agreedAmount: '1.234' }).success).toBe(false);
+    expect(createJobSchema.safeParse({ title: 'X', agreedAmount: 'abc' }).success).toBe(false);
+  });
+
+  it('createJob`ta `null` tutar → `baseAmount` null', async () => {
+    const { client, create } = jobIstemci();
+    await createJob(createJobSchema.parse({ title: 'Aday', agreedAmount: null }), client);
+
+    expect(create.mock.calls[0]?.[0].data.agreedAmount).toBeNull();
+    expect(create.mock.calls[0]?.[0].data.baseAmount).toBeNull();
+  });
+
   it('kayıt yoksa `null` dönüyor ve YAZMA DENENMİYOR', async () => {
     const { client, update, findUnique } = jobIstemci();
     findUnique.mockResolvedValue(null);
@@ -298,26 +363,51 @@ describe('DTO sınırında Decimal kaçağı YOK', () => {
  * ======================================================================== */
 
 describe('contactMessageId elle YAZILMIYOR', () => {
-  it('şema KABUL EDİYOR ama createJob YAZMIYOR', async () => {
+  it('⚠️ ŞEMA ARTIK TAŞIMIYOR — alan DÜŞÜRÜLÜYOR (T-106)', () => {
     /*
-     * `jobBase` alanı opsiyonel olarak taşıyor, yani şema onu geçiriyor. Yazma
-     * yolu BİLEREK yoksayıyor: `@unique` dönüşüm korumasının gerçek güvencesi
-     * (T-038) ve elle doldurulabilseydi bir mesaj "rezerve edilip" gerçek
-     * dönüşüm kalıcı olarak engellenebilirdi. Şema notu raporlandı.
+     * T-106'ya kadar `jobBase` alanı opsiyonel olarak taşıyordu: şema onu
+     * geçiriyor, yazma yolu bilerek yoksayıyordu. O hâl bir TUZAKTI — sessizce
+     * düşen bir girdi — ve çıkarıldı. İddia artık daha güçlü: alan şemada HİÇ
+     * YOK, yani Zod onu düşürüyor ve servise ULAŞAMIYOR.
+     *
+     * `serverInterpreted` ile işaretlemek yanlış araç olurdu; gerekçe
+     * `schemas/job.ts`te yazılı (sunucu alanı yorumlamıyor, yoksayıyor).
      */
-    const parsed = createJobSchema.parse({ title: 'X', contactMessageId: 'msg_1' });
-    expect(parsed.contactMessageId).toBe('msg_1');
+    const olustur = createJobSchema.parse({ title: 'X', contactMessageId: 'msg_1' });
+    expect('contactMessageId' in olustur).toBe(false);
 
-    const { client, create } = jobIstemci();
-    await createJob(parsed, client);
-    expect('contactMessageId' in create.mock.calls[0]![0].data).toBe(false);
+    const guncelle = updateJobSchema.parse({ id: 'job_1', contactMessageId: 'msg_9' });
+    expect('contactMessageId' in guncelle).toBe(false);
   });
 
-  it('updateJob da yazmıyor', async () => {
-    const { client, update } = jobIstemci();
-    await updateJob(updateJobSchema.parse({ id: 'job_1', contactMessageId: 'msg_9' }), client);
+  it('iki yazma yolu da `data`ya koymuyor — ikinci kapı duruyor', async () => {
+    /*
+     * Şema artık düşürüyor, ama servis kapısı KALDI ve kalması doğru: servis
+     * `CreateJobInput` tipini alıyor ve bir gün şemaya geri eklenirse yazma yolu
+     * yine yazmamalı. İki kapı, tek kural.
+     */
+    const { client, create } = jobIstemci();
+    await createJob(
+      { ...createJobSchema.parse({ title: 'X' }), contactMessageId: 'msg_1' } as never,
+      client,
+    );
+    expect('contactMessageId' in create.mock.calls[0]![0].data).toBe(false);
 
+    const { client: c2, update } = jobIstemci();
+    await updateJob(
+      { ...updateJobSchema.parse({ id: 'job_1' }), contactMessageId: 'msg_9' } as never,
+      c2,
+    );
     expect('contactMessageId' in update.mock.calls[0]![0].data).toBe(false);
+  });
+
+  it('DÖNÜŞÜM şeması alanı taşımaya DEVAM ediyor — meşru tek yazar', () => {
+    // Çıkarma yalnızca `jobBase`ten; `convertMessageToJobSchema` ayrı.
+    const parsed = convertMessageToJobSchema.parse({
+      contactMessageId: 'msg_1',
+      title: 'Dönüşen iş',
+    });
+    expect(parsed.contactMessageId).toBe('msg_1');
   });
 
   it('dönüşümden gelen iş AYNI okuma yolundan görünüyor, `fromContactMessage` ile ayrışıyor', async () => {

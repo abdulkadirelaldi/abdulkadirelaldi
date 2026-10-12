@@ -1,4 +1,4 @@
-import { Tags } from 'lucide-react';
+import { ChartColumn, Tags } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
@@ -115,13 +115,23 @@ export default async function MuhasebePage({ searchParams }: SayfaProps) {
               </ul>
             </nav>
 
-            <Link
-              href="/panel/muhasebe/kategoriler"
-              className={buttonClasses({ variant: 'secondary', size: 'sm' })}
-            >
-              <Tags className="size-4" aria-hidden="true" />
-              Kategoriler
-            </Link>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href="/panel/muhasebe/raporlar"
+                className={buttonClasses({ variant: 'secondary', size: 'sm' })}
+              >
+                <ChartColumn className="size-4" aria-hidden="true" />
+                Raporlar
+              </Link>
+
+              <Link
+                href="/panel/muhasebe/kategoriler"
+                className={buttonClasses({ variant: 'secondary', size: 'sm' })}
+              >
+                <Tags className="size-4" aria-hidden="true" />
+                Kategoriler
+              </Link>
+            </div>
           </div>
 
           {!cozum.success && (

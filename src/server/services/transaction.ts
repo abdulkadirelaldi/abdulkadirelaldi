@@ -228,6 +228,28 @@ export interface TransactionClient {
 const _uyumKontrolu: TransactionClient = db;
 void _uyumKontrolu;
 
+/**
+ * DIŞA AKTARIM okumasının yüzeyi — AYRI bir arayüz, ve sebebi ölçüldü.
+ *
+ * `TransactionClient`a ikinci bir `findMany` imzası eklemek denendi: `tsc`
+ * reddetti (TS2322, `PrismaClient` aşırı yükleme kümesine oturmuyor). Ayrı
+ * arayüz bu depoda zaten kurulu kalıp — `JobFinancialsClient` ve
+ * `CategoryReportClient` de aynı sebeple ayrı.
+ */
+export interface TransactionExportClient {
+  transaction: {
+    findMany(args: {
+      where: Record<string, unknown>;
+      select: typeof PANEL_DETAIL_SELECT;
+      orderBy: Record<string, unknown>[];
+      take: number;
+    }): Promise<TransactionDetailRow[]>;
+  };
+}
+
+const _uyumDisaAktarim: TransactionExportClient = db;
+void _uyumDisaAktarim;
+
 /** ADR-014'ün 3. kuralının UYGULANDIĞI TEK YER — üç para alanı da dizeye çevrilir. */
 function toListDto(row: TransactionRow): TransactionPanelListItemDto {
   return {
@@ -473,4 +495,42 @@ export async function updateTransaction(
   });
 
   return toDetailDto(row);
+}
+
+/**
+ * DIŞA AKTARIM okuması — tam alan kümesi, sayfalama YOK (T-106).
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * NEDEN AYRI FONKSİYON — VE KURAL NEDEN ÇİFTLENMİYOR
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * CSV defteri `description` istiyor; panel listesi onu BİLEREK taşımıyor
+ * (T-101: "liste hafif kalsın", 2000 karaktere kadar serbest metin her ekran
+ * okumasına binmesin). İki tüketicinin alan ihtiyacı farklı.
+ *
+ * İki çıkış vardı ve ikisi de kötüydü: (a) liste seçimini genişletmek — her
+ * ekran okuması bedeli öder, (b) dışa aktarımda `where` kurma mantığını
+ * kopyalamak — filtre kuralı iki yerde yaşar ve sapar.
+ *
+ * ÜÇÜNCÜSÜ: `buildTransactionWhere` ZATEN SAF VE İHRAÇ EDİLMİŞ. Bu fonksiyon
+ * onu çağırıyor, yani filtre kuralı TEK YERDE kalıyor; değişen yalnızca
+ * `select` ve sayfalamanın olmaması.
+ *
+ * SIRALAMA ARTAN (`date asc`): bir defter kronolojik okunur ve tablo programına
+ * en eski üstte açılması beklenir. Ekran listesi tersine (`desc`) sıralı çünkü
+ * oradaki soru "en son ne oldu" — iki yüzey, iki soru.
+ */
+export async function fetchTransactionsForExport(
+  filter: TransactionFilterInput,
+  limit: number,
+  client: TransactionExportClient = db,
+): Promise<TransactionPanelDto[]> {
+  const rows = await client.transaction.findMany({
+    where: buildTransactionWhere(filter),
+    select: PANEL_DETAIL_SELECT,
+    orderBy: [{ date: 'asc' }, { createdAt: 'asc' }],
+    take: limit,
+  });
+
+  return rows.map(toDetailDto);
 }

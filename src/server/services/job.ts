@@ -758,10 +758,22 @@ export async function updateJob(
    * `computeBaseAmount` yalnızca dize kabul ediyor (ADR-014: para hiçbir noktada
    * `number`a çevrilmez, kayan nokta kuruş sapması üretir).
    *
-   * ⚠️ `agreedAmount`ı TEMİZLEMEK (null'a çekmek) BUGÜN İMKÂNSIZ ve bu bir şema
-   * sınırı: `moneySchema.optional()` `string | undefined` veriyor, `null`
-   * taşımıyor — yani "tutarı sildim" ifade edilemiyor, `undefined` "dokunma"
-   * anlamına geliyor. Raporlandı; şema T-011'de bitti ve bu kartın kapsamı dışı.
+   * ⚠️ `agreedAmount` ARTIK TEMİZLENEBİLİYOR — T-106'da şema `.nullable()` oldu.
+   * Üç durum ayrı ayrı ifade ediliyor (T-031'in `undefined ≠ null` kuralı):
+   *
+   *   `undefined` → DOKUNMA     (kayıttaki tutar korunur)
+   *   `null`      → TEMİZLE     (tutar artık bilinmiyor)
+   *   dize        → o değere ayarla
+   *
+   * TEMİZLEME HİÇBİR ÖZEL DAL GEREKTİRMEDİ ve bu tasarımın doğrulanması:
+   * `null` etkin çifte olduğu gibi akıyor, `deriveBaseAmount(null, kur)` null
+   * döndürüyor ve `baseAmount` da temizleniyor. ADR-014'ün "`agreedAmount` null
+   * ise `baseAmount` null" kuralı, yeni yol için YENİDEN YAZILMADI — zaten
+   * kuralın kendisi bunu söylüyordu.
+   *
+   * Tutarı silip TRY karşılığını bırakmak kaydı kendi içinde tutarsız yapardı:
+   * `LEAD`e dönen bir işin `baseAmount`ı 85.000 kalsaydı raporlar onu saymaya
+   * devam ederdi (`fetchJobFinancials` → `remaining`, `fetchOutstandingSummary`).
    */
   const etkinTutar =
     fields.agreedAmount !== undefined ? fields.agreedAmount : toMoneyString(before.agreedAmount);

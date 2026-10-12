@@ -1,14 +1,18 @@
-import { FolderOpen, Mail, ScrollText } from 'lucide-react';
+import { Briefcase, FolderOpen, Mail, ScrollText } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { EYLEM_ETIKET, EYLEM_VARYANT } from '@/components/panel/denetim-gorunumleri';
 import { Topbar } from '@/components/panel/topbar';
 import { Badge } from '@/components/ui/badge';
+import { Currency, JobStatus } from '@/types';
 import { buttonClasses } from '@/components/ui/button';
+import { paraBicim } from '@/components/panel/para-bicim';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { fetchAuditLog } from '@/server/services/audit-log';
 import { fetchContactMessages } from '@/server/services/contact-message';
+import { fetchMonthlyReport } from '@/server/services/report';
+import { fetchJobsForPanel } from '@/server/services/job';
 import { fetchSiteStats } from '@/server/services/stats';
 
 export const metadata: Metadata = {
@@ -62,7 +66,9 @@ export const metadata: Metadata = {
 const SON_DENETIM_SAYISI = 5;
 
 export default async function PanelDashboardPage() {
-  const [istatistik, mesajlar, denetim] = await Promise.all([
+  const simdi = new Date();
+
+  const [istatistik, mesajlar, denetim, aylik, aktifIsler] = await Promise.all([
     fetchSiteStats({}),
     /*
       `unreadCount` FİLTREDEN BAĞIMSIZ geliyor (T-038), o yüzden `perPage: 1`
@@ -71,6 +77,18 @@ export default async function PanelDashboardPage() {
     */
     fetchContactMessages({ page: 1, perPage: 1 }),
     fetchAuditLog({ page: 1, perPage: SON_DENETIM_SAYISI, sort: 'desc' }),
+    /*
+      ⚠️ T-054f'te BU KART BİLEREK YOKTU: "uydurma bir sayı göstermemeyi
+      tercih ediyoruz". T-104/T-105 ile GERÇEK sayı geldi, kart artık var.
+
+      NAKİT ESASI (`net.cash`): dashboard tek bir sayı göstermek zorunda ve
+      "elimde ne var" sorusu nakit esasıdır. Hangi esas olduğu kartta YAZILI;
+      tahakkuk için rapor ekranına bağlantı var. İki esası dashboard'da yan
+      yana koymak, en kısa bakışta en çok karıştırılacak yer olurdu.
+    */
+    fetchMonthlyReport(simdi.getFullYear(), simdi.getMonth() + 1),
+    /* Yalnızca SAYAÇ gerekiyor — `perPage: 1`, satırlara ihtiyaç yok. */
+    fetchJobsForPanel({ page: 1, perPage: 1, status: JobStatus.ACTIVE }),
   ]);
 
   return (
@@ -80,7 +98,16 @@ export default async function PanelDashboardPage() {
       <main id="panel-icerik" className="flex-1 p-4 lg:p-6">
         <div className="flex max-w-5xl flex-col gap-6">
           {/* ── BUGÜN TÜRETİLEBİLEN ──────────────────────────────────────── */}
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <OzetKart
+              ikon={Briefcase}
+              etiket="Aktif iş"
+              deger={aktifIsler.total}
+              not="Panoda ACTIVE durumunda"
+              href="/panel/isler"
+              bagEtiketi="Panoya git"
+            />
+
             <OzetKart
               ikon={Mail}
               etiket="Okunmamış mesaj"
@@ -108,6 +135,36 @@ export default async function PanelDashboardPage() {
               bagEtiketi="Deneyime git"
             />
           </div>
+
+          {/* ── BU AY, NAKİT ESASI — T-105'te geldi ──────────────────────── */}
+          <Card>
+            <CardContent className="flex flex-col gap-4">
+              <div className="flex flex-wrap items-baseline justify-between gap-3">
+                <CardTitle seviye="h2">Bu ay · nakit esası</CardTitle>
+                <Link
+                  href="/panel/muhasebe/raporlar"
+                  className={buttonClasses({ variant: 'ghost', size: 'sm' })}
+                >
+                  Raporlar
+                </Link>
+              </div>
+
+              <dl className="grid gap-4 sm:grid-cols-3">
+                <FinansKutu
+                  etiket="Tahsil edilen"
+                  tutar={aylik.income.collected}
+                  renk="text-success"
+                />
+                <FinansKutu etiket="Ödenen" tutar={aylik.expense.paid} renk="text-danger" />
+                <FinansKutu etiket="Net" tutar={aylik.net.cash} renk="text-primary" />
+              </dl>
+
+              <p className="text-muted text-xs">
+                Eline geçen ve elinden çıkan para. Kesilmiş ama tahsil edilmemiş tutarlar bu kartta{' '}
+                <span className="text-body">yok</span> — tahakkuk esası raporlarda.
+              </p>
+            </CardContent>
+          </Card>
 
           {/* ── SON DEĞİŞİKLİKLER ────────────────────────────────────────── */}
           <Card>
@@ -151,22 +208,22 @@ export default async function PanelDashboardPage() {
           {/* ── HENÜZ TÜRETİLEMEYEN — BOŞ KART DEĞİL, TEK BLOK ───────────── */}
           <Card>
             <CardContent className="flex flex-col gap-3">
-              <CardTitle seviye="h2">Henüz burada olmayan üç özet</CardTitle>
+              <CardTitle seviye="h2">Henüz burada olmayan özet</CardTitle>
 
+              {/*
+                ⚠️ BU BLOK T-105'TE DARALDI — ve daraltmak zorunluydu, seçenek
+                değildi. T-054f'te ÜÇ madde sayıyordu; ikisi artık YANLIŞTI:
+                finans modülü T-104'te, iş modülü T-103'te yazıldı. Ekranda
+                "modül yok" yazmaya devam etmek, T-054f'te düzelttiğim "Yedek
+                durumu" metninin aynı sınıfı olurdu — var olmayan bir eksikliği
+                şimdiki zamanda anlatmak.
+              */}
               <p className="text-muted text-sm">
-                §4.2 bu sayfada dört özet daha tanımlıyor; üçü için gereken veri katmanı henüz
-                yazılmadı ve bu yüzden kartları da yok:
+                §4.2 bu sayfada dört özet tanımlıyor; üçü artık yukarıda gerçek sayılarla duruyor.
+                Biri için gereken veri katmanı henüz yazılmadı:
               </p>
 
               <ul className="text-muted flex flex-col gap-1.5 text-sm">
-                <li>
-                  <span className="text-body">Aylık gelir/gider</span> — finans modülü (işlem,
-                  kategori, yinelenen ödeme) yok.
-                </li>
-                <li>
-                  <span className="text-body">Aktif işler ve bugünün planı</span> — iş ve müşteri
-                  modülü yok.
-                </li>
                 <li>
                   <span className="text-body">Sağlık özeti</span> — antrenman, ölçüm ve alışkanlık
                   modülü yok.
@@ -228,5 +285,21 @@ function OzetKart({
         </Link>
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * Dashboard finans kutusu — tutar DİZEDEN basılıyor.
+ *
+ * `paraBicim` `Number()`a hiç dokunmuyor (ADR-014/D); bu sayfada grafik yok,
+ * yani dönüşüme gerek de yok. Not `<dd>`nin İÇİNDE — T-104'te ölçülen
+ * `definition-list` kusurunun aynısı tekrarlanmasın.
+ */
+function FinansKutu({ etiket, tutar, renk }: { etiket: string; tutar: string; renk: string }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <dt className="text-muted text-xs">{etiket}</dt>
+      <dd className={`tabular text-lg ${renk}`}>{paraBicim(tutar, Currency.TRY)}</dd>
+    </div>
   );
 }
