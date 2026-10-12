@@ -16,6 +16,7 @@ import {
   buildTransactionWhere,
   createTransaction,
   fetchTransactionForPanel,
+  fetchTransactionsForExport,
   fetchTransactionsForPanel,
   updateTransaction,
   type TransactionClient,
@@ -635,6 +636,31 @@ describe('Transaction DTO sınırı', () => {
 
     expect(item?.fromRecurring).toBe(true);
     expect(item).not.toHaveProperty('sourceRecurringId');
+  });
+
+  it('DIŞA AKTARIM okumasında da `Decimal` kaçağı YOK', async () => {
+    /*
+     * ⚠️ BU İDDİAYI GÜVENLİK`İN KAPISI BULDURDU (ikinci kez):
+     * `decimal-yuzey-sayimi.test.ts` yeni bir `Decimal` yüzeyi — T-106'da
+     * eklenen `fetchTransactionsForExport` — için ölçüm olmadığını söyledi.
+     * Kapı haklıydı: fonksiyon `amount`/`fxRate`/`baseAmount` okuyor.
+     *
+     * T-102'de aynı kapı `fetchOutstandingSummary` için ötmüştü. Yeni bir okuma
+     * yüzeyi her eklendiğinde ötüyor, yani ölçüm listesi kendini hatırlatıyor.
+     */
+    const { client } = islemIstemci();
+    // Taklit `findMany` zaten DETAY satırı döndürüyor; dar arayüz farklı
+    // olduğu için tip burada daraltılıyor.
+    const satirlar = await fetchTransactionsForExport(
+      transactionFilterSchema.parse({}),
+      100,
+      client as unknown as Parameters<typeof fetchTransactionsForExport>[2],
+    );
+
+    expect(decimalKalanlar(satirlar)).toEqual([]);
+    expect(satirlar[0]?.baseAmount).toBe('85625.00');
+    // Dışa aktarım DETAY seçimini kullanıyor: `description` taşıyor.
+    expect(satirlar[0]?.description).toBe('Açıklama');
   });
 
   it('`description` LİSTEDE YOK, detayda VAR', async () => {

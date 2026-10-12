@@ -45,12 +45,55 @@ const jobBase = z.object({
   description: mediumTextSchema.optional(),
   status: z.enum(JobStatus, { error: 'Geçersiz iş durumu.' }).default('LEAD'),
   clientId: cuidSchema.optional(),
-  contactMessageId: cuidSchema.optional(),
+  /*
+   * ⚠️ `contactMessageId` BU ŞEMADA YOK — T-106'da ÇIKARILDI.
+   *
+   * Opsiyonel bir alan olarak duruyordu ve HİÇBİR YAZMA YOLU ONU
+   * ONURLANDIRMIYORDU: `createJob` da `updateJob` da bilerek yoksayıyor, çünkü
+   * `Job.contactMessageId @unique` dönüşüm korumasının GERÇEK güvencesidir
+   * (T-038). Elle doldurulabilseydi bir mesaj "rezerve edilip" gerçek dönüşüm
+   * kalıcı olarak engellenebilirdi — kullanıcı CONFLICT alır ve sebebini
+   * anlayamaz.
+   *
+   * `serverInterpreted` ile işaretlemek YANLIŞ ARAÇ olurdu: o konvansiyon
+   * kuralını SUNUCUNUN YORUMLADIĞI alanlar içindir (honeypot gibi: "kabul et ve
+   * işaretle"). Burada sunucu alanı yorumlamıyor, TAMAMEN YOKSAYIYOR — işaret
+   * koymak "sunucu bunu hallediyor" diye bir şey söylerdi ve o bir yalan olurdu.
+   * Alan basitçe bu işlemin girdisi değil.
+   *
+   * Alanın MEŞRU yazarı tek: `convertMessageToJobSchema` (aşağıda) ve o şema
+   * ayrı duruyor, yani çıkarmak hiçbir şeyi kırmıyor.
+   */
   startDate: dayDateSchema.optional(),
   dueDate: dayDateSchema.optional(),
   deliveredAt: z.iso.datetime({ error: 'Teslim anı ISO 8601 biçiminde olmalıdır.' }).optional(),
-  /** BRÜT anlaşma tutarı (ADR-014). */
-  agreedAmount: moneySchema.optional(),
+  /**
+   * BRÜT anlaşma tutarı (ADR-014).
+   *
+   * ═══════════════════════════════════════════════════════════════════════════
+   * ⚠️ `.nullable()` — "TUTARI SİLDİM" İFADE EDİLEBİLİR OLSUN (T-106)
+   * ═══════════════════════════════════════════════════════════════════════════
+   *
+   * `moneySchema.optional()` yalnızca `string | undefined` veriyordu ve
+   * `partialWithoutDefaults`ten geçen `updateJobSchema`da `undefined` "BU ALANA
+   * DOKUNMA" anlamına geliyor (T-031 konvansiyonu). Sonuç: bir işin tutarı
+   * GİRİLDİKTEN SONRA GERİ ALINAMIYORDU — T-103 iş formunda "tutarı sil"
+   * düğmesini bu yüzden yazamadı.
+   *
+   * `.nullable().optional()` ile üç durum AYRI AYRI ifade edilebiliyor ve bu
+   * tam olarak T-031'in belgelenmiş `undefined ≠ null` kuralı:
+   *
+   *   alan gönderilmedi (`undefined`) → DOKUNMA
+   *   `null` gönderildi               → TEMİZLE (tutar artık bilinmiyor)
+   *   dize gönderildi                 → o değere ayarla
+   *
+   * ⚠️ TEMİZLEME `baseAmount`I DA NULL'A ÇEKER ve bu zorunlu: ADR-014'ün kuralı
+   * "`agreedAmount` null ise `baseAmount` da null" (`deriveBaseAmount`). Tutarı
+   * silip TRY karşılığını bırakmak, kaydı kendi içinde tutarsız yapardı — ve
+   * `LEAD` aşamasına dönen bir işin `baseAmount`ı 85.000 kalsaydı raporlar onu
+   * saymaya devam ederdi. `tests/unit/services/is-musteri.test.ts` ölçüyor.
+   */
+  agreedAmount: moneySchema.nullable().optional(),
   currency: z.enum(Currency, { error: 'Geçersiz para birimi.' }).default('TRY'),
   fxRate: fxRateSchema.default('1'),
 });

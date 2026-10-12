@@ -301,16 +301,131 @@ const komutlar: Record<string, (arg?: string) => Promise<unknown>> = {
    * Mitigasyon bir SÖZLEŞME (test verisi `e2e`/`E2E` ile başlar), kanıt değil.
    */
   async e2eKalintisi() {
-    const [proje, mesaj, denetim] = await Promise.all([
+    const [proje, mesaj, denetim, islem] = await Promise.all([
       db.project.count({ where: { slug: { startsWith: 'e2e', mode: 'insensitive' } } }),
       db.contactMessage.count({ where: { subject: { startsWith: 'e2e', mode: 'insensitive' } } }),
       db.auditLog.count({ where: { entity: { startsWith: 'e2e', mode: 'insensitive' } } }),
+      /*
+       * ⚠️ `Transaction` T-107c'DE EKLENDİ — VE SEBEBİ KENDİ KURALIM.
+       *
+       * §9/5 senaryosu arayüzden gerçek bir işlem yazıyor. Onu sayıma
+       * eklemeseydim, T-107b'de kapattığım kör noktanın aynısını kendim
+       * açmış olurdum: kendi `afterAll`u çöken bir paketin bıraktığı işlem
+       * satırı "kalıntı yok" raporlanırdı — ve bu kez kalıntı DEFTERE
+       * düşen bir para kaydı olurdu (aylık toplamı sessizce kaydırır).
+       */
+      db.transaction.count({
+        where: { description: { startsWith: 'e2e', mode: 'insensitive' } },
+      }),
     ]);
 
-    return { proje, mesaj, denetim, toplam: proje + mesaj + denetim };
+    return { proje, mesaj, denetim, islem, toplam: proje + mesaj + denetim + islem };
   },
 
   /**
+   * ARŞİVLİ BAĞ FİKSTÜRÜ — T-103/T-104 kusurunun kapısı için (T-107c).
+   *
+   * İki vaka aynı kalıbı koruyor ve tek fikstürde kuruluyor:
+   *
+   *   1. Arşivli MÜŞTERİye bağlı bir İŞ      (`Job.clientId` opsiyonel)
+   *   2. Arşivli KATEGORİye bağlı bir İŞLEM  (`Transaction.categoryId` ZORUNLU)
+   *
+   * İkincisinin riski daha yüksek: "kategori yok" tamponu bile yok, yani
+   * `<select>` ilk seçeneğe düştüğünde değer HER ZAMAN geçerli bir kategori
+   * olur ve kayıt sessizce yanlış kırılıma düşer — defterin raporlama anahtarı
+   * bozulur.
+   *
+   * Kayıtlar `e2e` önekli adlarla açılıyor (T-107b kalıntı sözleşmesi).
+   */
+  async arsivliBagSondasi(arg) {
+    const { onek } = JSON.parse(arg ?? '{}') as { onek: string };
+    if (!onek || onek.length < 4) {
+      throw new Error('arsivliBagSondasi: en az 4 karakterlik bir önek zorunlu.');
+    }
+
+    const musteri = await db.client.create({
+      data: { name: `${onek}-musteri`, isArchived: true },
+      select: { id: true, name: true },
+    });
+
+    const is = await db.job.create({
+      data: { title: `${onek}-is`, clientId: musteri.id, fxRate: '1.0' },
+      select: { id: true, title: true },
+    });
+
+    const kategori = await db.transactionCategory.create({
+      data: { name: `${onek}-kategori`, type: 'INCOME', isArchived: true },
+      select: { id: true, name: true },
+    });
+
+    const islem = await db.transaction.create({
+      data: {
+        type: 'INCOME',
+        amount: '250.00',
+        fxRate: '1.0',
+        baseAmount: '250.00',
+        date: new Date('2026-03-15T00:00:00.000Z'),
+        categoryId: kategori.id,
+        description: `${onek}-islem`,
+      },
+      select: { id: true },
+    });
+
+    return {
+      musteriId: musteri.id,
+      musteriAdi: musteri.name,
+      isId: is.id,
+      isBasligi: is.title,
+      kategoriId: kategori.id,
+      kategoriAdi: kategori.name,
+      islemId: islem.id,
+    };
+  },
+
+  /** Arşivli bağ fikstürünü siler — bağımlılık sırasına göre. */
+  async arsivliBagSondasiSil(arg) {
+    const { onek } = JSON.parse(arg ?? '{}') as { onek: string };
+    if (!onek || onek.length < 4) {
+      throw new Error('arsivliBagSondasiSil: en az 4 karakterlik bir önek zorunlu.');
+    }
+
+    // `onDelete: Restrict` — çocuklar önce silinmeli.
+    const islem = await db.transaction.deleteMany({
+      where: { description: { startsWith: onek } },
+    });
+    const is = await db.job.deleteMany({ where: { title: { startsWith: onek } } });
+    const kategori = await db.transactionCategory.deleteMany({
+      where: { name: { startsWith: onek } },
+    });
+    const musteri = await db.client.deleteMany({ where: { name: { startsWith: onek } } });
+
+    return {
+      silinen: islem.count + is.count + kategori.count + musteri.count,
+    };
+  },
+
+  /**
+   * §9/5 senaryosunun yazdığı işlemleri siler — AÇIKLAMA ÖNEKİNE göre.  /**
+   * §9/5 senaryosunun yazdığı işlemleri siler — AÇIKLAMA ÖNEKİNE göre.
+   *
+   * Uygulamada işlem silme yolu YOK (bilinçli: defter kaydı silinmez,
+   * düzeltilir). Test izini temizlemek yine de zorunlu — ADR-030: seed bir
+   * ölçüm sözleşmesidir ve test verisi o sözleşmeye sızmamalı.
+   */
+  async islemSondasiSil(arg) {
+    const { aciklamaOneki } = JSON.parse(arg ?? '{}') as { aciklamaOneki: string };
+    if (!aciklamaOneki || aciklamaOneki.length < 4) {
+      throw new Error('islemSondasiSil: en az 4 karakterlik bir açıklama öneki zorunlu.');
+    }
+
+    const { count } = await db.transaction.deleteMany({
+      where: { description: { startsWith: aciklamaOneki } },
+    });
+    return { silinen: count };
+  },
+
+  /**
+   * Denetim ekranına BİLİNEN bir `diff` yazar — T-054g sızıntı ölçümü için.  /**
    * Denetim ekranına BİLİNEN bir `diff` yazar — T-054g sızıntı ölçümü için.
    *
    * ⚠️ `writeAuditLog` KULLANILMIYOR, SATIR DOĞRUDAN YAZILIYOR. Sebep: amaç

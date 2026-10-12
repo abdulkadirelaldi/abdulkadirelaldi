@@ -134,6 +134,9 @@ export * from './transaction-category';
 // `collected`/`invoiced` hangisi olduğunu söylüyor.
 export * from './report';
 
+// §4.2 CSV dışa aktarım (T-106). Kodlama kararları `_shared/csv.ts`te ölçülü.
+export * from './export';
+
 // ADR-026 — içerik servisleri (F2 public okuma tarafı)
 export * from './experience';
 export * from './post';

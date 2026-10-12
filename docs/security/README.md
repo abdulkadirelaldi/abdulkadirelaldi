@@ -75,6 +75,7 @@ açığın ayrıntısı artık saldırgana bir şey kazandırmaz.
 | 2026-08-12 | T-029a | Lighthouse'a masaüstü + koyu profil (WebGL yolu), üç durumlu WebGL doğrulaması, koşu değişkenliği kararı | **BULGU-010 açıldı**: WebGL yolu hiçbir CI koşusunda ölçülmüyordu. Profil kuruldu ve doğrulandı; ölçüm T-021'in hero'yu bağlamasını bekliyor (kontrol kendi kendine zorunlu hâle geliyor). Değişkenliğin **ilk koşuya** ait olduğu ölçüldü; `numberOfRuns` 5, `aggregationMethod` açıkça medyan. |
 | 2026-08-17 | T-029d | Ölçüm yüzeyi dışındaki SEO/OG rotaları (BULGU-015) | **BULGU-015 kapandı** — `tests/e2e/seo-routes.spec.ts`: robots.txt, sitemap.xml, rss.xml, `/og` ve `/og/proje/<slug>` artık her koşumda isteniyor. PNG imza baytlarından, XML gerçek ayrıştırıcıyla doğrulanıyor. Kapsam iki katmanlı: sözleşme testleri + sitemap taraması (yeni sayfa kendiliğinden kapsanır). Mutasyonla kanıtlandı: düzeltme öncesi font aynı render yolunda BULGU-014'ün `TypeError`'ını veriyor. **BULGU-016 açıldı** — sitemap üç adet 404 adresi bildiriyor. |
 | 2026-08-16 | T-029c | Ölçüm işinin veri kurulumu (BULGU-013) + §8.24 haftalık zamanlayıcı | **BULGU-013 açıldı ve düzeltildi**: `lighthouse` işi ayrı koşucuda `services:` bloğu olmadan koşuyordu; ADR-026 sonrası `/` 500 dönüyor, üç profil düşüyor, artifact üretilmiyordu. Kendi Postgres'i kuruldu (yol **a**). İki yeni nöbet: ölçüm ön koşulu ve ayırt edicide durum kodu kontrolü — ikincisi olmadan arıza "⏳ BEKLEMEDE" diye yeşil görünüyordu. §8.24 artık **haftalık** de koşuyor (`17 6 * * 1`). |
+| 2026-10-12 | T-107c | §9/5 senaryosu, arşivli bağ kapısı, ADR-039 görünürlük zinciri | **§9/5 KAPANDI — §9'UN TAMAMI YEŞİL (7/7).** Dördüncü halka geldi, bekleme kapısı 1→3→4 diye üç kez tasarımı gereği öttü ve senaryo TEK PARÇA yazıldı (`panel-gelir-rapor.spec.ts`, iki projede yeşil): akış muhasebe listesindeki "Yeni işlem" bağlantısından başlıyor (T-039 — Action'a elle POST YOK), ölçüm DELTA (rapor ekranındaki "Tahsil edilen" önce/sonra, fark = girilen tutar). **Senaryo yazılırken ÜÇ kusur koşturarak bulundu, hiçbiri varsayımla görülemezdi:** (1) liste `description` sütunu BASMIYOR — çapa ayırt edici tutara çevrildi, açıklama temizlik işareti olarak kaldı; (2) ⚠️ **PARA TESTİNDE 100 KAT SAPMA**: beklentiyi `kurusaCevir(TUTAR)` ile üretiyordum, o Türkçe biçim okuyor (nokta=binlik) ama `TUTAR` makine biçimi (nokta=ondalık) → `13.374.200` kuruş beklendi, gerçek delta `133.742`; yani ÖLÇÜM DOĞRU, BEKLENTİM YANLIŞTI — ADR-014'ün sınıfı test kodunda, üç temsil artık ayrı sabitlerde ve karşılıkları ÖLÇÜLÜYOR; (3) `fullyParallel` iki projeyi AYNI AYA yazdırıyordu ve biri diğerinin kaydını sayıyordu → yalıtım AYLA sağlandı (her proje kendi ayı, geçmiş yıl → ölçüm MUTLAK, "önce 0" ay süzgecini de kanıtlıyor); ayrıca önkoşulu ayrı bir `test()` yazmak onu başka worker'a attırıp "0 sildi" hatası ürettiği için ana teste alındı. Bekleme kapısı artık GERİLEME kapısı: zincir çözülürse ve senaryo silinirse/Action'a POST'a çevrilirse söylüyor. **ARŞİVLİ BAĞ KAPISI kuruldu** (`panel-arsivli-bag.spec.ts`, 2/2): Frontend kusuru iki turda iki kez bildirip çözmüştü ama kapı yoktu. `<select>` eşleşmeyen değerde ilk seçeneğe düşüyor ve bu YALNIZCA GERÇEK TARAYICIDA ölçülebilir — birim testi `value` prop'unu okur, tarayıcının onu ATTIĞINI görmez. İki vaka tek paket (aynı kalıp) ama riskleri ayrı yazılı: müşteri opsiyonel → bağ kopar (veri kaybı), kategori ZORUNLU → ilk seçenek her zaman geçerli bir kategori, kayıt yanlış kırılıma düşer (defter bozulur, hiçbir alan boşalmadığı için daha sinsi). Her vaka seçili değeri, `(arşivli)` işaretini ve SEÇİCİYE DOKUNMADAN kaydetmenin bağı bozmadığını ölçüyor — kalıcılık formu YENİDEN AÇARAK doğrulanıyor. **ADR-039 görünürlük zinciri kapısı** (`adr-039-gorunurluk.test.ts`): Backend `typeMismatch`i servis DTO'su düzeyinde ölçüyordu, ama zincir üç halkalı (DTO → `rapor-veri.ts` eşlemesi → rozet) ve ORTADAKİ halka kapısızdı — kaldırılsa bütün iddialar yeşil kalır, kullanıcı uyuşmazlığı HİÇ görmez. Üç halka ölçülüyor, susturan biçimler (`uyusmazlik && false`) yasak, seçicide tür yazılı olması kilitli; sınır dürüstçe yazılı (kaynak taraması, CSS ile gizlenmiş rozeti görmez). Üçüncü gereksinim (yumuşak uyarı) BUGÜN YOK ve ADR zorunlu saymıyor → ölü kapı yazılmadı, yazıldığı günkü kapısı kayda geçti (gönderimi engellememek). **İki şey ölçülüp BULGU AÇILMADI:** (a) `seed_` kimliği olmayan 890 TL'lik işlem satırı — ADR-015 tekrarlayan üretimi, `(sourceRecurringId, periodKey)` bileşik anahtarıyla upsert; koda bakıp geçmedim, KOŞTURDUM: seed öncesi 6, sonrası 6 → idempotent; (b) kalıntı sayımına `Transaction` eklendi — eklenmeseydi T-107b'de kapattığım kör noktayı kendim açmış olurdum ve kalıntı bu kez DEFTERE düşen bir para kaydı olurdu. **Kendi 8. dalım öttü:** yeni paketler "kapsanmiyor" diyen üç rotayı geziyordu → `kapilar`/`kanit` güncellendi (`not` metnine dokunulmadı, ADR-036). **ADVISORY-006:** değişmedi, §8.24 EXIT 0, 89 gün. Birim 1757/1757, E2E **101/101** (95→+6), kalıntı 0. |
 | 2026-10-11 | T-107b | F4 rapor hesaplayıcılarının denetimi, tarih öncülü kapısı, E2E kalıntı ölçümü, §9/5 yeniden değerlendirme | **Kartın bir talimatı YANLIŞTI ve ölçüm reddetti:** kart `appDayStartInstant` kullanılmasını istiyordu, Backend ölçümle itiraz etmişti, bağımsız doğruladım — `appDayToDate` 1–31 Mart verirken `appDayStartInstant` **28 Şubat 21:00 – 30 Mart 21:00** veriyor, yani Şubat'ı içine alıp **31 Mart'ı tamamen düşürüyor** (sapma tam 3 saat, İstanbul UTC+3). Sebep: `Transaction.date` bir `@db.Date` sütunu — takvim günü. Backend'in `rapor.test.ts`i (50+ iddia) ay sınırını, kategori gruplamasını ve isimlendirmeyi zaten kapsıyor; DENETLENDİ, doğru ve yeterli — paralel kapı yazmak çiftlenmenin kendisi olurdu. **Ölçülmeyen şey KARARIN ÖNCÜLÜYDÜ:** o testler taklit istemci kullanıyor, şema hiç devreye girmiyor; sütun düz `DateTime`a çevrilse `appDayToDate` anında yanlış araç olur ve elli iddianın HİÇBİRİ kırılmaz. **`tarih-sutun-eslesmesi.test.ts`** kuruldu: her bildirilen eşleşmenin sütun tipini şemadan doğruluyor, yanlış pencereyi SAYILARLA iddia ediyor (kısıtın neden var olduğu da ölçülü) ve bildirilmeyen servisin tarih yardımcısı kullanmasını yasaklıyor. Kapı kurulurken kırmızıya döndü ve üç servisi daha okumaya zorladı: `transaction.ts` + `experience.ts` (yazma yönünde dönüşüm) bildirildi, `_shared/stats.ts` muaf — `fullYearsBetween` yardımcıyı SORGU için değil TAKVİM DOĞRULAMASI için çağırıyor, dönüş değeri kullanılmıyor bile. **Kapı kendi uydurduğum muafiyeti sildirdi:** `period-key.ts`i ölçmeden muafiyete yazmıştım, o dosya hiç tarih yardımcısı kullanmıyor — muafiyet doğduğu anda ÖLÜYDÜ ve "ölü muafiyet" iddiası satırı sildirdi. F5'te 13 `@db.Date` sütunu bekliyor, kapı onları da kapsıyor. **(a)/(b) Backend kartın istediğinden iyi çözmüş:** kategori dağılımı işlemin kendi türüne göre gruplanıyor ve `typeMismatch` DTO'da YÜZEYLENMİŞ; "gelir" adı çıplak DEĞİL — `income.collected` (nakit) / `income.invoiced` (tahakkuk), netler `net.cash`/`net.accrual`, çapraz esas karışımı yapısal olarak imkânsız. Decimal yüzey sayımım `report.ts`in dört yüzeyini de gördü ve dördü doğrudan iddiaya bağlı çıktı. **E2E TEMİZLİK RAPORU YANLIŞ ŞEYİ ÖLÇÜYORDU:** "artık proje: 0, mesaj: 1" sayıları SİLİNEN satırlardı, etiket KALAN diyordu; tablo gerçekten boştu (bağımsız doğruladım: `e2eKalintisi` → toplam 0). Kozmetik değil, çünkü silinen sayısı **hem ortam temizken hem süpürme YANLIŞ ÖNEĞİ ararken 0 çıkar** — T-016'nın izolasyon güvencesi kendisini çürütemeyen bir ölçüme dayanıyordu. Kör nokta somut: süpürme `e2e-t039` arıyor, T-054g sondası `E2EDenetimSondasi` yazıyor ve süpürme onu HİÇ görmüyor. **EYLEM ile DURUM ayrıldı:** `e2eKalintisi` üç tabloda `e2e`/`E2E` ile başlayan KALAN satırları sayıyor (harf duyarsız), teardown ikisini ayrı basıyor ve kalıntıda FIRLATIYOR (ADR-030: kalıntı bir sonraki koşumda seed sanılır). `e2e-kalinti-kapisi.test.ts` gerilemeyi engelliyor. **§9/5 hazır halka 1 → 3:** ekran (T-104), yazma yolu, aylık toplam servisi (T-102) geldi; eksik olan TEK şey toplamın bir ekrana ulaşması — muhasebe ekranının `toplam`ı SATIR SAYISI, para toplamı değil (ölçüldü). Beklenen sayı Güvenlik kararıyla 3'e çekildi. ⚠️ **Kapının yoklamasında kendi yazdığım kör nokta çıktı:** dört servis dosyası adını ELLE saymıştım, `report.ts` listede olmadığı için halka hazır olduğu hâlde kapı "yok" okumaya devam ediyordu — ateşlenmeyen kapı, kırmızıya dönenden KÖTÜDÜR. Aynı turda (T-107a) "listeyi elle yazma, kaynaktan türet" yazmışım; kural yazmak kurala uymak değil. Bir mutasyon testim de negatif örneğini `muhasebe/page.tsx`in YOKLUĞUNA bağladığı için halka gelince kırıldı → sentetik yola çevrildi. **Senaryo bu turda YAZILMADI ve gerekçesi:** e2e koşumu bende değil, koşturulamayan bir paket doğrulanmamış bir kapıdır (BULGU-016'nın tersi hatası). **BULGU-024 KAPANDI** ve istisnayı kapının kendisi sildirdi; liste boşalınca iki mutasyon testim `ISTISNALAR[0]?.yol ?? ''` yüzünden sessizce anlamını yitirecekti → sentetik yola bağlandı. **ADVISORY-006:** yama yok, zincir aynı, deney yeniden koşturuldu (EXIT 0), §8.24 EXIT 0, 90 gün; braces md5 birebir geri geldi (ADR-038 anlık görüntüsüyle). ⚠️ `pnpm test:e2e` bu turda **koşturulmadı** — Orkestra Şefi koşturuyor; teardown değişikliği ilk koşumda görünecek. |
 | 2026-10-11 | T-107a | F4 para kapılarının denetimi, çiftlenme sınıfının kapısı, §9/5 açık beklemesi | **`baseAmount` kapıları GERÇEK kapı:** koşulsuz yeniden türetme koşullu yapıldı → `updateJob` 2, `updateTransaction` 6 iddia kırmızı; beklenen `100000.00`, gelen `85625.00` — 14.375 TL sapması birebir. **`Decimal` dedektörü kusurlu DEĞİL, çağrı yerleri eksikti:** `Decimal` modellerine dokunan servislerde 12 DTO yüzeyinden 6'sı iddiaya bağlı değildi ve ALTISI DA YAZMA YOLU. Sızıntı yok çünkü yazma yolları okumanın eşleyicisini paylaşıyor — ama PAYLAŞIMI HİÇBİR ŞEY ÖLÇMÜYORDU (ADR-037: yazılı bir çıkarım). **`decimal-yuzey-sayimi.test.ts`** kuruldu: yüzey listesi ŞEMADAN türetiliyor (ilk denemem DTO kaynaklarından çıkarmaktı ve ölçtüm — iç içe alan taşıyan `JobPanelDto`yu sessizce atlıyordu); kapalılık ya doğrudan iddiayla ya PAYLAŞILAN EŞLEYİCİNİN KAYNAKTAN ÖLÇÜLMESİYLE sağlanıyor. **Kapı F5'i kendiliğinden kapsıyor** — `Decimal` yalnızca para değil (`HealthLog.weightKg`/`sleepHours`/`bodyFatPct`, `WorkoutSet`, `PersonalRecord`) ve bu kapsam ayrı bir iddiayla kilitlendi. Kapıyı yazarken KENDİ KAPIMDA bir vakum çıktı: dönüş tipi deseni `\\bDto\\b` idi ve `JobPanelDto`da hiç eşleşmiyordu → tarama SIFIR yüzey bulup boş kümede yeşil kalmıştı; sentetik mutasyon testi yakaladı (çapayı modeller/servisler/iddialar için yazmıştım, SAYIMIN KENDİSİ için yazmamıştım). Gerçek ağaçta koşturmak üç sahte pozitif gösterdi: iki değişken dolaylaması (çözüldü) ve `convertMessageToJob` (para alanı hiç taşımıyor → gerekçeli muafiyet, ölü satıra ve asılsız gerekçeye karşı mekanik sınanıyor). **Çiftlenme sınıfı:** Backend'in `para-tek-tanim.test.ts`i DENETLENDİ — iddiaları doğru, deseni silinen kopyanın gerçek metnine karşı sınanmış; kapsamadığı şey LİSTESİNİN SABİT olması (dört para adı). **`saf-yardimci-tek-tanim.test.ts`** sınıfı kapatıyor: saf `_shared` modülleri ve ihraçları TÜRETİLİYOR, "saf" ölçütü ÖLÇÜLÜYOR (`^import` yok) ve sınıfın kökü tam orada — saf modül her yerden okunabilir, kopyanın teknik mazereti yok. Desen dört tanım biçimini tanıyor (sınıf metodu + nesne özelliği eklendi). ⚠️ **Kapı AD çiftlenmesini ölçüyor, KURAL çiftlenmesini değil — ve bu çıkarımın yanlışlığı VARSAYILMADI, ÖLÇÜLDÜ:** BULGU-024 açıldı, `personal-record.ts` `compareDecimalStrings` adıyla ölçeklemeyi yerel yapıyor; davranışsal hata yok, SEBEBİ YENİ BİLGİ: `money.ts` `toScaledInt`i ihraç etmiyor, yani kopya dikkatsizlik değil kanonik modülün eksiği. İkinci blok ADA DEĞİL BİÇİME bakıyor (`BigInt` izi yalnızca `money.ts`te + gerekçeli istisna, üçüncü dosyada kırmızı). **Mutasyon kanıtları SENTETİK:** her iki kapının çekirdeği saf yapıldı, çünkü dosyadan okuyan bir kapıyı mutasyonla sınamak ADR-038'in doğduğu olayın ta kendisiydi — artık kimsenin dosyasına dokunulmuyor ve kanıt CI'da her koşumda yeniden üretiliyor. **§9/5 AÇIK BEKLEME kapıya bağlandı** (`senaryo-9-5-bekleme.test.ts`): 4 halkadan 1'i hazır (`createTransactionAction`), ekran/aylık toplam/dashboard kartı T-104-T-105 bekliyor; `appMonthRange`in HİÇ ÇAĞIRANI YOK diye ölçüldü. Kapı halka geldiği gün kırmızıya döner, hazır halka SAYISINI kilitliyor ve yoklama kendi kendini doğruluyor (hazır olan halkanın `true` çıkması ayrıca iddia ediliyor). **ADVISORY-006 gözden geçirildi:** yama yok, zincir aynı, deneyin geçerlilik koşulu (`rootDir` ayarlı değil) korunuyor, deney YENİDEN KOŞTURULDU → `pnpm lint` EXIT 0, kod yolu hâlâ koşmuyor; §8.24 EXIT 0, 90 gün. ⚠️ **ADR-038'i doğuran olay bu turda benim hatamdı** ve envanterim de hatalıydı (üç saydım, dört vardı) — düzeltmeler ilgili bölümde. ⚠️ **`pnpm test:e2e` bu turda koşturulmadı** (kullanıcı reddetti); üç kapı da birim düzeyinde ve e2e yüzeyine dokunmuyor. |
 | 2026-10-10 | T-055g | ADR-035 bağlayıcı metninin dize kapısı; ADR-037'nin geriye dönük ilk uygulaması | **ADR-035 metni kapıya bağlandı** (`adr-035-metni.test.ts`, 23 iddia). Kapı beklenen cümleyi ELLE YAZMIYOR — `docs/DECISIONS.md` içindeki ADR bloğundan ayıklayıp bileşendeki sabitle birebir karşılaştırıyor; elle yazmak cümlenin ÜÇÜNCÜ kopyasını doğurur ve ADR düzeltildiğinde kapı eski cümleyi savunmaya devam ederdi. Sapma iki yönde kırmızı. Pozitif + negatif birlikte: yalnızca "yasak ifade yok" denseydi SABİTİ SİLEN değişiklik de yeşil kalırdı (§8.18 dersi) — M2 mutasyonu bunu doğruladı. Yasak liste İKİ KADEMELİ ve ayrım ölçüme dayanıyor: "çıkış yapıldı" gerçek bir çıkıştan sonra DOĞRU, yalnızca şifre değiştirmenin sonucu olarak yanlış; bugün panelde meşru böyle bir metin yok (çıkış düğmesi panel dizinleri dışında ve mesaj basmıyor). Yorum sıyırmanın ZORUNLU olduğu da ayrı bir iddiayla kilitlendi — bileşenin yorumu yasağı alıntılıyor, ham taramayla kapı her zaman kırmızı olurdu. Dört mutasyon (yasak cümle · sabit silindi · "bu cihaz dahil" atlandı · ADR değişti) 9/5/2/2 iddia kırdı, md5 ile birebir geri alındı. **Ayıklayıcı ilk kurulumda BOŞ DİZE döndürdü** — cümlenin içinde noktalı virgül var ve "`;`'e kadar oku" deseni ortadan kesiyordu; önkoşul bloğu yakaladı, yoksa sessizce hiçbir şey ölçmeyen bir kapı CI'ya girecekti. **ADR-037 geriye dönük tarandı ve ADVISORY-006'nın bir OLGUSU YANLIŞ çıktı:** kayıt "`pnpm lint` sırasında braces HİÇ yüklenmiyor" diyordu, oysa yükleniyor (`@next/eslint-plugin-next/get-root-dirs` → fast-glob → micromatch → braces; aynı izleyiciyle, kaydın adlandırdığı komutla doğrulandı). Yanlış satır T-042g'de prisma akışlarında yapılan ölçümün lint'e GENELLENMESİNDEN doğmuş — yani maruziyet tablosunun içine saklanmış bir çıkarım. Çıkarım ("maruziyet kabul edilebilir") ise DOĞRU çıktı ve artık dolaylı gerekçe değil DENEY: braces'in girişi throw edecek hâle getirildi, `pnpm lint` EXIT 0 → savunmasız kod yolu HİÇ KOŞMUYOR. Sebebi de ölçüldü: `get-root-dirs` yalnızca `settings.next.rootDir` verilmişse `globSync` çağırıyor, bizde ayarlı değil. Deneyin geçerlilik KOŞULU kayda geçti (rootDir eklenirse ters sonuç verir) ve kaldırma koşulu 3'e bağlandı. braces md5 ile birebir geri geldi. **Oyunkitabının "tam sabit pin" ölçütü çürüdü ve düzeltildi:** pin katman A'yı eler, B'yi ELEMEZ — B'yi bir deneye bağlar. **En önemli bulgu:** karşı kanıt zaten elimizdeydi — `mysql2` override'ı `prisma`nın `"3.15.3"` tam pinini aşıyor ve T-042g'den beri çalışıyor; iki olgu hiç bağlanmadı ve üç aylık beklemeye mal oldu. Yeni kural: bir katmanı elemeden önce o katmanın bu projede çalıştığı bir kayıt var mı diye bakılır. Katman D ölçütüne ADR-037 zorunluluğu (iki başlık) eklendi; BULGU-020'nin "mümkün değil" kaydı zaten uyumlu çıktı. |
@@ -3086,59 +3087,16 @@ iç ağında farklı olabilir) ve Node ara katmanının soğuk başlatma maliyet
 
 ---
 
-## §9 sayacı — T-107b sonrası: **6 kapalı · 0 kısmi · 1 açık (3/4 halka hazır)**
+## §9 sayacı — T-107c sonrası: **7 kapalı · 0 kısmi · 0 açık** ✅
 
-> **§9/5 açık ama ÜÇ halkası hazır (T-107b).** Ekran (T-104), yazma yolu
-> (T-101) ve aylık toplam servisi (T-102) geldi; eksik olan TEK şey toplamın
-> bir ekrana ulaşması (T-105). Bekleme bir yorum satırı değil, bir kapı:
-> `tests/unit/senaryo-9-5-bekleme.test.ts` son halka geldiği gün kırmızıya
-> döner. Ayrıntı: "§9/5 — AÇIK BEKLEME" bölümü.
-
-> **§9/7 TAM KAPANDI.** Geriye kalan tek şey çekmece takasının kararıydı ve o
-> T-051/E'de verilip gerekçesiyle yazıldı (aşağıda: "BULGU-021'in bıraktığı
-> incelik"). T-054g'de yeniden okundu, karar **değişmedi** ve bir ölçümle
-> desteklendi: `panel-mobil.spec.ts` iki görünümde de yeşil. Kararın özü
-> değişmediği için metni tekrarlanmıyor — ikinci bir kopya, sapmanın kapısıdır.
+> **§9'UN TAMAMI YEŞİL.** Son açık madde §9/5'ti ve T-107c'de kapandı:
+> dördüncü halka (`/panel/muhasebe/raporlar`) geldi, senaryo tek parça yazıldı
+> (`tests/e2e/panel-gelir-rapor.spec.ts`), iki projede de yeşil. Ayrıntı:
+> "§9/5 KAPANDI" bölümü.
 >
-> Açık kalan tek madde **§9/1** (dış bağlantı ölçülürken üçüncü tarafa istek
-> atılmaması) ve önceliği en düşük.
-
-> §9/7 T-049g'de kapandı (BULGU-021 düzeltildi, `panel-mobil.spec.ts` yeşil).
-> Kalan tek açık madde **§9/5** — finans modülü F4/F5'te, ölçülecek akış henüz
-> yazılmadı. Yani §9'un ölçülebilir yüzeyinin tamamı artık kapalı.
-
-| # | Senaryo | Durum | Kanıt / eksik |
-| - | ------- | ----- | ------------- |
-| 1 | Ana sayfa → proje → detay → Kıyı Medya CTA | ✅ **kapalı (T-044g)** | `ziyaretci-akisi.spec.ts`; kart slug'ı seed'den okunuyor, CTA `data-proje` ile tıklanan projeye bağlanıyor, `target`/`rel` sözleşmesi ve gerçek tıklama ölçülüyor |
-| 2 | İletişim formu → mesaj panele düşer | ✅ kapalı (T-043g) | `iletisim-akisi.spec.ts`, dört halka |
-| 3 | Yanlış şifre / doğru şifre + 2FA | ✅ kapalı | `auth.spec.ts` |
-| 4 | Girişsiz `/panel` → login | ✅ kapalı | `smoke.spec.ts` + `auth.spec.ts` |
-| 5 | Panelden gelir kaydı → dashboard toplamı | ❌ açık | Finans modülü F4/F5'te |
-| 6 | Panelden proje yayınla → public'te görün | ✅ kapalı (T-039) + **literal hâli T-044g** | `panel-yayin.spec.ts`: ekleme yolu, taslak sızıntısı, **ve artık DRAFT→PUBLISHED geçişi** |
-| 7 | Mobil görünümde ana sayfa ve panel kullanılabilir | ✅ **kapalı (T-048g spec + T-049g doğrulama)** | `panel-mobil.spec.ts`: menü düğmesi → çekmece, `aria-controls` hedefi ÇÖZÜLÜYOR (BULGU-021 kapandı), kırıntı yolu `aria-current`, sayfa yatay taşmıyor; iddia görünüme göre seçiliyor (atlanan test yok). ÖLÇÜLMEYEN: dokunmatik jestler, gerçek ekran okuyucu gezintisi, küçük ekranda form ergonomisi |
-
-### §9/1 — dış bağlantı ölçülürken üçüncü tarafa istek atılmıyor
-
-CTA gerçekten tıklanıyor (öznitelik doğru olup bağlantının tıklanamaz olması
-mümkün: üstte bir katman, `pointer-events: none`), ama `kiyimedya.com`a giden
-istek yerel bir taslak yanıtla karşılanıyor. İki sebep: üçüncü tarafın sitesini
-her CI koşumunda yoklamak doğru değil, ve o site yavaşladığında **bizim
-kapımız** kırmızıya dönerdi.
-
-`abort()` önce denendi ve yetmedi — iptal edilen gezinme sekmeyi
-`chrome-error://chromewebdata/` adresinde bırakıyor, yani istenen adres
-kayboluyor ve iddia ölçemeyeceği bir şeye bakıyordu. Bunun yerine **isteğin
-kendisi kaydediliyor** (tarayıcının gerçekten o adrese gittiğinin kanıtı).
-
-`rel="noopener"` iddiası biçimsel değil güvenlik iddiasıdır: `target="_blank"`
-ile açılan sayfa `window.opener` üzerinden bizi başka bir adrese yönlendirebilir
-(tabnabbing). Öznitelik silindiğinde hiçbir şey görünür biçimde bozulmaz — tam
-da kapıya yazılması gereken sınıf.
-
-**Mutasyon:** kart seçicisi "Tüm projeler" bağlantısına çevrildi → ❌ kırmızı
-("kart kendi projesinin detayına gitmeli"), yani zincir gerçekten ölçülüyor.
-
----
+> Dört turluk açık bekleme, `test.skip` kullanmadan ve yarım senaryo
+> bırakmadan kapandı. Beklemenin kendisini ölçmek (T-107a) bu projede yeni bir
+> araç oldu ve kapı üç kez tasarımı gereği öttü: 1 → 3 → 4.
 
 ## §8.3'ün test tarafındaki sapması — kapının kör noktası (T-048g)
 
@@ -4425,9 +4383,164 @@ değil.
 
 ---
 
+## §9/5 KAPANDI — §9'un tamamı yeşil (T-107c)
+
+Dördüncü halka geldi (`/panel/muhasebe/raporlar`, T-105) ve bekleme kapısı
+tasarımı gereği öttü: **1 → 3 → 4**. Senaryo tek parça yazıldı:
+`tests/e2e/panel-gelir-rapor.spec.ts`, iki projede de yeşil.
+
+**Akış ekrandan başlıyor** (T-039): muhasebe listesindeki "Yeni işlem"
+bağlantısına basılıp form dolduruluyor — `createTransactionAction`a elle POST
+atılmıyor. Action'a doğrudan istek atmak kullanıcının yolunu (bağlantı → form →
+doğrulama → yönlendirme) hiç ölçmezdi; o yol kırılsa senaryo yeşil kalırdı.
+
+Ölçüm **delta**: rapor ekranındaki "Tahsil edilen" ÖNCE ve SONRA okunuyor, iddia
+farkın tam girilen tutara eşit olması. Mutlak sayı iddia etmek seed verisine
+bağlanmak olurdu. Fark ölçmek ayrıca daha güçlü bir şey söylüyor: toplam sadece
+"bir sayı basıyor" değil, **bu kaydı sayıyor.**
+
+### Senaryo yazılırken ÜÇ kusur çıktı — üçü de koşturarak
+
+Hiçbiri varsayımla bulunamazdı; üçü de "yazdım, yeşil sandım" ile "koşturdum"
+arasındaki farkta yaşıyordu.
+
+**1 · Liste `description` sütunu basmıyor.** Kaydın yazıldığını açıklama
+metniyle doğruluyordum; paket düştü ve hata *"kayıt listede görünmüyor"*
+diyordu — aslında *"bu sütun yok"* demekti (sütunlar: Tarih · Tür ·
+Kategori/iş · Tutar · TRY karşılığı · Ödeme). Çapa ayırt edici **tutara**
+çevrildi; açıklama yine yazılıyor ama **temizlik işareti** olarak.
+
+**2 · ⚠️ PARA TESTİNDE 100 KAT SAPMA — ADR-014'ün sınıfı, test tarafında.**
+Beklentiyi `kurusaCevir(TUTAR)` ile üretiyordum. `kurusaCevir` TÜRKÇE biçim
+okuyor (nokta = binlik ayırıcı), `TUTAR` ise MAKİNE biçimi (nokta = ondalık):
+`'1337.42'` → noktalar atılıyor → `133742` tam kısım sanılıyor → **13.374.200
+kuruş**. Ekrandan okunan gerçek delta 133.742 kuruştu, yani **ölçüm doğru,
+beklentim yanlıştı.**
+
+> Ders ADR-014'ün ta kendisi: bir para değeri, hangi BİÇİMDE olduğu
+> söylenmeden taşınamaz — ve bu kural test kodunda da geçerli.
+
+Üç temsil (form girdisi `1337.42` · ekran `1.337,42` · kuruş `133742`) artık
+ayrı sabitlerde ve **karşılık geldikleri ölçülüyor**, varsayılmıyor.
+
+**3 · `fullyParallel` iki projeyi aynı aya yazdırdı.** Senaryo tek projede
+geçti, **iki proje birlikte koşunca düştü**: masaüstü ve Pixel 5 eşzamanlı
+koşuyor, ikisi de aynı aya kayıt yazıp aynı toplamı okuyordu — biri diğerinin
+kaydını da sayıyordu. Yalıtım **ayla** sağlandı: her proje kendi ayına yazıp
+kendi ayını okuyor, ve geçmiş bir yıl (2019) seçildiği için ölçüm MUTLAK oldu —
+*"önce 0"* iddiası ay süzgecinin çalıştığını da kanıtlıyor.
+
+Takas kayda geçsin: "bugün" daha gerçekçi bir akıştı, ama **kırılgan bir kapı
+susturulmaya davettir.**
+
+Aynı kusur ailesinin dördüncüsü önkoşul bloğunda çıktı: önkoşulu AYRI bir
+`test()` yazmıştım ve `fullyParallel` onu başka bir worker'a attı; o worker
+hiçbir şey yazmadan kendi `afterAll`unu koşturup *"0 sildi"* diye kırıldı.
+Önkoşul bağımsız bir senaryo değil — ana teste alındı.
+
+### Bekleme kapısı artık GERİLEME kapısı
+
+`tests/unit/senaryo-9-5-bekleme.test.ts` dört turluk işini bitirdi. Dosyanın
+görevi değişti: artık **zincirin çözülmediğini** ölçüyor — bir halka kaybolursa
+Playwright hatasını okumaya gerek kalmadan tek cümleyle söylüyor. Senaryo
+dosyasının varlığı ve **akışın ekrandan başladığı** da kilitli: paket bir gün
+Server Action'a doğrudan POST atmaya çevrilirse kapı söyler.
+
+---
+
+## Arşivli bağ kopması — kapı kuruldu (T-107c)
+
+Frontend kusuru iki turda iki kez bildirdi (T-103 müşteri, T-104 kategori),
+ikisini de çözdü, **kapı yoktu**. Çözümü kaldıran bir düzenleme sessiz kalırdı.
+
+**Kusur:** seçiciler arşivlenmiş kayıtları listelemiyor (doğru karar). Ama
+arşivli bir kayda bağlı satır düzenlenirken o kayıt listede olmaz; `<select>`
+değeri hiçbir `<option>` ile eşleşmeyince **tarayıcı sessizce ilk seçeneğe
+düşer** ve kaydetmek bağı başka bir kayda bağlar.
+
+> ⚠️ BU DAVRANIŞ YALNIZCA GERÇEK TARAYICIDA ÖLÇÜLEBİLİR. `<select>`in ilk
+> seçeneğe düşmesi HTML'in kendi davranışı; bir birim testi `value` prop'unu
+> okur ve DOĞRU değeri görür — tarayıcının o değeri eşleşmediği için ATTIĞINI
+> görmez. Kusur tam bu boşlukta yaşıyordu.
+
+İki vaka tek pakette (`tests/e2e/panel-arsivli-bag.spec.ts`) çünkü aynı kalıbı
+koruyorlar — ama riskleri farklı ve ayrı ayrı yazılı:
+
+| Vaka | Alan | Risk |
+| ---- | ---- | ---- |
+| Müşteri (`Job.clientId`) | opsiyonel | ilk seçenek "müşteri yok" olabilir → bağ KOPAR, **veri kaybı** |
+| Kategori (`Transaction.categoryId`) | **ZORUNLU** | "kategori yok" seçeneği bile yok → ilk seçenek HER ZAMAN geçerli bir kategori, kayıt **yanlış kırılıma** düşer |
+
+İkincisi daha sinsi: hiçbir alan boşalmıyor, yalnızca yanlış doluyor — ve
+kategori raporlamanın kırılım anahtarı olduğu için defter bozulur.
+
+Her vaka üç şey ölçüyor: seçilen değer kaydın KENDİ bağı mı · arşivli olduğu
+kullanıcıya söyleniyor mu (`(arşivli)` işareti) · **seçiciye dokunmadan
+kaydetmek** bağı bozuyor mu. Üçüncüsü formu YENİDEN AÇARAK doğrulanıyor:
+"kaydettim" bir iddia, yeniden okunan değer bir sonuç. **İki proje, 2/2 yeşil.**
+
+---
+
+## ADR-039 görünürlük zinciri — arayüz halkası kapısız kalmıştı (T-107c)
+
+ADR-039: kategori türü işlem türüyle eşleşmek zorunda değil (gerekçe ölçülmüş),
+**ama uyuşmazlık gizlenmiyor.** Backend `typeMismatch`i `rapor.test.ts`te çok
+iyi ölçüyor — **servis DTO'su düzeyinde.** Zincir ise üç halkalı:
+
+```
+report.ts (DTO) → rapor-veri.ts (eşleme) → kategori-dagilimi.tsx (rozet)
+```
+
+Ortadaki eşleme sessizce kaldırılsa Backend'in bütün iddiaları yeşil kalır ve
+kullanıcı uyuşmazlığı HİÇ GÖRMEZ — ADR-039'un engellediği şeye geri dönülür.
+`tests/unit/adr-039-gorunurluk.test.ts` üç halkayı da ölçüyor, ayrıca zinciri
+teknik olarak bozmadan SUSTURAN biçimleri (`uyusmazlik && false`,
+`uyusmazlik: false`) yasaklıyor ve seçicide türün yazılı olduğunu kilitliyor.
+
+**Sınır, dürüstçe:** bu bir kaynak taraması — üç halkanın VAR olduğunu
+kanıtlıyor, rozetin ekrana ÇİZİLDİĞİNİ kanıtlamıyor (CSS ile gizlenmiş bir
+rozeti görmez).
+
+**Üçüncü gereksinim (oluşturma anında yumuşak uyarı) BUGÜN YOK** ve ADR onu
+zorunlu saymıyor. Yazıldığı gün kapısı şu olacak: uyarı **gönderimi
+engellemiyor** (`disabled` / `preventDefault` ile bağlanmamış). Bugün
+yazılmayan bir şey için kapı yazılmadı — ölü kapı, ADVISORY-001'in ölü
+override dersi.
+
+---
+
+## Ölçülen ve BULGU AÇILMAYAN iki şey (T-107c)
+
+Dürüstlük için: ikisi de şüpheyle başladı, ölçümle kapandı.
+
+**1 · Defterde `seed_` kimliği olmayan bir işlem satırı.** 890,00 TL'lik bir
+gider satırı gördüm, kimliği cuid — seed'in sabit kimlikli satırlarına
+benzemiyordu ve "seed idempotent değil, her koşumda çoğaltıyor" diye
+şüphelendim. Ölçtüm: satır ADR-015'in **tekrarlayan işlem** üretimi ve
+`(sourceRecurringId, periodKey)` BİLEŞİK ANAHTARIYLA upsert ediliyor — yani
+kimliği sabit olmak zorunda değil. Koda bakıp geçmedim, **koşturdum**:
+`pnpm db:seed` öncesi 6 satır, sonrası **6 satır**. Idempotent. Bulgu yok.
+
+**2 · Kalıntı sayımının kör noktası — kendi kuralımı kendime uyguladım.**
+§9/5 senaryosu arayüzden gerçek bir işlem yazıyor. `e2eKalintisi` (T-107b)
+yalnızca proje/mesaj/denetim sayıyordu; `Transaction` eklenmeseydi T-107b'de
+kapattığım kör noktanın aynısını kendim açmış olurdum — ve bu kez kalıntı
+**deftere düşen bir para kaydı** olurdu, aylık toplamı sessizce kaydırırdı.
+Sayıma eklendi ve senaryonun açıklama işareti `e2e` önekiyle başlıyor (T-107b
+sözleşmesi). Koşum doğruladı: `KALAN test izi: 0 (… işlem 0)`.
+
+---
+
+## ADVISORY-006 (braces) — durum değişmedi (T-107c)
+
+Yama yok (3.0.3), zincir aynı, §8.24 **EXIT 0**, **89 gün** kaldı. Deneyin
+geçerlilik koşulu (`settings.next.rootDir` ayarlı değil) korunuyor.
+
+---
+
 ## §8 Güvenlik Gereksinimleri — Durum Tablosu
 
-**Ölçüm tarihi:** 2026-10-11 · **Faz:** F4 (sürüyor) · **Son görev:** T-107b
+**Ölçüm tarihi:** 2026-10-12 · **Faz:** F4 (sürüyor) · **Son görev:** T-107c
 · **Dağılım:** ✅ 10 · ⚠️ 6 · ❌ 0 · ⏳ 9
 
 > T-054g'de dağılım DEĞİŞMEDİ ve bu bilinçli: denetim ekranı yeni bir yüzey
