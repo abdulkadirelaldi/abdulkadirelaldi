@@ -212,11 +212,15 @@ kartlarında da geçerli: çalışıyormuş gibi görünen hiçbir beyan bırak�
 ```
 /panel                    Dashboard — aylık gelir/gider, aktif işler, bugünün planı, sağlık özeti
 /panel/muhasebe           İşlem listesi, filtre, hızlı ekleme
+/panel/muhasebe/yeni · /[id]        işlem ekleme / düzenleme (T-104)
 /panel/muhasebe/raporlar  Aylık/yıllık grafik, kategori dağılımı, CSV/PDF dışa aktarım
 /panel/muhasebe/kategoriler
+/panel/muhasebe/kategoriler/yeni · /[id]   kategori ekleme / düzenleme (T-104)
 /panel/isler              İş kartları (kanban 5 kolon: aday → teklif → aktif → teslim → iptal, ADR-017)
+/panel/isler/yeni         iş ekleme (T-103)
 /panel/isler/[id]         İş detayı + bağlı ödemeler + müşteri
 /panel/musteriler
+/panel/musteriler/yeni · /[id]      müşteri ekleme / düzenleme (T-103)
 /panel/saglik             Kilo, uyku, su, ölçüm girişi + trend grafikleri
 /panel/spor               Antrenman kaydı, egzersiz kütüphanesi, PR takibi
 /panel/hayat              Alışkanlık takibi, hedefler, günlük

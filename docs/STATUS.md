@@ -1362,3 +1362,77 @@ açık:
 KDV ve stopaj **v1 kapsamı dışı** (ADR-014/B8, kullanıcı onaylı). `agreedAmount` brüt.
 
 **§9/5** (gelir kaydı → dashboard toplamı) F4'te kapanacak ve §9'un son açık maddesi.
+
+---
+
+## F4 faz kabul kontrolü (Orkestra Şefi, 2026-10-12)
+
+`main = 5934419` · **1757 birim + 101 E2E, 0 atlanan** · `src/server` %95,50
+
+### §9 — yedi senaryonun TAMAMI kapalı ⭐
+
+F3'e **2 kapalı** senaryoyla girildi, F4'ten **7/7** ile çıkılıyor. §9/5 dört tur
+bekledi ve `test.skip` kullanılmadan, yarım senaryo bırakılmadan kapandı. Bekleme
+kapısı üç kez tasarımı gereği öttü, sonra **gerileme kapısına** dönüştü.
+
+### §4.2'nin F4 rotaları — altısı da var
+
+`/panel/muhasebe` · `/raporlar` · `/kategoriler` · `/panel/isler` · `/isler/[id]` ·
+`/panel/musteriler` — artı on `/yeni` ve `/[id]` alt rotası. §4.2'ye **eklendiler**
+(kural: bir panel rotası, kabul edildiği turda §4.2'ye eklenir).
+
+### ⚠️ ÜÇ İŞLEVSEL BOŞLUK — F3'teki sınıfın aynısı
+
+F3'te `/panel/ayarlar`'ın üç bölümü "metin var, ekran yok" hâlindeydi. F4'ün
+boşlukları **ters yönde** ve bu yüzden daha sinsi: **yazılmış, test edilmiş,
+%100 kapsanmış — ama ulaşılamıyor.**
+
+| # | Boşluk | Ölçüm |
+|---|--------|-------|
+| 1 | **CSV dışa aktarım arayüze BAĞLI DEĞİL** | `export.ts` üç fonksiyon ihraç ediyor (`exportTransactionsCsv`, `exportCategoryBreakdownCsv`, `exportMonthlySummaryCsv`), **%100 satır kapsamı** — ama `src/app/(panel)` ve `src/components/panel` altında **hiçbir çağıran yok** |
+| 2 | **Print CSS yok** | PDF kararı "tarayıcı yazdırma" idi (ölçülmüş gerekçeyle: `ş Ş ğ Ğ ı İ` WinAnsi dışında, depoda yalnızca WOFF2 var). Backend sözleşmeyi yazdı, `print:` hiçbir yerde geçmiyor |
+| 3 | **`/panel/isler/[id]` bağlı ödemeleri LİSTELEMİYOR** | §4.2 "İş detayı + **bağlı ödemeler** + müşteri" diyor. Sayfa `fetchJobForPanel` + `fetchJobFinancials` + `fetchClientsForPanel` okuyor; dört **toplam** sayı var, **ödeme listesi yok** |
+
+**Üçünün ortak sınıfı:** §4.2 bir yetenek tarif ediyor, kod o yeteneği üretiyor, ve
+arada **kimse bağlamadı.** F3'ün dersi *"metin var, ekran yok"* idi; F4'ün dersi
+**"kod var, yol yok."** İkisi de aynı soruyu sormakla yakalanıyor: *§4.2'nin her
+cümlesi için kullanıcının izleyebileceği bir yol var mı?*
+
+**Üçü de Frontend'in** — Backend'in sunucu yüzeyi tamam.
+
+### Korunmayan iki ölçüm (Frontend bildirdi, kapı yok)
+
+1. **Tooltip Recharts varsayılanına dönerse** sayılar iki biçimde ayrışır
+   (`deger:number` geometri, `etiket:string` gösterim). Ölçüldü, korunmuyor.
+2. **`dynamic` → statik import** 109,5 kB'ı ilk yüke sokar ve **yalnızca
+   Lighthouse'ta** görünür. Ölçüldü, korunmuyor.
+
+### Açık kalemler
+
+| Kalem | Kim |
+|-------|-----|
+| `?month=99` → **500** · `src/lib/schemas/report.ts` geldi, rapor sayfası kullanmıyor (ADR-032: adres çubuğu kullanıcı girdisidir) | Frontend |
+| Yukarıdaki iki korunmayan ölçüm | Güvenlik |
+| `RecurringTransaction` çalıştırma (cron) — F4 boyunca kapsam dışı kaldı | karar bende |
+| **T-037 → R2** — F3'ten devreden borç | kullanıcı |
+
+### F4'te doğan kalıcı kurallar
+
+| | |
+|---|---|
+| **ADR-038/1b** | Anlık görüntü adı **tam yolu** taşır — `basename` çakışması kuralın koruduğu sınıfı kendi içinde yeniden üretiyordu |
+| **ADR-039** | Kategori türü ↔ işlem türü eşleşmek zorunda değil; uyuşmazlık **gizlenmez** |
+| §10.3 (2. kural) | Bir dersi taşırken **kapsamı** kontrol edilir; aynı değilse ders **soru** olarak taşınır, talimat olarak değil |
+| Backend'in kuralı | Hangi tarih yardımcısının kullanılacağını **sütunun tipi** belirler |
+| Backend'in kuralı | "Gelir" tek başına iki şeyi adlandırıyor — **isim esası söyler** (`collected`/`invoiced`, `net.cash`/`net.accrual`) |
+
+### F4'ün en pahalı dersi
+
+**Ateşlenmeyen bir kapı, kırmızıya dönen bir kapıdan daha kötüdür.** İki ajan aynı
+turda bunu kendi kapısında buldu: §9/5 yoklaması dört dosya **adını** elle sayıyordu
+ve `report.ts` listede olmadığı için halka hazır olduğu hâlde "yok" okumaya devam
+etti; Decimal dedektörünün deseni `JobPanelDto`'da eşleşmiyordu ve tarama **boş
+kümede yeşil** kaldı.
+
+Güvenlik'in kendi cümlesi dersin özü: *"aynı turda 'listeyi elle yazma, kaynaktan
+türet' yazmışım. **Kural yazmak, kurala uymak değil.**"*
