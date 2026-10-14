@@ -46,6 +46,8 @@
 | ADR-038 | Mutasyon anlık görüntüyle geri alınır; commit rapor başına | 2026-10-12 | Kabul edildi |
 | ADR-039 | Kategori türü ile işlem türü eşleşmek zorunda değil; uyuşmazlık gizlenmez | 2026-10-12 | Kabul edildi |
 | ADR-040 | `RecurringTransaction`: tetikleyici elle, cron sonra aynı eylemi çağırır | 2026-10-14 | Kabul edildi |
+| ADR-041 | Q1: panel `/panel` altında kalır — alt alan adı yalıtım sağlamıyor | 2026-10-14 | Kabul edildi |
+| ADR-042 | Q2: v1 de mail sağlayıcı yok — bildirimin amacı panel rozetiyle karşılanıyor | 2026-10-14 | Kabul edildi |
 
 ---
 
@@ -2213,3 +2215,138 @@ upsert edilir.**
   kontrolünün bulduğu *"kod var, yol yok"* sınıfının bilinçli hâli.
 - **Yalnızca servis yaz, çağıranı F7 de bağla** — **reddedildi**: Backend in
   itirazının tam hedefi bu ve itiraz haklı.
+
+
+---
+
+## ADR-041 — Q1: Panel `/panel` Altında Kalır (Alt Alan Adı Yok)
+
+**Tarih:** 2026-10-14 · **Durum:** Kabul edildi · **Kaynak:** Orkestra Şefi ölçümü
+**Kapatır:** Q1 (F0 den beri açık) · **İlgili:** ADR-013, §8.3, §8.12–14
+
+### Bağlam
+Q1 F0 da açılmıştı: panel ayrı bir alt alan adında mı (`panel.ornek.com`) yoksa
+`/panel` altında mı? Alt alan adı lehine standart argüman **köken yalıtımı**:
+public sitedeki bir XSS panele erişemez.
+
+### Ölçüm
+İki şey ölçüldü ve ikisi de argümanı çürütüyor.
+
+**1. Çerez host kapsamlı — `domain` niteliği YOK.**
+
+```
+src/server/auth.ts:69
+  name: useSecureCookies ? '__Secure-authjs.session-token' : 'authjs.session-token'
+  (domain niteliği verilmiyor)
+```
+
+Paneli alt alan adına taşımak iki seçenek bırakır ve ikisi de **kötü**:
+
+- `domain: '.ornek.com'` eklemek → çerez **her alt alan adına** açılır. Bu bir
+  güvenlik **kaybı**: bugün tek bir hosta bağlı olan oturum, yarın eklenecek
+  herhangi bir alt alan adından okunabilir hâle gelir.
+- Alt alan adı için **ayrı bir auth akışı** → iki kimlik sistemi, iki kat yüzey,
+  ve ADR-013 ün tek JWT stratejisinin terk edilmesi.
+
+**2. Tek bir Next uygulaması — yalıtım iddiası bu mimaride YOK.**
+
+Public site ve panel **aynı süreçte, aynı kod tabanında, aynı ara katmanla**
+çalışıyor. Alt alan adı yalnızca bir yönlendirme etiketi olurdu; XSS yüzeyi
+`src/app` ın tamamı ve o paylaşılıyor. Yalıtım ancak **ayrı dağıtımlar** ile
+gerçek olurdu ve bu, projenin dağıtım modelini (tek Coolify uygulaması, §13)
+baştan kurmak demek.
+
+### Karar
+**Panel `/panel` altında kalır.** Hâlihazırda çalışan hâl **doğru olan hâl**.
+
+- **Maliyet sıfır:** ek DNS kaydı yok, ikinci sertifika yok, ikinci uygulama yok.
+- **Güvenlik kaybı yok** — aksine, çerezi host kapsamlı tutmak alt alan adına
+  taşımaktan **daha dar**.
+- Korumanın gerçek yeri zaten ara katman + her Server Action ın kendi `auth()`
+  kontrolü (§8.6, ADR-035/B), ve o **alan adından bağımsız**.
+- `/panel` altındaki her rota `noindex, nofollow, nocache` taşıyor; arama
+  motorlarından gizlenme alt alan adı gerektirmiyor.
+
+### Sonuçlar
+- **Olumlu:** F7 bir alan adı, bir sertifika, bir uygulama ile ilerliyor.
+- **Olumlu:** `NEXT_PUBLIC_SITE_URL` tek bir değer; panel için ikinci bir taban
+  adresi yönetilmiyor.
+- **Olumsuz / kabul edilen:** Public site ile panel aynı kökeni paylaşıyor. Kabul
+  edildi, çünkü **alt alan adı bu mimaride onu değiştirmiyor** — yalnızca
+  değiştiriyormuş gibi görünüyor, ki bu daha kötü.
+- Gerçek yalıtım ileride istenirse gereken şey alt alan adı değil **ayrı dağıtım**;
+  o gün bu ADR yeniden açılır.
+
+### Alternatifler ve neden reddedildi
+- **`panel.ornek.com`, çerez `.ornek.com` kapsamlı** — **reddedildi**: güvenlik
+  kaybı, kazanç değil.
+- **`panel.ornek.com`, ayrı auth akışı** — **reddedildi**: iki kimlik sistemi,
+  ADR-013 ün terk edilmesi, ve ölçülmüş bir ihtiyaç yok.
+- **Ayrı dağıtım (gerçek yalıtım)** — **reddedildi (şimdilik)**: §13 ün tek
+  uygulama modelini ve F7 nin tamamını baştan kurmayı gerektirir. Tek kullanıcılı
+  bir panel için bu maliyet karşılıksız.
+
+---
+
+## ADR-042 — Q2: v1 de Mail Sağlayıcı YOK
+
+**Tarih:** 2026-10-14 · **Durum:** Kabul edildi · **Kaynak:** Orkestra Şefi ölçümü
+**Kapatır:** Q2 (F0 den beri açık) · **İlgili:** §2, T-038, T-041f, T-042s
+
+### Bağlam
+Q2: Resend mi SMTP mi? PROGRAM.md §2 mail i tek bir amaçla anıyor:
+
+> | Mail | Resend veya SMTP (sunucu) | **İletişim formu bildirimi** |
+
+### Ölçüm
+**1. Hiç mail kodu yok.** `src/` altında `resend`, `nodemailer`, `sendMail`, `smtp`
+geçen **tek bir dosya yok**. `.env.example` da yalnızca boş bir `RESEND_API_KEY`
+duruyor — F0 da ihtiyatla açılmış bir yer tutucu.
+
+**2. Bildirimin amacı ZATEN karşılanıyor.** T-038 ve T-041f mesaj kutusunu kurdu;
+dashboard `unreadCount` basıyor (ölçüldü) ve rozet **filtreden bağımsız**. Yani
+kullanıcı panele girdiği anda okunmamış mesajı **görüyor.**
+
+**3. Şifre sıfırlama mail e bağlı değil.** T-042s onu *"Q2 karara bağlanmadı, F7"*
+diye bırakmıştı — ama sistem **tek kullanıcılı** ve `totpBackupCodes` şemada
+duruyor (T-013a: 10 kurtarma kodu, argon2id ile hash li). Kurtarma yolu **zaten
+var** ve mail gerektirmiyor.
+
+### Karar
+**v1 de mail sağlayıcı kurulmaz.** PROGRAM.md §2 nin mail satırı *"v1 kapsamı
+dışı"* olarak işaretlenir; `RESEND_API_KEY` `.env.example` dan **kaldırılmaz**
+ama yanına gerekçe yazılır (boş bir anahtar, sonraki okuyucuya *"kurmayı unuttuk"*
+der).
+
+**Şifre sıfırlama v1 de yok ve kurtarma yolu kurtarma kodlarıdır.** Bu, kullanıcıya
+açıkça söylenir — `/giris` ekranında *"şifremi unuttum"* bağlantısı **konmaz**
+(T-018 in ölü düğme yasağı), yerine kurtarma kodlarının nerede olduğu yazılır.
+
+### Sonuçlar
+- **Olumlu:** Üçüncü taraf bağımlılığı yok, DNS kaydı (SPF/DKIM/DMARC) yok,
+  rotasyon gereken anahtar yok, teslim edilebilirlik riski yok.
+- **Olumlu:** F7 den bir kalem düşüyor ve §8 in saldırı yüzeyi **daralıyor** —
+  mail, dışarıya veri taşıyan bir kanaldır ve §8.20 kapsamına girerdi.
+- **Olumlu:** Maliyet gerçekten sıfır; Resend in ücretsiz katmanı da yeterdi ama
+  **kurmamak ondan da ucuz.**
+- **Olumsuz / kabul edilen:** Kullanıcı yeni mesajı ancak panele girdiğinde görür.
+  Kabul edildi: kişisel bir sitede günlük mesaj hacmi düşük, rozet ilk bakışta
+  görünür, ve alternatifi bir dış servise bağımlılık.
+- **Olumsuz / kabul edilen:** Kurtarma kodları kaybolursa erişim kaybolur. Kabul
+  edildi — ama bu mail ile de böyle olurdu (mail hesabı da kaybolabilir) ve
+  kurtarma kodları **offline** tutulabildiği için daha dayanıklı.
+
+### Yeniden açılma koşulu
+Mail, **ölçülmüş bir ihtiyaç** belirdiğinde eklenir: kullanıcı mesajları kaçırdığını
+söylerse, ya da ikinci bir kullanıcı eklenirse (o zaman şifre sıfırlama gerçek bir
+ihtiyaç olur). İkisi de bugün yok.
+
+### Alternatifler ve neden reddedildi
+- **Resend (ücretsiz katman)** — **reddedildi**: 3.000 e-posta/ay bedava ama
+  **ihtiyaç ölçülmemiş.** Domain doğrulaması için DNS kaydı, rotasyon gereken bir
+  anahtar ve bir dış arıza noktası getiriyor. Karşılığında bugün panelin zaten
+  verdiği bilgiyi veriyor.
+- **SMTP (barındırma hesabından)** — **reddedildi**: beş yapılandırma değeri,
+  paylaşılan hostun itibarına bağlı teslim edilebilirlik, ve aynı ölçülmemiş ihtiyaç.
+- **İkisini de kurup seçimi F7 ye bırakmak** — **reddedildi**: iki yarım entegrasyon,
+  §5.2 nin paket bütçesine ve §8 in yüzeyine iki kez ödeme.

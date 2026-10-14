@@ -59,7 +59,7 @@ gerçek zamanlı işbirliği, üçüncü taraf muhasebe entegrasyonu (e-fatura v
 | Form | react-hook-form + zodResolver | |
 | Grafik | Recharts | Panel grafikleri |
 | Dosya | Cloudflare R2 (S3 uyumlu) | Private bucket + imzalı URL |
-| Mail | Resend veya SMTP (sunucu) | İletişim formu bildirimi |
+| Mail | **v1 KAPSAMI DIŞI** (ADR-042) | İletişim formu bildiriminin amacı panelin okunmamış rozetiyle karşılanıyor (T-038/T-041f, dashboard `unreadCount`). Hiç mail kodu yazılmadı; `RESEND_API_KEY` boş yer tutucu olarak duruyor. Şifre sıfırlama da v1 de yok — tek kullanıcılı sistemde kurtarma yolu `totpBackupCodes` (T-013a). Ölçülmüş bir ihtiyaç belirirse yeniden açılır. |
 | Test | Vitest + Testing Library, Playwright | |
 | Lint | ESLint + Prettier + TypeScript strict | CI'da zorunlu |
 | Deploy | Kendi sunucu — Coolify + Docker | Bölüm 11 |
