@@ -45,6 +45,7 @@
 | ADR-037 | Bir istisnanın kendi gerekçesi de ölçülür | 2026-10-10 | Kabul edildi |
 | ADR-038 | Mutasyon anlık görüntüyle geri alınır; commit rapor başına | 2026-10-12 | Kabul edildi |
 | ADR-039 | Kategori türü ile işlem türü eşleşmek zorunda değil; uyuşmazlık gizlenmez | 2026-10-12 | Kabul edildi |
+| ADR-040 | `RecurringTransaction`: tetikleyici elle, cron sonra aynı eylemi çağırır | 2026-10-14 | Kabul edildi |
 
 ---
 
@@ -2142,3 +2143,73 @@ gösterir ve iki katman birbirini tutmaz.
   üretir.
 - **Uyuşmazlığı hiç yüzeye çıkarmamak** — **reddedildi**: `typeMismatch` olmadan
   kullanıcı rakama bakıp hatayı **veride** arar. T-102'nin ölçümü tam bunu gösterdi.
+
+
+---
+
+## ADR-040 — `RecurringTransaction`: Tetikleyici Elle, Cron Sonra
+
+**Tarih:** 2026-10-14 · **Durum:** Kabul edildi · **Kaynak:** Orkestra Şefi kararı
+**İlgili:** ADR-015 (`periodKey` idempotanslığı), ADR-030
+
+### Bağlam
+Altyapının tamamı hazır ve ölçülü: şema (`frequency`, `nextRunAt`, `isActive`),
+`createGeneratedTransactionSchema`, `buildPeriodKey`/`periodKeyForInstant`, ve
+idempotanslığın gerçek güvencesi `@@unique([sourceRecurringId, periodKey])`.
+
+**Eksik olan yalnızca servis ve tetikleyici.** Backend bunu F4 boyunca **üç kez**
+kapsam dışı bıraktı ve her seferinde aynı gerekçeyle:
+
+> *"`createGeneratedTransaction` servisi yazmak **çağıranı olmayan kod** olurdu —
+> T-040'ın en pahalı sınıfı, T-053'te `fetchAuditLogById` yazmama gerekçemin aynısı."*
+
+**Gerekçe doğru** ve bu projede üç kez ödenmiş bir ders. Ama sonucu bir çıkmaz:
+cron F7'de kurulacağı için servis F7'ye kadar yazılamaz; yazılmazsa şema F5 ve F6
+boyunca **ölü ağırlık** olarak durur.
+
+**Çıkmazı çözen gözlem:** itiraz *"servis yazmak"* değil **"çağıranı olmayan servis
+yazmak"**tı. Yani sorun servisin kendisi değil, **çağıranın cron olmak zorunda
+sanılması.**
+
+### Karar
+**Tetikleyici elle, panelden. Cron F7 de aynı eylemi çağırır.**
+
+- `/panel/muhasebe` üzerinde bir eylem: *"Tekrarlayan kalemleri işle"* —
+  `nextRunAt` geçmiş ve `isActive` olan kalemleri işler.
+- Servisin **gerçek bir çağıranı** var, yani ölü kod değil; itiraz karşılandı.
+- Özellik **bugün kullanılabilir**: kullanıcı ayın başında düğmeye basar.
+- F7 de cron (`T-073` ile aynı dağıtım turu) **aynı eylemi** çağırır — yeni kod
+  değil, yeni bir tetikleyici.
+
+**İdempotanslık zorunlu ve zaten kurulu:** `@@unique([sourceRecurringId, periodKey])`.
+Düğmeye iki kez basmak ikinci bir kayıt üretmez. **Elle tetiklemeyi güvenli kılan
+şey bu** — cron bir kereliktir, elle tetiklemede kullanıcı iki kez basabilir.
+
+**Yıl sınırı bağlayıcı (T-108g ölçümü):** `buildPeriodKey` dört basamaklı yıl
+varsayıyor; yıl 10000 un `YEARLY` anahtarı yıl 1000 ile **çakışıyor** ve
+idempotanslık o anahtara dayandığı için **bir dönemin kaydı başkasının üzerine
+upsert edilir.**
+
+### Sonuçlar
+- **Olumlu:** Şema ölü ağırlık olmaktan çıkıyor, özellik v1 de **çalışıyor.**
+- **Olumlu:** Backend in "çağıranı olmayan kod" ilkesi **esnetilmedi** — karşılandı.
+- **Olumlu:** F7 de yapılacak iş yalnızca bir zamanlanmış görev tanımı; mantık
+  ölçülmüş ve kullanımda olacak.
+- **Olumsuz / kabul edilen:** Kullanıcı düğmeye basmayı unutursa kalem düşmez.
+  Kabul edildi: geçici hâl, ve **sessiz değil** — gecikmiş kalem sayısı ekranda
+  görünür olmalı (*"3 kalem işlenmeyi bekliyor"*).
+- **Olumsuz / kabul edilen:** `nextRunAt` ilerletme mantığı elle tetiklemede de
+  doğru olmalı; cron un "her gün bir kez" varsayımı yok.
+
+### Alternatifler ve neden reddedildi
+- **F4 e cron ekle** — **reddedildi**: cron un çalışacağı yer sunucu ve o F7 de
+  kuruluyor; şimdi yazmak çalıştırılamayan bir zamanlayıcı bırakırdı.
+- **F7 ye tamamen taşı** — **reddedildi**: şema F5 ve F6 boyunca ölü ağırlık kalır,
+  ve F7 de hem mantık hem tetikleyici aynı turda yazılır — yani mantık **ilk kez
+  dağıtım turunda** ölçülür. Bu projenin en kaçındığı sıralama.
+- **v1 kapsamı dışı ilan et** — **reddedildi**: şema, Zod şemaları, `periodKey`
+  üreticisi ve tekillik kısıtı **zaten yazılı ve test edilmiş.** Kapsam dışı ilan
+  etmek, ölçülmüş çalışan altyapıyı erişilemez bırakmak olurdu — F4 kabul
+  kontrolünün bulduğu *"kod var, yol yok"* sınıfının bilinçli hâli.
+- **Yalnızca servis yaz, çağıranı F7 de bağla** — **reddedildi**: Backend in
+  itirazının tam hedefi bu ve itiraz haklı.
