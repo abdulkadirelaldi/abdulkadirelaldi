@@ -19,7 +19,16 @@ import { ThemeToggle } from '@/components/ui/theme-toggle';
  */
 export function Topbar({ title, actions }: { title: string; actions?: ReactNode }) {
   return (
-    <header className="border-line bg-canvas/85 sticky top-0 z-40 border-b backdrop-blur-md">
+    /*
+      `data-yazdirmada-gizle` — panel kabuğu KÂĞITTA YOK. Üst çubuk gezinme,
+      tema düğmesi ve kırıntı yolu taşıyor; hiçbiri basılı bir rapora ait
+      değil. Dönem bilgisi kartların kendi başlıklarında yazılı, o yüzden
+      çubuğu gizlemek kâğıttan bilgi EKSİLTMİYOR.
+    */
+    <header
+      data-yazdirmada-gizle
+      className="border-line bg-canvas/85 sticky top-0 z-40 border-b backdrop-blur-md"
+    >
       <div className="flex h-16 items-center gap-3 px-4 lg:px-6">
         <MenuDugmesi />
 

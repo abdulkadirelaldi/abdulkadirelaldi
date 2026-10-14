@@ -86,8 +86,13 @@ export function Sidebar() {
 
   return (
     <>
-      {/* MASAÜSTÜ — her zaman açık, çekmece durumunu hiç okumaz. */}
-      <aside className="border-line bg-surface hidden w-60 shrink-0 border-r lg:block">
+      {/* MASAÜSTÜ — her zaman açık, çekmece durumunu hiç okumaz.
+          `data-yazdirmada-gizle`: menü kâğıtta hem anlamsız hem de 240 px'i
+          içerikten çalıyor (A4'te içerik alanı ~688 px). */}
+      <aside
+        data-yazdirmada-gizle
+        className="border-line bg-surface hidden w-60 shrink-0 border-r lg:block"
+      >
         <div className="sticky top-0 flex h-dvh flex-col gap-6 overflow-y-auto p-4">
           <Link
             href="/panel"
@@ -102,7 +107,7 @@ export function Sidebar() {
 
       {/* MOBİL ÇEKMECE — kapalıyken DOM'da yok; açık değilken odak tuzağı da yok. */}
       {acik && (
-        <div className="fixed inset-0 z-50 lg:hidden">
+        <div data-yazdirmada-gizle className="fixed inset-0 z-50 lg:hidden">
           <button
             type="button"
             aria-hidden="true"

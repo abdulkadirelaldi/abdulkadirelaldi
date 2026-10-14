@@ -75,6 +75,7 @@ açığın ayrıntısı artık saldırgana bir şey kazandırmaz.
 | 2026-08-12 | T-029a | Lighthouse'a masaüstü + koyu profil (WebGL yolu), üç durumlu WebGL doğrulaması, koşu değişkenliği kararı | **BULGU-010 açıldı**: WebGL yolu hiçbir CI koşusunda ölçülmüyordu. Profil kuruldu ve doğrulandı; ölçüm T-021'in hero'yu bağlamasını bekliyor (kontrol kendi kendine zorunlu hâle geliyor). Değişkenliğin **ilk koşuya** ait olduğu ölçüldü; `numberOfRuns` 5, `aggregationMethod` açıkça medyan. |
 | 2026-08-17 | T-029d | Ölçüm yüzeyi dışındaki SEO/OG rotaları (BULGU-015) | **BULGU-015 kapandı** — `tests/e2e/seo-routes.spec.ts`: robots.txt, sitemap.xml, rss.xml, `/og` ve `/og/proje/<slug>` artık her koşumda isteniyor. PNG imza baytlarından, XML gerçek ayrıştırıcıyla doğrulanıyor. Kapsam iki katmanlı: sözleşme testleri + sitemap taraması (yeni sayfa kendiliğinden kapsanır). Mutasyonla kanıtlandı: düzeltme öncesi font aynı render yolunda BULGU-014'ün `TypeError`'ını veriyor. **BULGU-016 açıldı** — sitemap üç adet 404 adresi bildiriyor. |
 | 2026-08-16 | T-029c | Ölçüm işinin veri kurulumu (BULGU-013) + §8.24 haftalık zamanlayıcı | **BULGU-013 açıldı ve düzeltildi**: `lighthouse` işi ayrı koşucuda `services:` bloğu olmadan koşuyordu; ADR-026 sonrası `/` 500 dönüyor, üç profil düşüyor, artifact üretilmiyordu. Kendi Postgres'i kuruldu (yol **a**). İki yeni nöbet: ölçüm ön koşulu ve ayırt edicide durum kodu kontrolü — ikincisi olmadan arıza "⏳ BEKLEMEDE" diye yeşil görünüyordu. §8.24 artık **haftalık** de koşuyor (`17 6 * * 1`). |
+| 2026-10-14 | T-108g | İki korunmayan ölçüm, ulaşılabilirlik bildirimi, yıl sınırının sebebi, F5 öncesi ⏳ envanteri | **Ağır yığın kapısı GENELLEŞTİRİLDİ** (`agir-yigin-tembel.test.ts`): iki halka birlikte ölçülüyor — paketi yalnızca bildirilen bileşen içe aktarıyor VE o bileşen hiçbir yerde statik içe aktarılmıyor; biri olmadan diğeri yeşil kalırdı. ⚠️ **Sayım iddiası listemdeki en pahalı eksiği buldurdu:** bildirimi iki yığınla yazmıştım, kapı ÜÇÜNCÜ tembel sınırı gösterdi — `reactbits/lazy.tsx`, yani BULGU-018'de TBT'yi 80 ms → 9.990 ms yapan `ogl` yığını. Sayım sonra HEDEF tanecikli yapıldı çünkü dosya taneciklinin kör noktası vardı (`lazy.tsx` altı hedef taşıyor, yedincisi görünmezdi); 13 hedef bildirimli, üçü ağır (ölçümleriyle), onu "ağır değil" envanterinde, ağırlığı BİLİNMEYEN hiçbir kovaya yazılmıyor. MDX'te "tek içe aktaran" kuralı UYGULANAMADI ve sebebi yazılı (zincir iki adımlı, paketin ikinci meşru içe aktaranı public blog sunucu bileşeni). Chunk kimliğini (`6311`) iddiaya yazmayı DENEDİM ve reddettim: kimlik her derlemede değişir, kapı yanlış sebeple kırmızıya döner ve "kapıyı güncelle" alışkanlığı söylediğini önemsizleştirir. **Tooltip kapısı** (`grafik-tooltip.test.ts`): `content` propu kaldırılırsa Recharts varsayılanı `dataKey`in HAM SAYISAL değerini yazar (`85625` — kuruş, ayırıcı, para birimi yok) ve ekranın geri kalanı `etiket` bastığı için AYNI SAYFADA iki para biçimi oluşur. Kapıyı yazarken SAHTE POZİTİF ürettim: gövde sınırını "sonraki `\nfunction`" ile arıyordum, sonraki tanım `export default function` olduğu için gövde grafiğin içine uzadı ve meşru `dataKey="gelir.deger"` satırları "tooltip deger basıyor" diye okundu — sahte pozitif, sahte negatif kadar pahalı (kapıyı gevşetmeye davet eder); sınır artık kapanış ayracına bağlı. **"KOD VAR, YOL YOK" ölçüldü ve kapı BİLDİRİM olarak kuruldu** (`servis-ulasilabilirlik.test.ts`): kör dedektör 183 ihraçtan 37'sini işaretledi ve çoğu MEŞRU (`build*Where` kendi dosyasında çağrılıyor, dışa açılma sebebi doğrudan birim testi) — 37 uyarı veren kapı kurulmaz, susturulur. Doğru soru "kendi dosyası DAHİL hiç çağrılmıyor mu" olunca 10 kaldı: 6 BEKLEYEN (F5 yardımcıları), 4 BAĞLANMAMIŞ (CSV — kabul kontrolünün bulduğu sınıf). İkisini mekanik ayırmak MÜMKÜN DEĞİL ve iddia edilmiyor; fark NİYETTE (T-053'te `fetchAuditLogById`yi YAZMAMA kararı tam bu sınıftı). Kapı iki yönlü: bildirilmeyen ulaşılmaz kırmızı, bağlanınca ölen satır da kırmızı; `baglanmamis` kümesinin SAYISI kilitli (büyümesi gerileme işareti). Dört CSV satırının T-108f'te ölmesi BEKLENİYOR. **Yıl sınırının SEBEBİ kapıya bağlandı** (`donem-yil-siniri.test.ts`): `buildPeriodKey` anahtarı DİZE DİLİMLEMESİYLE kuruyor, yani dört basamak varsayıyor ve bozulduğunda hata vermiyor — ölçtüm: yıl 99 → `99-05-0`/`99-0` bozuk, ⚠️ yıl 10000 → yıllık anahtar **`1000`**, yani MEŞRU yıl 1000 ile ÇAKIŞIYOR ve ADR-015 idempotanslığı o anahtara dayandığı için bir dönemin kaydı başkasının üzerine upsert edilir (sessiz veri kaybı, defterde). Yani `1000–9999` keyfî değil, dilimlemenin doğru kaldığı TAM aralık; kapı ayrıca önermeyi (hâlâ dilimleme mi) izliyor. `?yil=99` davranışı YAZILMADI — sayfa şemayı henüz bağlamadı ve kendi ölçümü daha kötüsünü söylüyor (200 dönüyor ama 2026 verisi gösteriyor); ölü kapı yazmadım, ⏳ T-109. **F5 öncesi ⏳ envanteri: 9 → 6.** İki satır BAYAT çıktı — §8.2 argon2id F1'de uygulanmış (`19_456`/`timeCost: 3`) ama ⚠️ KAPISI YOKTU (testler bilerek zayıf yapılandırma kullanıyor, üretim değerleri takımda hiç görünmüyordu) → `argon2-parametreleri.test.ts` kuruldu, SAYIYI değil TABANI ölçüyor; §8.9 `rehype-sanitize` hem uygulanmış hem kapılıydı → ✅. 11/16 gerçekten bekliyor (ölçtüm: `attachment.ts` yalnızca referans doğrulaması, R2/imzalı URL/boyut sınırı yok) ve faz etiketleri güncellendi; 21–23 yedekler T-066'da ve uyarı artık DAHA ACİL çünkü defterde gerçek para verisi var. **ADVISORY-006** değişmedi, §8.24 EXIT 0. Birim 1799/1799. |
 | 2026-10-12 | T-107c | §9/5 senaryosu, arşivli bağ kapısı, ADR-039 görünürlük zinciri | **§9/5 KAPANDI — §9'UN TAMAMI YEŞİL (7/7).** Dördüncü halka geldi, bekleme kapısı 1→3→4 diye üç kez tasarımı gereği öttü ve senaryo TEK PARÇA yazıldı (`panel-gelir-rapor.spec.ts`, iki projede yeşil): akış muhasebe listesindeki "Yeni işlem" bağlantısından başlıyor (T-039 — Action'a elle POST YOK), ölçüm DELTA (rapor ekranındaki "Tahsil edilen" önce/sonra, fark = girilen tutar). **Senaryo yazılırken ÜÇ kusur koşturarak bulundu, hiçbiri varsayımla görülemezdi:** (1) liste `description` sütunu BASMIYOR — çapa ayırt edici tutara çevrildi, açıklama temizlik işareti olarak kaldı; (2) ⚠️ **PARA TESTİNDE 100 KAT SAPMA**: beklentiyi `kurusaCevir(TUTAR)` ile üretiyordum, o Türkçe biçim okuyor (nokta=binlik) ama `TUTAR` makine biçimi (nokta=ondalık) → `13.374.200` kuruş beklendi, gerçek delta `133.742`; yani ÖLÇÜM DOĞRU, BEKLENTİM YANLIŞTI — ADR-014'ün sınıfı test kodunda, üç temsil artık ayrı sabitlerde ve karşılıkları ÖLÇÜLÜYOR; (3) `fullyParallel` iki projeyi AYNI AYA yazdırıyordu ve biri diğerinin kaydını sayıyordu → yalıtım AYLA sağlandı (her proje kendi ayı, geçmiş yıl → ölçüm MUTLAK, "önce 0" ay süzgecini de kanıtlıyor); ayrıca önkoşulu ayrı bir `test()` yazmak onu başka worker'a attırıp "0 sildi" hatası ürettiği için ana teste alındı. Bekleme kapısı artık GERİLEME kapısı: zincir çözülürse ve senaryo silinirse/Action'a POST'a çevrilirse söylüyor. **ARŞİVLİ BAĞ KAPISI kuruldu** (`panel-arsivli-bag.spec.ts`, 2/2): Frontend kusuru iki turda iki kez bildirip çözmüştü ama kapı yoktu. `<select>` eşleşmeyen değerde ilk seçeneğe düşüyor ve bu YALNIZCA GERÇEK TARAYICIDA ölçülebilir — birim testi `value` prop'unu okur, tarayıcının onu ATTIĞINI görmez. İki vaka tek paket (aynı kalıp) ama riskleri ayrı yazılı: müşteri opsiyonel → bağ kopar (veri kaybı), kategori ZORUNLU → ilk seçenek her zaman geçerli bir kategori, kayıt yanlış kırılıma düşer (defter bozulur, hiçbir alan boşalmadığı için daha sinsi). Her vaka seçili değeri, `(arşivli)` işaretini ve SEÇİCİYE DOKUNMADAN kaydetmenin bağı bozmadığını ölçüyor — kalıcılık formu YENİDEN AÇARAK doğrulanıyor. **ADR-039 görünürlük zinciri kapısı** (`adr-039-gorunurluk.test.ts`): Backend `typeMismatch`i servis DTO'su düzeyinde ölçüyordu, ama zincir üç halkalı (DTO → `rapor-veri.ts` eşlemesi → rozet) ve ORTADAKİ halka kapısızdı — kaldırılsa bütün iddialar yeşil kalır, kullanıcı uyuşmazlığı HİÇ görmez. Üç halka ölçülüyor, susturan biçimler (`uyusmazlik && false`) yasak, seçicide tür yazılı olması kilitli; sınır dürüstçe yazılı (kaynak taraması, CSS ile gizlenmiş rozeti görmez). Üçüncü gereksinim (yumuşak uyarı) BUGÜN YOK ve ADR zorunlu saymıyor → ölü kapı yazılmadı, yazıldığı günkü kapısı kayda geçti (gönderimi engellememek). **İki şey ölçülüp BULGU AÇILMADI:** (a) `seed_` kimliği olmayan 890 TL'lik işlem satırı — ADR-015 tekrarlayan üretimi, `(sourceRecurringId, periodKey)` bileşik anahtarıyla upsert; koda bakıp geçmedim, KOŞTURDUM: seed öncesi 6, sonrası 6 → idempotent; (b) kalıntı sayımına `Transaction` eklendi — eklenmeseydi T-107b'de kapattığım kör noktayı kendim açmış olurdum ve kalıntı bu kez DEFTERE düşen bir para kaydı olurdu. **Kendi 8. dalım öttü:** yeni paketler "kapsanmiyor" diyen üç rotayı geziyordu → `kapilar`/`kanit` güncellendi (`not` metnine dokunulmadı, ADR-036). **ADVISORY-006:** değişmedi, §8.24 EXIT 0, 89 gün. Birim 1757/1757, E2E **101/101** (95→+6), kalıntı 0. |
 | 2026-10-11 | T-107b | F4 rapor hesaplayıcılarının denetimi, tarih öncülü kapısı, E2E kalıntı ölçümü, §9/5 yeniden değerlendirme | **Kartın bir talimatı YANLIŞTI ve ölçüm reddetti:** kart `appDayStartInstant` kullanılmasını istiyordu, Backend ölçümle itiraz etmişti, bağımsız doğruladım — `appDayToDate` 1–31 Mart verirken `appDayStartInstant` **28 Şubat 21:00 – 30 Mart 21:00** veriyor, yani Şubat'ı içine alıp **31 Mart'ı tamamen düşürüyor** (sapma tam 3 saat, İstanbul UTC+3). Sebep: `Transaction.date` bir `@db.Date` sütunu — takvim günü. Backend'in `rapor.test.ts`i (50+ iddia) ay sınırını, kategori gruplamasını ve isimlendirmeyi zaten kapsıyor; DENETLENDİ, doğru ve yeterli — paralel kapı yazmak çiftlenmenin kendisi olurdu. **Ölçülmeyen şey KARARIN ÖNCÜLÜYDÜ:** o testler taklit istemci kullanıyor, şema hiç devreye girmiyor; sütun düz `DateTime`a çevrilse `appDayToDate` anında yanlış araç olur ve elli iddianın HİÇBİRİ kırılmaz. **`tarih-sutun-eslesmesi.test.ts`** kuruldu: her bildirilen eşleşmenin sütun tipini şemadan doğruluyor, yanlış pencereyi SAYILARLA iddia ediyor (kısıtın neden var olduğu da ölçülü) ve bildirilmeyen servisin tarih yardımcısı kullanmasını yasaklıyor. Kapı kurulurken kırmızıya döndü ve üç servisi daha okumaya zorladı: `transaction.ts` + `experience.ts` (yazma yönünde dönüşüm) bildirildi, `_shared/stats.ts` muaf — `fullYearsBetween` yardımcıyı SORGU için değil TAKVİM DOĞRULAMASI için çağırıyor, dönüş değeri kullanılmıyor bile. **Kapı kendi uydurduğum muafiyeti sildirdi:** `period-key.ts`i ölçmeden muafiyete yazmıştım, o dosya hiç tarih yardımcısı kullanmıyor — muafiyet doğduğu anda ÖLÜYDÜ ve "ölü muafiyet" iddiası satırı sildirdi. F5'te 13 `@db.Date` sütunu bekliyor, kapı onları da kapsıyor. **(a)/(b) Backend kartın istediğinden iyi çözmüş:** kategori dağılımı işlemin kendi türüne göre gruplanıyor ve `typeMismatch` DTO'da YÜZEYLENMİŞ; "gelir" adı çıplak DEĞİL — `income.collected` (nakit) / `income.invoiced` (tahakkuk), netler `net.cash`/`net.accrual`, çapraz esas karışımı yapısal olarak imkânsız. Decimal yüzey sayımım `report.ts`in dört yüzeyini de gördü ve dördü doğrudan iddiaya bağlı çıktı. **E2E TEMİZLİK RAPORU YANLIŞ ŞEYİ ÖLÇÜYORDU:** "artık proje: 0, mesaj: 1" sayıları SİLİNEN satırlardı, etiket KALAN diyordu; tablo gerçekten boştu (bağımsız doğruladım: `e2eKalintisi` → toplam 0). Kozmetik değil, çünkü silinen sayısı **hem ortam temizken hem süpürme YANLIŞ ÖNEĞİ ararken 0 çıkar** — T-016'nın izolasyon güvencesi kendisini çürütemeyen bir ölçüme dayanıyordu. Kör nokta somut: süpürme `e2e-t039` arıyor, T-054g sondası `E2EDenetimSondasi` yazıyor ve süpürme onu HİÇ görmüyor. **EYLEM ile DURUM ayrıldı:** `e2eKalintisi` üç tabloda `e2e`/`E2E` ile başlayan KALAN satırları sayıyor (harf duyarsız), teardown ikisini ayrı basıyor ve kalıntıda FIRLATIYOR (ADR-030: kalıntı bir sonraki koşumda seed sanılır). `e2e-kalinti-kapisi.test.ts` gerilemeyi engelliyor. **§9/5 hazır halka 1 → 3:** ekran (T-104), yazma yolu, aylık toplam servisi (T-102) geldi; eksik olan TEK şey toplamın bir ekrana ulaşması — muhasebe ekranının `toplam`ı SATIR SAYISI, para toplamı değil (ölçüldü). Beklenen sayı Güvenlik kararıyla 3'e çekildi. ⚠️ **Kapının yoklamasında kendi yazdığım kör nokta çıktı:** dört servis dosyası adını ELLE saymıştım, `report.ts` listede olmadığı için halka hazır olduğu hâlde kapı "yok" okumaya devam ediyordu — ateşlenmeyen kapı, kırmızıya dönenden KÖTÜDÜR. Aynı turda (T-107a) "listeyi elle yazma, kaynaktan türet" yazmışım; kural yazmak kurala uymak değil. Bir mutasyon testim de negatif örneğini `muhasebe/page.tsx`in YOKLUĞUNA bağladığı için halka gelince kırıldı → sentetik yola çevrildi. **Senaryo bu turda YAZILMADI ve gerekçesi:** e2e koşumu bende değil, koşturulamayan bir paket doğrulanmamış bir kapıdır (BULGU-016'nın tersi hatası). **BULGU-024 KAPANDI** ve istisnayı kapının kendisi sildirdi; liste boşalınca iki mutasyon testim `ISTISNALAR[0]?.yol ?? ''` yüzünden sessizce anlamını yitirecekti → sentetik yola bağlandı. **ADVISORY-006:** yama yok, zincir aynı, deney yeniden koşturuldu (EXIT 0), §8.24 EXIT 0, 90 gün; braces md5 birebir geri geldi (ADR-038 anlık görüntüsüyle). ⚠️ `pnpm test:e2e` bu turda **koşturulmadı** — Orkestra Şefi koşturuyor; teardown değişikliği ilk koşumda görünecek. |
 | 2026-10-11 | T-107a | F4 para kapılarının denetimi, çiftlenme sınıfının kapısı, §9/5 açık beklemesi | **`baseAmount` kapıları GERÇEK kapı:** koşulsuz yeniden türetme koşullu yapıldı → `updateJob` 2, `updateTransaction` 6 iddia kırmızı; beklenen `100000.00`, gelen `85625.00` — 14.375 TL sapması birebir. **`Decimal` dedektörü kusurlu DEĞİL, çağrı yerleri eksikti:** `Decimal` modellerine dokunan servislerde 12 DTO yüzeyinden 6'sı iddiaya bağlı değildi ve ALTISI DA YAZMA YOLU. Sızıntı yok çünkü yazma yolları okumanın eşleyicisini paylaşıyor — ama PAYLAŞIMI HİÇBİR ŞEY ÖLÇMÜYORDU (ADR-037: yazılı bir çıkarım). **`decimal-yuzey-sayimi.test.ts`** kuruldu: yüzey listesi ŞEMADAN türetiliyor (ilk denemem DTO kaynaklarından çıkarmaktı ve ölçtüm — iç içe alan taşıyan `JobPanelDto`yu sessizce atlıyordu); kapalılık ya doğrudan iddiayla ya PAYLAŞILAN EŞLEYİCİNİN KAYNAKTAN ÖLÇÜLMESİYLE sağlanıyor. **Kapı F5'i kendiliğinden kapsıyor** — `Decimal` yalnızca para değil (`HealthLog.weightKg`/`sleepHours`/`bodyFatPct`, `WorkoutSet`, `PersonalRecord`) ve bu kapsam ayrı bir iddiayla kilitlendi. Kapıyı yazarken KENDİ KAPIMDA bir vakum çıktı: dönüş tipi deseni `\\bDto\\b` idi ve `JobPanelDto`da hiç eşleşmiyordu → tarama SIFIR yüzey bulup boş kümede yeşil kalmıştı; sentetik mutasyon testi yakaladı (çapayı modeller/servisler/iddialar için yazmıştım, SAYIMIN KENDİSİ için yazmamıştım). Gerçek ağaçta koşturmak üç sahte pozitif gösterdi: iki değişken dolaylaması (çözüldü) ve `convertMessageToJob` (para alanı hiç taşımıyor → gerekçeli muafiyet, ölü satıra ve asılsız gerekçeye karşı mekanik sınanıyor). **Çiftlenme sınıfı:** Backend'in `para-tek-tanim.test.ts`i DENETLENDİ — iddiaları doğru, deseni silinen kopyanın gerçek metnine karşı sınanmış; kapsamadığı şey LİSTESİNİN SABİT olması (dört para adı). **`saf-yardimci-tek-tanim.test.ts`** sınıfı kapatıyor: saf `_shared` modülleri ve ihraçları TÜRETİLİYOR, "saf" ölçütü ÖLÇÜLÜYOR (`^import` yok) ve sınıfın kökü tam orada — saf modül her yerden okunabilir, kopyanın teknik mazereti yok. Desen dört tanım biçimini tanıyor (sınıf metodu + nesne özelliği eklendi). ⚠️ **Kapı AD çiftlenmesini ölçüyor, KURAL çiftlenmesini değil — ve bu çıkarımın yanlışlığı VARSAYILMADI, ÖLÇÜLDÜ:** BULGU-024 açıldı, `personal-record.ts` `compareDecimalStrings` adıyla ölçeklemeyi yerel yapıyor; davranışsal hata yok, SEBEBİ YENİ BİLGİ: `money.ts` `toScaledInt`i ihraç etmiyor, yani kopya dikkatsizlik değil kanonik modülün eksiği. İkinci blok ADA DEĞİL BİÇİME bakıyor (`BigInt` izi yalnızca `money.ts`te + gerekçeli istisna, üçüncü dosyada kırmızı). **Mutasyon kanıtları SENTETİK:** her iki kapının çekirdeği saf yapıldı, çünkü dosyadan okuyan bir kapıyı mutasyonla sınamak ADR-038'in doğduğu olayın ta kendisiydi — artık kimsenin dosyasına dokunulmuyor ve kanıt CI'da her koşumda yeniden üretiliyor. **§9/5 AÇIK BEKLEME kapıya bağlandı** (`senaryo-9-5-bekleme.test.ts`): 4 halkadan 1'i hazır (`createTransactionAction`), ekran/aylık toplam/dashboard kartı T-104-T-105 bekliyor; `appMonthRange`in HİÇ ÇAĞIRANI YOK diye ölçüldü. Kapı halka geldiği gün kırmızıya döner, hazır halka SAYISINI kilitliyor ve yoklama kendi kendini doğruluyor (hazır olan halkanın `true` çıkması ayrıca iddia ediliyor). **ADVISORY-006 gözden geçirildi:** yama yok, zincir aynı, deneyin geçerlilik koşulu (`rootDir` ayarlı değil) korunuyor, deney YENİDEN KOŞTURULDU → `pnpm lint` EXIT 0, kod yolu hâlâ koşmuyor; §8.24 EXIT 0, 90 gün. ⚠️ **ADR-038'i doğuran olay bu turda benim hatamdı** ve envanterim de hatalıydı (üç saydım, dört vardı) — düzeltmeler ilgili bölümde. ⚠️ **`pnpm test:e2e` bu turda koşturulmadı** (kullanıcı reddetti); üç kapı da birim düzeyinde ve e2e yüzeyine dokunmuyor. |
@@ -4538,10 +4539,215 @@ geçerlilik koşulu (`settings.next.rootDir` ayarlı değil) korunuyor.
 
 ---
 
+## İki korunmayan ölçüm kapıya bağlandı — ve sınıf genelleştirildi (T-108g)
+
+Frontend iki ölçümü kendisi bildirdi; ikisi de doğruydu, ikisi de **sessiz
+kırılır** durumdaydı.
+
+### (a) Ağır yığınlar — TEK kapı, üç yığın
+
+Kart "genelleştirilebilir mi" diye sordu. **Evet.** İki tembelleştirme aynı
+kalıbı kullanıyordu (`dynamic(() => import(...))`) ve kural ikisine de aynı
+uygulanıyor. `tests/unit/agir-yigin-tembel.test.ts` iki halkayı birlikte
+ölçüyor:
+
+1. Ağır npm paketini **yalnızca** bildirilen bileşen içe aktarıyor
+2. O bileşen **hiçbir yerde statik** içe aktarılmıyor, yalnızca `dynamic`
+
+İkisi birlikte gerekli: yalnızca (2) ölçülse paketi doğrudan içe aktaran yeni
+bir bileşen yığını ilk yüke sokar ve kapı yeşil kalır; yalnızca (1) ölçülse
+`dynamic` statiğe çevrilir ve kapı yine yeşil kalır.
+
+#### ⚠️ Sayım kapısı, listemdeki en pahalı eksiği buldurdu
+
+Bildirimi iki yığınla yazdım (Recharts + MDX). Sayım iddiası kırıldı ve
+**üçüncü bir tembel sınır** gösterdi: `src/components/reactbits/lazy.tsx` —
+yani **`ogl`**, BULGU-018'de TBT'yi **80 ms → 9.990 ms** yapan yığın.
+Projenin en pahalı yığınını listeden atlamıştım; kapının kendi mekanizması
+yakaladı.
+
+Sayım sonra **hedef tanecikli** hâle getirildi, çünkü dosya tanecikli hâlinin
+kör noktası vardı: `lazy.tsx` altı hedef taşıyor, yani o dosyaya eklenen
+yedinci bir hedef sayımı hiç değiştirmezdi. Bugün 13 hedef bildirimli —
+üçü ağır (ölçümleriyle), onu "ağır değil" envanterinde. Ağırlığı **bilinmeyen**
+bir hedef hiçbir kovaya yazılmıyor.
+
+MDX için "tek içe aktaran" kuralı **uygulanamadı** ve sebebi yazılı: zincir iki
+adımlı (`mdx-onizleme` → `public/mdx` → `next-mdx-remote/rsc`) ve paketin
+ikinci meşru içe aktaranı var — public blog sunucu bileşeni onu kullanmak
+zorunda. Kuralı oraya zorlamak, ölçmeden varsaymak olurdu; muafiyet gerekçeli
+ve gerekçenin uzunluğu bile ölçülüyor.
+
+**Sınır dürüstçe:** kapı KAYNAK düzeyinde — "tembellik sınırı duruyor" diyor,
+"yığın ilk yükte yok" demiyor. Chunk kimliğini (`6311`) bir iddiaya yazmayı
+**denedim ve reddettim**: kimlik her derlemede değişebilir, kapı bir gün yanlış
+sebeple kırmızıya döner ve "kapıyı güncelle" alışkanlığı kapının söylediğini
+önemsizleştirir. Paket boyutu §9'un Lighthouse bütçesine bağlı; bu kapı onun
+**öncülünü** koruyor.
+
+### (b) Tooltip — gösterilen sayı `etiket`ten gelir
+
+Veri noktası iki alan taşıyor: `deger: number` **yalnızca geometri** (ekranda
+hiç yazılmıyor) ve `etiket: string` **gösterilen her yer**. Gerilemenin biçimi
+çok ince: `<Tooltip content={<TooltipIcerik />} />` içindeki `content` propu
+kaldırılırsa Recharts'ın varsayılan tooltip'i `dataKey`in **sayısal** değerini
+yazar —
+
+```
+paraBicim  → "₺85.625,00"
+varsayılan → "85625"        (kuruş yok, ayırıcı yok, para birimi yok)
+```
+
+— ve ekranın geri kalanı `etiket` basmaya devam ettiği için **aynı sayfada iki
+farklı para biçimi** olur. `tests/unit/grafik-tooltip.test.ts` `content`
+propunu, tooltip'in `etiket` bastığını, `deger`i **hiç** basmadığını ve
+`deger`in geometride (`dataKey`) hâlâ kullanıldığını birlikte ölçüyor.
+
+#### Kapıyı yazarken sahte pozitif ürettim
+
+Tooltip gövdesinin sınırını "sonraki `\nfunction`" ile arıyordum; sonraki tanım
+`export default function YillikGrafik` olduğu için desen eşleşmedi ve gövde
+**grafiğin içine** kadar uzadı. Sonuç: grafiğin meşru `dataKey="gelir.deger"`
+satırları "tooltip `deger` basıyor" diye okundu ve kapı **yanlış sebeple**
+kırmızı oldu. Sahte pozitif, sahte negatif kadar pahalı — kapıyı "zaten yanlış
+ölçüyor" diye gevşetmeye davet eder. Sınır artık sözdizimine değil biçime
+bağlı: satır başındaki kapanış ayracı.
+
+---
+
+## "KOD VAR, YOL YOK" — kapsam ulaşılabilirliği ölçmüyor (T-108g)
+
+F4 kabul kontrolü somut bir örnek buldu: **CSV dışa aktarımı %100 satır
+kapsamına sahip ve hiçbir çağıranı yok.** Kapsam "bu kod doğru çalışıyor"
+diyor, "bu koda ULAŞILIYOR" demiyor — kullanıcı için var olmayan bir özellik
+ölçümlerde tam puanlı görünüyor.
+
+Kart "rota kapsamı kapısının benzeri mümkün mü" diye sordu. **Ölçtüm; cevap
+ikisi arasında.**
+
+### Ölçüm 1 — kör bir ölü kod dedektörü KURULAMAZ
+
+İlk tarama "kendi dosyası DIŞINDA çağrılıyor mu" diye sordu: 183 ihraçtan
+**37'si** işaretlendi. Okudum, çoğu meşru ve en kalabalık sınıf şuydu:
+
+> `buildJobWhere`, `buildTransactionWhere`, `buildAuditLogWhere`, … — **kendi
+> dosyasında** `fetchXForPanel` tarafından çağrılıyor; dışa açılma sebebi
+> doğrudan birim testi (saf oldukları için ayrıca sınanabiliyorlar).
+
+37 uyarı veren bir kapı kurulmaz, **susturulur** — T-107a'da yazdığım bedelin
+aynısı.
+
+### Ölçüm 2 — doğru soru: "HİÇ" çağrılmıyor mu
+
+Aynı tarama "kendi dosyası DAHİL hiç çağrılmıyor mu" diye sorulunca **10**
+ihraç kaldı ve iki kategoriye ayrıldılar:
+
+| Kategori | Sayı | Örnek |
+| -------- | ---- | ----- |
+| **bekleyen** — tüketicisinden önce yazıldı, görevi biliniyor | 6 | `toMeasureString` (F5 ölçü sütunları), `recalculatePersonalRecords` (F5 spor), `periodKeyForInstant` (ADR-015 gece işi) |
+| **bağlanmamış** — tüketicisi olmalıydı, yok | 4 | `export.ts` → dört CSV işlevi |
+
+⚠️ **İkisini mekanik olarak ayırmak MÜMKÜN DEĞİL ve bunu iddia etmiyorum:**
+fark NİYETTE. T-053'te `fetchAuditLogById`yi **yazmama** kararı tam bu sınıftı
+— çağıranı olmayan bir işlev yazmamak, yazıp beklemekten iyidir.
+
+### Karar: dedektör değil, BİLDİRİM
+
+`tests/unit/servis-ulasilabilirlik.test.ts` ulaşılamayan her ihracın listede
+olmasını ve sebebini taşımasını şart koşuyor. İki yön de kapalı: bildirilmeyen
+bir ulaşılmaz ihraç kırmızı, **bağlanınca ölen bir satır** da kırmızı. Ayrıca
+`bağlanmamış` kümesinin **sayısı kilitli** — büyümesi "yine kod yazdık, yine
+bağlamadık" demek ve o bir gerileme işareti.
+
+Kazanç: *"kod var, yol yok"* artık **üretildiği anda** görünüyor, faz kabul
+kontrolünü beklemiyor.
+
+> ⚠️ Dört CSV satırının bu turda ölmesi **bekleniyor**: Frontend T-108f'te
+> bağlıyor. Kapı o an kırmızıya döner ve mesajı "satırı sil" der — düzeltmesi
+> tek satır ve bağlayan kişinin.
+
+---
+
+## Yıl sınırı keyfî değil — anahtar biçimini koruyor (T-108g)
+
+`monthlyReportSchema`/`yearlyReportSchema` yılı `1000–9999` ile sınırlıyor.
+Bir kapı "aralık doğru" diyebilirdi; o, sınırın **değerini** kopyalamak olurdu
+ve sınır gevşetilirse kapı sessizce birlikte gevşerdi. Kapı sınırın
+**sebebini** ölçüyor.
+
+`buildPeriodKey` dönem anahtarını **dize dilimlemesiyle** kuruyor
+(`slice(0, 7)` ve `slice(0, 4)`), yani **dört basamaklı yıl varsayıyor** — ve
+varsayım bozulduğunda hata vermiyor, sessizce bozuk anahtar üretiyor. Ölçtüm:
+
+| yıl | `from` | MONTHLY | YEARLY |
+| --- | ------ | ------- | ------ |
+| 2026 | `2026-05-01` | `2026-05` ✅ | `2026` ✅ |
+| 1000 (alt sınır) | `1000-05-01` | `1000-05` ✅ | `1000` ✅ |
+| 99 | `99-05-01` | `99-05-0` ❌ | `99-0` ❌ |
+| **10000** | `10000-05-01` | `10000-0` ❌ | **`1000`** ⚠️ |
+
+⚠️ **Son satır en tehlikelisi:** yıl 10000'in yıllık anahtarı `1000` oluyor —
+**meşru yıl 1000'in anahtarıyla aynı.** ADR-015 tekrarlayan işlem
+idempotanslığını `(sourceRecurringId, periodKey)` bileşik anahtarı üzerinde
+kuruyor; çakışan anahtar, bir dönemin kaydının **başka bir dönemin kaydının
+üzerine** `upsert` edilmesi demek. Sessiz veri kaybı, ve defterde.
+
+Yani `1000–9999`, `slice()` tabanlı anahtar kurmanın doğru kaldığı **tam
+aralık**. Kapı ayrıca önermeyi izliyor: `buildPeriodKey` hâlâ dilimlemeyle mi
+kuruyor? Bir gün sayıdan kurmaya geçerse varsayım kalkar, "bozuk" iddiaları
+kırılır ve mesajları sınırın gevşetilebileceğini söyler (ADR-037).
+
+**Bugün yazılMAYAN kısım:** `?yil=99&ay=5` adresinin ne döndüğü. Rapor sayfası
+şemayı **henüz bağlamadı** (Frontend T-108f) ve kendi ölçümü daha kötü bir şey
+söylüyor — adres 200 dönüyor ama **2026 verisi** gösteriyor, yani adres ile
+içerik sessizce ayrışıyor. Bağlandığında kapı iki şey ekleyecek: geçersiz dönem
+200 dönmüyor, ve gösterilen dönem adresteki dönem. Bugün yazmak var olmayan bir
+bağlantıyı ölçmek olurdu. **⏳ T-109.**
+
+---
+
+## F5 öncesi ⏳ envanteri — iki satır BAYAT çıktı (T-108g)
+
+Kart F5'e girmeden ⏳ maddelerin envanterini istedi. Sekiz satır vardı; ikisi
+uygulanmış ama tabloda bekliyor görünüyordu.
+
+| # | Madde | Ölçüm | Yeni statü |
+| - | ----- | ----- | ---------- |
+| 2 | argon2id ≥19MB / ≥2 iter. | F1'de uygulanmış (`19_456` / `timeCost: 3`) ama **kapısı yoktu** | ✅ (kapı T-108g'de kuruldu) |
+| 9 | `rehype-sanitize` | Uygulanmış **ve kapılı** (`mdx-dogrulama.test.ts:253`) | ✅ |
+| 11 | Yükleme akışı | `attachment.ts` yalnızca referans doğrulaması taşıyor; R2/imzalı URL/boyut sınırı **yok** | ⏳ (faz etiketi bayat) |
+| 16 | Yükleme hız sınırı | 11'e bağlı — uç olmadan ölü kapı olurdu | ⏳ |
+| 13 | CSP nonce | Bilinçli erteleme (F6/T-060), gerekçesi kayıtlı | ⏳ |
+| 21–23 | Yedekler | T-066 · **uyarı artık daha acil**: F4 bitti, defterde GERÇEK para verisi var | ⏳ |
+
+**§8.2'nin hikâyesi kayda değer:** satırı ✅ yapmadan önce ikinci bir şey
+ölçtüm — kapısı var mı? Yok. Üretim parametrelerini hiçbir iddia okumuyordu ve
+testler **bilerek** zayıf yapılandırma kullanıyor (`FAST = { memoryCost: 1 <<
+12, timeCost: 1 }`) — koşum hızı için doğru bir karar, ama yan etkisi üretim
+değerlerinin test takımında hiç görünmemesi. Yani maddenin durumu "uygulandı ve
+korunuyor" değil **"uygulandı, ölçülmüyor"**du. Kapı kuruldu ve **sayıyı değil
+tabanı** ölçüyor: yükseltmek serbest, düşürmek değil.
+
+Gerileme biçimi çok sıradan ve bu yüzden kaydediliyor: "giriş yavaş" şikâyeti
+`memoryCost`u tek satırda düşürür, hiçbir test kırılmaz, hiçbir ekran
+değişmez — yalnızca çalınmış bir hash'in kırılma maliyeti düşer ve sonuç aylar
+sonra başka bir olayla ortaya çıkar.
+
+**Sonuç: ⏳ 9 → 6.** Dördü başka bir fazın işi (11, 16, 13 ve yedekler zinciri),
+ikisi bayat çıktı ve kapandı.
+
+---
+
+## ADVISORY-006 (braces) — durum değişmedi (T-108g)
+
+Yama yok (3.0.3), zincir aynı, §8.24 **EXIT 0**. Geçerlilik koşulu korunuyor.
+
+---
+
 ## §8 Güvenlik Gereksinimleri — Durum Tablosu
 
-**Ölçüm tarihi:** 2026-10-12 · **Faz:** F4 (sürüyor) · **Son görev:** T-107c
-· **Dağılım:** ✅ 10 · ⚠️ 6 · ❌ 0 · ⏳ 9
+**Ölçüm tarihi:** 2026-10-14 · **Faz:** F4 (kapanışta) · **Son görev:** T-108g
+· **Dağılım:** ✅ 12 · ⚠️ 6 · ❌ 0 · ⏳ 6
 
 > T-054g'de dağılım DEĞİŞMEDİ ve bu bilinçli: denetim ekranı yeni bir yüzey
 > açtı, iki kapıyla ölçüldü ve sızıntı çıkmadı — yani mevcut maddeler
@@ -4558,21 +4764,21 @@ Durum kodları: ✅ sağlandı · ⚠️ kısmi · ❌ eksik · ⏳ henüz uygul
 | # | Madde | Durum | Kanıt / Not |
 | - | ----- | ----- | ----------- |
 | 1 | Credentials + TOTP 2FA; kurulum ilk girişte zorunlu | ✅ | **Mekanizma** (T-016): doğru TOTP → panel, yanlış kod reddediliyor, kurtarma kodu çalışıyor ve tüketiliyor. **Zorunluluk kapısı** (T-019): `tfa !== true` olan oturum panelin hiçbir bölümüne giremiyor, `/panel/ayarlar/guvenlik`'e yönleniyor; kurulum ekranı muaf (döngü yok), panel API'si `403 FORBIDDEN`, çıkış yolu açık, ara katman DB'ye bakmıyor. **Besleme** (T-013e): jeton `tfa` taşıyor — girişte ve kurulum sonrası tazelemede yazılıyor, değer **veritabanından** okunuyor. **Geçiş penceresi kapatıldı** (T-019b): alan yoksa da kuruluma yönlendiriliyor. Uçtan uca ölçüldü: 2FA'sız gerçek giriş → kurulum ekranı; 2FA'lı gerçek giriş → panel. Kapı devre dışı bırakılınca **18 birim testi kırılıyor**. |
-| 2 | argon2id ≥19MB / ≥2 iterasyon | ⏳ | F1 / T-013 · `argon2@0.45.1` kurulu |
+| 2 | argon2id ≥19MB / ≥2 iterasyon | ✅ | **Satır BAYATTI, T-108g'de düzeltildi.** Madde F1'de uygulanmış: `src/server/auth/password.ts` → `type: argon2.argon2id`, `memoryCost: 19_456` (= 19 MiB, §8.2 tabanı ve OWASP asgarisi), `timeCost: 3` (§8.2 en az 2 istiyor), `parallelism: 1`. ⚠️ Ama T-108g'de ikinci bir şey ölçüldü: **kapısı yoktu.** Üretim parametrelerini hiçbir iddia okumuyordu ve testler bilerek zayıf yapılandırma kullanıyor (`change-password.test.ts` → `FAST = { memoryCost: 1 << 12, timeCost: 1 }` — koşum hızı için doğru, ama yan etkisi üretim değerlerinin test takımında hiç görünmemesi). `tests/unit/auth/argon2-parametreleri.test.ts` kuruldu: SAYIYI değil TABANI ölçüyor (`toBeGreaterThanOrEqual`), yani yükseltmek serbest düşürmek değil; ayrıca `argon2id` tipi ve bcrypt yasağı kilitli. Gerileme biçimi çok sıradan: "giriş yavaş" şikâyeti `memoryCost`u tek satırda düşürür, hiçbir test kırılmaz, yalnızca çalınmış bir hash'in kırılma maliyeti düşer. |
 | 3 | Çerez `httpOnly`/`secure`/`sameSite:lax`/**24 saat** | ✅ | **Satır iki kez bayattı, T-048g'de düzeltildi.** (a) Süre: §8.3 ADR-035/A ile 7 günden **24 saate** indi — `src/server/auth.ts` → `SESSION_MAX_AGE_SECONDS = 24 * 60 * 60`, hem `session.maxAge` hem çerez `maxAge` AYNI sabitten. (b) Durum: `⏳ F1/T-013` yazıyordu ama çerez seçenekleri T-013'te kurulmuştu; `tests/e2e/_helpers/session.ts` üretim çerez adını (`__Secure-` önekli) ve `secure` bayrağını her E2E koşumunda fiilen kullanıyor, `security-headers.spec.ts` HSTS dalını ölçüyor. Kapı: Backend'in `session-omru.test.ts`i (24 saat sabiti, iki kullanım, elle yazılmış `maxAge` yasağı) + T-048g'de eklenen **E2E yardımcısı taraması**. **T-049g — sabit `src/lib/security/session`e taşındı ve ihraç edildi:** yardımcı artık sayıyı yazmıyor, İÇE AKTARIYOR; sapma yapısal olarak imkânsız. Geçiş yarım (`src/server/auth.ts` hâlâ kendi kopyasında → T-050) ve iki tanımın ayrışmadığı geçici bir çapraz kontrolle ölçülüyor; kanonik modülün **Edge-güvenli** kalması da kapıya bağlandı. |
 | 4 | Giriş 5/15dk/IP + 15dk kilit + log | ✅ | **Uçtan uca çalışıyor.** "log" → `LoginAttempt` her denemeyi yazıyor (T-013b). "kilit" → politika `src/lib/security/rate-limit.ts` (eşikler tek sabitte: 5 deneme / 15 dk pencere / 15 dk kilit, 20 birim testi), giriş akışına T-013c'de bağlandı, **T-016'da gerçek tarayıcıyla doğrulandı**: 5. yanlış şifrede `lockedUntil` yazılıyor, kilitliyken doğru şifre bile reddediliyor, 4 denemede kilitlenmiyor. BULGU-005 kapandı. |
 | 5 | `middleware.ts` `/panel/*` + `/api/v1/panel/*` korur | ✅ | **T-014 ile gerçek koruma kuruldu.** `/panel/*` oturumsuzken `/giris`'e yönlenir (307), `/api/v1/panel/*` §7.2 zarfıyla **401 JSON** döner. Oturum `getToken` ile **kriptografik olarak doğrulanır** (çerez varlığı yeterli değil), Edge'de çalışır. `AUTH_SECRET` yoksa **kapalı yönde başarısız olur**. 32 test. §8.6 uyarısı için aşağıya bakın. |
 | 6 | Her Server Action ayrıca `auth()` | ⚠️ | **Satır bayattı — Server Action'lar T-031'de geldi.** `src/server/actions/*` hepsi `currentActorId()` ile başlıyor ve oturum yoksa servise HİÇ gitmeden `UNAUTHORIZED` dönüyor; Backend'in birim testi bunu TÜM içerik action'ları için tek tek dolaşıyor (`tests/unit/actions/content-actions.test.ts` → "oturum YOKSA hepsi UNAUTHORIZED döner ve servise HİÇ gitmez"). **T-039'da yetkili yol uçtan uca ölçüldü**: gerçek oturumla panelden proje yayınlandı, kayıt DB'ye düştü. ⚠️ kalma sebebi: oturumSUZ bir action çağrısı gerçek tarayıcıyla ölçülmedi — birim testi taklit (`auth` mock'lu) üzerinden konuşuyor. |
 | 7 | Panel `X-Robots-Tag: noindex, nofollow` + robots.txt disallow | ⚠️ | **Başlık ✅** — birim + E2E ile doğrulandı, gerçek sunucu yanıtında ölçüldü. **`robots.txt` ❌** — henüz yok, T-028 (Backend) kapsamında; `/panel` için `Disallow` içermeli. |
 | 8 | Her girdi Zod ile (Server Action parametreleri dahil) | ⚠️ | **Satır bayattı.** Action'lar ham girdiyi `parseOrFail(<şema>, raw)` ile geçiriyor (§7.1 sırası: auth → Zod → servis → AuditLog → revalidateTag) ve `/api/v1/iletisim` ucu da aynı şemayı kullanıyor. **T-039'da uçtan uca ölçüldü**: panel formundan geçen kayıt DB'ye doğru alanlarla yazıldı; bozuk gövde `400 VALIDATION_ERROR` ile reddedildi (`api-routes.spec.ts`, T-016b). ⚠️ kalma sebebi: altı varlığın tamamı için şema kapsamı birim testlerinde; E2E yalnızca `Project` ve `ContactMessage` yollarını ölçüyor. |
-| 9 | MDX/HTML `rehype-sanitize` | ⏳ | F2 / T-025 · `rehype-sanitize@6.0.0` kurulu |
+| 9 | MDX/HTML `rehype-sanitize` | ✅ | **Satır BAYATTI, T-108g'de düzeltildi.** `src/lib/mdx-options.ts` → `rehypePlugins: [[rehypeSanitize, defaultSchema]]` ve dosyanın kendi notu sıralamanın gerekçesini taşıyor (sanitize EN SONDA çalışmalı; önce çalışsa sonraki bir eklentinin ürettiği HTML süzülmeden geçerdi). **Kapısı VAR** — `tests/unit/actions/mdx-dogrulama.test.ts:253` kanonik modülde eklenti dizisini birebir ölçüyor, yani eklentinin kaldırılması ya da sıranın bozulması sessiz kalmaz. T-108g'de yalnızca tablo satırı güncellendi; kod ve kapı F2/F3'ten beri yerinde. |
 | 10 | Prisma dışı SQL yok; `$queryRaw` onaya tabi | ✅ | El yazımı `$queryRaw`/`$executeRaw`/`*Unsafe` **çağrısı yok** (tarandı; tek eşleşmeler üretilmiş istemcinin tip tanımları ve `db.ts`'teki açıklama satırı). `pingDatabase()` bilinçli olarak `pool.connect()` kullanıyor — ham SQL'e hiç gerek kalmadı (T-003b K2). |
-| 11 | Yükleme doğrulaması, ≤10MB, private R2, imzalı URL | ⏳ | F3 / T-037 |
+| 11 | Yükleme doğrulaması, ≤10MB, private R2, imzalı URL | ⏳ | **Faz etiketi bayat: F3 bitti, madde gelmedi.** T-108g'de ölçüldü — `services/attachment.ts` yalnızca `findMissingAttachmentIds` + istemci arayüzü taşıyor; R2, imzalı URL, boyut sınırı, yükleme ucu YOK. Yani ek dosya REFERANSLARI var (profil avatar/CV), yükleme AKIŞI yok. Gerçekten bekliyor; yeni fazı Orkestra Şefi verecek. |
 | 12 | HTTPS + HSTS | ⚠️ | **Mantık ✅ ve test edildi**: yalnızca üretim + HTTPS'te ekleniyor, yerelde eklenmiyor. `preload` **bilerek YOK** — geri alınamaz ve `panel.` alt alan adı kararı (Q1) verilmedi. F7/T-072'de eklenecek. Gerçek TLS F7. |
 | 13 | CSP nonce tabanlı, script'te `unsafe-inline` yok | ⏳ | **F6 / T-060 — bilinçli erteleme.** React Bits (§5) kurulmadan CSP yazmak F2'de ya çöker ya taviz verdirir (STATUS.md R1). CSP'nin **yokluğu** E2E ile doğrulanıyor; T-060 o beklentiyi tersine çevirecek, yani sessizce unutulamaz. |
 | 14 | `X-Frame-Options` / `nosniff` / `Referrer-Policy` / `Permissions-Policy` | ✅ | Dördü de `src/lib/security/headers.ts` içinde tek noktada; `/` ve `/panel` gerçek yanıtlarında ölçüldü. `X-Powered-By` de kapalı (`next.config.ts`). |
 | 15 | İletişim formu 3/saat + honeypot + zaman tuzağı | ✅ | **Üçü de kurulu ve ölçüldü.** *Honeypot:* `website` alanı dolu gelirse mesaj SAKLANIR ama `honeypotHit`/`isSpam` işaretlenir (birim: `tests/unit/api/iletisim.test.ts`). *Zaman tuzağı:* `CONTACT_TIME_TRAP.minFillSeconds = 3`; **T-039'da canlı ölçüldü** — jetonu alıp anında gönderen istek sunucu logunda `spam sinyali … puan=30, sinyaller=tooFast` üretti, üç saniye bekleyen gerçek ziyaretçi akışında puan **0**. *Saatlik sınır:* IP başına 3 (`CONTACT_RATE_LIMIT`), aşımda `429` + `Retry-After`. **T-039 yanlış pozitif yönünü de ölçtü**: meşru ziyaretçi spam'e düşmüyor (`isSpam=false`, `spamScore=0`) ve ikinci meşru mesaj reddedilmiyor — sınırın gereğinden dar olmadığı gösterildi. **E2E'de ölçülmeyen tek dal:** 429'un kendisi. Ölçmek için üç kayıt daha yazmak gerekirdi; eşik saf politika ve birim testlerinde kapalı — kapıya değeri kadar bedel ödetilmedi. |
-| 16 | Yükleme uçları 10/dk | ⏳ | F3 / T-037 |
+| 16 | Yükleme uçları 10/dk | ⏳ | 11. maddeye BAĞLI — yükleme ucu olmadan hız sınırı yazılamaz (ölü kapı olurdu). 11 geldiğinde aynı turda gelmeli. |
 | 17 | `.env` repoya girmez, `.env.example` tam | ✅ | `.gitignore:22-24` — `.env` ve `.env.*` yasaklı, `.env.example` istisna. `.env.example` §12'nin anahtarlarını değersiz listeliyor (T-001 doğrulaması). |
 | 18 | `NEXT_PUBLIC_` içinde sır yok, CI'da taranır | ✅ | **Otomatik tarama kuruldu** (T-005): `tests/unit/public-env.test.ts` — üç katman: (a) `.env.example`, (b) çalışma ortamı `process.env`, (c) `.next/` derleme çıktısı. `pnpm test` içinde koştuğu için hem yerelde hem CI'da otomatik. **Dedektör kendini kanıtlıyor**: 10 ekili sahte sır (GitHub/AWS/Stripe/JWT/argon2/PEM/bağlantı dizesi) yakalanıyor, meşru URL'ler yanlış pozitif vermiyor. Fiilen doğrulandı: `.env.example`'a `NEXT_PUBLIC_GITHUB_TOKEN=ghp_…` ekildi → hat **KIRMIZI**, geri alındı → **YEŞİL**. **T-049g — bağlantı dizesi deseni daraltıldı:** desen küçültülmüş derleme çıktısında iki ayrı yer tutucuyu köprüleyip SAHTE POZİTİF üretiyordu (Frontend'in bulgusu); `userinfo` karakter sınıflarından `" { } ,` çıkarıldı. Daraltmanın gerçek sızıntıyı hâlâ yakaladığı ve köprü şeklini artık yakalamadığı **iki yönlü mutasyonla** doğrulandı (yedi gerçek biçim + iki küçültülmüş şekil teste bağlı). Sahte pozitif bir kapının en pahalı arızasıdır: haksız kırmızı, kapının güvenilirliğini aşındırır. |
 | 19 | Panel mutasyonları `AuditLog`'a | ⚠️ | **Merkezî yardımcı geldi** (T-015): `src/server/services/_shared/audit.ts` → `writeAuditLog`, `diff` üzerinde otomatik redaksiyonla (§8.20). Kullananlar: 2FA eylemleri (`actions/totp.ts`), hesap kilidi (ADR-022) ve F3'ten beri tüm içerik/mesaj/iş eylemleri. Kilit kaydı T-016'da üretim yolunda **fiilen tetiklendi**. ⚠️ **ADR-034 (T-044g):** `redactAuditDiff` bir **EMNİYET AĞI**, koruma değil — ada bağlı çalışır. Asıl kural: sır `diff`e HİÇ KONMAZ. T-044g taraması: `buildDiff` kullanan on bir çağrı yerinin hiçbiri bugün sır taşımıyor, ama üç silme eylemi SİLİNEN SATIRIN TAMAMINI yazıyor (**BULGU-019**). ⚠️ kalma sebebi: muhasebe mutasyonları henüz yazılmadı (F4–F5). |

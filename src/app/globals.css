@@ -509,4 +509,50 @@
     max-width: none;
     padding: 0;
   }
+
+  /* ------------------------------------------------------------------------
+     SVG GRAFİK — YAZDIRMA KURALI YOK, VE BU BİR ÖLÇÜM SONUCU
+     ------------------------------------------------------------------------
+     T-108f'te önce bir kural YAZILDI. Varsayım şuydu: `ResponsiveContainer`
+     genişliği ResizeObserver ile ölçüp SVG'ye piksel olarak yazıyor, yazdırma
+     yeniden ölçüm tetiklemiyor, dolayısıyla ekranda ölçülen 942 px A4'ün
+     ~688 px'ine sığmaz ve grafiğin sağı KESİLİR. Kural da bunu düzeltecekti:
+
+         .recharts-wrapper { width: 100% !important }
+         .recharts-wrapper > svg.recharts-surface {
+           max-width: 100% !important; height: auto !important }
+
+     VARSAYIM YANLIŞTI ve kural kusurun KENDİSİ oldu — ikisi de ölçüldü:
+
+       kural AÇIK  → yazdırmada sarmalayıcı 0×320, SVG 0×0 (grafik YOK)
+       kural KAPALI→ yazdırmada sarmalayıcı 1182×320, PDF'te on iki ayın
+                     tamamı, gösterge ve doku yerinde (olcum-t108/*.pdf)
+
+     SEBEP: yazdırma düzeni gerçekten yeniden ölçüm tetikliyor — kenar menü
+     gizlendiği için içerik GENİŞLİYOR ve `ResponsiveContainer` yeni ölçüyü
+     yazıyor. Yani kesilme diye bir sorun hiç yoktu; `height: auto` ise satır
+     içi `height: 100%` taşıyan SVG'yi sıfıra indiriyordu.
+
+     ⚠️ BURAYA RECHARTS KURALI EKLEMEDEN ÖNCE PDF ÇIKTISINA BAK. "Mantıklı
+     görünen" bir yazdırma kuralı burada çalışan bir grafiği sessizce boş bir
+     çerçeveye çevirdi ve hiçbir derleme kapısı bunu görmedi.
+     ------------------------------------------------------------------------ */
+
+  /* ------------------------------------------------------------------------
+     TEMBEL YÜKLENEN BLOKLAR — İSKELET KÂĞIDA BASILMAZ
+     ------------------------------------------------------------------------
+     İskelet, yerine geçtiği şeyin BİÇİMİNİ taşıyor (grafikte on iki çubuk).
+     Ekranda doğru olan bu, kâğıtta yanlış: sabit yükseklikli gri çubuklar
+     yazdırılırsa okuyan onları VERİ sanar — boş çerçeveden kötü bir yanılma.
+
+     Bu yüzden iskeletin görsel kısmı gizleniyor ve yerine yalnızca yazdırmada
+     görünen bir cümle konuyor (bileşenin içinde, `print:block`). Çerçeve boş
+     kalmıyor; neden boş olduğunu SÖYLÜYOR. */
+  [aria-busy='true'] > *:not([data-yazdirma-notu]) {
+    display: none !important;
+  }
+
+  [aria-busy='true'] {
+    height: auto !important;
+  }
 }

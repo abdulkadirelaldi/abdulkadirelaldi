@@ -6,7 +6,7 @@ import { aralik } from '@/components/public/gun-bicim';
 import { KATEGORI_BASLIK } from '@/components/public/yetenek-kategori';
 import { buttonClasses } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
-import { YazdirDugmesi } from '@/components/public/yazdir-dugmesi';
+import { YazdirDugmesi } from '@/components/ui/yazdir-dugmesi';
 import { getExperience, getProfile, getSkills } from '@/server/services';
 import type { ExperienceDto, SkillDto } from '@/server/services/content-dto';
 import { ExperienceType, SkillCategory } from '@/types';

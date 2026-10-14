@@ -59,7 +59,7 @@ gerçek zamanlı işbirliği, üçüncü taraf muhasebe entegrasyonu (e-fatura v
 | Form | react-hook-form + zodResolver | |
 | Grafik | Recharts | Panel grafikleri |
 | Dosya | Cloudflare R2 (S3 uyumlu) | Private bucket + imzalı URL |
-| Mail | Resend veya SMTP (sunucu) | İletişim formu bildirimi |
+| Mail | **v1 KAPSAMI DIŞI** (ADR-042) | İletişim formu bildiriminin amacı panelin okunmamış rozetiyle karşılanıyor (T-038/T-041f, dashboard `unreadCount`). Hiç mail kodu yazılmadı; `RESEND_API_KEY` boş yer tutucu olarak duruyor. Şifre sıfırlama da v1 de yok — tek kullanıcılı sistemde kurtarma yolu `totpBackupCodes` (T-013a). Ölçülmüş bir ihtiyaç belirirse yeniden açılır. |
 | Test | Vitest + Testing Library, Playwright | |
 | Lint | ESLint + Prettier + TypeScript strict | CI'da zorunlu |
 | Deploy | Kendi sunucu — Coolify + Docker | Bölüm 11 |
@@ -212,11 +212,15 @@ kartlarında da geçerli: çalışıyormuş gibi görünen hiçbir beyan bırak�
 ```
 /panel                    Dashboard — aylık gelir/gider, aktif işler, bugünün planı, sağlık özeti
 /panel/muhasebe           İşlem listesi, filtre, hızlı ekleme
+/panel/muhasebe/yeni · /[id]        işlem ekleme / düzenleme (T-104)
 /panel/muhasebe/raporlar  Aylık/yıllık grafik, kategori dağılımı, CSV/PDF dışa aktarım
 /panel/muhasebe/kategoriler
+/panel/muhasebe/kategoriler/yeni · /[id]   kategori ekleme / düzenleme (T-104)
 /panel/isler              İş kartları (kanban 5 kolon: aday → teklif → aktif → teslim → iptal, ADR-017)
+/panel/isler/yeni         iş ekleme (T-103)
 /panel/isler/[id]         İş detayı + bağlı ödemeler + müşteri
 /panel/musteriler
+/panel/musteriler/yeni · /[id]      müşteri ekleme / düzenleme (T-103)
 /panel/saglik             Kilo, uyku, su, ölçüm girişi + trend grafikleri
 /panel/spor               Antrenman kaydı, egzersiz kütüphanesi, PR takibi
 /panel/hayat              Alışkanlık takibi, hedefler, günlük
@@ -636,6 +640,35 @@ Orkestra Şefi → STATUS.md'yi günceller, bir sonraki promptu üretir
 > Bu, ADR-037'nin kart düzeyindeki karşılığıdır: **gerekçenin hangi kısmı ölçüm,
 > hangi kısmı çıkarım.** "T-053'te şu ölçüldü" ölçümdür; "o hâlde burada da
 > geçerlidir" çıkarımdır ve kartta **deney olarak** yazılmalıdır.
+>
+> **Üçüncü kart yazım kuralı — bir AJANIN ÖNGÖRÜSÜ olgu olarak yazılmaz (T-108).**
+>
+> İkinci kez aynı sınıf. T-102 raporunda Backend şunu yazdı:
+>
+> > *"T-105'in sayfası `?month=99` ile 500 ALIR."*
+>
+> Bu bir **öngörüydü** — o sayfa henüz yazılmamıştı, yani ölçülemezdi. Ben onu
+> T-106 ve T-108f/g kartlarına **olgu olarak** taşıdım (*"şu an 500 veriyor"*).
+> Frontend ölçtü: **beşi de 200 döndü.** Gerçek kusur daha sinsiydi —
+> `?yil=99` adresinde **2026 verisi gösteriliyordu.**
+>
+> Yanlış öncül, Frontend'in turunun bir kısmını onu çürütmeye harcadı; ve daha
+> kötüsü, **gerçek kusuru gizleyebilirdi**: "500'ü düzelttim" diye kapatılan bir
+> kalem, sessizce yanlış veri gösteren bir sayfa bırakırdı.
+>
+> **Kural:** bir ajanın raporundaki ifadeyi karta taşırken, o ifadenin **ölçüm mü
+> öngörü mü** olduğu ayrılır. Öngörü ise karta **öngörü olarak** yazılır
+> (*"Backend 500 bekliyor — ÖLÇ"*), olgu olarak değil.
+>
+> **Ayırt etme ölçütü mekanik:** ifade, ajanın **kendi kapsamında olmayan** ya da
+> **o turda var olmayan** bir şey hakkındaysa öngörüdür. Backend `src/app/**`'a
+> dokunmuyor ve sayfa yoktu — yani o cümle ölçüm olamazdı ve ben bunu kartı yazarken
+> sorabilirdim.
+>
+> İki kart kuralı da (ders kapsamı, öngörü ↔ olgu) aynı şeyi söylüyor: **kartın
+> taşıdığı her iddianın bir kaynağı var ve kaynağı kontrol etmek kartı yazanın
+> işidir.** Ajan yanlış öncülü ölçümle çürütebilir — ama bunu yapmak zorunda
+> kalması bir maliyettir ve o maliyet bana ait.
 
 ### 10.4 Ajan Rapor Formatı (zorunlu)
 
