@@ -5,11 +5,14 @@ import { notFound } from 'next/navigation';
 
 import { IsBakiye } from '@/components/panel/is-bakiye';
 import { IsFormu } from '@/components/panel/is-formu';
+import { ODEME_UST_SINIR } from '@/components/panel/is-gorunumleri';
+import { IsOdemeleri } from '@/components/panel/is-odemeleri';
 import { paraBicim, paraBicimVeyaYok } from '@/components/panel/para-bicim';
 import { Topbar } from '@/components/panel/topbar';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { fetchClientsForPanel } from '@/server/services/client';
 import { fetchJobFinancials, fetchJobForPanel } from '@/server/services/job';
+import { fetchTransactionsForPanel } from '@/server/services/transaction';
 import { Currency } from '@/types';
 
 export const metadata: Metadata = {
@@ -46,7 +49,7 @@ export default async function IsDuzenlePage({ params }: SayfaProps) {
 
   if (!is) notFound();
 
-  const [musteriler, bakiyeler] = await Promise.all([
+  const [musteriler, bakiyeler, odemeler] = await Promise.all([
     fetchClientsForPanel({ page: 1, perPage: SECICI_UST_SINIR, isArchived: false }),
     /*
       TOPLU İMZA tek kayıt için de kullanılıyor — Backend `jobIds` dizisi
@@ -54,6 +57,17 @@ export default async function IsDuzenlePage({ params }: SayfaProps) {
       hesabı iki yerde tutmak olurdu.
     */
     fetchJobFinancials([id]),
+    /*
+      ⚠️ BAĞLI ÖDEMELER SAYFALANMIYOR ve üst sınır BİLEREK yüksek.
+      `IsBakiye`nin dört toplamı `groupBy` ile TÜM satırlardan geliyor; kesilmiş
+      bir liste o toplamları tutmayan bir liste olurdu ve kullanıcı hangisine
+      güveneceğini bilemezdi. `IsOdemeleri` zaten satır sayısını
+      `transactionCount` ile karşılaştırıp ayrışmayı EKRANDA söylüyor.
+
+      Sıralama Backend'den: `date desc, createdAt desc` (ikincil anahtar zorunlu,
+      T-101). İstemcide yeniden sıralama yok.
+    */
+    fetchTransactionsForPanel({ page: 1, perPage: ODEME_UST_SINIR, sort: 'desc', jobId: id }),
   ]);
 
   const bakiye = bakiyeler[id];
@@ -94,6 +108,27 @@ export default async function IsDuzenlePage({ params }: SayfaProps) {
               </Link>
             </p>
           )}
+
+          {/* ── BAĞLI ÖDEMELER — §4.2, F4 kabul kontrolünün bulduğu boşluk ─ */}
+          <Card>
+            <CardContent className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1">
+                <CardTitle seviye="h2">Bağlı ödemeler</CardTitle>
+                <p className="text-muted text-sm">
+                  Bu işe bağlanmış para hareketleri. Satırlar{' '}
+                  <span className="text-body">kaydın kendi para biriminde</span>; yukarıdaki dört
+                  toplam ise TRY karşılığı üzerinden — bu yüzden bir satırın tutarı ile toplam
+                  doğrudan karşılaştırılamaz.
+                </p>
+              </div>
+
+              <IsOdemeleri
+                odemeler={odemeler.items}
+                toplamSayi={bakiye?.transactionCount ?? 0}
+                jobId={is.id}
+              />
+            </CardContent>
+          </Card>
 
           {/* ── TUTAR ÖZETİ — kaydedilmiş hâl, salt okunur ───────────────── */}
           <Card>

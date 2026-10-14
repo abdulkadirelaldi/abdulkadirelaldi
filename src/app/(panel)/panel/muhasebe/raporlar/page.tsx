@@ -6,6 +6,8 @@ import { RaporEkrani } from '@/components/panel/rapor-ekrani';
 import { kategoriCubuklariniCevir, yillikGrafigeCevir } from '@/components/panel/rapor-veri';
 import { Topbar } from '@/components/panel/topbar';
 import { buttonClasses } from '@/components/ui/button';
+import { YazdirDugmesi } from '@/components/ui/yazdir-dugmesi';
+import { monthlyReportSchema } from '@/lib/schemas/report';
 import { cn } from '@/lib/utils/cn';
 import {
   fetchCategoryBreakdown,
@@ -40,27 +42,64 @@ const AY_ADI = [
 ];
 
 /**
- * Dönem seçimi — adres çubuğundan, kullanıcı girdisi olarak.
+ * Dönem çözümü — ADR-032: ADRES ÇUBUĞU KULLANICI GİRDİSİDİR.
  *
- * ⚠️ ŞEMA YOK: `fetchMonthlyReport(year, month)` imzası iki SAYI alıyor, bir
- * filtre nesnesi değil — yani `safeParse` edilecek bir şema da yok. Doğrulama
- * bu yüzden burada ve DAR: makul aralık dışı değer sessizce bugüne düşüyor.
- * Bunu bir şemaya taşımak Backend'in işi olurdu; uydurma bir şema yazmadım.
+ * ═══════════════════════════════════════════════════════════════════════════
+ * ⚠️ T-105'TE BURADA ELLE DOĞRULAMA VARDI VE SESSİZCE KIRPIYORDU
+ * ═══════════════════════════════════════════════════════════════════════════
  *
- * Aralık `2000..9999` çünkü `appMonthRange` takvim hesabı yapıyor ve çok uzak
- * bir yıl anlamsız bir sorgu üretir; ay `1..12`.
+ * O turda beyanıma "ŞEMA YOK" yazmıştım çünkü `fetchMonthlyReport(year, month)`
+ * imzası iki SAYI alıyor ve `safeParse` edilecek bir şema yoktu. Backend T-106'da
+ * `monthlyReportSchema`yı yazdı; artık var.
+ *
+ * ÖLÇTÜĞÜM KUSUR BEKLENENDEN FARKLI ÇIKTI. Kart "şu an 500 veriyor" diyordu;
+ * ölçüm beşinin beşini de 200 gösterdi:
+ *
+ *   ?yil=2026&ay=10 → 200    ?yil=2026&ay=99 → 200
+ *   ?yil=2026&ay=0  → 200    ?yil=99&ay=5    → 200
+ *   ?yil=abc&ay=xyz → 200
+ *
+ * Yani elle yazdığım kırpma 500'ü önlüyordu — ama DAHA SİNSİ bir şey yapıyordu:
+ * `?yil=99` adresinde 2026 verisi gösteriyordu. Adres ile içerik SESSİZCE
+ * ayrışıyor ve kullanıcı yanlış dönemi doğru sanıyor. Bir hata sayfası
+ * görmekten kötü: hata görünür, sessiz kırpma görünmez.
+ *
+ * ŞEMA + GÖRÜNÜR BİLDİRİM: geçersiz adres bugünün dönemine düşüyor (ekran
+ * kullanılamaz kalmasın) AMA alan hataları EKRANDA yazılıyor. Denetim ve
+ * muhasebe ekranlarında kurduğum kalıbın aynısı.
+ *
+ * YIL SINIRI 1000–9999 ve KEYFÎ DEĞİL: `buildPeriodKey` dört basamaklı yıl
+ * varsayıyor; dışına taşan bir yıl sessizce bozuk bir `periodKey` üretir ve
+ * ADR-015'in idempotanslığı o biçime bağlı.
  */
-function donemCoz(yilHam: string, ayHam: string): { yil: number; ay: number } {
+function donemCoz(parametreler: Record<string, string | string[] | undefined>): {
+  yil: number;
+  ay: number;
+  hatalar: string[];
+} {
   const simdi = new Date();
-  const yilSayi = Number(yilHam);
-  const aySayi = Number(ayHam);
+  const cozum = monthlyReportSchema.safeParse({
+    year: tek(parametreler.yil),
+    month: tek(parametreler.ay),
+  });
 
-  const yil =
-    Number.isInteger(yilSayi) && yilSayi >= 2000 && yilSayi <= 9999 ? yilSayi : simdi.getFullYear();
-  const ay =
-    Number.isInteger(aySayi) && aySayi >= 1 && aySayi <= 12 ? aySayi : simdi.getMonth() + 1;
+  if (cozum.success) {
+    return { yil: cozum.data.year, ay: cozum.data.month, hatalar: [] };
+  }
 
-  return { yil, ay };
+  /*
+    PARAMETRE HİÇ VERİLMEMİŞSE bu bir HATA DEĞİL: `/panel/muhasebe/raporlar`
+    çıplak adresi bugünün dönemini göstermeli. Şema boş dizeyi reddediyor, o
+    yüzden "verilmedi" ile "geçersiz verildi" ayrımını burada yapıyoruz —
+    yoksa menüden gelen her kullanıcı bir hata mesajı görürdü.
+  */
+  const verildi = tek(parametreler.yil) !== '' || tek(parametreler.ay) !== '';
+
+  return {
+    yil: simdi.getFullYear(),
+    ay: simdi.getMonth() + 1,
+    hatalar: verildi ? cozum.error.issues.map((i) => i.message) : [],
+  };
 }
 
 /**
@@ -80,7 +119,7 @@ function donemCoz(yilHam: string, ayHam: string): { yil: number; ay: number } {
  */
 export default async function RaporlarPage({ searchParams }: SayfaProps) {
   const parametreler = await searchParams;
-  const { yil, ay } = donemCoz(tek(parametreler.yil), tek(parametreler.ay));
+  const { yil, ay, hatalar } = donemCoz(parametreler);
 
   const aylik = await fetchMonthlyReport(yil, ay);
 
@@ -95,12 +134,21 @@ export default async function RaporlarPage({ searchParams }: SayfaProps) {
 
   return (
     <>
-      <Topbar title="Raporlar" />
+      {/*
+        PDF = TARAYICININ YAZDIRMASI, kendi üreticim değil. Bir PDF kitaplığı
+        (jsPDF/pdfmake) yığına yüz kB'larca ekler ve §5.2'nin 40 kB eşiğini tek
+        başına aşar; üstelik grafiği kâğıda ikinci bir kod yolundan çizmek
+        ekranda görüneni DOĞRULAMADAN kopyalamak olurdu — ayrışma riski tam da
+        `rapor-veri.ts`te kapattığım risk. Tarayıcının yazdırması ekranda
+        duran DOM'u basıyor, yani ayrışma yapısal olarak imkânsız.
+      */}
+      <Topbar title="Raporlar" actions={<YazdirDugmesi />} />
 
       <main id="panel-icerik" className="flex-1 p-4 lg:p-6">
-        <div className="flex max-w-5xl flex-col gap-6">
+        <div className="yazdirma-sayfa flex max-w-5xl flex-col gap-6">
           <Link
             href="/panel/muhasebe"
+            data-yazdirmada-gizle
             className={buttonClasses({ variant: 'ghost', size: 'sm', className: 'self-start' })}
           >
             <ArrowLeft className="size-4" aria-hidden="true" />
@@ -108,11 +156,52 @@ export default async function RaporlarPage({ searchParams }: SayfaProps) {
           </Link>
 
           {/*
+            KÂĞIDIN BAŞLIĞI — yalnızca yazdırmada.
+
+            Üst çubuk (`<h1>Raporlar`) kâğıtta gizli; gizlenmezse menü, tema
+            düğmesi ve kırıntı yolu da basılırdı. Ama o zaman çıktının HİÇ
+            başlığı kalmıyor ve elden ele dolaşan bir kâğıt "bu hangi dönem"
+            sorusuna cevap vermiyor.
+
+            `hidden print:block`: ekranda yok, kâğıtta var. Her iki ortamda da
+            TEK görünür `<h1>` kalıyor — ekranda üst çubuğun, kâğıtta bunun.
+          */}
+          <div className="hidden flex-col gap-1 print:flex">
+            <h1 className="text-primary text-xl font-bold">Muhasebe raporu · {ayEtiketi}</h1>
+            <p className="text-muted text-sm">
+              Tutarlar TRY karşılığıdır. Nakit ve tahakkuk esasları ayrı bloklarda; blok başlıkları
+              hangi esasa baktığını yazıyor.
+            </p>
+          </div>
+
+          {hatalar.length > 0 && (
+            /*
+              GEÇERSİZ ADRES SESSİZ KALMIYOR. Şemanın mesajları olduğu gibi
+              basılıyor — "Ay 1 ile 12 arasında olmalıdır." gibi; kendi
+              metnimi yazmak kuralı iki yerde tutmak olurdu.
+            */
+            <div
+              role="alert"
+              className="rounded-input border-danger/40 bg-danger/8 border px-3 py-2.5 text-sm"
+            >
+              <p className="text-danger font-medium">Adresteki dönem geçersiz</p>
+              <ul className="text-body mt-1 flex flex-col gap-0.5">
+                {hatalar.map((h) => (
+                  <li key={h}>{h}</li>
+                ))}
+              </ul>
+              <p className="text-muted mt-1">
+                Bu yüzden bu ayın raporu gösteriliyor — aşağıdaki seçiciyle dönem değiştirebilirsin.
+              </p>
+            </div>
+          )}
+
+          {/*
             DÖNEM SEÇİCİ — her dönem bir ADRES, o yüzden `Link`. Sunucu
             hesaplıyor; istemcide yeniden toplama yok. Paylaşılabilir ve geri
             tuşu çalışıyor (T-041f'teki mesaj görünümleriyle aynı karar).
           */}
-          <div className="flex flex-col gap-3">
+          <div data-yazdirmada-gizle className="flex flex-col gap-3">
             <nav aria-label="Ay seçimi" className="relative -mx-1 overflow-x-auto px-1 pb-1">
               <ul className="flex min-w-max gap-1.5">
                 {AY_ADI.map((ad, i) => {

@@ -640,6 +640,35 @@ Orkestra Şefi → STATUS.md'yi günceller, bir sonraki promptu üretir
 > Bu, ADR-037'nin kart düzeyindeki karşılığıdır: **gerekçenin hangi kısmı ölçüm,
 > hangi kısmı çıkarım.** "T-053'te şu ölçüldü" ölçümdür; "o hâlde burada da
 > geçerlidir" çıkarımdır ve kartta **deney olarak** yazılmalıdır.
+>
+> **Üçüncü kart yazım kuralı — bir AJANIN ÖNGÖRÜSÜ olgu olarak yazılmaz (T-108).**
+>
+> İkinci kez aynı sınıf. T-102 raporunda Backend şunu yazdı:
+>
+> > *"T-105'in sayfası `?month=99` ile 500 ALIR."*
+>
+> Bu bir **öngörüydü** — o sayfa henüz yazılmamıştı, yani ölçülemezdi. Ben onu
+> T-106 ve T-108f/g kartlarına **olgu olarak** taşıdım (*"şu an 500 veriyor"*).
+> Frontend ölçtü: **beşi de 200 döndü.** Gerçek kusur daha sinsiydi —
+> `?yil=99` adresinde **2026 verisi gösteriliyordu.**
+>
+> Yanlış öncül, Frontend'in turunun bir kısmını onu çürütmeye harcadı; ve daha
+> kötüsü, **gerçek kusuru gizleyebilirdi**: "500'ü düzelttim" diye kapatılan bir
+> kalem, sessizce yanlış veri gösteren bir sayfa bırakırdı.
+>
+> **Kural:** bir ajanın raporundaki ifadeyi karta taşırken, o ifadenin **ölçüm mü
+> öngörü mü** olduğu ayrılır. Öngörü ise karta **öngörü olarak** yazılır
+> (*"Backend 500 bekliyor — ÖLÇ"*), olgu olarak değil.
+>
+> **Ayırt etme ölçütü mekanik:** ifade, ajanın **kendi kapsamında olmayan** ya da
+> **o turda var olmayan** bir şey hakkındaysa öngörüdür. Backend `src/app/**`'a
+> dokunmuyor ve sayfa yoktu — yani o cümle ölçüm olamazdı ve ben bunu kartı yazarken
+> sorabilirdim.
+>
+> İki kart kuralı da (ders kapsamı, öngörü ↔ olgu) aynı şeyi söylüyor: **kartın
+> taşıdığı her iddianın bir kaynağı var ve kaynağı kontrol etmek kartı yazanın
+> işidir.** Ajan yanlış öncülü ölçümle çürütebilir — ama bunu yapmak zorunda
+> kalması bir maliyettir ve o maliyet bana ait.
 
 ### 10.4 Ajan Rapor Formatı (zorunlu)
 

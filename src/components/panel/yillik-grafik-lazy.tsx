@@ -17,6 +17,19 @@ import { Skeleton } from '@/components/ui/skeleton';
  * ⚠️ İSKELET, YERİNE GEÇTİĞİ ŞEYLE AYNI YÜKSEKLİKTE (`h-80`, grafikle birebir).
  * T-032'de veri tablosu iskeleti için ölçülen CLS dersi: iskelet daha kısaysa
  * yığın indiğinde kutu büyür ve altındaki her şey kayar.
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * ⚠️ T-108f: TEMBELLİK YAZDIRMAYLA ÇAKIŞIYOR
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * `ssr: false` yığının indiğinde çizildiği anlamına geliyor. Kullanıcı yığın
+ * inmeden Ctrl+P'ye basarsa kâğıda İSKELET gider ve on iki gri çubuk VERİ gibi
+ * okunur — boş bir çerçeveden daha kötü bir yanılma, çünkü boş çerçeve soru
+ * doğurur, uydurma çubuklar doğurmaz.
+ *
+ * Bu yüzden iskeletin içinde YALNIZCA YAZDIRMADA görünen bir cümle var ve
+ * globalde (`@media print`) iskeletin görsel kısmı gizleniyor. Çerçeve boş
+ * kalıyor AMA neden boş olduğunu yazıyor.
  */
 const YillikGrafikDinamik = dynamic(() => import('./yillik-grafik'), {
   ssr: false,
@@ -31,6 +44,19 @@ const YillikGrafikDinamik = dynamic(() => import('./yillik-grafik'), {
         ))}
       </div>
       <Skeleton className="h-4 w-full" />
+
+      {/*
+        YALNIZCA KÂĞITTA. `data-yazdirma-notu` globaldeki gizleme kuralının
+        istisnası — iskeletin diğer çocukları yazdırmada kalkıyor, bu kalıyor.
+      */}
+      <p
+        data-yazdirma-notu
+        className="text-danger hidden border border-current px-3 py-2 text-sm print:block"
+      >
+        Grafik bu sayfa yazdırılırken henüz yüklenmemişti. Bu çerçeve boş çünkü çizim
+        tamamlanmamıştı — <strong>verinin kendisi eksik değil</strong>. Grafiği ekranda gördükten
+        sonra yeniden yazdır.
+      </p>
     </div>
   ),
 });

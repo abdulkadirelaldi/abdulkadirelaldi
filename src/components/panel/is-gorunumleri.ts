@@ -54,6 +54,46 @@ export function isGorunumuBul(anahtar: string | undefined): IsGorunumu {
   return IS_GORUNUMLERI.find((g) => g.anahtar === anahtar) ?? { anahtar: 'hepsi', etiket: 'Hepsi' };
 }
 
+/**
+ * Bağlı ödeme listesinin üst sınırı — İŞ DETAYINDA KULLANILIYOR.
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * ⚠️ NEDEN BU DOSYADA, `is-odemeleri.tsx`TE DEĞİL — ÖLÇÜLDÜ, 500 ALINDI
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Sabit ilk olarak `is-odemeleri.tsx` içinde tanımlanmıştı; kullandığı
+ * bileşenin yanında durması okunurluk için doğru görünüyordu. `pnpm lint` ve
+ * `tsc --noEmit` TEMİZ geçti. Sayfa yine de 500 verdi:
+ *
+ *   Invalid value for argument `take`: We could not serialize
+ *   [object Function] value.          (skip: NaN, take: [object Function])
+ *
+ * SEBEP: `is-odemeleri.tsx` bir `'use client'` modülü. Sunucu bileşeni böyle
+ * bir modülden içe aktarım yaptığında paketleyici O MODÜLÜN TÜM DIŞA
+ * AKTARIMLARINI istemci başvuru vekiliyle değiştiriyor — yalnızca bileşeni
+ * değil, yanındaki `const`u da. Sunucuda `ODEME_UST_SINIR` artık 500 değil,
+ * bir FONKSİYON; `(1 - 1) * fn` → `NaN` ve `take: fn` → Prisma patlıyor.
+ *
+ * ⚠️ TİP SİSTEMİ BUNU GÖRMÜYOR: TypeScript için dışa aktarımın tipi hâlâ
+ * `number`. Yani bu sınıf hata derleme kapılarının HİÇBİRİNDE yakalanmıyor,
+ * yalnızca çalıştırmada görünüyor — T-108f'te tam olarak böyle yakalandı.
+ *
+ * Bu dosya `'use client'` TAŞIMIYOR, o yüzden değer sunucuda gerçek sayı.
+ *
+ * ───────────────────────────────────────────────────────────────────────────
+ * NEDEN 500 VE NEDEN SAYFALAMA YOK
+ * ───────────────────────────────────────────────────────────────────────────
+ *
+ * Liste `IsBakiye`nin dört toplamıyla TUTMAK zorunda ve o toplamlar
+ * `fetchJobFinancials`ın `groupBy`ından, yani TÜM satırlardan geliyor.
+ * Kesilmiş bir liste, toplamları tutmayan bir liste olurdu.
+ *
+ * 500: tek bir işe bağlı yüzlerce hareket gerçekçi değil (T-100'ün hacim
+ * ölçümü yılda birkaç yüz hareketin TAMAMI). Aşılırsa `IsOdemeleri` satır
+ * sayısını `transactionCount` ile karşılaştırıp ayrışmayı EKRANDA söylüyor.
+ */
+export const ODEME_UST_SINIR = 500;
+
 /** İş listesi adresi — `?gorunum=liste` tablo görünümünü açar. */
 export function islerYolu({
   gorunum,

@@ -28,6 +28,7 @@ export default function PanelLayout({ children }: { children: ReactNode }) {
       <div className="flex min-h-dvh">
         <a
           href="#panel-icerik"
+          data-yazdirmada-gizle
           className="focus-ring rounded-btn bg-elevated text-primary sr-only px-4 py-2 text-sm font-medium focus:not-sr-only focus:absolute focus:top-3 focus:left-3 focus:z-100"
         >
           İçeriğe geç

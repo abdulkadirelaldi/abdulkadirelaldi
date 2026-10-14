@@ -5,10 +5,15 @@ import { Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 /**
- * "Yazdır" düğmesi — /cv.
+ * "Yazdır" düğmesi — /cv ve /panel/muhasebe/raporlar.
  *
- * SAYFANIN TEK İSTEMCİ BİLEŞENİ ve en uçtaki yaprak: `window.print()` için
- * istemci gerekiyor, sayfanın geri kalanı için gerekmiyor.
+ * ⚠️ T-108f'DE `components/public`TEN `components/ui`YA TAŞINDI. Rapor ekranı
+ * da yazdırılabilir oldu ve panelden `components/public` altına bağımlılık
+ * kurmak yön olarak yanlıştı; kopyalamak ise `window.print()` kısayolunu iki
+ * yerde tutmak olurdu. Bileşen zaten genel: hiçbir sayfaya özel bilgi taşımaz.
+ *
+ * EN UÇTAKİ YAPRAK: `window.print()` için istemci gerekiyor, kullandığı
+ * sayfaların geri kalanı için gerekmiyor.
  *
  * `data-yazdirmada-gizle` KENDİ ÜSTÜNDE: çıktının içinde "Yazdır" yazan bir
  * düğme görünmesi anlamsız olurdu. Düğme kaybolsa bile sayfa yazdırılabilir —
