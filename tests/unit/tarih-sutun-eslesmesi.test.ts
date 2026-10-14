@@ -127,6 +127,19 @@ const ESLESMELER: Eslesme[] = [
     not: '`dueDate` bir TERMİN GÜNÜ — saati yok. Aynı kural.',
   },
   {
+    servis: 'src/server/services/recurring-transaction.ts',
+    model: 'RecurringTransaction',
+    alan: 'startDate',
+    beklenen: 'gun',
+    not:
+      'ADR-040 · oluşum takvimi `startDate` ÇAPASINDAN hesaplanıyor ve üretilen ' +
+      '`Transaction.date` yazılıyor. ÜÇÜ DE `@db.Date` (`startDate`, `endDate`, ' +
+      '`date`) — yani `appDayToDate`. ⚠️ `nextRunAt` ve `lastGeneratedAt` ise ' +
+      '`timestamp`: onlar bir AN bildiriyor ve gün dönüşümünden GEÇMİYOR, ' +
+      'doğrudan `Date` olarak yazılıyor. Aynı dosyada iki sütun ailesi var ve ' +
+      'ayrımı sütun tipi belirliyor (T-102 kuralı).',
+  },
+  {
     servis: 'src/server/services/transaction.ts',
     model: 'Transaction',
     alan: 'date',

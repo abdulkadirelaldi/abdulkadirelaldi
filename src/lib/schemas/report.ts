@@ -1,5 +1,7 @@
 import * as z from 'zod';
 
+import { transactionFilterSchema } from './transaction';
+
 /**
  * Rapor dönemi — §4.2 `/panel/muhasebe/raporlar`, T-106.
  *
@@ -131,6 +133,48 @@ export const exportDatasetSchema = z.enum(['transactions', 'categories', 'monthl
 export const exportBasisSchema = z.enum(['cash', 'accrual'], {
   error: 'Geçersiz esas. "cash" (nakit) ya da "accrual" (tahakkuk) olmalıdır.',
 });
+
+/**
+ * DIŞA AKTARIM İSTEĞİ — üç veri kümesi, ÜÇ FARKLI GİRDİ, TEK eylem.
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * NEDEN AYRIK BİRLEŞİM (discriminated union)
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * Üç küme farklı girdi istiyor: işlem defteri bir FİLTRE, kategori dağılımı bir
+ * GÜN ARALIĞI, aylık özet bir YIL. Hepsini opsiyonel alanlar olarak taşıyan tek
+ * bir düz nesne yazmak cazipti ve yanlış olurdu — `{ dataset: 'monthly' }` ile
+ * `range` göndermek ya da `{ dataset: 'categories' }` ile `year` göndermek
+ * şemayı GEÇERDİ ve sunucu sessizce yoksayardı. Sessizce düşen girdi, bu turda
+ * `jobBase.contactMessageId`den çıkardığım tuzağın aynısı.
+ *
+ * Ayrık birleşimle her küme YALNIZCA kendi girdisini kabul ediyor ve eksik
+ * girdi ALAN HATASI veriyor. Frontend tek bir çağrı imzası görüyor.
+ *
+ * `basis` ÜÇÜNDE DE ZORUNLU — varsayılan vermek, kullanıcının seçmediği bir
+ * esası ona atfetmek olurdu (T-106 kararı) ve dosya bir muhasebeciye gidiyor.
+ */
+export const exportRequestSchema = z.discriminatedUnion('dataset', [
+  z.object({
+    dataset: z.literal('transactions'),
+    basis: exportBasisSchema,
+    filter: transactionFilterSchema,
+  }),
+  z.object({
+    dataset: z.literal('categories'),
+    basis: exportBasisSchema,
+    range: reportRangeSchema,
+  }),
+  z.object({
+    dataset: z.literal('monthly'),
+    basis: exportBasisSchema,
+    /* Yıl sınırı `yearSchema` ile AYNI — gerekçe dosya başında (ADR-040'ta da
+     * bağlayıcı: `buildPeriodKey` dört basamaklı yıl varsayıyor). */
+    year: yearSchema,
+  }),
+]);
+
+export type ExportRequest = z.infer<typeof exportRequestSchema>;
 
 export type MonthlyReportPeriod = z.infer<typeof monthlyReportSchema>;
 export type YearlyReportPeriod = z.infer<typeof yearlyReportSchema>;

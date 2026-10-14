@@ -2,6 +2,7 @@ import { ChartColumn, Tags } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+import { CsvIndir } from '@/components/panel/csv-indir';
 import { IslemlerEkrani } from '@/components/panel/islemler-ekrani';
 import {
   MUHASEBE_GORUNUMLERI,
@@ -10,10 +11,12 @@ import {
 } from '@/components/panel/muhasebe-gorunumleri';
 import { MuhasebeSuzgeci } from '@/components/panel/muhasebe-suzgeci';
 import { Sayfalama } from '@/components/panel/sayfalama';
+import { TekrarlayanKalemler } from '@/components/panel/tekrarlayan-kalemler';
 import { Topbar } from '@/components/panel/topbar';
 import { buttonClasses } from '@/components/ui/button';
 import { transactionFilterSchema } from '@/lib/schemas/transaction';
 import { cn } from '@/lib/utils/cn';
+import { fetchDueRecurringSummary } from '@/server/services/recurring-transaction';
 import { fetchTransactionsForPanel } from '@/server/services/transaction';
 import { fetchTransactionCategoriesForPanel } from '@/server/services/transaction-category';
 
@@ -68,12 +71,18 @@ export default async function MuhasebePage({ searchParams }: SayfaProps) {
     ...(kategori ? { categoryId: kategori } : {}),
   });
 
-  const [liste, kategoriler] = await Promise.all([
-    fetchTransactionsForPanel(
-      cozum.success ? cozum.data : { page: 1, perPage: SAYFA_BOYUTU, sort: 'desc' },
-    ),
+  /* Süzgecin GEÇERLİ hâli — CSV de TAM BUNU indirmeli, yoksa ekranda görünen
+     ile dosyadaki ayrışır ve kullanıcı hangisine güveneceğini bilemez. */
+  const suzgec = cozum.success
+    ? cozum.data
+    : { page: 1, perPage: SAYFA_BOYUTU, sort: 'desc' as const };
+
+  const [liste, kategoriler, tekrarlayan] = await Promise.all([
+    fetchTransactionsForPanel(suzgec),
     /* Süzgeç için — arşiv DAHİL, `isArchived` verilmiyor. */
     fetchTransactionCategoriesForPanel({ page: 1, perPage: KATEGORI_UST_SINIR }),
+    /* ADR-040 — "3 kalem bekliyor" EKRANDA görünmek zorunda. */
+    fetchDueRecurringSummary(),
   ]);
 
   return (
@@ -134,6 +143,14 @@ export default async function MuhasebePage({ searchParams }: SayfaProps) {
             </div>
           </div>
 
+          {/*
+            ⚠️ TEKRARLAYAN KALEMLER LİSTEDEN ÖNCE. ADR-040 üretimi ELLE
+            tetikliyor; kullanıcı basmayı unutursa defter EKSİK kalır. Sayıyı
+            listenin altına koymak, defterine bakmaya gelen birine eksikliği
+            kaydırdıktan sonra söylemek olurdu.
+          */}
+          <TekrarlayanKalemler ozet={tekrarlayan} />
+
           {!cozum.success && (
             <p
               role="alert"
@@ -160,6 +177,21 @@ export default async function MuhasebePage({ searchParams }: SayfaProps) {
                 ? 'Henüz işlem yok'
                 : 'Bu süzgeçte işlem yok'
             }
+          />
+
+          {/*
+            CSV SAYFALAMANIN YANINDA DEĞİL LİSTENİN ALTINDA VE GÖRÜNEN SÜZGEÇLE:
+            `suzgec` ekranı dolduran filtrenin TA KENDİSİ. Dosyada ekranda
+            olmayan satır çıkmaz, ekranda olan satır eksilmez.
+
+            ⚠️ SAYFA NUMARASI DOSYAYA GEÇMİYOR ve geçmemeli: `perPage` burada 25,
+            dışa aktarımda 10.000 (`EXPORT_PAGE_SIZE`). Kullanıcı "bu süzgecin
+            TAMAMINI" indiriyor, "25 satırlık üçüncü sayfayı" değil.
+          */}
+          <CsvIndir
+            istek={{ dataset: 'transactions', filter: suzgec }}
+            etiket="İşlemleri CSV indir"
+            aciklama={`Bu süzgeçteki işlemlerin tamamı (${liste.total} satır) — ekranda gördüğün sayfa değil.`}
           />
 
           <Sayfalama

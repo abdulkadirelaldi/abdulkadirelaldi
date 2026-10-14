@@ -93,6 +93,51 @@ export function addAppDays(day: AppDay, amount: number): AppDay {
   return dateToAppDay(base);
 }
 
+/** Yılın ayındaki gün sayısı. Bir sonraki ayın "0. günü" = bu ayın son günü. */
+function daysInMonth(year: number, month: number): number {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+/**
+ * Güne AY ekler — AYIN SONUNA KIRPARAK (ADR-040 / T-109b).
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * ⚠️ `setUTCMonth` KULLANILAMAZ — SESSİZCE TAŞAR
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * `new Date('2026-01-31').setUTCMonth(1)` → **2026-03-03**. JavaScript olmayan
+ * günü bir sonraki aya taşıyor, hata vermiyor. Tekrarlayan bir ödeme için bu
+ * şu demek: ayın 31'inde başlayan bir abonelik şubatta MART'A kayar ve bir ay
+ * atlanmış görünür.
+ *
+ * Burada gün AYIN SON GÜNÜNE KIRPILIYOR: 31 Ocak + 1 ay = 28 Şubat (artık yılda
+ * 29). Bu, abonelik ve kira gibi yükümlülüklerin gerçek davranışı.
+ *
+ * ⚠️ ÇAPA KAYMASINI ÖNLEMEK ÇAĞIRANIN İŞİ: 31 Ocak'tan adım adım ilerlemek
+ * (31 Ocak → 28 Şubat → 28 Mart) günü kalıcı olarak kaydırır. `recurrenceOccurrences`
+ * bu yüzden HER ZAMAN `startDate`ten `n` ay ekliyor, bir önceki oluşumdan değil.
+ */
+export function addAppMonths(day: AppDay, amount: number): AppDay {
+  assertAppDay(day);
+  const year = Number(day.slice(0, 4));
+  const month = Number(day.slice(5, 7));
+  const dayOfMonth = Number(day.slice(8, 10));
+
+  const toplamAy = year * 12 + (month - 1) + amount;
+  const hedefYil = Math.floor(toplamAy / 12);
+  const hedefAy = (toplamAy % 12) + 1;
+
+  const kirpilmis = Math.min(dayOfMonth, daysInMonth(hedefYil, hedefAy));
+  const pad = (n: number): string => String(n).padStart(2, '0');
+
+  return `${String(hedefYil).padStart(4, '0')}-${pad(hedefAy)}-${pad(kirpilmis)}`;
+}
+
+/** Güne YIL ekler. 29 Şubat + 1 yıl = 28 Şubat (aynı kırpma kuralı). */
+export function addAppYears(day: AppDay, amount: number): AppDay {
+  return addAppMonths(day, amount * 12);
+}
+
 /** İki gün arasındaki tam gün farkı (`to - from`). */
 export function differenceInAppDays(from: AppDay, to: AppDay): number {
   const ms = appDayToDate(to).getTime() - appDayToDate(from).getTime();
@@ -218,8 +263,8 @@ export function appMonthRange(year: number, month: number): AppDayRange {
     throw new Error(`Geçersiz ay: ${month}. 1–12 bekleniyor.`);
   }
   const pad = (n: number): string => String(n).padStart(2, '0');
-  // Bir sonraki ayın 0. günü = bu ayın son günü. Artık yılı da doğru çözer.
-  const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  // Son gün hesabı `daysInMonth` ile paylaşılıyor — iki yerde yazılmıyor.
+  const lastDay = daysInMonth(year, month);
   return { from: `${year}-${pad(month)}-01`, to: `${year}-${pad(month)}-${pad(lastDay)}` };
 }
 

@@ -192,9 +192,51 @@ function testKaynagi(): string {
  * doğrudan atama biçiminde; blokta tesadüfen yan yana duran iki şeyi
  * eşleştirmemek için kapsam dar tutuluyor.
  */
-function dogrudanKapaliOlanlar(testler: string): Set<string> {
+function dogrudanKapaliOlanlar(testler: string, yuzeyAdlari: ReadonlySet<string>): Set<string> {
   const kapali = new Set<string>();
-  const SERVIS_ADI = /\b(fetch\w+|create\w+|update\w+|change\w+|convert\w+)\s*\(/g;
+  /*
+   * ⚠️ `process\w+` T-109b'DE EKLENDİ — KAPIDA ASİMETRİK BİR KÖR NOKTA VARDI.
+   *
+   * Kapının iki yarısı var: hangi yüzeylerin ÖLÇÜLMESİ GEREKTİĞİ (ihraç edilen
+   * işlevleri `Decimal` modellerine dokunmalarından buluyor) ve hangilerinin
+   * ÖLÇÜLDÜĞÜ (test kaynağında `decimalKalanlar(...)` iddialarını arıyor).
+   *
+   * İkinci yarı bir ÖN EK LİSTESİ kullanıyordu ve `processDueRecurringTransactions`
+   * (ADR-040) o listede yoktu. Sonuç: kapı yüzeyi "ölçülmesi gerekiyor" diye
+   * BULDU ama benim yazdığım `decimalKalanlar(await processDue…())` iddiasını
+   * GÖREMEDİ ve iddia varken kırmızı kaldı.
+   *
+   * Kör nokta ÖN EK LİSTESİNİN KENDİSİNDE: liste, servis adlarının nasıl
+   * başladığını MODELLİYOR — oysa "ihtiyaç" yarısı adı modellemiyor, kaynağı
+   * ÖLÇÜYOR. İki yarı farklı yöntem kullandığı için ayrışabiliyorlardı
+   * (T-050'nin "izlediği şeyi okumayan test" sınıfının bir varyantı).
+   *
+   * `process` meşru bir servis fiili ve ADR-040'ın kendi sözcüğü ("kalemleri
+   * İŞLE"). Listeyi genişletmek kapıyı KÖRLEŞTİRMİYOR: bu yarı yalnızca GERÇEK
+   * iddiaları tanımaya hizmet ediyor; neyin ölçülmesi gerektiğine öbür yarı
+   * karar veriyor ve ona dokunulmadı.
+   */
+  /*
+   * ⚠️ FİİL ÖN EK LİSTESİ KALDIRILDI (T-109g) — ASİMETRİ KAPANDI.
+   *
+   * Burada `fetch\w+|create\w+|update\w+|change\w+|convert\w+` biçiminde bir
+   * liste vardı ve T-109b'de `process\w+` eklenmek zorunda kaldı: ADR-040'ın
+   * `processDueRecurringTransactions`ı listede yoktu, kapı yüzeyi "ölçülmesi
+   * gerekiyor" diye BULDU ama yazılmış iddiayı GÖREMEDİ ve iddia varken
+   * kırmızı kaldı.
+   *
+   * Kusur eksik fiilde değil, TASARIMDAKİ ASİMETRİDE: kapının bir yarısı
+   * (ne ölçülmeli) kaynağı ÖLÇÜYOR, öteki yarısı (ne ölçülmüş) servis
+   * adlandırmasını MODELLİYORDU. İki yarı farklı yöntem kullandığı için
+   * ayrışabiliyorlardı ve sonraki fiilde (`recalculate`, `sync`, `export`…)
+   * aynı ayrışma tekrarlanırdı — listeyi uzatmak sınıfı kapatmaz.
+   *
+   * Artık iki yarı AYNI kaynağı kullanıyor: tanınan adlar, enumerasyonun
+   * bulduğu yüzey adlarının ta kendisi. Yeni bir fiil icat edilse bile liste
+   * güncellenmek zorunda değil.
+   */
+  const adDeseni = (ad: string): RegExp =>
+    new RegExp(`\\b${ad.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*\\(`);
 
   // Her `it(` bloğu ayrı değerlendiriliyor: dolaylama yalnızca blok içinde çözülür.
   for (const blok of testler.split(/\bit(?:\.\w+)?\s*\(/)) {
@@ -205,7 +247,7 @@ function dogrudanKapaliOlanlar(testler: string): Set<string> {
 
     for (const arg of iddialar) {
       // (1) İddianın İÇİNDE doğrudan çağrı: `decimalKalanlar(await fetchX(…))`
-      for (const m of arg.matchAll(SERVIS_ADI)) if (m[1]) kapali.add(m[1]);
+      for (const ad of yuzeyAdlari) if (adDeseni(ad).test(arg)) kapali.add(ad);
 
       // (2) Değişken dolaylaması: `const sayfa = await fetchX(…)` → `decimalKalanlar(sayfa)`
       const tanimlayici = /^\s*([A-Za-z_]\w*)\s*$/.exec(arg);
@@ -214,7 +256,9 @@ function dogrudanKapaliOlanlar(testler: string): Set<string> {
       const atama = new RegExp(
         `(?:const|let)\\s+${tanimlayici[1]}\\s*=\\s*(?:await\\s+)?(\\w+)\\s*\\(`,
       ).exec(blok);
-      if (atama?.[1]) kapali.add(atama[1]);
+      // Atanan ad yalnızca ENUMERASYONDA varsa kapsama sayılıyor: rastgele bir
+      // yardımcı adı iddiayı kapsıyor gibi görünmesin.
+      if (atama?.[1] && yuzeyAdlari.has(atama[1])) kapali.add(atama[1]);
     }
   }
 
@@ -233,7 +277,8 @@ describe('ADR-014/3 — `Decimal` taşıyan her servis yüzeyi ölçülüyor', (
     );
 
   const testler = testKaynagi();
-  const dogrudanKapali = dogrudanKapaliOlanlar(testler);
+  const tumYuzeyAdlari = new Set(servisler.flatMap((srv) => dtoYuzeyleri(srv.kaynak)));
+  const dogrudanKapali = dogrudanKapaliOlanlar(testler, tumYuzeyAdlari);
 
   it('önkoşul — şemadan `Decimal` modelleri türetildi', () => {
     expect(modeller, 'şemada Decimal sütunu olan model bulunamadı').toEqual(
@@ -278,6 +323,18 @@ describe('ADR-014/3 — `Decimal` taşıyan her servis yüzeyi ölçülüyor', (
     // kırmızı olur; boş DEĞİL olduğu ayrıca ölçülüyor.
     expect(dogrudanKapali.size, '`decimalKalanlar` iddiası hiç bulunamadı').toBeGreaterThan(3);
     expect(dogrudanKapali).toContain('fetchJobForPanel');
+
+    /*
+     * ⚠️ ASİMETRİNİN ÇAPASI (T-109g). Bu ad, fiil ön ek listesinin kör
+     * noktasını açığa çıkaran vakaydı: enumerasyon onu "ölçülmeli" diye
+     * buluyordu ama tanıma yarısı `process` fiilini bilmediği için yazılmış
+     * iddiayı GÖREMİYORDU. Liste kaldırıldı ve iki yarı aynı kaynağı
+     * kullanıyor; bu iddia düzeltmenin GERÇEKTEN çalıştığını kilitliyor.
+     */
+    expect(
+      dogrudanKapali,
+      'fiil ön ek listesi geri gelmiş olabilir — tanıma yarısı enumerasyonu kullanmıyor',
+    ).toContain('processDueRecurringTransactions');
   });
 
   /**

@@ -550,6 +550,25 @@ SEO ≥ 95 (public sayfalar).
 > **aynı turda** yazar, yani kapı o turun sonunda yeşil olur. "Kapsanmıyor" gerekçesiyle
 > geçerli bir beyandır. Güvenlik beyanları **denetler**, yazmaz. İstisna bu tek veri
 > yapısıyla sınırlıdır; genişletilmesi yeni bir ADR gerektirir.
+>
+> **Aynı ilkenin ikinci uygulaması (T-109, 2026-10-14).**
+> `tests/unit/servis-ulasilabilirlik.test.ts` içindeki **bildirim listesi** de aynı
+> sınıftır: *"bu ihraç henüz bağlanmadı"* bir **durum bildirimi**dir ve onu geçersiz
+> kılan kişi, **bağlayan** kişidir.
+>
+> Kuralı Güvenlik kendisi yazmıştı: *"düzeltmesi tek satır ve **bağlayanın**."*
+> T-109'da hem Backend (dört CSV satırı) hem Frontend (`fetchDueRecurringSummary`)
+> kendi bağladıkları satırları sildi. **İkisi de doğru davrandı** — Frontend bunu bir
+> sınır ihlali sanıp onay istedi, gerek yoktu.
+>
+> **Kapsam:** `KAPSAM` haritası ve `servis-ulasilabilirlik` bildirim listesi gibi
+> **durum bildiren veri yapıları**, durumu değiştiren ajan tarafından güncellenir.
+> Kapı **mantığı** her zaman Güvenlik'in kalır ve ona dokunulmaz.
+>
+> **Ayırt etme ölçütü:** bir satır *"bugün şöyle"* diyorsa **bildirim**dir; *"şöyle
+> olmalı"* diyorsa **kural**dır. Bildirimi, gerçeği değiştiren güncellemeli — yoksa
+> kapı **ölü satır** taşır, ve ölü bir bildirim bir gün gerçek bir boşluğu maskeler
+> (BULGU-024'ün ölü istisnasıyla aynı sınıf).
 
 **Sınır kuralı:** Bir ajan başkasının dosyasını değiştirmez. İhtiyaç varsa Orkestra
 Şefi'ne **değişiklik talebi** açar, o da ilgili ajana görev yazar. Bu kural projenin

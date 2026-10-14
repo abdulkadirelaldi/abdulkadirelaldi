@@ -168,28 +168,22 @@ const BILDIRIM: UlasilmazBildirim[] = [
   },
 
   /* ---- BAĞLANMAMIŞ — tüketicisi olmalıydı, yok -------------------------- */
-  {
-    anahtar: 'export.ts → exportTruncated',
-    sebep: 'baglanmamis',
-    not:
-      '⚠️ F4 kabul kontrolünün bulduğu sınıf: CSV %100 satır kapsamına sahip ve HİÇBİR ' +
-      'çağıranı yok. Frontend T-108f`te bağlıyor; bağlandığında bu satır SİLİNİR.',
-  },
-  {
-    anahtar: 'export.ts → exportTransactionsCsv',
-    sebep: 'baglanmamis',
-    not: '⚠️ Aynı sınıf — T-108f`te bağlanıyor, bağlandığında bu satır silinir.',
-  },
-  {
-    anahtar: 'export.ts → exportCategoryBreakdownCsv',
-    sebep: 'baglanmamis',
-    not: '⚠️ Aynı sınıf — T-108f`te bağlanıyor, bağlandığında bu satır silinir.',
-  },
-  {
-    anahtar: 'export.ts → exportMonthlySummaryCsv',
-    sebep: 'baglanmamis',
-    not: '⚠️ Aynı sınıf — T-108f`te bağlanıyor, bağlandığında bu satır silinir.',
-  },
+  /*
+   * ⚠️ BU BÖLÜM T-109b'DE BOŞALDI ve boşalmasını BU KAPI söyledi.
+   *
+   * Dört `export.ts` satırı duruyordu ve notu şöyleydi: "CSV %100 satır
+   * kapsamına sahip ve HİÇBİR çağıranı yok — Frontend bağladığında bu satır
+   * SİLİNİR." T-109b `actions/export.ts`i yazdı; kapı bunu gördü ve
+   * "bu satırlar artık geçersiz, bildirimden çıkarılmalı" dedi.
+   *
+   * Yani mekanizma iki yönde de çalıştı: boşluk açıldığında bildirilmesini,
+   * kapandığında bildirimin SİLİNMESİNİ zorladı. Ölü bir bildirim bir gün
+   * gerçek bir boşluğu maskeleyecekti (BULGU-024'ün ölü istisnasıyla aynı
+   * sınıf, T-102'de kapatılan).
+   *
+   * Dışa aktarım artık `exportCsvAction` üzerinden ulaşılabilir: eylem üç
+   * üreticiyi ve `exportTruncated`ı çağırıyor.
+   */
 ];
 
 describe('ADR-037 — ulaşılamayan servis ihraçları BİLDİRİLİYOR', () => {
@@ -276,12 +270,15 @@ describe('ADR-037 — ulaşılamayan servis ihraçları BİLDİRİLİYOR', () =>
       baglanmamis.map((b) => b.anahtar).sort(),
       '`baglanmamis` kümesi değişti. Büyüdüyse: yazılan ama bağlanmayan yeni bir ' +
         'yüzey var. Küçüldüyse satırlar silinmeli.',
-    ).toEqual([
-      'export.ts → exportCategoryBreakdownCsv',
-      'export.ts → exportMonthlySummaryCsv',
-      'export.ts → exportTransactionsCsv',
-      'export.ts → exportTruncated',
-    ]);
+      /*
+       * ⚠️ T-109b'DE BOŞALDI. Dört `export.ts` satırı F4 kabul kontrolünün
+       * bulduğu "kod var, yol yok" sınıfıydı; `actions/export.ts` yolu açtı.
+       *
+       * BOŞ KALMASI BİR KAZANIM DEĞİL, BİR DURUM: küme yeniden büyürse o bir
+       * gerileme işaretidir ("yine kod yazdık, yine bağlamadık") ve bu iddia
+       * onu görünür kılıyor.
+       */
+    ).toEqual([]);
   });
 });
 

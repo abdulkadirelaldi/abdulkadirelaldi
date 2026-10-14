@@ -2,6 +2,7 @@ import { ArrowLeft } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+import { CsvIndir } from '@/components/panel/csv-indir';
 import { RaporEkrani } from '@/components/panel/rapor-ekrani';
 import { kategoriCubuklariniCevir, yillikGrafigeCevir } from '@/components/panel/rapor-veri';
 import { Topbar } from '@/components/panel/topbar';
@@ -256,6 +257,30 @@ export default async function RaporlarPage({ searchParams }: SayfaProps) {
             yil={yil}
             ayEtiketi={ayEtiketi}
           />
+
+          {/*
+            ⚠️ İKİ AYRI İNDİRME, TEK BİR "RAPORU İNDİR" DEĞİL. Ekrandaki iki
+            tablo iki FARKLI aralığa bakıyor: kategori dağılımı SEÇİLİ AYA
+            (`aylik.range`), aylık özet BÜTÜN YILA. Tek düğme altında
+            birleştirmek, kullanıcının hangi dönemi indirdiğini bilmemesi
+            demekti — ve dosya muhasebecisine gidiyor.
+
+            `data-yazdirmada-gizle`: kâğıtta "indir" düğmesi anlamsız (T-108f'in
+            yazdırma sözleşmesi).
+          */}
+          <div data-yazdirmada-gizle className="flex flex-col gap-4 sm:flex-row sm:gap-6">
+            <CsvIndir
+              istek={{ dataset: 'categories', range: aylik.range }}
+              etiket="Kategori dağılımını indir"
+              aciklama={`${ayEtiketi} — ekrandaki dağılımın aynısı (${aylik.range.from} … ${aylik.range.to}).`}
+            />
+
+            <CsvIndir
+              istek={{ dataset: 'monthly', year: yil }}
+              etiket="Aylık özeti indir"
+              aciklama={`${yil} yılının on iki ayı — seçili ay değil, yılın tamamı.`}
+            />
+          </div>
         </div>
       </main>
     </>
