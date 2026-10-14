@@ -241,7 +241,7 @@ ve bu turda Frontend'in ölçüm görevi var (ADR-023: iki ölçüm görevi para
 
 ---
 
-### F4 — İş & Muhasebe 🔵 **BAŞLADI**
+### F4 — İş & Muhasebe 🟢 **KAPANDI**
 
 | #     | Görev                                                                                        | Ajan     | Bağımlılık   |
 | ----- | -------------------------------------------------------------------------------------------- | -------- | ------------ |
@@ -258,7 +258,7 @@ ve bu turda Frontend'in ölçüm görevi var (ADR-023: iki ölçüm görevi para
 
 ---
 
-### F5 — Sağlık, Spor, Hayat ⚪
+### F5 — Sağlık, Spor, Hayat 🔵 **SIRADA**
 
 | #     | Görev                                                                        | Ajan     | Bağımlılık  |
 | ----- | ---------------------------------------------------------------------------- | -------- | ----------- |
@@ -1436,3 +1436,84 @@ kümede yeşil** kaldı.
 
 Güvenlik'in kendi cümlesi dersin özü: *"aynı turda 'listeyi elle yazma, kaynaktan
 türet' yazmışım. **Kural yazmak, kurala uymak değil.**"*
+
+---
+
+## F4 KAPANDI — ikinci kabul kontrolü (Orkestra Şefi, 2026-10-14)
+
+`main = d85b91e` · **1884 birim + 101 E2E, 0 atlanan** · `src/server` %95,79
+
+### Üç işlevsel boşluk da kapandı — depoda doğrulandı
+
+| Boşluk | Kapanış kanıtı |
+|--------|----------------|
+| CSV arayüze bağlı değildi | `csv-indir.tsx` → `muhasebe/page.tsx` **ve** `raporlar/page.tsx` |
+| Print CSS yoktu | `globals.css`'te `yazdirmada-gizle` / `yazdirma-sayfa` |
+| İş detayı ödemeleri listelemiyordu | `IsOdemeleri` → `isler/[id]/page.tsx` |
+
+Artı ADR-040'ın tetikleyicisi: `tekrarlayan-kalemler.tsx` → `muhasebe/page.tsx`.
+
+**§4.2'nin F4 satırlarının tamamı işlevsel.** *"Kod var, yol yok"* sınıfı kapandı.
+
+### F4'ün sayıları
+
+| | |
+|---|---|
+| §9 senaryoları | **7/7 kapalı** — F3'e 2 ile girilmişti |
+| §8 maddeleri | ✅ 11 · ⚠️ 6 · ❌ 0 · ⏳ **6** (F4 başında 9'du; ikisi bayat çıktı, biri kapatıldı) |
+| Testler | 1884 birim (85 dosya) · 101 E2E · rota kapısı 41/41 |
+| Danışmalar | 1 açık (`braces`, yamasız, deneye bağlı istisna) |
+
+### F4'te doğan kalıcı kurallar
+
+| | |
+|---|---|
+| **ADR-038/1b** | Anlık görüntü adı **tam yolu** taşır |
+| **ADR-039** | Kategori türü ↔ işlem türü eşleşmek zorunda değil; uyuşmazlık gizlenmez |
+| **ADR-040** | `RecurringTransaction`: tetikleyici elle, cron sonra **aynı eylemi** çağırır |
+| **ADR-041** | Q1 kapandı — panel `/panel` altında kalır |
+| **ADR-042** | Q2 kapandı — v1'de mail sağlayıcı yok |
+| §10.3 (2) | Ders taşırken **kapsamı** kontrol edilir; aynı değilse **soru** olarak taşınır |
+| §10.3 (3) | Bir ajanın **öngörüsü** olgu olarak yazılmaz |
+| §10.1 ek | Durum **bildiren** veri yapılarını, durumu **değiştiren** günceller |
+| Backend | Hangi tarih yardımcısı — **sütunun tipi** belirler |
+| Backend | "Gelir" iki şeyi adlandırıyor — **isim esası söyler** |
+
+### F4'ün en pahalı dersi: koruma, koruduğu sınıfı yeniden üretebilir
+
+**Üç kez** aynı biçimde çıktı:
+
+1. **ADR-038** (`basename` çakışması) — mutasyon yedeği, koruduğu kayıp sınıfını kendi içinde üretti
+2. **Güvenlik'in `decimal-yuzey-sayimi` kapısı** — iki yarısı farklı yöntem kullanıyordu, ayrıştı
+3. **Backend'in yıl sınırı** — `"10000".slice(0,4)` → `"1000"`, yani **beş basamaklı yılı dört basamak okumak**, tam da engellemeye çalıştığı kusur
+
+Üçünde de yakalayan şey **ajanın kendi testi** oldu, kod incelemesi değil.
+
+### Benim iki kart hatam
+
+| Tur | Hata |
+|-----|------|
+| T-102 | T-053'ün dersini **kapsamını kontrol etmeden** talimata çevirdim (`timestamp` dersi, `@db.Date` sütununa) |
+| T-106/T-108 | Bir ajanın **öngörüsünü** olgu olarak yazdım (*"`?month=99` 500 veriyor"* — beşi de 200'dü) |
+
+İkisi de §10.3'e kural olarak yazıldı. Ortak kök: **kartın taşıdığı her iddianın bir kaynağı var ve kaynağı kontrol etmek kartı yazanın işi.**
+
+---
+
+## F5 sırada — ve R2 artık merkezde
+
+**Sıra:** (T-110 ∥ T-111 ∥ T-112) → (T-113 ∥ T-114 ∥ T-115) → T-116
+
+**F5'e hazır girilen şeyler:**
+- Kalıp **yedi kez** kopyalandı; sekizincisi en kolay faz olacak
+- Güvenlik'in `tarih-sutun-eslesmesi` kapısı F5'in **13 `@db.Date` sütununu** şimdiden kapsıyor
+- `decimal-yuzey-sayimi` kapısı F5'in Decimal sütunlarını (`weightKg`, `sleepHours`, `bodyFatPct`) kendiliğinden kapsıyor
+
+**R2 hazır ve iki borç açılabilir hâlde:**
+
+| | |
+|---|---|
+| **T-037** | Yükleme ucu + imzalı URL + dosya doğrulayıcı (§8.11) |
+| **T-066** | Yedekleme + `restore.md` + **geri yükleme provası** — Güvenlik yükseltti: *"defterde gerçek para verisi var"* |
+
+⚠️ **Token rotasyonu bekliyor:** anahtarlar sohbet geçmişine girdi, ölçüm onlarla yapıldı, rotasyon tek adımlık.
