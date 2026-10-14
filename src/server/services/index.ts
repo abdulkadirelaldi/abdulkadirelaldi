@@ -137,6 +137,10 @@ export * from './report';
 // §4.2 CSV dışa aktarım (T-106). Kodlama kararları `_shared/csv.ts`te ölçülü.
 export * from './export';
 
+// ADR-040 — tekrarlayan işlem üretimi. Tetikleyici ELLE; F7'de cron AYNI
+// eylemi çağırır. İdempotanslık `@@unique([sourceRecurringId, periodKey])`.
+export * from './recurring-transaction';
+
 // ADR-026 — içerik servisleri (F2 public okuma tarafı)
 export * from './experience';
 export * from './post';

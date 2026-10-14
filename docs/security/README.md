@@ -75,6 +75,7 @@ açığın ayrıntısı artık saldırgana bir şey kazandırmaz.
 | 2026-08-12 | T-029a | Lighthouse'a masaüstü + koyu profil (WebGL yolu), üç durumlu WebGL doğrulaması, koşu değişkenliği kararı | **BULGU-010 açıldı**: WebGL yolu hiçbir CI koşusunda ölçülmüyordu. Profil kuruldu ve doğrulandı; ölçüm T-021'in hero'yu bağlamasını bekliyor (kontrol kendi kendine zorunlu hâle geliyor). Değişkenliğin **ilk koşuya** ait olduğu ölçüldü; `numberOfRuns` 5, `aggregationMethod` açıkça medyan. |
 | 2026-08-17 | T-029d | Ölçüm yüzeyi dışındaki SEO/OG rotaları (BULGU-015) | **BULGU-015 kapandı** — `tests/e2e/seo-routes.spec.ts`: robots.txt, sitemap.xml, rss.xml, `/og` ve `/og/proje/<slug>` artık her koşumda isteniyor. PNG imza baytlarından, XML gerçek ayrıştırıcıyla doğrulanıyor. Kapsam iki katmanlı: sözleşme testleri + sitemap taraması (yeni sayfa kendiliğinden kapsanır). Mutasyonla kanıtlandı: düzeltme öncesi font aynı render yolunda BULGU-014'ün `TypeError`'ını veriyor. **BULGU-016 açıldı** — sitemap üç adet 404 adresi bildiriyor. |
 | 2026-08-16 | T-029c | Ölçüm işinin veri kurulumu (BULGU-013) + §8.24 haftalık zamanlayıcı | **BULGU-013 açıldı ve düzeltildi**: `lighthouse` işi ayrı koşucuda `services:` bloğu olmadan koşuyordu; ADR-026 sonrası `/` 500 dönüyor, üç profil düşüyor, artifact üretilmiyordu. Kendi Postgres'i kuruldu (yol **a**). İki yeni nöbet: ölçüm ön koşulu ve ayırt edicide durum kodu kontrolü — ikincisi olmadan arıza "⏳ BEKLEMEDE" diye yeşil görünüyordu. §8.24 artık **haftalık** de koşuyor (`17 6 * * 1`). |
+| 2026-10-14 | T-109g | CSV kolon yolu, ADR-040 öncülü, "bağlanmamış" kümesinin ölümü | **CSV bir güvenlik yüzeyi ve kolon yolu artık bildirimli** (`csv-kolon-yolu.test.ts`). Backend'in iki yol karşıtlığı (`csvText` önekliyor — önek tırnaklamadan ÖNCE; `csvMoney` bilerek öneklemiyor çünkü `-500,00` öneklenirse sayı olmaktan çıkar) ve ziyaretçi kaynaklı `Client.name` zinciri ölçülü — DENETLENDİ, doğru ve yeterli. **Ölçülmeyen: yeni bir kolonun yanlış yoldan geçmesi.** Metin kolonu `csvMoney`den geçerse enjeksiyon geri gelir (mevcut iddialar `Müşteri`yi ölçüyor, kırılmaz); tutar kolonu `csvText`ten geçerse her negatif tek tırnak öneki alır ve toplamlar bozulur — ikisi de TEK KARAKTERLİK düzenleme, ikisi de sessiz. Kapı kolonları ADLARIYLA yollarına bağlıyor, iki yön kapalı, ayrıca **KOLON KAYMASI** ölçülüyor (başlık/satır dizileri paralel; biri büyürse her hücre bir sonraki başlığın altına düşer, dosya açılır hata vermez yanlıştır). ⚠️ **Kapıyı yazarken iki kez kendi kuralımı çiğnedim ve ikisini de kapı yakaladı:** (1) kolon adlarını ÖLÇMEDEN uydurdum (`Tahsil Edilen`, `Net (Nakit)`, `Toplam` — hiçbiri dosyada yoktu), "ölü satır" iddiası gösterdi; (2) ayrıştırıcı koşullu başlıkta ilk dizeyi alıp **`cash`**i kolon sanıyordu ve değişkene atanmış başlığı (`tutarBasligi`) hiç saymıyordu. Ayrım kayda geçti: "hangi kolon tutar yolundan geçer" bir KARAR (elle bildirilir), adların kendisi ÖLÇÜLÜR. **§8.20 türetmesi DENETLENDİ: kolaylığa kaçmıyor.** Backend ölçütü kopyalamadı, yeniden türetti ve farklı sonuç aldı (`description` denetimde yok, CSV'de var) — denetim kaydında kaygı kişisel veriyi ikinci mağazaya KOPYALAMAK, CSV'de ise AMACA UYGUNLUK çünkü kullanıcı kendi verisine zaten erişiyor; `email`/`phone`/`notes` dışarıda çünkü muhasebe amacına katkısı yok ve DOSYA UYGULAMADAN ÇIKIYOR. Gevşetmenin ÖNCÜLÜNÜ de ölçtüm: `exportCsvAction` `currentActorId()` ile kapılı (oturum + ADR-035/B) ve testi var — yani "indiren kişi sahibi" dayanaksız değil. **ADR-040 DENETİMİ: karar sağlam, öncülü korumasızdı.** `nextRunAt` kararı (üç ay basılmazsa ÜÇ kayıt) doğru ve gerekçesi ölçülebilir: oluşumlar DAİMA `startDate` çapasından hesaplanıyor ve üretilmiş `periodKey`ler çıkarılıyor, yani bayat `nextRunAt` yalnızca GECİKTİREBİLİR — kendi kendini onaran yazma (T-100 soyu); atlamak defterden kayıt düşürmek olurdu. Backend yıl okumasını `slice(0,4)` ile değil İLK TİREYE KADAR yapmış, yani T-108g'de ölçtüğüm kusura düşmemiş. **Ölçülmeyen: kısıtın VARLIĞI** ve teşhisi Backend'in kendi yorumu verdi (`tekrarlayan.test.ts:194` — "çıkarma bir OPTİMİZASYON; gerçek güvence `@@unique([sourceRecurringId, periodKey])`"): testler taklit istemci kullandığı için kısıt şemadan silinse hepsi yeşil kalır, `skipDuplicates` atlayacak şey bulamaz ve iki kez tetiklemek DEFTERE çift gider yazar. `tekrarlayan-tekillik-oncul.test.ts` öncülü İKİ yerde ölçüyor — şema bildiriyor VE göç `CREATE UNIQUE INDEX` oluşturuyor; ikincisi ayrı bir sınıf çünkü şemaya `@@unique` yazıp göç üretmemek sessizdir (şema niyet, veritabanının gerçeği göçlerde). Mutasyonlar ince gerilemeleri kapsıyor: tek alanlı `@@unique` bileşiğin yerini tutmaz, `@@index` kısıt değildir. Canlı DB elle doğrulandı (`pg_indexes` → `transaction_sourceRecurringId_periodKey_key`). **"BAĞLANMAMIŞ" KÜMESİ ÖLDÜ:** T-109b CSV'yi bağladı, kapı "satırlar geçersiz" dedi ve BAĞLAYAN KİŞİ sildi — kendi kuralım uygulandı, mekanizma iki yönde de çalıştı. Küme artık boş ve bu bir KAZANIM DEĞİL BİR DURUM: yeniden büyümesi gerileme işareti. **ADVISORY-006** değişmedi, §8.24 EXIT 0, §8 envanteri 6 ⏳. Birim 1884/1884, E2E 101/101, kalıntı 0. |
 | 2026-10-14 | T-108g | İki korunmayan ölçüm, ulaşılabilirlik bildirimi, yıl sınırının sebebi, F5 öncesi ⏳ envanteri | **Ağır yığın kapısı GENELLEŞTİRİLDİ** (`agir-yigin-tembel.test.ts`): iki halka birlikte ölçülüyor — paketi yalnızca bildirilen bileşen içe aktarıyor VE o bileşen hiçbir yerde statik içe aktarılmıyor; biri olmadan diğeri yeşil kalırdı. ⚠️ **Sayım iddiası listemdeki en pahalı eksiği buldurdu:** bildirimi iki yığınla yazmıştım, kapı ÜÇÜNCÜ tembel sınırı gösterdi — `reactbits/lazy.tsx`, yani BULGU-018'de TBT'yi 80 ms → 9.990 ms yapan `ogl` yığını. Sayım sonra HEDEF tanecikli yapıldı çünkü dosya taneciklinin kör noktası vardı (`lazy.tsx` altı hedef taşıyor, yedincisi görünmezdi); 13 hedef bildirimli, üçü ağır (ölçümleriyle), onu "ağır değil" envanterinde, ağırlığı BİLİNMEYEN hiçbir kovaya yazılmıyor. MDX'te "tek içe aktaran" kuralı UYGULANAMADI ve sebebi yazılı (zincir iki adımlı, paketin ikinci meşru içe aktaranı public blog sunucu bileşeni). Chunk kimliğini (`6311`) iddiaya yazmayı DENEDİM ve reddettim: kimlik her derlemede değişir, kapı yanlış sebeple kırmızıya döner ve "kapıyı güncelle" alışkanlığı söylediğini önemsizleştirir. **Tooltip kapısı** (`grafik-tooltip.test.ts`): `content` propu kaldırılırsa Recharts varsayılanı `dataKey`in HAM SAYISAL değerini yazar (`85625` — kuruş, ayırıcı, para birimi yok) ve ekranın geri kalanı `etiket` bastığı için AYNI SAYFADA iki para biçimi oluşur. Kapıyı yazarken SAHTE POZİTİF ürettim: gövde sınırını "sonraki `\nfunction`" ile arıyordum, sonraki tanım `export default function` olduğu için gövde grafiğin içine uzadı ve meşru `dataKey="gelir.deger"` satırları "tooltip deger basıyor" diye okundu — sahte pozitif, sahte negatif kadar pahalı (kapıyı gevşetmeye davet eder); sınır artık kapanış ayracına bağlı. **"KOD VAR, YOL YOK" ölçüldü ve kapı BİLDİRİM olarak kuruldu** (`servis-ulasilabilirlik.test.ts`): kör dedektör 183 ihraçtan 37'sini işaretledi ve çoğu MEŞRU (`build*Where` kendi dosyasında çağrılıyor, dışa açılma sebebi doğrudan birim testi) — 37 uyarı veren kapı kurulmaz, susturulur. Doğru soru "kendi dosyası DAHİL hiç çağrılmıyor mu" olunca 10 kaldı: 6 BEKLEYEN (F5 yardımcıları), 4 BAĞLANMAMIŞ (CSV — kabul kontrolünün bulduğu sınıf). İkisini mekanik ayırmak MÜMKÜN DEĞİL ve iddia edilmiyor; fark NİYETTE (T-053'te `fetchAuditLogById`yi YAZMAMA kararı tam bu sınıftı). Kapı iki yönlü: bildirilmeyen ulaşılmaz kırmızı, bağlanınca ölen satır da kırmızı; `baglanmamis` kümesinin SAYISI kilitli (büyümesi gerileme işareti). Dört CSV satırının T-108f'te ölmesi BEKLENİYOR. **Yıl sınırının SEBEBİ kapıya bağlandı** (`donem-yil-siniri.test.ts`): `buildPeriodKey` anahtarı DİZE DİLİMLEMESİYLE kuruyor, yani dört basamak varsayıyor ve bozulduğunda hata vermiyor — ölçtüm: yıl 99 → `99-05-0`/`99-0` bozuk, ⚠️ yıl 10000 → yıllık anahtar **`1000`**, yani MEŞRU yıl 1000 ile ÇAKIŞIYOR ve ADR-015 idempotanslığı o anahtara dayandığı için bir dönemin kaydı başkasının üzerine upsert edilir (sessiz veri kaybı, defterde). Yani `1000–9999` keyfî değil, dilimlemenin doğru kaldığı TAM aralık; kapı ayrıca önermeyi (hâlâ dilimleme mi) izliyor. `?yil=99` davranışı YAZILMADI — sayfa şemayı henüz bağlamadı ve kendi ölçümü daha kötüsünü söylüyor (200 dönüyor ama 2026 verisi gösteriyor); ölü kapı yazmadım, ⏳ T-109. **F5 öncesi ⏳ envanteri: 9 → 6.** İki satır BAYAT çıktı — §8.2 argon2id F1'de uygulanmış (`19_456`/`timeCost: 3`) ama ⚠️ KAPISI YOKTU (testler bilerek zayıf yapılandırma kullanıyor, üretim değerleri takımda hiç görünmüyordu) → `argon2-parametreleri.test.ts` kuruldu, SAYIYI değil TABANI ölçüyor; §8.9 `rehype-sanitize` hem uygulanmış hem kapılıydı → ✅. 11/16 gerçekten bekliyor (ölçtüm: `attachment.ts` yalnızca referans doğrulaması, R2/imzalı URL/boyut sınırı yok) ve faz etiketleri güncellendi; 21–23 yedekler T-066'da ve uyarı artık DAHA ACİL çünkü defterde gerçek para verisi var. **ADVISORY-006** değişmedi, §8.24 EXIT 0. Birim 1799/1799. |
 | 2026-10-12 | T-107c | §9/5 senaryosu, arşivli bağ kapısı, ADR-039 görünürlük zinciri | **§9/5 KAPANDI — §9'UN TAMAMI YEŞİL (7/7).** Dördüncü halka geldi, bekleme kapısı 1→3→4 diye üç kez tasarımı gereği öttü ve senaryo TEK PARÇA yazıldı (`panel-gelir-rapor.spec.ts`, iki projede yeşil): akış muhasebe listesindeki "Yeni işlem" bağlantısından başlıyor (T-039 — Action'a elle POST YOK), ölçüm DELTA (rapor ekranındaki "Tahsil edilen" önce/sonra, fark = girilen tutar). **Senaryo yazılırken ÜÇ kusur koşturarak bulundu, hiçbiri varsayımla görülemezdi:** (1) liste `description` sütunu BASMIYOR — çapa ayırt edici tutara çevrildi, açıklama temizlik işareti olarak kaldı; (2) ⚠️ **PARA TESTİNDE 100 KAT SAPMA**: beklentiyi `kurusaCevir(TUTAR)` ile üretiyordum, o Türkçe biçim okuyor (nokta=binlik) ama `TUTAR` makine biçimi (nokta=ondalık) → `13.374.200` kuruş beklendi, gerçek delta `133.742`; yani ÖLÇÜM DOĞRU, BEKLENTİM YANLIŞTI — ADR-014'ün sınıfı test kodunda, üç temsil artık ayrı sabitlerde ve karşılıkları ÖLÇÜLÜYOR; (3) `fullyParallel` iki projeyi AYNI AYA yazdırıyordu ve biri diğerinin kaydını sayıyordu → yalıtım AYLA sağlandı (her proje kendi ayı, geçmiş yıl → ölçüm MUTLAK, "önce 0" ay süzgecini de kanıtlıyor); ayrıca önkoşulu ayrı bir `test()` yazmak onu başka worker'a attırıp "0 sildi" hatası ürettiği için ana teste alındı. Bekleme kapısı artık GERİLEME kapısı: zincir çözülürse ve senaryo silinirse/Action'a POST'a çevrilirse söylüyor. **ARŞİVLİ BAĞ KAPISI kuruldu** (`panel-arsivli-bag.spec.ts`, 2/2): Frontend kusuru iki turda iki kez bildirip çözmüştü ama kapı yoktu. `<select>` eşleşmeyen değerde ilk seçeneğe düşüyor ve bu YALNIZCA GERÇEK TARAYICIDA ölçülebilir — birim testi `value` prop'unu okur, tarayıcının onu ATTIĞINI görmez. İki vaka tek paket (aynı kalıp) ama riskleri ayrı yazılı: müşteri opsiyonel → bağ kopar (veri kaybı), kategori ZORUNLU → ilk seçenek her zaman geçerli bir kategori, kayıt yanlış kırılıma düşer (defter bozulur, hiçbir alan boşalmadığı için daha sinsi). Her vaka seçili değeri, `(arşivli)` işaretini ve SEÇİCİYE DOKUNMADAN kaydetmenin bağı bozmadığını ölçüyor — kalıcılık formu YENİDEN AÇARAK doğrulanıyor. **ADR-039 görünürlük zinciri kapısı** (`adr-039-gorunurluk.test.ts`): Backend `typeMismatch`i servis DTO'su düzeyinde ölçüyordu, ama zincir üç halkalı (DTO → `rapor-veri.ts` eşlemesi → rozet) ve ORTADAKİ halka kapısızdı — kaldırılsa bütün iddialar yeşil kalır, kullanıcı uyuşmazlığı HİÇ görmez. Üç halka ölçülüyor, susturan biçimler (`uyusmazlik && false`) yasak, seçicide tür yazılı olması kilitli; sınır dürüstçe yazılı (kaynak taraması, CSS ile gizlenmiş rozeti görmez). Üçüncü gereksinim (yumuşak uyarı) BUGÜN YOK ve ADR zorunlu saymıyor → ölü kapı yazılmadı, yazıldığı günkü kapısı kayda geçti (gönderimi engellememek). **İki şey ölçülüp BULGU AÇILMADI:** (a) `seed_` kimliği olmayan 890 TL'lik işlem satırı — ADR-015 tekrarlayan üretimi, `(sourceRecurringId, periodKey)` bileşik anahtarıyla upsert; koda bakıp geçmedim, KOŞTURDUM: seed öncesi 6, sonrası 6 → idempotent; (b) kalıntı sayımına `Transaction` eklendi — eklenmeseydi T-107b'de kapattığım kör noktayı kendim açmış olurdum ve kalıntı bu kez DEFTERE düşen bir para kaydı olurdu. **Kendi 8. dalım öttü:** yeni paketler "kapsanmiyor" diyen üç rotayı geziyordu → `kapilar`/`kanit` güncellendi (`not` metnine dokunulmadı, ADR-036). **ADVISORY-006:** değişmedi, §8.24 EXIT 0, 89 gün. Birim 1757/1757, E2E **101/101** (95→+6), kalıntı 0. |
 | 2026-10-11 | T-107b | F4 rapor hesaplayıcılarının denetimi, tarih öncülü kapısı, E2E kalıntı ölçümü, §9/5 yeniden değerlendirme | **Kartın bir talimatı YANLIŞTI ve ölçüm reddetti:** kart `appDayStartInstant` kullanılmasını istiyordu, Backend ölçümle itiraz etmişti, bağımsız doğruladım — `appDayToDate` 1–31 Mart verirken `appDayStartInstant` **28 Şubat 21:00 – 30 Mart 21:00** veriyor, yani Şubat'ı içine alıp **31 Mart'ı tamamen düşürüyor** (sapma tam 3 saat, İstanbul UTC+3). Sebep: `Transaction.date` bir `@db.Date` sütunu — takvim günü. Backend'in `rapor.test.ts`i (50+ iddia) ay sınırını, kategori gruplamasını ve isimlendirmeyi zaten kapsıyor; DENETLENDİ, doğru ve yeterli — paralel kapı yazmak çiftlenmenin kendisi olurdu. **Ölçülmeyen şey KARARIN ÖNCÜLÜYDÜ:** o testler taklit istemci kullanıyor, şema hiç devreye girmiyor; sütun düz `DateTime`a çevrilse `appDayToDate` anında yanlış araç olur ve elli iddianın HİÇBİRİ kırılmaz. **`tarih-sutun-eslesmesi.test.ts`** kuruldu: her bildirilen eşleşmenin sütun tipini şemadan doğruluyor, yanlış pencereyi SAYILARLA iddia ediyor (kısıtın neden var olduğu da ölçülü) ve bildirilmeyen servisin tarih yardımcısı kullanmasını yasaklıyor. Kapı kurulurken kırmızıya döndü ve üç servisi daha okumaya zorladı: `transaction.ts` + `experience.ts` (yazma yönünde dönüşüm) bildirildi, `_shared/stats.ts` muaf — `fullYearsBetween` yardımcıyı SORGU için değil TAKVİM DOĞRULAMASI için çağırıyor, dönüş değeri kullanılmıyor bile. **Kapı kendi uydurduğum muafiyeti sildirdi:** `period-key.ts`i ölçmeden muafiyete yazmıştım, o dosya hiç tarih yardımcısı kullanmıyor — muafiyet doğduğu anda ÖLÜYDÜ ve "ölü muafiyet" iddiası satırı sildirdi. F5'te 13 `@db.Date` sütunu bekliyor, kapı onları da kapsıyor. **(a)/(b) Backend kartın istediğinden iyi çözmüş:** kategori dağılımı işlemin kendi türüne göre gruplanıyor ve `typeMismatch` DTO'da YÜZEYLENMİŞ; "gelir" adı çıplak DEĞİL — `income.collected` (nakit) / `income.invoiced` (tahakkuk), netler `net.cash`/`net.accrual`, çapraz esas karışımı yapısal olarak imkânsız. Decimal yüzey sayımım `report.ts`in dört yüzeyini de gördü ve dördü doğrudan iddiaya bağlı çıktı. **E2E TEMİZLİK RAPORU YANLIŞ ŞEYİ ÖLÇÜYORDU:** "artık proje: 0, mesaj: 1" sayıları SİLİNEN satırlardı, etiket KALAN diyordu; tablo gerçekten boştu (bağımsız doğruladım: `e2eKalintisi` → toplam 0). Kozmetik değil, çünkü silinen sayısı **hem ortam temizken hem süpürme YANLIŞ ÖNEĞİ ararken 0 çıkar** — T-016'nın izolasyon güvencesi kendisini çürütemeyen bir ölçüme dayanıyordu. Kör nokta somut: süpürme `e2e-t039` arıyor, T-054g sondası `E2EDenetimSondasi` yazıyor ve süpürme onu HİÇ görmüyor. **EYLEM ile DURUM ayrıldı:** `e2eKalintisi` üç tabloda `e2e`/`E2E` ile başlayan KALAN satırları sayıyor (harf duyarsız), teardown ikisini ayrı basıyor ve kalıntıda FIRLATIYOR (ADR-030: kalıntı bir sonraki koşumda seed sanılır). `e2e-kalinti-kapisi.test.ts` gerilemeyi engelliyor. **§9/5 hazır halka 1 → 3:** ekran (T-104), yazma yolu, aylık toplam servisi (T-102) geldi; eksik olan TEK şey toplamın bir ekrana ulaşması — muhasebe ekranının `toplam`ı SATIR SAYISI, para toplamı değil (ölçüldü). Beklenen sayı Güvenlik kararıyla 3'e çekildi. ⚠️ **Kapının yoklamasında kendi yazdığım kör nokta çıktı:** dört servis dosyası adını ELLE saymıştım, `report.ts` listede olmadığı için halka hazır olduğu hâlde kapı "yok" okumaya devam ediyordu — ateşlenmeyen kapı, kırmızıya dönenden KÖTÜDÜR. Aynı turda (T-107a) "listeyi elle yazma, kaynaktan türet" yazmışım; kural yazmak kurala uymak değil. Bir mutasyon testim de negatif örneğini `muhasebe/page.tsx`in YOKLUĞUNA bağladığı için halka gelince kırıldı → sentetik yola çevrildi. **Senaryo bu turda YAZILMADI ve gerekçesi:** e2e koşumu bende değil, koşturulamayan bir paket doğrulanmamış bir kapıdır (BULGU-016'nın tersi hatası). **BULGU-024 KAPANDI** ve istisnayı kapının kendisi sildirdi; liste boşalınca iki mutasyon testim `ISTISNALAR[0]?.yol ?? ''` yüzünden sessizce anlamını yitirecekti → sentetik yola bağlandı. **ADVISORY-006:** yama yok, zincir aynı, deney yeniden koşturuldu (EXIT 0), §8.24 EXIT 0, 90 gün; braces md5 birebir geri geldi (ADR-038 anlık görüntüsüyle). ⚠️ `pnpm test:e2e` bu turda **koşturulmadı** — Orkestra Şefi koşturuyor; teardown değişikliği ilk koşumda görünecek. |
@@ -4744,9 +4745,199 @@ Yama yok (3.0.3), zincir aynı, §8.24 **EXIT 0**. Geçerlilik koşulu korunuyor
 
 ---
 
+## CSV bir GÜVENLİK yüzeyi — kolon yolu bildirimli (T-109g)
+
+Backend formül enjeksiyonu korumasını kurdu ve iki yolun karşıtlığını
+testleriyle sabitledi:
+
+| Yol | Koruma | Sebep |
+| --- | ------ | ----- |
+| `csvText` | `= + - @ TAB CR` ile başlayan hücre **tek tırnakla öneklenir** (önek tırnaklamadan ÖNCE — sıra ölçülmüş) | Ziyaretçi kaynaklı metin tablo programında formül olarak çalışmasın |
+| `csvMoney` | **uygulanmaz** | `-500,00` tire ile başlıyor; öneklenirse sayı olmaktan çıkar ve **bütün toplamlar bozulur** |
+
+Uçtan uca zincir de ölçülü: iletişim formundan gelen `Client.name` → CSV
+"Müşteri" kolonu → formül olarak **çalışmıyor**. Denetledim; doğru ve yeterli.
+
+### Ölçülmeyen şey: YENİ BİR KOLONUN YANLIŞ YOLDAN GEÇMESİ
+
+Backend'in iddiaları biçimlendiricilerin **davranışını** ve bir kolonun
+(`Müşteri`) uçtan uca davranışını sabitliyor. Kolon listesi büyüdüğünde:
+
+- **Metin** kolonu `csvMoney`den geçerse → enjeksiyon geri gelir. Hiçbir iddia
+  kırılmaz: `Müşteri` hâlâ korunuyor, yeni kolon korunmuyor.
+- **Tutar** kolonu `csvText`ten geçerse → her negatif tutar tek tırnak öneki
+  alır ve tablo programında toplamlar bozulur.
+
+İkisi de **tek karakterlik** düzenleme (`csvText` ↔ `csvMoney`) ve ikisinin de
+sonucu sessiz. `tests/unit/csv-kolon-yolu.test.ts` kolonları **adlarıyla**
+yollarına bağlıyor; `csvMoney` kullanan kolon listesi kilitli ve iki yön de
+kapalı (beklenmeyen kolon tutar yolunda → kırmızı, bildirilen tutar kolonu
+metin yolunda → kırmızı).
+
+**Üçüncü risk, ayrıca ölçülüyor: KOLON KAYMASI.** `headers` ve satır dizisi
+paralel iki liste; birine kolon eklenip diğerine eklenmezse her hücre bir
+sonraki başlığın altına düşer — tutar `Yöntem` kolonunda görünür, dosya açılır,
+hata vermez, **yanlıştır**.
+
+#### Kapıyı yazarken iki kez kendi kuralımı çiğnedim
+
+**1 · Kolon adlarını ölçmeden uydurdum.** `Tahsil Edilen`, `Kesilen`, `Ödenen`,
+`Doğan`, `Net (Nakit)`, `Toplam` diye adlar yazdım; **hiçbiri dosyada yoktu**.
+Gerçekleri `Tahsil Edilen (TRY)`, `Gelir — Tahsil Edilen (TRY)`,
+`Gider — Ödenen (TRY)`, `Net — Nakit (TRY)`. Kapının kendi *"ölü satır"*
+iddiası yakaladı.
+
+**2 · Ayrıştırıcı iki başlık biçimini yanlış okuyordu** ve ikisini de kapı
+gösterdi: koşullu başlıkta (`basis === 'cash' ? 'A' : 'B'`) ilk dizeyi
+alıyordum, o da **`cash`** oluyordu — yani başlık listesine `cash` diye bir
+kolon giriyordu; ve `tutarBasligi` gibi **değişkene atanmış** başlık hiç
+sayılmadığı için uzunluk eşitliği yanlış kırılıyordu. İkisi düzeltildi
+(`?`'ten sonraki dize · tanım bir adım geriye çözülüyor).
+
+Ayrım kayda değer: "hangi kolon tutar yolundan geçer" bir **karar** (elle
+bildirilir), ama **adların kendisi ölçülür**. İkisini karıştırmak, bildirimi
+tahmine dayandırmak olurdu.
+
+### §8.20 türetmesinin denetimi — kolaylığa kaçmıyor
+
+Backend ölçütü kopyalamadı, **yeniden türetti** ve farklı sonuç aldı
+(`description` denetim kaydında yok, CSV'de var). Denetledim: **gerekçe
+sağlam.**
+
+- **Denetim kaydında** kaygı, kişisel veriyi ikinci bir mağazaya (ve §8.21
+  yedeğine) **kopyalamak**; "kim ne zaman neyi değiştirdi" sorusuna iletişim
+  bilgisi bir şey katmıyor.
+- **CSV'de** kullanıcı kendi verisini kendisi dışa aktarıyor ve hepsine zaten
+  erişimi var; "gizlemek" kimseyi korumuyor. Soru gizlilik değil **amaca
+  uygunluk**: `description`/`invoiceNo` muhasebe kaydının ta kendisi, ama
+  müşterinin `email`/`phone`/`notes` alanlarının muhasebe amacına katkısı yok
+  ve **dosya uygulamadan çıkıyor** (e-postaya eklenir, İndirilenler'de kalır,
+  muhasebeciye gider).
+
+**Ve gevşetmenin bir öncülü var: "indiren kişi verinin sahibi".** Onu da
+ölçtüm — `exportCsvAction` `currentActorId()` ile kapılı (oturum + ADR-035/B
+yazma yetkisi) ve Backend'in testi auth'u taklitle sınıyor. Öncül ölçülü, yani
+gevşetme dayanaksız değil.
+
+---
+
+## ADR-040 denetimi — karar sağlam, ÖNCÜLÜ korumasızdı (T-109g)
+
+Backend tekrarlayan üretimi çok iyi ölçüyor: çift basış sıfır kayıt, kısmi
+üretimde yalnızca eksikler, `skipDuplicates` yarışta fırlatmıyor, catch-up üst
+sınırı ve **kalan sayısının raporlanması**, TRY dışı şablonun atlanıp
+**sebebiyle** raporlanması, yıl sınırı ve beş basamaklı yıl.
+
+### `nextRunAt` kararının denetimi: sağlam
+
+Kart kararı bilerek açık bırakmıştı (üç ay basılmazsa üç kayıt mı bir mi).
+Backend **üç kayıt** dedi ve gerekçesi ölçülebilir: oluşumlar **daima
+`startDate` çapasından** hesaplanıyor ve üretilmiş `periodKey`ler çıkarılıyor.
+Yani bayat bir `nextRunAt` üretimi **geciktirebilir** ama çift kayıt, atlanmış
+dönem ya da yanlış tarih **üretemez** — kendi kendini onaran yazma (T-100'ün
+`baseAmount` soyu). Atlamak, defterden kayıt düşürmek olurdu.
+
+Tamamen kendini onaran alternatifi (hiç süzmeyip tüm aktif şablonları taramak)
+de değerlendirip gerekmediğini yazmışlar. Ayrıca yıl okumasını **`slice(0, 4)`
+ile değil ilk tireye kadar** yapıyorlar — yani T-108g'de ölçtüğüm kusurun
+kendisine düşmemişler.
+
+### Ölçülmeyen: kısıtın VARLIĞI — ve teşhisi Backend'in kendi yorumu verdi
+
+> `tekrarlayan.test.ts:194` — *"Çıkarma bir OPTİMİZASYON; gerçek güvence
+> `@@unique([sourceRecurringId, periodKey])`"*
+
+Elle tetiklemeyi güvenli kılan şey servis mantığı **değil**, veritabanı kısıtı.
+Ve o kısıtı hiçbir iddia okumuyordu: Backend'in testleri **taklit istemci**
+kullanıyor, dolayısıyla kısıt şemadan silinse de hepsi yeşil kalır.
+`skipDuplicates` da kısıt olmadan atlayacak bir şey bulamaz — sessizce çift
+kayıt yazılır, ve çift kayıt **defterde ikiye katlanmış bir giderdir.**
+
+`tests/unit/tekrarlayan-tekillik-oncul.test.ts` öncülü iki yerde ölçüyor:
+
+- **Şema** `@@unique([sourceRecurringId, periodKey])` bildiriyor
+- **Göç** karşılık gelen `CREATE UNIQUE INDEX`i oluşturuyor
+
+İkincisi ayrı bir sınıf: şemaya `@@unique` yazıp göç üretmemek sessiz bir
+sapma — dosya kısıtı iddia eder, veritabanında kısıt **yoktur** ve bütün
+testler yeşil kalır. Şema bir niyet dosyası; veritabanının gerçeği göçlerde.
+
+Mutasyonlar ince gerilemeleri de kapsıyor: **tek alanlı** `@@unique([periodKey])`
+bileşik kısıtın yerini tutmaz (aynı dönem anahtarı farklı şablonlar için
+meşrudur) ve `@@index` bir kısıt değildir.
+
+Canlı veritabanı elle doğrulandı (birim testi DB'siz koşuyor — vitest
+sözleşmesi): `pg_indexes` çıktısında
+`transaction_sourceRecurringId_periodKey_key` duruyor, göç
+`20260805132629_full_data_model` içinde.
+
+---
+
+## "Bağlanmamış" kümesi ÖLDÜ — mekanizma iki yönde çalıştı (T-109g)
+
+T-108g'de kurduğum ulaşılabilirlik bildirimi dört CSV işlevini `baglanmamis`
+sayıyordu ve notu şöyleydi: *"Frontend bağladığında bu satır SİLİNİR."*
+T-109b `actions/export.ts`i yazdı; kapı bunu gördü ve *"bu satırlar artık
+geçersiz, bildirimden çıkarılmalı"* dedi. **Satırları bağlayan kişi sildi** —
+kendi yazdığım kural ("düzeltmesi tek satır ve bağlayanın") uygulandı.
+
+Yani mekanizma iki yönde de çalıştı: boşluk açıldığında **bildirilmesini**,
+kapandığında bildirimin **silinmesini** zorladı. Ölü bir bildirim bir gün
+gerçek bir boşluğu maskeleyecekti (BULGU-024'ün ölü istisnasıyla aynı sınıf).
+
+⚠️ **Kilitli sayı artık boş küme ve bu bir kazanım değil, bir DURUM:** küme
+yeniden büyürse o bir gerileme işaretidir — *"yine kod yazdık, yine
+bağlamadık"* — ve iddia onu görünür kılıyor.
+
+---
+
+## Kendi kapımda ASİMETRİ — Backend buldurdu, sınıfı kapattım (T-109g)
+
+`decimal-yuzey-sayimi.test.ts` (T-107a) T-109b'de kırmızıya döndü ve sebebi
+benim tasarımımdı. Kapının iki yarısı var:
+
+| Yarı | Yöntem |
+| ---- | ------ |
+| Hangi yüzeyler **ölçülmeli** | Kaynağı **ÖLÇÜYOR** — `Decimal` modellerine dokunan servislerin `*Dto` döndüren ihraçlarını buluyor |
+| Hangileri **ölçülmüş** | Servis adlandırmasını **MODELLİYORDU** — `fetch\w+\|create\w+\|update\w+\|change\w+\|convert\w+` ön ek listesi |
+
+ADR-040'ın `processDueRecurringTransactions`ı o listede yoktu. Sonuç: kapı
+yüzeyi *"ölçülmeli"* diye **buldu** ama Backend'in yazdığı
+`decimalKalanlar(await processDue…())` iddiasını **göremedi** ve iddia varken
+kırmızı kaldı. Backend `process\w+` ekleyerek düzeltti ve düzeltmenin kapıyı
+körleştirmediğini gerekçesiyle yazdı — doğru bir ara çözüm.
+
+Ama adını koydukları şey **eksik fiil değil, asimetriydi**: bir yarı ölçüyor,
+öteki modelliyor. Sonraki fiilde (`recalculate`, `sync`, `export`…) aynı
+ayrışma tekrarlanırdı — **listeyi uzatmak sınıfı kapatmaz.**
+
+T-109g'de ön ek listesi **kaldırıldı**: tanınan adlar artık enumerasyonun
+bulduğu yüzey adlarının ta kendisi, yani iki yarı **aynı kaynağı** kullanıyor.
+Yeni bir fiil icat edilse bile güncellenecek liste yok. Değişken dolaylaması da
+sıkılaştı: atanan ad yalnızca **enumerasyonda varsa** kapsama sayılıyor, rastgele
+bir yardımcı adı iddiayı kapsıyor gibi görünmüyor.
+
+Düzeltmenin çalıştığı çapayla kilitli: kapı `processDueRecurringTransactions`ı
+kapsanan küme içinde **görmek zorunda**; görmezse ön ek listesinin geri geldiği
+söyleniyor.
+
+Ders, T-050'nin sınıfının bir varyantı: **izlediği şeyi ölçmek yerine nerede
+olacağını modelleyen bir kapı, modeli bayatladığında yanlış cevap verir** — ve
+bu kez yanlış cevap "sahte kırmızı" oldu, yani susturulmaya davet.
+
+---
+
+## ADVISORY-006 (braces) — durum değişmedi (T-109g)
+
+Yama yok (3.0.3), zincir aynı, §8.24 **EXIT 0**. Geçerlilik koşulu korunuyor.
+**§8 envanteri 6 ⏳** — F5 öncesi sıralama T-108g'de yazıldı ve değişmedi
+(11/16 yükleme zinciri · 13 CSP F6/T-060 · 21–23 yedekler T-066).
+
+---
+
 ## §8 Güvenlik Gereksinimleri — Durum Tablosu
 
-**Ölçüm tarihi:** 2026-10-14 · **Faz:** F4 (kapanışta) · **Son görev:** T-108g
+**Ölçüm tarihi:** 2026-10-14 · **Faz:** F4 (kapanış) · **Son görev:** T-109g
 · **Dağılım:** ✅ 12 · ⚠️ 6 · ❌ 0 · ⏳ 6
 
 > T-054g'de dağılım DEĞİŞMEDİ ve bu bilinçli: denetim ekranı yeni bir yüzey
