@@ -48,6 +48,7 @@
 | ADR-040 | `RecurringTransaction`: tetikleyici elle, cron sonra aynı eylemi çağırır | 2026-10-14 | Kabul edildi |
 | ADR-041 | Q1: panel `/panel` altında kalır — alt alan adı yalıtım sağlamıyor | 2026-10-14 | Kabul edildi |
 | ADR-042 | Q2: v1 de mail sağlayıcı yok — bildirimin amacı panel rozetiyle karşılanıyor | 2026-10-14 | Kabul edildi |
+| ADR-043 | Yüklenen SVG kabul edilmez — güven sınırı "kim yazdı", "hangi tip" değil | 2026-10-16 | Kabul edildi |
 
 ---
 
@@ -2350,3 +2351,84 @@ ihtiyaç olur). İkisi de bugün yok.
   paylaşılan hostun itibarına bağlı teslim edilebilirlik, ve aynı ölçülmemiş ihtiyaç.
 - **İkisini de kurup seçimi F7 ye bırakmak** — **reddedildi**: iki yarım entegrasyon,
   §5.2 nin paket bütçesine ve §8 in yüzeyine iki kez ödeme.
+
+
+---
+
+## ADR-043 — Yüklenen SVG Kabul Edilmez
+
+**Tarih:** 2026-10-16 · **Durum:** Kabul edildi · **Kaynak:** T-037 (Backend sordu), Orkestra Şefi kararı
+**İlgili:** §8.11, ADR-018, ADR-031
+
+### Bağlam
+Backend `ALLOWED_MIME_TYPES` icinde `image/svg+xml`'in diger tiplerden **iki
+yonden** ayrildigini olctu ve kararı bana birakti:
+
+**1. Icerikten guvenilir dogrulanamiyor.** PNG/JPEG/WebP/PDF'in sihirli baytlari
+var — ilk 12 bayt tipi kesin soyler. SVG ise **metin**: onunde XML yorumu,
+`<?xml`, `DOCTYPE` olabilir. Tespit zorunlu olarak **sezgisel**.
+
+Ve bu sezgisel bu projede **zaten bir kez kirildi**: `src/app/icon.svg` bir XML
+yorumuyla basliyor ve `<svg` etiketi **514. baytta** — Backend'in ilk 512 baytlik
+penceresinin iki bayt otesinde. Yani projenin **kendi dosyasi** naif kontrolu
+gecemiyordu.
+
+**2. Betik calistirabilen tek tip.** Imzali adresle dogrudan acildiginda tarayici
+SVG icindeki `<script>`i **calistirir**. Koken R2 alan adi oldugu icin oturum
+cerezimize erisemez — ama kimlik avi yuzeyi gercek: panelden yuklenen bir dosya,
+bizim alan adimizdan gelmis gibi gorunen bir adreste calisir.
+
+### Karar
+**`image/svg+xml` kabul edilen tiplerden cikarilir.**
+
+Uc gerekcenin ucu de olculdu:
+
+**(a) Guvenilir dogrulanamayan bir tipi kabul etmek, dogrulayicinin varlik
+sebebiyle celisir.** §8.11 "uzanti degil icerik" diyor; SVG'de icerik kontrolu
+bir **tahmin**, ve tahmin yapan bir kapi kapi degildir. Projenin kendi dosyasinin
+pencereyi kirmasi bunun somut kaniti — pencereyi 4096'ya cikarmak o vakayi
+cozer, **sinifi cozmez**.
+
+**(b) Ihtiyac olculmedi.** SVG'nin gercek kullanim yeri logo ve ikon. Projede
+ikonlar `lucide-react`'ten geliyor, site simgesi **repoda** (`src/app/icon.svg`),
+ve `LogoLoop` musteri logolari **zaten acik degil** — Frontend T-109h'te olctu:
+*"eksik olan gorsel yukleme degil, logo verisinin kendisi; musteri kaydiyla logo
+iliskisi modellenmemis."* Yani SVG yukleme bugun **hicbir ekranin ihtiyaci degil**.
+
+**(c) Alternatifi daha pahali.** `Content-Disposition: attachment` eklemek
+betigi etkisizlestirirdi ama R2 nesne metadata'si gerektirir, her imzali adreste
+tasinmasi gerekir, ve **unutuldugu yerde sessizce acik birakir** — tam olarak bu
+projenin "bir sey yapiyormus gibi duran koruma" dedigi sinif.
+
+**Kapsam disi birakilan sey yukleme, kullanim degil.** Repoda duran SVG'ler
+(`icon.svg`, bilesen ici inline SVG, `LogoLoop`'un ileride alacagi varliklar)
+etkilenmiyor — onlar **bizim yazdigimiz** dosyalar, ziyaretci ya da panel
+girdisi degil. Ayrim yazilidir: **guven siniri "kim yazdi", "hangi tip" degil.**
+
+### Sonuclar
+- **Olumlu:** Dogrulayici artik yalnizca **kesin** olarak tanidigi tipleri kabul
+  ediyor; sezgisel dal tamamen kalkiyor.
+- **Olumlu:** Betik calistirabilen tek tip yuzeyden cikiyor; kimlik avi senaryosu
+  kapaniyor.
+- **Olumlu:** `file-type.ts`'teki `SVG_SCAN_BYTES` ve metin tarama mantigi
+  silinebilir — **daha az kod, daha az tahmin**.
+- **Olumsuz / kabul edilen:** Ileride vektorel bir logo yuklemek gerekirse PNG/WebP
+  kullanilacak. Kabul edildi: olculmus bir ihtiyac yok, ve ihtiyac belirdiginde
+  bu ADR yeniden acilir.
+
+### Yeniden acilma kosulu
+`LogoLoop` icin musteri logosu modeli yazilir **ve** vektorel kalite olculmus bir
+ihtiyac olursa. O gun gereken sey SVG'yi listeye geri koymak degil, **sanitize
+edilmis** bir SVG yolu (betik/olay niteliklerini soyen bir ayristirici) ya da
+`Content-Disposition` zorunlulugu — ikisi de kendi kartini hak eder.
+
+### Alternatifler ve neden reddedildi
+- **Pencereyi 4096 bayta cikarip devam** — **reddedildi**: vakayi cozer, **sinifi
+  cozmez**. Bir sonraki dosya 5000. baytta baslar.
+- **`Content-Disposition: attachment`** — **reddedildi**: R2 metadata'si gerektirir,
+  her imzali adreste tasinmasi gerekir, ve unutuldugunda **sessizce** acik birakir.
+- **SVG'yi sanitize etmek** — **reddedildi (simdilik)**: dogru cozum ama olculmus
+  bir ihtiyac yokken yazilan bir ayristirici, bakim yuku olan olu koddur.
+- **Olani birakmak** — **reddedildi**: Backend riski olcup raporladi; olculmus bir
+  riski "bugune kadar sorun olmadi" diye birakmak bu projenin kayit tuttugu her
+  dersin tersi.
