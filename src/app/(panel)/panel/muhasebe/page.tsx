@@ -16,6 +16,7 @@ import { Topbar } from '@/components/panel/topbar';
 import { buttonClasses } from '@/components/ui/button';
 import { transactionFilterSchema } from '@/lib/schemas/transaction';
 import { cn } from '@/lib/utils/cn';
+import { EXPORT_PAGE_SIZE } from '@/server/services/export';
 import { fetchDueRecurringSummary } from '@/server/services/recurring-transaction';
 import { fetchTransactionsForPanel } from '@/server/services/transaction';
 import { fetchTransactionCategoriesForPanel } from '@/server/services/transaction-category';
@@ -191,7 +192,21 @@ export default async function MuhasebePage({ searchParams }: SayfaProps) {
           <CsvIndir
             istek={{ dataset: 'transactions', filter: suzgec }}
             etiket="İşlemleri CSV indir"
-            aciklama={`Bu süzgeçteki işlemlerin tamamı (${liste.total} satır) — ekranda gördüğün sayfa değil.`}
+            aciklama={
+              liste.total > EXPORT_PAGE_SIZE
+                ? 'Bu süzgeçteki işlemler — ekranda gördüğün sayfa değil.'
+                : `Bu süzgeçteki işlemlerin tamamı (${liste.total} satır) — ekranda gördüğün sayfa değil.`
+            }
+            /*
+              ⚠️ "TAMAMI" SÖZÜ YALNIZCA TUTULABİLİYORSA VERİLİYOR — T-109h'de
+              ölçülen kusur buydu: 10.405 satırlık bir süzgeçte panel "tamamı
+              (10405 satır)" diyordu ve dosyaya 10.000 satır giriyordu.
+
+              `EXPORT_PAGE_SIZE` SUNUCU MODÜLÜNDEN burada okunuyor ve istemci
+              bileşenine PROP olarak geçiyor; `csv-indir.tsx` onu kendisi içe
+              aktarsaydı Prisma'ya bağlı servis modülü istemci paketine girerdi.
+            */
+            kesilme={{ toplam: liste.total, ustSinir: EXPORT_PAGE_SIZE }}
           />
 
           <Sayfalama

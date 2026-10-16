@@ -83,11 +83,30 @@ export function CsvIndir({
   istek,
   etiket = 'CSV indir',
   aciklama,
+  kesilme,
 }: {
   istek: CsvIstegi;
   etiket?: string;
   /** Neyin indirileceğini söyleyen kısa cümle — "Bu süzgeçteki işlemler" gibi. */
   aciklama: string;
+  /**
+   * ÖNCEDEN BİLİNEN kesilme — satır sayısı üst sınırı aşıyorsa.
+   *
+   * ⚠️ T-109h'DE ÖLÇÜLDÜ VE PANELİN KENDİ CÜMLESİ YALAN ÇIKTI. 10.405 işlemlik
+   * bir fikstürde panel indirmeden ÖNCE "Bu süzgeçteki işlemlerin tamamı
+   * (10405 satır)" diyordu; dosyaya 10.000 satır girdi, 405 satır düştü.
+   * Kesilme uyarısı doğru çalışıyordu ama SONRADAN — oysa sayı ile üst sınır
+   * ikisi de BAŞTAN biliniyordu.
+   *
+   * Tutulamayacak bir söz vermek (T-018'in ölü düğme yasağının aynı ailesi)
+   * burada daha ağır: kullanıcı "tamamı" sözüne güvenip dosyayı muhasebecisine
+   * yollarsa eksikliği kimse fark etmez. Bu yüzden sınır AŞILIYORSA panel
+   * bunu açılır açılmaz söylüyor.
+   *
+   * `undefined` ise söylenecek bir şey yok (kategori/aylık kümeleri doğaları
+   * gereği sınırın çok altında).
+   */
+  kesilme?: { toplam: number; ustSinir: number };
 }) {
   const [acik, setAcik] = useState(false);
   const [esas, setEsas] = useState<ExportBasis | null>(null);
@@ -174,6 +193,24 @@ export function CsvIndir({
               Hangi esasa göre indirilsin?
             </legend>
             <p className="text-muted text-xs">{aciklama}</p>
+
+            {/*
+              ⚠️ ÖNCEDEN UYARI — indirmeden SONRAKİ uyarının yerine geçmiyor,
+              ona EKLENİYOR. İkisi farklı soruya cevap veriyor: bu, "basmadan
+              önce bilmen gereken"; öteki, "elindeki dosya hakkında".
+            */}
+            {kesilme && kesilme.toplam > kesilme.ustSinir && (
+              <p
+                role="alert"
+                className="rounded-input border-warning/40 bg-warning/8 text-body border px-3 py-2 text-xs"
+              >
+                Bu süzgeçte <span className="tabular font-medium">{kesilme.toplam}</span> satır var
+                ama bir dosyaya en çok{' '}
+                <span className="tabular font-medium">{kesilme.ustSinir}</span> satır giriyor.{' '}
+                <strong>Dosya eksik olacak</strong> ve eksikliği dosyaya bakarak anlayamazsın —
+                tarih aralığını daraltıp birkaç parça hâlinde indir.
+              </p>
+            )}
 
             {ESAS_SECENEKLERI.map((secenek, i) => (
               <label

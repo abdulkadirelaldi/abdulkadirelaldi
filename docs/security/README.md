@@ -75,6 +75,7 @@ açığın ayrıntısı artık saldırgana bir şey kazandırmaz.
 | 2026-08-12 | T-029a | Lighthouse'a masaüstü + koyu profil (WebGL yolu), üç durumlu WebGL doğrulaması, koşu değişkenliği kararı | **BULGU-010 açıldı**: WebGL yolu hiçbir CI koşusunda ölçülmüyordu. Profil kuruldu ve doğrulandı; ölçüm T-021'in hero'yu bağlamasını bekliyor (kontrol kendi kendine zorunlu hâle geliyor). Değişkenliğin **ilk koşuya** ait olduğu ölçüldü; `numberOfRuns` 5, `aggregationMethod` açıkça medyan. |
 | 2026-08-17 | T-029d | Ölçüm yüzeyi dışındaki SEO/OG rotaları (BULGU-015) | **BULGU-015 kapandı** — `tests/e2e/seo-routes.spec.ts`: robots.txt, sitemap.xml, rss.xml, `/og` ve `/og/proje/<slug>` artık her koşumda isteniyor. PNG imza baytlarından, XML gerçek ayrıştırıcıyla doğrulanıyor. Kapsam iki katmanlı: sözleşme testleri + sitemap taraması (yeni sayfa kendiliğinden kapsanır). Mutasyonla kanıtlandı: düzeltme öncesi font aynı render yolunda BULGU-014'ün `TypeError`'ını veriyor. **BULGU-016 açıldı** — sitemap üç adet 404 adresi bildiriyor. |
 | 2026-08-16 | T-029c | Ölçüm işinin veri kurulumu (BULGU-013) + §8.24 haftalık zamanlayıcı | **BULGU-013 açıldı ve düzeltildi**: `lighthouse` işi ayrı koşucuda `services:` bloğu olmadan koşuyordu; ADR-026 sonrası `/` 500 dönüyor, üç profil düşüyor, artifact üretilmiyordu. Kendi Postgres'i kuruldu (yol **a**). İki yeni nöbet: ölçüm ön koşulu ve ayırt edicide durum kodu kontrolü — ikincisi olmadan arıza "⏳ BEKLEMEDE" diye yeşil görünüyordu. §8.24 artık **haftalık** de koşuyor (`17 6 * * 1`). |
+| 2026-10-16 | T-066 | Yedekleme betiği, AES-256-GCM, GERİ YÜKLEME PROVASI, `restore.md`, saklama politikası | ⭐ **PROVA KOŞTURULDU VE GEÇTİ — §8.22 ✅.** Zincirin tamamı ölçüldü: R2'den indir (80.767 bayt) → **GCM etiketi doğrulandı** (80.725) → AYRI veritabanına `pg_restore` → 10 tablo birebir (`audit_log` 257/257) → örnek değerler birebir (`transaction.baseAmount` toplamı `131662.50`, ADR-014 kuruş hassasiyeti korunmuş) → prova DB'si SİLİNDİ. Satır sayısının yetmemesi gerekçeli: bozuk bir `numeric` ölçeği satır sayısını DEĞİŞTİRMEZ. Canlının üzerine yazılmaması YAPISAL (hedef ad kontrolü koşumdan ÖNCE; prova izi hata hâlinde de silinir — içinde canlı verinin ŞİFRESİZ tam kopyası var). Temizlik de ölçüldü: `%prova%` yok, geçici dizin yok. **Şifreleme AES-256-GCM** (T-013a kalıbı) ve gerekçesi gizlilik değil BÜTÜNLÜK: doğrulanmamış bir biçimde bozulmuş dosya çözülür, `pg_restore` bozuk veriyi yükler, kimse fark etmez. Dosya biçimi KENDİNİ TANITIYOR (sihirli dize + sürüm + IV + etiket) ve üçü de panik anı için. **Yeni bağımlılık YOK:** `r2.ts`in SigV4'ü tüketildi, `readR2Config` yeniden yazılmadı (yalnızca kova değişti), ve ÜÇÜNCÜ resolver kopyası yazılmadı — `yedek-register.mjs` iki satır ve `seed-resolver.mjs`i KAYIT EDİYOR; bedeli dürüstçe yazıldı (o dosyanın "yalnızca seed" başlığı artık bayat, düzeltmesi Backend'in). ⚠️ **KOŞTURARAK iki kusur bulundu:** (a) `pg_dump` Prisma'nın `?schema=public`ını reddediyordu — betik yazıldığı gibi HİÇBİR ortamda çalışmayacaktı; `libpqUrl` eklendi ve `sslmode` BEYAZ LİSTEDE tutuldu çünkü tüm sorgu dizesini atmak yedeği ŞİFRESİZ bağlantıdan çekmek olurdu; (b) budama çıktısı kova bomboşken "silinen: 7" diyordu — R2 olmayan anahtara DELETE'i de başarı sayıyor, yani T-107b'de teardown'da bulduğum kusurun AYNISINI kendim ürettim (eylemi sayıp durumu ölçtüğünü sanmak); çıktı artık ölçtüğünü söylüyor. Ayrıca koşumdan ÖNCE bir kova hatası yakalandı: budama varsayılan yapılandırmayla YÜKLEME kovasına DELETE atardı ve `deleteObjectQuietly` fırlatmadığı için SESSİZCE. **Saklama 30 gün, listeleme GEREKTİRMEDEN** (anahtarlar güne göre deterministik; her koşum yaşı dolan 7 GÜNLÜK PENCEREYİ siliyor, böylece kesinti kendiliğinden onarılıyor). Ölçüm: 30 gün ≈ 2,4 MB, R2 ücretsiz katmanı 10 GB. **§8.20 kararı:** şifreleme gerekli ama YETERLİ DEĞİL — erişim kaydı da gerekli, ama bugün YAZILMADI çünkü doğru katman uygulama değil R2 tarafı; betiğe `writeAuditLog` eklemek yalnızca BİZİM indirmelerimizi kaydeder, asıl tehdidi (kimlik bilgisiyle doğrudan erişim) HİÇ GÖRMEZ ve yanlış katmana yazılan kayıt güvence hissi verip tehdidi kaçırır. **Aynı-sağlayıcı riski: v1 için KABUL**, gerekçe senaryo sıklığı (yanlış DELETE ve sunucu kaybı karşılanıyor; hesap kaybı en düşük olasılık ve tek başına veri kaybı değil) — ikinci kopya kararı VERİLDİ (haftalık, şifreli hâliyle sağlayıcı dışına), uygulama F7. **`restore.md` yazıldı ve her komutu KOŞTURULDU** (3b'deki elle çözme dahil: 80.725 bayt); hata mesajları tablosu hangi mesajın neyi söylediğini ayırıyor ve GCM'in yanlış anahtarı bozuk dosyadan AYIRT ETMEDİĞİ açıkça yazılı. Belgedeki bir cümle ölçümle düzeltildi: istemci 16.13 / sunucu 16.14 ile prova GEÇTİ, yani kural ana sürüm için geçerli. **Kapı:** prova elle koşuyor, ama okunabilirliği belirleyen SAF katman her koşumda ölçülüyor (`yedek-sifreleme.test.ts`, 22 iddia — IV tekrarı, iki yönlü kurcalama, sürüm uyuşmazlığı, anahtarın mesaja girmemesi, budamanın bugünü asla silmemesi dahil). §8.21 ⚠️ (mekanizma ölçüldü, cron F7), §8.22 ✅, §8.23 ✅ (AEAD etiketi checksum'ı kapsıyor ve çözmenin ÖN KOŞULU — yanında duran bir özet kontrol edilmeyi unutulabilir). ⏳ 6 → **3**. Birim 1977/1977. |
 | 2026-10-14 | T-109g | CSV kolon yolu, ADR-040 öncülü, "bağlanmamış" kümesinin ölümü | **CSV bir güvenlik yüzeyi ve kolon yolu artık bildirimli** (`csv-kolon-yolu.test.ts`). Backend'in iki yol karşıtlığı (`csvText` önekliyor — önek tırnaklamadan ÖNCE; `csvMoney` bilerek öneklemiyor çünkü `-500,00` öneklenirse sayı olmaktan çıkar) ve ziyaretçi kaynaklı `Client.name` zinciri ölçülü — DENETLENDİ, doğru ve yeterli. **Ölçülmeyen: yeni bir kolonun yanlış yoldan geçmesi.** Metin kolonu `csvMoney`den geçerse enjeksiyon geri gelir (mevcut iddialar `Müşteri`yi ölçüyor, kırılmaz); tutar kolonu `csvText`ten geçerse her negatif tek tırnak öneki alır ve toplamlar bozulur — ikisi de TEK KARAKTERLİK düzenleme, ikisi de sessiz. Kapı kolonları ADLARIYLA yollarına bağlıyor, iki yön kapalı, ayrıca **KOLON KAYMASI** ölçülüyor (başlık/satır dizileri paralel; biri büyürse her hücre bir sonraki başlığın altına düşer, dosya açılır hata vermez yanlıştır). ⚠️ **Kapıyı yazarken iki kez kendi kuralımı çiğnedim ve ikisini de kapı yakaladı:** (1) kolon adlarını ÖLÇMEDEN uydurdum (`Tahsil Edilen`, `Net (Nakit)`, `Toplam` — hiçbiri dosyada yoktu), "ölü satır" iddiası gösterdi; (2) ayrıştırıcı koşullu başlıkta ilk dizeyi alıp **`cash`**i kolon sanıyordu ve değişkene atanmış başlığı (`tutarBasligi`) hiç saymıyordu. Ayrım kayda geçti: "hangi kolon tutar yolundan geçer" bir KARAR (elle bildirilir), adların kendisi ÖLÇÜLÜR. **§8.20 türetmesi DENETLENDİ: kolaylığa kaçmıyor.** Backend ölçütü kopyalamadı, yeniden türetti ve farklı sonuç aldı (`description` denetimde yok, CSV'de var) — denetim kaydında kaygı kişisel veriyi ikinci mağazaya KOPYALAMAK, CSV'de ise AMACA UYGUNLUK çünkü kullanıcı kendi verisine zaten erişiyor; `email`/`phone`/`notes` dışarıda çünkü muhasebe amacına katkısı yok ve DOSYA UYGULAMADAN ÇIKIYOR. Gevşetmenin ÖNCÜLÜNÜ de ölçtüm: `exportCsvAction` `currentActorId()` ile kapılı (oturum + ADR-035/B) ve testi var — yani "indiren kişi sahibi" dayanaksız değil. **ADR-040 DENETİMİ: karar sağlam, öncülü korumasızdı.** `nextRunAt` kararı (üç ay basılmazsa ÜÇ kayıt) doğru ve gerekçesi ölçülebilir: oluşumlar DAİMA `startDate` çapasından hesaplanıyor ve üretilmiş `periodKey`ler çıkarılıyor, yani bayat `nextRunAt` yalnızca GECİKTİREBİLİR — kendi kendini onaran yazma (T-100 soyu); atlamak defterden kayıt düşürmek olurdu. Backend yıl okumasını `slice(0,4)` ile değil İLK TİREYE KADAR yapmış, yani T-108g'de ölçtüğüm kusura düşmemiş. **Ölçülmeyen: kısıtın VARLIĞI** ve teşhisi Backend'in kendi yorumu verdi (`tekrarlayan.test.ts:194` — "çıkarma bir OPTİMİZASYON; gerçek güvence `@@unique([sourceRecurringId, periodKey])`"): testler taklit istemci kullandığı için kısıt şemadan silinse hepsi yeşil kalır, `skipDuplicates` atlayacak şey bulamaz ve iki kez tetiklemek DEFTERE çift gider yazar. `tekrarlayan-tekillik-oncul.test.ts` öncülü İKİ yerde ölçüyor — şema bildiriyor VE göç `CREATE UNIQUE INDEX` oluşturuyor; ikincisi ayrı bir sınıf çünkü şemaya `@@unique` yazıp göç üretmemek sessizdir (şema niyet, veritabanının gerçeği göçlerde). Mutasyonlar ince gerilemeleri kapsıyor: tek alanlı `@@unique` bileşiğin yerini tutmaz, `@@index` kısıt değildir. Canlı DB elle doğrulandı (`pg_indexes` → `transaction_sourceRecurringId_periodKey_key`). **"BAĞLANMAMIŞ" KÜMESİ ÖLDÜ:** T-109b CSV'yi bağladı, kapı "satırlar geçersiz" dedi ve BAĞLAYAN KİŞİ sildi — kendi kuralım uygulandı, mekanizma iki yönde de çalıştı. Küme artık boş ve bu bir KAZANIM DEĞİL BİR DURUM: yeniden büyümesi gerileme işareti. **ADVISORY-006** değişmedi, §8.24 EXIT 0, §8 envanteri 6 ⏳. Birim 1884/1884, E2E 101/101, kalıntı 0. |
 | 2026-10-14 | T-108g | İki korunmayan ölçüm, ulaşılabilirlik bildirimi, yıl sınırının sebebi, F5 öncesi ⏳ envanteri | **Ağır yığın kapısı GENELLEŞTİRİLDİ** (`agir-yigin-tembel.test.ts`): iki halka birlikte ölçülüyor — paketi yalnızca bildirilen bileşen içe aktarıyor VE o bileşen hiçbir yerde statik içe aktarılmıyor; biri olmadan diğeri yeşil kalırdı. ⚠️ **Sayım iddiası listemdeki en pahalı eksiği buldurdu:** bildirimi iki yığınla yazmıştım, kapı ÜÇÜNCÜ tembel sınırı gösterdi — `reactbits/lazy.tsx`, yani BULGU-018'de TBT'yi 80 ms → 9.990 ms yapan `ogl` yığını. Sayım sonra HEDEF tanecikli yapıldı çünkü dosya taneciklinin kör noktası vardı (`lazy.tsx` altı hedef taşıyor, yedincisi görünmezdi); 13 hedef bildirimli, üçü ağır (ölçümleriyle), onu "ağır değil" envanterinde, ağırlığı BİLİNMEYEN hiçbir kovaya yazılmıyor. MDX'te "tek içe aktaran" kuralı UYGULANAMADI ve sebebi yazılı (zincir iki adımlı, paketin ikinci meşru içe aktaranı public blog sunucu bileşeni). Chunk kimliğini (`6311`) iddiaya yazmayı DENEDİM ve reddettim: kimlik her derlemede değişir, kapı yanlış sebeple kırmızıya döner ve "kapıyı güncelle" alışkanlığı söylediğini önemsizleştirir. **Tooltip kapısı** (`grafik-tooltip.test.ts`): `content` propu kaldırılırsa Recharts varsayılanı `dataKey`in HAM SAYISAL değerini yazar (`85625` — kuruş, ayırıcı, para birimi yok) ve ekranın geri kalanı `etiket` bastığı için AYNI SAYFADA iki para biçimi oluşur. Kapıyı yazarken SAHTE POZİTİF ürettim: gövde sınırını "sonraki `\nfunction`" ile arıyordum, sonraki tanım `export default function` olduğu için gövde grafiğin içine uzadı ve meşru `dataKey="gelir.deger"` satırları "tooltip deger basıyor" diye okundu — sahte pozitif, sahte negatif kadar pahalı (kapıyı gevşetmeye davet eder); sınır artık kapanış ayracına bağlı. **"KOD VAR, YOL YOK" ölçüldü ve kapı BİLDİRİM olarak kuruldu** (`servis-ulasilabilirlik.test.ts`): kör dedektör 183 ihraçtan 37'sini işaretledi ve çoğu MEŞRU (`build*Where` kendi dosyasında çağrılıyor, dışa açılma sebebi doğrudan birim testi) — 37 uyarı veren kapı kurulmaz, susturulur. Doğru soru "kendi dosyası DAHİL hiç çağrılmıyor mu" olunca 10 kaldı: 6 BEKLEYEN (F5 yardımcıları), 4 BAĞLANMAMIŞ (CSV — kabul kontrolünün bulduğu sınıf). İkisini mekanik ayırmak MÜMKÜN DEĞİL ve iddia edilmiyor; fark NİYETTE (T-053'te `fetchAuditLogById`yi YAZMAMA kararı tam bu sınıftı). Kapı iki yönlü: bildirilmeyen ulaşılmaz kırmızı, bağlanınca ölen satır da kırmızı; `baglanmamis` kümesinin SAYISI kilitli (büyümesi gerileme işareti). Dört CSV satırının T-108f'te ölmesi BEKLENİYOR. **Yıl sınırının SEBEBİ kapıya bağlandı** (`donem-yil-siniri.test.ts`): `buildPeriodKey` anahtarı DİZE DİLİMLEMESİYLE kuruyor, yani dört basamak varsayıyor ve bozulduğunda hata vermiyor — ölçtüm: yıl 99 → `99-05-0`/`99-0` bozuk, ⚠️ yıl 10000 → yıllık anahtar **`1000`**, yani MEŞRU yıl 1000 ile ÇAKIŞIYOR ve ADR-015 idempotanslığı o anahtara dayandığı için bir dönemin kaydı başkasının üzerine upsert edilir (sessiz veri kaybı, defterde). Yani `1000–9999` keyfî değil, dilimlemenin doğru kaldığı TAM aralık; kapı ayrıca önermeyi (hâlâ dilimleme mi) izliyor. `?yil=99` davranışı YAZILMADI — sayfa şemayı henüz bağlamadı ve kendi ölçümü daha kötüsünü söylüyor (200 dönüyor ama 2026 verisi gösteriyor); ölü kapı yazmadım, ⏳ T-109. **F5 öncesi ⏳ envanteri: 9 → 6.** İki satır BAYAT çıktı — §8.2 argon2id F1'de uygulanmış (`19_456`/`timeCost: 3`) ama ⚠️ KAPISI YOKTU (testler bilerek zayıf yapılandırma kullanıyor, üretim değerleri takımda hiç görünmüyordu) → `argon2-parametreleri.test.ts` kuruldu, SAYIYI değil TABANI ölçüyor; §8.9 `rehype-sanitize` hem uygulanmış hem kapılıydı → ✅. 11/16 gerçekten bekliyor (ölçtüm: `attachment.ts` yalnızca referans doğrulaması, R2/imzalı URL/boyut sınırı yok) ve faz etiketleri güncellendi; 21–23 yedekler T-066'da ve uyarı artık DAHA ACİL çünkü defterde gerçek para verisi var. **ADVISORY-006** değişmedi, §8.24 EXIT 0. Birim 1799/1799. |
 | 2026-10-12 | T-107c | §9/5 senaryosu, arşivli bağ kapısı, ADR-039 görünürlük zinciri | **§9/5 KAPANDI — §9'UN TAMAMI YEŞİL (7/7).** Dördüncü halka geldi, bekleme kapısı 1→3→4 diye üç kez tasarımı gereği öttü ve senaryo TEK PARÇA yazıldı (`panel-gelir-rapor.spec.ts`, iki projede yeşil): akış muhasebe listesindeki "Yeni işlem" bağlantısından başlıyor (T-039 — Action'a elle POST YOK), ölçüm DELTA (rapor ekranındaki "Tahsil edilen" önce/sonra, fark = girilen tutar). **Senaryo yazılırken ÜÇ kusur koşturarak bulundu, hiçbiri varsayımla görülemezdi:** (1) liste `description` sütunu BASMIYOR — çapa ayırt edici tutara çevrildi, açıklama temizlik işareti olarak kaldı; (2) ⚠️ **PARA TESTİNDE 100 KAT SAPMA**: beklentiyi `kurusaCevir(TUTAR)` ile üretiyordum, o Türkçe biçim okuyor (nokta=binlik) ama `TUTAR` makine biçimi (nokta=ondalık) → `13.374.200` kuruş beklendi, gerçek delta `133.742`; yani ÖLÇÜM DOĞRU, BEKLENTİM YANLIŞTI — ADR-014'ün sınıfı test kodunda, üç temsil artık ayrı sabitlerde ve karşılıkları ÖLÇÜLÜYOR; (3) `fullyParallel` iki projeyi AYNI AYA yazdırıyordu ve biri diğerinin kaydını sayıyordu → yalıtım AYLA sağlandı (her proje kendi ayı, geçmiş yıl → ölçüm MUTLAK, "önce 0" ay süzgecini de kanıtlıyor); ayrıca önkoşulu ayrı bir `test()` yazmak onu başka worker'a attırıp "0 sildi" hatası ürettiği için ana teste alındı. Bekleme kapısı artık GERİLEME kapısı: zincir çözülürse ve senaryo silinirse/Action'a POST'a çevrilirse söylüyor. **ARŞİVLİ BAĞ KAPISI kuruldu** (`panel-arsivli-bag.spec.ts`, 2/2): Frontend kusuru iki turda iki kez bildirip çözmüştü ama kapı yoktu. `<select>` eşleşmeyen değerde ilk seçeneğe düşüyor ve bu YALNIZCA GERÇEK TARAYICIDA ölçülebilir — birim testi `value` prop'unu okur, tarayıcının onu ATTIĞINI görmez. İki vaka tek paket (aynı kalıp) ama riskleri ayrı yazılı: müşteri opsiyonel → bağ kopar (veri kaybı), kategori ZORUNLU → ilk seçenek her zaman geçerli bir kategori, kayıt yanlış kırılıma düşer (defter bozulur, hiçbir alan boşalmadığı için daha sinsi). Her vaka seçili değeri, `(arşivli)` işaretini ve SEÇİCİYE DOKUNMADAN kaydetmenin bağı bozmadığını ölçüyor — kalıcılık formu YENİDEN AÇARAK doğrulanıyor. **ADR-039 görünürlük zinciri kapısı** (`adr-039-gorunurluk.test.ts`): Backend `typeMismatch`i servis DTO'su düzeyinde ölçüyordu, ama zincir üç halkalı (DTO → `rapor-veri.ts` eşlemesi → rozet) ve ORTADAKİ halka kapısızdı — kaldırılsa bütün iddialar yeşil kalır, kullanıcı uyuşmazlığı HİÇ görmez. Üç halka ölçülüyor, susturan biçimler (`uyusmazlik && false`) yasak, seçicide tür yazılı olması kilitli; sınır dürüstçe yazılı (kaynak taraması, CSS ile gizlenmiş rozeti görmez). Üçüncü gereksinim (yumuşak uyarı) BUGÜN YOK ve ADR zorunlu saymıyor → ölü kapı yazılmadı, yazıldığı günkü kapısı kayda geçti (gönderimi engellememek). **İki şey ölçülüp BULGU AÇILMADI:** (a) `seed_` kimliği olmayan 890 TL'lik işlem satırı — ADR-015 tekrarlayan üretimi, `(sourceRecurringId, periodKey)` bileşik anahtarıyla upsert; koda bakıp geçmedim, KOŞTURDUM: seed öncesi 6, sonrası 6 → idempotent; (b) kalıntı sayımına `Transaction` eklendi — eklenmeseydi T-107b'de kapattığım kör noktayı kendim açmış olurdum ve kalıntı bu kez DEFTERE düşen bir para kaydı olurdu. **Kendi 8. dalım öttü:** yeni paketler "kapsanmiyor" diyen üç rotayı geziyordu → `kapilar`/`kanit` güncellendi (`not` metnine dokunulmadı, ADR-036). **ADVISORY-006:** değişmedi, §8.24 EXIT 0, 89 gün. Birim 1757/1757, E2E **101/101** (95→+6), kalıntı 0. |
@@ -4935,10 +4936,211 @@ Yama yok (3.0.3), zincir aynı, §8.24 **EXIT 0**. Geçerlilik koşulu korunuyor
 
 ---
 
+## §8.21–23 — YEDEKLEME VE GERİ YÜKLEME PROVASI (T-066)
+
+> ⚠️ **Bir yedek, geri yüklendiği kanıtlanmadıkça yedek değildir.**
+> "Betik koştu, dosya oluştu, EXIT 0" — yeşil bir çıktı ve hiçbir şey
+> kanıtlamıyor. Bu, projede defalarca ölçülen "vakum yeşili" sınıfının en
+> pahalı hâli.
+
+### 1 · Yedek biçimi ve şifreleme kararı
+
+| Karar | Değer | Gerekçe |
+| ----- | ----- | ------- |
+| Dump biçimi | `pg_dump -Fc --no-owner --no-privileges` | Sıkıştırılmış ve `pg_restore` ile seçmeli; sahiplik/yetki geri yüklemede çakışmasın |
+| Şifreleme | **AES-256-GCM** | Kart AEAD şart koştu; T-013a'da `totpSecret` için aynı ilkel seçilmişti |
+| Anahtar | `BACKUP_ENCRYPTION_KEY`, base64 32 bayt | Uzunluk doğrulanıyor, hata mesajında **değer yok** (§8.20) |
+| Nesne adı | `yedek/aelaldi-YYYY-MM-DD.dump.enc` | Gün bazlı ve **UTC** — iki makine aynı yedeğe iki ad vermesin |
+
+**Gizlilik yetmez, bütünlük de gerekiyor.** Şifreli ama doğrulanmamış bir biçim
+(ör. AES-CBC) sessizce değiştirilebilir: bir baytı bozulmuş dosya çözülür,
+`pg_restore` bozuk veriyi yükler ve kimse fark etmez. GCM'in etiketi bunu
+imkânsız kılıyor — `final()` fırlatıyor, yani geri yükleme **başlamıyor**.
+
+Dosya biçimi **kendini tanıtıyor**: `[13 bayt sihirli][1 bayt sürüm][12 bayt
+IV][16 bayt etiket][gövde]`. Üç işi de panik anı için yapıyor — elindeki
+dosyanın bu sistemin yedeği olduğunu söylemek (yanlış dosyayı çözmeye çalışıp
+"anahtar bozuk" sanmak en kötü teşhis), biçim değişirse eski yedeğin sessizce
+yanlış okunmasını engellemek, ve etiketi gövdeden önce koyarak akışla çözmeye
+izin vermek.
+
+⚠️ **Anahtar kaybolursa yedek okunamaz.** Bu bir **takas**: anahtarsız
+okunabilen bir yedek, R2 kimlik bilgisi sızan herkesin okuyabildiği bir
+yedektir — ve yedek `Client.email`, ziyaretçi mesaj gövdelerini ve tüm denetim
+kaydını taşıyor. Takas `restore.md` → "Anahtar kaybı" başlığında yazılı.
+
+**Yeni bağımlılık eklenmedi.** R2'ye yazmak için `@aws-sdk/client-s3` en kolay
+yoldu ve gerekmedi: `src/server/storage/r2.ts` (T-037) SigV4'ü `node:crypto`
+ile zaten kuruyor. Yedek yolu onu **tüketiyor**; imza mantığının ikinci kopyası
+yazılmadı. `readR2Config` da yeniden yazılmadı — yalnızca kova değiştirildi
+(`R2_BUCKET` → `BACKUP_R2_BUCKET`), yani doğrulama ve hata biçimi paylaşılıyor.
+
+Üçüncü bir **resolver kopyası** da yazılmadı: `scripts/yedek-register.mjs` iki
+satır ve `prisma/seed-resolver.mjs`i **kayıt ediyor**. Depoda o mantığın iki
+kopyası var ve üçüncüsü, T-101'den beri kapatmaya çalıştığım çiftlenme
+sınıfının yeni örneği olurdu.
+
+> Bedeli dürüstçe: `prisma/seed-resolver.mjs` başlığı "yalnızca seed için"
+> diyor ve artık doğru değil — **bayat bir işaret**, düzeltmesi Backend'in
+> (tek satır).
+
+### 2 · ⭐ GERİ YÜKLEME PROVASININ ÖLÇÜM ÇIKTISI
+
+Zincirin tamamı koşturuldu, her halka ayrı ölçüldü:
+
+```
+1. indirildi      : 80767 bayt (yedek/aelaldi-2026-10-16.dump.enc)
+2. çözüldü        : 80725 bayt · GCM etiketi DOĞRULANDI
+3. prova veritabanı: aelaldi_prova_1792134559884 (oluşturuldu)
+4. pg_restore     : tamamlandı
+5. satır sayıları :
+   ✓ user 1·1 · client 2·2 · job 2·2 · transaction 5·5
+   ✓ transaction_category 6·6 · recurring_transaction 1·1
+   ✓ contact_message 0·0 · audit_log 257·257 · project 2·2 · post 2·2
+6. örnek değerler :
+   ✓ transaction.baseAmount toplamı: 131662.50 | 131662.50
+   ✓ audit_log en yeni createdAt: 2026-10-14 11:05:28.01 | aynı
+   ✓ user: e-postası olan satır: 1 | 1
+
+PROVA SONUCU: GEÇTİ — yedek geri yüklenebilir ve veri birebir.
+```
+
+**Satır sayısı tek başına yetmezdi** ve örnek değerlerin seçimi kasıtlı:
+bozuk bir `numeric` ölçeği satır sayısını **değiştirmez**. Bu yüzden
+`transaction.baseAmount` **toplamı** karşılaştırıldı (ADR-014'ün kuruş
+hassasiyeti), `audit_log` en yeni `createdAt` (zaman damgası davranışı) ve
+e-postası olan kullanıcı **sayısı** — §8.20 gereği **değer basılmadan**.
+
+**Canlı veritabanının üzerine yazılmadı ve bu yapısal:** prova ayrı bir
+veritabanına yüklüyor, kaynağa yalnızca okuma sorguları gidiyor ve hedef adın
+kaynaktan farklı olduğu **koşumdan önce** doğrulanıyor. Prova izi **her
+durumda** siliniyor — hata hâlinde de; bırakılan bir prova veritabanı yalnızca
+çöp değil, içinde canlı verinin **şifresiz tam kopyası** var.
+
+Temizlik de ölçüldü: `pg_database`'de `%prova%` eşleşmesi yok, geçici dizin yok.
+
+#### Provanın ÖLÇMEDİĞİ şeyler
+
+Üretim ortamı (prova dev Postgres'inde koştu), büyük veri davranışı (80 KB'lık
+dump), ve zamanlanmış koşum (cron F7/T-073 — ADR-040'ın kalıbı: tetikleyici
+sonra, mantık bugün).
+
+### 3 · Koşturarak bulunan iki kusur
+
+**(a) Betik hiçbir ortamda çalışmayacaktı.** İlk koşumda `pg_dump` şunu dedi:
+`invalid URI query parameter: "schema"`. `DATABASE_URL` Prisma'nın kendi
+parametresini taşıyor ve `libpq` onu tanımıyor. Tipler doğru, mantık doğru,
+**komut geçersiz** — ve bunu yalnızca koşturmak gösterebilirdi.
+
+Düzeltme `libpqUrl` ve ince tarafı şu: **tüm sorgu dizesini atmak yanlış
+olurdu**, çünkü `sslmode` üretimde gerekli ve onu düşürmek yedeği **şifresiz
+bir bağlantıdan** çekmek demek. Beyaz liste yazıldı: `libpq`nin bildiği
+parametreler kalıyor, Prisma'ya özgü olanlar ayıklanıyor.
+
+**(b) Kendi bulduğum kusuru kendim ürettim.** Budama çıktısı
+`silinen: 7` diyordu ve kova **bomboştu**. Sebep: R2'de var olmayan bir
+anahtara DELETE **başarı** döner (idempotent silme), yani dönüş değeri "nesne
+vardı ve gitti" demiyor — "istek kabul edildi" diyor.
+
+> Bu, T-107b'de teardown'da bulduğum kusurun **aynısı**: eylemi sayıp durumu
+> ölçtüğünü sanmak. Çıktı artık ölçtüğü şeyi söylüyor: *"7 anahtara silme
+> gönderildi, 7 kabul edildi (R2 olmayan anahtarı da kabul eder — sayı
+> 'silindi' demez)"*.
+
+Gerçekten silineni saymak 7 ek HEAD isteği gerektirir ve o sayının karşılığı
+yok: budamanın amacı saymak değil, birikimi önlemek.
+
+**Ayrıca bir kova hatası koşumdan önce yakalandı:** budama
+`deleteObjectQuietly(eski, {})` yazıyordu, yani varsayılan yapılandırmayla
+**yükleme kovasına** DELETE atardı — yedekleri değil kapak görsellerini silmeye
+çalışırdı, ve `deleteObjectQuietly` bilerek fırlatmadığı için **sessizce**.
+
+### 4 · Saklama politikası
+
+**30 gün**, ve silme **listeleme gerektirmiyor**. "Kovayı listele, en yeni 30'u
+tut" en doğal tasarımdı ve reddedildi: `r2.ts` listeleme ihraç etmiyor,
+eklemek SigV4'ün ikinci bir kullanımını yazmak demekti.
+
+Anahtarlar güne göre deterministik olduğu için her koşum yaşı dolan **7 günlük
+pencereyi** siliyor — tek gün değil, çünkü yedekleme birkaç gün koşmazsa o
+günlerin nesneleri sonsuza kadar kalırdı. Yedi günden uzun kesinti zaten
+yedeklemenin kendi sorunudur ve §13.7 izlemesinin konusu.
+
+Ölçüm: 30 günlük yedek ≈ **2,4 MB** (80 KB × 30), R2 ücretsiz katmanı **10 GB**
+— sınırın çok altında. Veri büyüdüğünde oran yeniden ölçülmeli; sonsuz birikim
+bir gün sınırı aşar ve o gün yedekleme **sessizce** durur.
+
+Ve en pahalı olası kusur ayrıca ölçüldü: **budama bugünün yedeğini asla
+silmiyor** — pencere `saklama`dan başlıyor, geniş bir pencerede bile ileriye
+gitmiyor.
+
+### 5 · §8.20 — yedek kişisel veri taşıyor, şifre yeterli mi
+
+**Karar: şifreleme gerekli ama tek başına yeterli değil; erişim kaydı da
+gerekli — ve bugün yanlış katmana yazılmadı.**
+
+| Katman | Durum |
+| ------ | ----- |
+| Durağan şifreleme | ✅ AES-256-GCM, anahtar R2'de değil |
+| Kova public değil | ✅ ölçüldü: imzasız erişim `400`/`ECONNRESET` |
+| İmzalı adres ömrü | ✅ okuma 15 dk, yazma 5 dk |
+| **Erişim kaydı** | ⚠️ **YOK** |
+
+Şifreleme dosyayı okunamaz kılıyor ama **indirildiğini kimse bilmiyor**.
+Anahtar ve R2 kimlik bilgisi birlikte sızsa (ikisi de `.env`'de), veri dışarı
+çıkar ve **hiçbir iz kalmaz**.
+
+**Bugün yazılmadı ve sebebi önemli:** erişim kaydının doğru yeri uygulama
+değil, **R2 tarafı**. Betiğe `writeAuditLog` eklemek yalnızca *bizim*
+yaptığımız indirmeleri kaydeder — asıl tehdidi (kimlik bilgisiyle doğrudan
+erişim) **hiç görmez**. Yanlış katmana yazılan bir kayıt güvence hissi verir ve
+tehdidi kaçırır; o yüzden kayıt değil **karar** yazıldı.
+
+> **F7/T-073'e devredildi:** R2 kova erişim günlüğünün açılması, ve
+> `BACKUP_ENCRYPTION_KEY`in `.env`'den ayrı tutulması — ikisi aynı dosyada
+> olduğu sürece "iki şeyin birlikte sızması" **tek bir olay**.
+
+### 6 · Aynı sağlayıcıda yedek — v1 için KABUL
+
+Site ve yedek aynı Cloudflare hesabında; hesap kaybı ikisini birlikte etkiler.
+**Karar: v1 için kabul edilebilir**, ve gerekçesi senaryoların sıklık sırası:
+
+1. **Yanlış `DELETE`/göç** — en olası, R2 tamamen karşılıyor
+2. **Veritabanı bozulması / sunucu kaybı** — R2 karşılıyor
+3. **Cloudflare hesabının kaybı** — en düşük olasılık, ve tek başına veri
+   kaybı değil: site de erişilemez olur, yani sorun yedekten büyük
+
+İlk ikisi yedeklemenin varlık sebebi ve karşılanıyor. Üçüncüsü için **karar
+bugün verildi, uygulama F7'ye**: haftada bir yedeği indirip **şifreli hâliyle**
+sağlayıcı dışına ikinci bir kopya. Dosya zaten şifreli olduğu için ikinci yerin
+güvenlik gereksinimi düşük — anahtar orada değil.
+
+### 7 · Kapı: saf katman her koşumda ölçülüyor
+
+Prova **elle** koşan bir betik (R2 kimlik bilgisi + ayakta Postgres +
+`pg_restore` istiyor), yani CI'da her değişiklikte koşmuyor. Yedeğin
+okunabilirliğini belirleyen kararlar ise **saf**: anahtar biçimi, şifre biçimi,
+nesne adı, bağlantı dizesi temizliği. `tests/unit/yedek-sifreleme.test.ts`
+(22 iddia) onları her koşumda ölçüyor — yani **provanın öncülleri
+bayatlamıyor**.
+
+Kaçınılan hâl somut: biçimi değiştiren bir düzenleme yapılır, yedek alınır,
+R2'ye yazılır, betik EXIT 0 döner — ve dosya geri **yüklenemez**. Prova bunu bir
+sonraki elle koşumda yakalar; kapı aynı gün yakalar.
+
+Ölçülenler: gidiş-dönüş · başlık boyutu · **IV yeniden kullanılmıyor** (GCM'de
+IV tekrarı katastrofik ve sabit IV yazmak hiçbir gidiş-dönüş testini kırmazdı) ·
+gövde kurcalama · etiket kurcalama · yanlış anahtar · yabancı dosya · kısa
+dosya · sürüm uyuşmazlığı · anahtar uzunluğu ve **değerin mesaja girmemesi** ·
+UTC gün adı · budama penceresi ve ay/yıl sınırı · **bugünün yedeğinin asla
+silinmemesi** · `schema` ayıklanması ve `sslmode` korunması.
+
+---
+
 ## §8 Güvenlik Gereksinimleri — Durum Tablosu
 
-**Ölçüm tarihi:** 2026-10-14 · **Faz:** F4 (kapanış) · **Son görev:** T-109g
-· **Dağılım:** ✅ 12 · ⚠️ 6 · ❌ 0 · ⏳ 6
+**Ölçüm tarihi:** 2026-10-16 · **Faz:** F5 öncesi · **Son görev:** T-066
+· **Dağılım:** ✅ 14 · ⚠️ 7 · ❌ 0 · ⏳ 3
 
 > T-054g'de dağılım DEĞİŞMEDİ ve bu bilinçli: denetim ekranı yeni bir yüzey
 > açtı, iki kapıyla ölçüldü ve sızıntı çıkmadı — yani mevcut maddeler
@@ -4974,9 +5176,9 @@ Durum kodları: ✅ sağlandı · ⚠️ kısmi · ❌ eksik · ⏳ henüz uygul
 | 18 | `NEXT_PUBLIC_` içinde sır yok, CI'da taranır | ✅ | **Otomatik tarama kuruldu** (T-005): `tests/unit/public-env.test.ts` — üç katman: (a) `.env.example`, (b) çalışma ortamı `process.env`, (c) `.next/` derleme çıktısı. `pnpm test` içinde koştuğu için hem yerelde hem CI'da otomatik. **Dedektör kendini kanıtlıyor**: 10 ekili sahte sır (GitHub/AWS/Stripe/JWT/argon2/PEM/bağlantı dizesi) yakalanıyor, meşru URL'ler yanlış pozitif vermiyor. Fiilen doğrulandı: `.env.example`'a `NEXT_PUBLIC_GITHUB_TOKEN=ghp_…` ekildi → hat **KIRMIZI**, geri alındı → **YEŞİL**. **T-049g — bağlantı dizesi deseni daraltıldı:** desen küçültülmüş derleme çıktısında iki ayrı yer tutucuyu köprüleyip SAHTE POZİTİF üretiyordu (Frontend'in bulgusu); `userinfo` karakter sınıflarından `" { } ,` çıkarıldı. Daraltmanın gerçek sızıntıyı hâlâ yakaladığı ve köprü şeklini artık yakalamadığı **iki yönlü mutasyonla** doğrulandı (yedi gerçek biçim + iki küçültülmüş şekil teste bağlı). Sahte pozitif bir kapının en pahalı arızasıdır: haksız kırmızı, kapının güvenilirliğini aşındırır. |
 | 19 | Panel mutasyonları `AuditLog`'a | ⚠️ | **Merkezî yardımcı geldi** (T-015): `src/server/services/_shared/audit.ts` → `writeAuditLog`, `diff` üzerinde otomatik redaksiyonla (§8.20). Kullananlar: 2FA eylemleri (`actions/totp.ts`), hesap kilidi (ADR-022) ve F3'ten beri tüm içerik/mesaj/iş eylemleri. Kilit kaydı T-016'da üretim yolunda **fiilen tetiklendi**. ⚠️ **ADR-034 (T-044g):** `redactAuditDiff` bir **EMNİYET AĞI**, koruma değil — ada bağlı çalışır. Asıl kural: sır `diff`e HİÇ KONMAZ. T-044g taraması: `buildDiff` kullanan on bir çağrı yerinin hiçbiri bugün sır taşımıyor, ama üç silme eylemi SİLİNEN SATIRIN TAMAMINI yazıyor (**BULGU-019**). ⚠️ kalma sebebi: muhasebe mutasyonları henüz yazılmadı (F4–F5). |
 | 20 | Loglarda şifre/token/TOTP/tam e-posta yok | ⚠️ | Sağlık ucu §8.20'ye uyuyor (T-003b'de tarandı: altyapı izi 0 eşleşme) ve bu T-016b'de **kapıya bağlandı** (`api-routes.spec.ts` → bağlantı dizesi / yığın izi / dosya yolu / ortam değişkeni adı desenleri). `writeAuditLog` `diff` üzerinde otomatik redaksiyon yapıyor (T-015) — ama **ADR-034'ten sonra bu bir KORUMA değil EMNİYET AĞIDIR** ve belgede artık öyle anılıyor: ada bağlı çalıştığı için bilmediği adı ({`yeniSifre`}, {`pass`}) ve masum bir anahtarın DEĞERİNE gömülü sırrı geçirir (üç ayrı ajan ölçtü, aynı sonuç). **T-043g — YANIT YÜKÜ de artık ölçülüyor:** KVKK kapsamındaki `ip`/`userAgent` yalnızca detay rotasının yükünde; liste rotasının ham gövdesinde ikisi de YOK (`panel-mesaj-kvkk.spec.ts`, bağımsız ikinci ölçüm, mutasyonla sınandı). ⚠️ kalma sebebinin GÜNCEL hâli (T-044g): T-043g'de "merkezî redaksiyon yardımcısı yok" yazmıştım; yardımcı aslında var (`redactAuditDiff`) ve asıl gerekçe **ADR-034**: redaksiyon **ada bağlı**, yani bilinmeyen alan adlarını ve değere gömülü sırları yakalayamaz. Bunu bir "koruma" saymak, tam da ADR-034'ün yasakladığı güven. Ayrıca uygulama loglarının (`console.error` vb.) kendisi için hâlâ merkezî bir redaksiyon yok. |
-| 21 | Gece 03:00 şifreli `pg_dump` → R2, 30 gün | ⏳ | T-066 / T-073 · **Uyarı:** yol haritası F6/F7 diyor; gerçek muhasebe verisi F4'te girilmeye başlıyor. Yedeksiz geçen her F4 günü, başka kopyası olmayan mali veri riski. |
-| 22 | `restore.md` + en az bir prova | ⏳ | T-066 |
-| 23 | Yedek checksum doğrulaması | ⏳ | T-066 |
+| 21 | Gece 03:00 şifreli `pg_dump` → R2, 30 gün | ⚠️ | **MEKANİZMA KURULDU VE ÖLÇÜLDÜ (T-066); eksik olan yalnızca TETİKLEYİCİ.** `scripts/yedek-al.ts`: `pg_dump -Fc` → **AES-256-GCM** → imzalı PUT ile R2 (`BACKUP_R2_BUCKET`). Yeni bağımlılık YOK — `src/server/storage/r2.ts`in SigV4 imzası tüketiliyor, ikinci bir kopya yazılmadı. Saklama **30 gün** ve budama LİSTELEME GEREKTİRMİYOR (anahtarlar güne göre deterministik; her koşum yaşı dolan 7 günlük pencereyi siliyor, böylece kesinti kendiliğinden onarılıyor). Gerçek koşum: dump 80.725 bayt → şifreli 80.767 (+42 = başlık). ⚠️ `pg_dump` Prisma'nın `?schema=public` parametresini reddediyordu — betik yazıldığı gibi HİÇBİR ortamda çalışmayacaktı ve bu ancak KOŞTURARAK görülebilirdi; `libpqUrl` eklendi ve `sslmode` BEYAZ LİSTEDE tutuldu (tüm sorgu dizesini atmak, yedeği şifresiz bağlantıdan çekmek olurdu). ⏳ kalan: cron (F7/T-073) ve `pnpm yedek` kısayolu (package.json Orkestra Şefi'nin). |
+| 22 | `restore.md` + en az bir prova | ✅ | **PROVA KOŞTURULDU VE GEÇTİ (2026-10-16, T-066).** `scripts/geri-yukleme-provasi.ts` zincirin tamamını ölçüyor: R2'den indir → **GCM etiketi doğrula** → AYRI veritabanına `pg_restore` → satır sayıları + ÖRNEK DEĞERLER karşılaştır → prova DB'sini **sil**. Ölçüm: 10 tablo birebir (`audit_log` 257/257), `transaction.baseAmount` toplamı `131662.50` iki yanda da aynı (ADR-014 kuruş hassasiyeti korunmuş), `audit_log` en yeni `createdAt` aynı. Temizlik de DOĞRULANDI (`pg_database`'de `%prova%` yok, geçici dizin yok). Satır sayısının yetmemesi gerekçeli: bozuk bir `numeric` ölçeği satır sayısını değiştirmez. `docs/security/restore.md` panik anı için yazıldı — her komut KOŞTURULDU (3b'deki elle çözme komutu dahil, 80.725 bayt), hata mesajları tablosu hangi mesajın neyi söylediğini ayırıyor, ve prova çıktısı belgenin içinde. ⚠️ Provanın ölçmediği şeyler de yazılı: üretim ortamı, büyük veri, zamanlanmış koşum. |
+| 23 | Yedek checksum doğrulaması | ✅ | **AEAD doğrulama etiketi checksum'ı KAPSIYOR ve her geri yüklemede ZORUNLU olarak kontrol ediliyor** (T-066). AES-256-GCM'in 16 baytlık etiketi dosyanın yanında DURMUYOR, çözmenin ÖN KOŞULU: etiket tutmazsa `final()` fırlatıyor ve geri yükleme HİÇ BAŞLAMIYOR. Ayrı bir checksum dosyası bundan zayıf olurdu — yanında duran bir özet, kontrol edilmeyi UNUTULABİLİR. Ölçüldü (`tests/unit/yedek-sifreleme.test.ts`, 22 iddia): gövdenin ortasından tek bayt çevrildiğinde VE etiket kurcalandığında çözme reddediliyor; yanlış anahtar, yabancı dosya, kısa dosya ve sürüm uyuşmazlığı AYRI mesajlar veriyor ("çözülemedi" demek panik anında teşhis değildir). ⚠️ GCM yanlış anahtarı kurcalanmış dosyadan AYIRT ETMİYOR ve mesaj bunu SÖYLÜYOR — birini varsaymak yanlış teşhis olurdu. |
 | 24 | `npm audit` merge kapısı | ✅ | **Kuruldu** (T-005): `.github/workflows/ci.yml` → `bagimlilik-denetimi` işi, `pnpm audit --audit-level high` (ADR-003 gereği `npm` değil `pnpm`). Yüksek **ve** kritik kapsanır. Depo şu an temiz (her seviyede 0 açık). Kapının kırmızıya döndüğü ayrı bir izole projede kanıtlandı: `lodash@4.17.11` + `minimist@1.2.0` → 9 açık (2 kritik, 3 yüksek) → **EXIT 1**. Ayrıca yabancı kilit dosyası kontrolü de aynı işte. **T-005c — kapı gerçek bir advisory'de tetiklendi ve tuttu:** `nanoid` GHSA-2v37-7h3g-55p8 (Yüksek, geçişli, 9 yol) kodda hiçbir değişiklik yokken hattı kırmızıya çevirdi; `pnpm.overrides` ile kapandı, EXIT 0. Artık yalnızca izole projede değil, **kendi deposunda** kanıtlı. Tekrarlayan advisory'ler için oyunkitabı yazıldı (kaldırma koşulu + altı aylık gözden geçirme dahil). **T-029c — kapı artık HAFTALIK da koşuyor** (`schedule: '17 6 * * 1'`, Pazartesi 09:17 TRT): advisory'ler kod değişmeden yayınlandığı için yalnızca push/PR'da koşan bir denetim, sessiz geçen bir hafta boyunca yüksek bir açığı fark etmez. Zamanlanmış koşumda diğer iki iş `if: github.event_name != 'schedule'` ile atlanır. **T-005d — kapı ikinci kez tetiklendi ve bu kez düzeltilemedi:** `deepmerge-ts` GHSA-ggr8-5vv4-36mx (Yüksek, geçişli, 3 yol, hepsi `prisma` CLI zinciri). Yama majör sınırının ötesinde ve üst paket sürümü tam sabitliyor → oyunkitabı **katman D**. Kapı artık `pnpm audit --json` çıktısını okuyan bir betikten geçiyor: yalnızca **süreli ve kayıtlı** istisnalar tolere ediliyor (ADVISORY-002, bitiş **2026-11-22**), süre dolunca / yol değişince / istisna gereksizleşince kapı **kırmızı**. Altı kırılma dalının hepsi mutasyonla ayrı ayrı doğrulandı. `pnpm.auditConfig` bilerek kullanılmadı — süresizdir. **T-042g — kapı ÜÇÜNCÜ kez gerçek bir olayda tetiklendi ve üçünde de doğru davrandı:** iki günlük boşlukta yayımlanan danışmalar (`mysql2`, `fast-uri`×4, `js-yaml`; ayrıca Orkestra Şefi'nin kapattığı iki KRİTİK `next` RCE'si) kod değişmeden hattı kırmızıya çevirdi. Üçü de kapatıldı (A/A/B), kapı **EXIT 0**. Mekanizmanın kendisi de sınandı: `deepmerge-ts` istisnası tolere edildi (70 gün kaldı) ve altı kırmızı dal (istisnasız advisory · süresi dolmuş istisna · ölü istisna · değişmiş yol · yanlış paket · ayrıştırılamayan çıktı) mutasyonla yeniden doğrulandı. **T-051 — DÖRDÜNCÜ tetiklenme (11 danışma, 17 gün, kod değişmedi):** yedisi katman A ile kapandı, ikisi süreli istisnaya bağlandı (ADVISORY-002 ve yeni **ADVISORY-006** `braces` — yamalı sürüm yok). Asıl kazanım yapısal: **"donmuş taban" nöbeti** eklendi — sınırlı bir override alt sınırında kalıcı olarak donuyordu ve hiçbir şey uyarmıyordu; haftalık koşum artık her override için kilitteki sürümü aralığın en yenisiyle karşılaştırıyor (ilk koşumunda `mysql2`yi donmuş yakaladı). Ayrıca **iki override ölü ağırlık çıkıp silindi**, yani donabilecek taban sayısı yarıya indi. |
 | 25 | Yeni bağımlılık onay + DECISIONS kaydı | ✅ | T-004'ün 9 paketi görev kartında adı adına onaylı. **T-005 ve T-006b `package.json`'a hiçbir paket eklemedi** — `@lhci/cli` bilinçli olarak `pnpm dlx @lhci/cli@0.15.1` ile ephemeral çağrılıyor (yalnızca CI aracı, uygulama bağımlılığı değil; sürüm sabit, `latest` kullanılmıyor). **T-006b:** tüm GitHub eylemleri Node 24 hedefleyen güncel kararlı majora taşındı — `checkout@v7`, `setup-node@v7`, `cache@v6`, `upload-artifact@v7`, `pnpm/action-setup@v6`. Yamasız çalışma zamanı bırakmama gerekçesi ADR-008 ile aynı hat. |
 
