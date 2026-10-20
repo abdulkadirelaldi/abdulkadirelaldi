@@ -54,7 +54,7 @@ export const createAttachmentSchema = z.object({
     .min(1, { error: 'Dosya anahtarı zorunludur.' })
     .max(512, { error: 'Dosya anahtarı çok uzun.' }),
   mime: z.enum(ALLOWED_MIME_TYPES, {
-    error: 'Bu dosya tipi kabul edilmiyor (JPEG, PNG, WebP, AVIF, SVG, PDF).',
+    error: 'Bu dosya tipi kabul edilmiyor (JPEG, PNG, WebP, AVIF, PDF).',
   }),
   size: z
     .number()
@@ -70,45 +70,19 @@ export const createAttachmentSchema = z.object({
 });
 
 /**
- * YÜKLEME İZNİ İSTEĞİ — imzalı PUT adresi almak için (T-037, birinci adım).
+ * YÜKLEME — `POST /api/v1/panel/eklenti` formunun METİN alanları (ADR-044).
  *
- * ⚠️ `key` VE `checksum` BURADA YOK ve olmamalı: anahtarı SUNUCU üretiyor
- * (istemcinin verdiği dosya adı anahtara hiç girmiyor — yol kaçışı ve `.html`
- * uzantısı sınıfı böyle kapanıyor), sağlama toplamı ise yükleme BİTTİKTEN
- * sonra sunucunun nesneyi okuyup kendisi hesapladığı bir değer.
+ * ⚠️ `key`, `mime`, `size`, `checksum`, `width`, `height` BURADA YOK ve bu
+ * kararın kalbi: anahtarı SUNUCU üretiyor (istemcinin dosya adı anahtara hiç
+ * girmiyor — yol kaçışı ve `.html` uzantısı sınıfı böyle kapanıyor), geri
+ * kalan her şeyi baytlardan SUNUCU belirliyor. İstemcinin beyanını kabul
+ * etmek, `mime: 'image/png'` diyen bir yürütülebilir dosyayı kaydetmek olurdu.
  *
- * `mime` ve `size` burada İSTEMCİNİN BEYANI — reddetme için kullanılıyor
- * (erken, ucuz kapı), DOĞRULAMA için değil. Gerçek kontrol `confirmUpload`ta
- * baytlar üzerinde yapılıyor.
+ * T-037'nin iki adımlı şemaları (`uploadRequestSchema`, `confirmUploadSchema`)
+ * ADR-044 ile kalktı: tarayıcıdan doğrudan R2'ye PUT, CORS tanımlı olmadığı
+ * için hiçbir tarayıcıdan çalışmıyordu (ölçüldü: ön uçuş 403).
  */
-export const uploadRequestSchema = z.object({
-  mime: z.enum(ALLOWED_MIME_TYPES, {
-    error: 'Bu dosya tipi kabul edilmiyor (JPEG, PNG, WebP, AVIF, SVG, PDF).',
-  }),
-  size: z
-    .number()
-    .int({ error: 'Dosya boyutu geçersiz.' })
-    .positive({ error: 'Dosya boş olamaz.' })
-    .max(MAX_UPLOAD_BYTES, { error: 'Dosya en fazla 10 MB olabilir.' }),
-  entity: z.enum(AttachmentEntity, { error: 'Geçersiz bağlantı türü.' }),
-  entityId: cuidSchema,
-});
-
-/**
- * YÜKLEME ONAYI — tarayıcı R2'ye yazdıktan sonra (T-037, ikinci adım).
- *
- * ⚠️ `mime`, `size`, `checksum`, `width`, `height` BURADA YOK ve bu kararın
- * kalbi: hepsini SUNUCU nesneyi R2'den geri okuyarak kendisi belirliyor.
- * İstemcinin beyanını kabul etmek, `mime: 'image/png'` diyen bir
- * yürütülebilir dosyayı kaydetmek demek olurdu — §8.11'in kapatmak istediği
- * şeyin ta kendisi.
- */
-export const confirmUploadSchema = z.object({
-  key: z
-    .string()
-    .trim()
-    .min(1, { error: 'Dosya anahtarı zorunludur.' })
-    .max(512, { error: 'Dosya anahtarı çok uzun.' }),
+export const uploadFormSchema = z.object({
   entity: z.enum(AttachmentEntity, { error: 'Geçersiz bağlantı türü.' }),
   entityId: cuidSchema,
   order: orderSchema,
@@ -127,7 +101,6 @@ export const attachmentFilterSchema = paginationSchema.extend({
 });
 
 export type CreateAttachmentInput = z.infer<typeof createAttachmentSchema>;
-export type UploadRequestInput = z.infer<typeof uploadRequestSchema>;
-export type ConfirmUploadInput = z.infer<typeof confirmUploadSchema>;
+export type UploadFormInput = z.infer<typeof uploadFormSchema>;
 export type UpdateAttachmentInput = z.infer<typeof updateAttachmentSchema>;
 export type AttachmentFilterInput = z.infer<typeof attachmentFilterSchema>;

@@ -196,15 +196,10 @@ const BILDIRIM: UlasilmazBildirim[] = [
       'açıkça "senin sözleşmen gelmeden yükleme arayüzü yazılamaz" dedi, yani ' +
       'sıra bilinçli ve tüketici BİR SONRAKİ tur.',
   },
-  {
-    anahtar: 'attachment.ts → signedUrlForKey',
-    sebep: 'bekleyen',
-    not:
-      '§8.11 · 15 dakikalık imzalı okuma adresi. ⚠️ ÖNBELLEKLİ OKUMA YOLUNDAN ' +
-      'ÇAĞRILMAYACAK ve bu bir boşluk değil KARAR: imzalı adres bir `cachedRead` ' +
-      'çıktısına girerse 3600 sn önbellek girdisi 900 sn adresle bayatlar ' +
-      '(ADR-018 in T-037 kabul kriteri, ölçüldü). Çağıranı çizim anında — T-037f.',
-  },
+  /*
+   * ⚠️ `attachment.ts → signedUrlForKey` SATIRI T-037f'TE SİLİNDİ — ihraç
+   * silindi (ADR-044: HTML'de imzalı adres yok; sunum aynı kökenden).
+   */
 
   /* ---- BAĞLANMAMIŞ — tüketicisi olmalıydı, yok -------------------------- */
   /*
