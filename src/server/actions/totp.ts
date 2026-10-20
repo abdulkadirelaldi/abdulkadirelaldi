@@ -27,6 +27,7 @@ import {
   type TotpResult,
   type TotpStatus,
 } from '@/server/services/user';
+import { guvenliHata } from '@/lib/security/guvenli-log';
 
 /**
  * 2FA kurulum Server Action'ları — §7.1, §8.1, §8.6, ADR-013.
@@ -110,7 +111,7 @@ export async function getTotpStatus(): Promise<TotpStatus> {
   try {
     return await getTotpState(userId);
   } catch (error) {
-    console.error('[totp] durum okunamadı:', error instanceof Error ? error.message : error);
+    guvenliHata('[totp] durum okunamadı:', error instanceof Error ? error.message : error);
     return { enabled: false, remainingBackupCodes: 0 };
   }
 }
@@ -157,7 +158,7 @@ export async function startTotpSetup(): Promise<
     // Düz secret YALNIZCA bu yanıtta: kullanıcı QR okuyamazsa elle girecek.
     return { ok: true, data: { secret, otpauthUri } };
   } catch (error) {
-    console.error('[totp] kurulum başlatılamadı:', error instanceof Error ? error.message : error);
+    guvenliHata('[totp] kurulum başlatılamadı:', error instanceof Error ? error.message : error);
     return totpFail('INTERNAL_ERROR');
   }
 }
@@ -188,7 +189,7 @@ export async function confirmTotpSetup(totpCode: string): Promise<TotpResult<Bac
     try {
       secret = decryptSecret(user.totpSecret);
     } catch (error) {
-      console.error('[totp] secret çözülemedi:', error instanceof Error ? error.message : error);
+      guvenliHata('[totp] secret çözülemedi:', error instanceof Error ? error.message : error);
       return totpFail('INTERNAL_ERROR');
     }
 
@@ -225,7 +226,7 @@ export async function confirmTotpSetup(totpCode: string): Promise<TotpResult<Bac
       data: { backupCodes, remainingBackupCodes: backupCodes.length },
     };
   } catch (error) {
-    console.error('[totp] kurulum doğrulanamadı:', error instanceof Error ? error.message : error);
+    guvenliHata('[totp] kurulum doğrulanamadı:', error instanceof Error ? error.message : error);
     return totpFail('INTERNAL_ERROR');
   }
 }
@@ -265,7 +266,7 @@ export async function regenerateBackupCodes(
     try {
       secret = decryptSecret(user.totpSecret);
     } catch (error) {
-      console.error('[totp] secret çözülemedi:', error instanceof Error ? error.message : error);
+      guvenliHata('[totp] secret çözülemedi:', error instanceof Error ? error.message : error);
       return totpFail('INTERNAL_ERROR');
     }
 
@@ -299,7 +300,7 @@ export async function regenerateBackupCodes(
       data: { backupCodes, remainingBackupCodes: backupCodes.length },
     };
   } catch (error) {
-    console.error(
+    guvenliHata(
       '[totp] kurtarma kodları yenilenemedi:',
       error instanceof Error ? error.message : error,
     );

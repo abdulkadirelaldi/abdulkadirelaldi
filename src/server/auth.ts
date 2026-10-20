@@ -11,6 +11,7 @@ import {
   refreshTwoFactorClaim,
 } from './auth/credentials';
 import { getTotpState } from './services/user';
+import { guvenliHata, guvenliUyari } from '@/lib/security/guvenli-log';
 
 /**
  * Auth.js v5 yapılandırması — PROGRAM.md §8.1–8.6, ADR-013.
@@ -174,10 +175,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
    */
   logger: {
     error(error) {
-      console.error('[auth]', error.name);
+      guvenliHata('[auth]', error.name);
     },
     warn(code) {
-      console.warn('[auth]', code);
+      guvenliUyari('[auth]', code);
     },
     debug() {
       // Üretimde ve geliştirmede sessiz — debug çıktısı token taşıyabilir.

@@ -4,6 +4,7 @@ import type { ComponentProps, ReactNode } from 'react';
 import { basligaSlug, metinCikar } from '@/components/public/baslik-slug';
 import { MDX_OPTIONS } from '@/lib/mdx-options';
 import { cn } from '@/lib/utils/cn';
+import { guvenliHata } from '@/lib/security/guvenli-log';
 
 /**
  * MDX RENDER KALIBI — §8.9. T-024'te kuruldu, T-025 (blog) aynısını kullanır.
@@ -332,7 +333,7 @@ export async function Mdx({
       testleridir; bu log ise doğrudan DB yazma yolundan (seed, migration,
       elle psql) gelen kırık içeriği ortaya çıkarıyor — o yol kapıdan geçmiyor.
     */
-    console.error(
+    guvenliHata(
       `[mdx] derleme başarısız — içerik görüntülenemedi. kayıt=${kayitEtiketi} sebep=${sebepSatiri(hata)}`,
     );
 

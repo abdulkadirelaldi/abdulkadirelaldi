@@ -6,6 +6,7 @@ import { NextResponse } from 'next/server';
 
 import { pingDatabase } from '@/server/db';
 import type { ApiResponse } from '@/types';
+import { guvenliHata } from '@/lib/security/guvenli-log';
 
 /**
  * GET /api/v1/health — PROGRAM.md §13.6
@@ -84,7 +85,7 @@ async function probeDisk(): Promise<DiskStatus> {
 
 function failure(logDetail: unknown, reason: string): NextResponse<ApiResponse<HealthData>> {
   // §8.20 — ayrıntı YALNIZCA sunucu loguna.
-  console.error(
+  guvenliHata(
     `[health] kontrol başarısız (${reason}):`,
     logDetail instanceof Error ? logDetail.message : logDetail,
   );

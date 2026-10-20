@@ -21,6 +21,7 @@ import {
   type ContactMessageReceiptDto,
 } from '@/server/services/contact-message';
 import type { ApiResponse } from '@/types';
+import { guvenliUyari } from '@/lib/security/guvenli-log';
 
 /**
  * `/api/v1/iletisim` — §4.1 iletişim formu ucu.
@@ -198,7 +199,7 @@ export async function POST(request: Request): Promise<NextResponse<ApiResponse<u
   if (assessment.signals.length > 0) {
     // §8.20 — ham e-posta, ad veya mesaj metni YOK; yalnızca kayıt kimliği,
     // tetiklenen sinyaller ve puan.
-    console.warn(
+    guvenliUyari(
       `[iletisim] spam sinyali (mesaj=${receipt.id}, puan=${assessment.spamScore}, sinyaller=${assessment.signals.join(',')})`,
     );
   }

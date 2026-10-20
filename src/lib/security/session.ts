@@ -1,6 +1,7 @@
 import { getToken } from 'next-auth/jwt';
 
 import { readTwoFactorClaim, type TwoFactorClaim } from './two-factor';
+import { guvenliHata } from '@/lib/security/guvenli-log';
 
 /**
  * Ara katman için oturum okuyucu — §8.5.
@@ -104,7 +105,7 @@ export async function readSession(
   if (!options.secret) {
     // Üretimde bu bir yapılandırma hatasıdır; sessizce içeri almak yerine
     // gürültü çıkarıp reddediyoruz.
-    console.error('[security] AUTH_SECRET tanımsız — oturum doğrulanamıyor, erişim reddedildi.');
+    guvenliHata('[security] AUTH_SECRET tanımsız — oturum doğrulanamıyor, erişim reddedildi.');
     return null;
   }
 
@@ -126,7 +127,7 @@ export async function readSession(
     return { userId, twoFactorEnabled: readTwoFactorClaim(token) };
   } catch (error) {
     // §8.20 — jetonun kendisi ASLA loglanmaz.
-    console.error(
+    guvenliHata(
       '[security] oturum jetonu çözülemedi:',
       error instanceof Error ? error.message : error,
     );

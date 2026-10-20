@@ -12,6 +12,7 @@ import {
 } from './login-attempt';
 import { hashPassword, needsRehash, verifyPassword } from './password';
 import { decryptSecret, verifyTotpToken } from './totp';
+import { guvenliHata } from '@/lib/security/guvenli-log';
 
 /**
  * Giriş akışı — §8.1–8.4, ADR-013.
@@ -277,7 +278,7 @@ export async function authenticateUser(
       });
     } catch (error) {
       // Yükseltme başarısızlığı girişi ENGELLEMEZ — kullanıcı doğrulandı.
-      console.error(
+      guvenliHata(
         '[auth] şifre hash yükseltmesi başarısız:',
         error instanceof Error ? error.message : error,
       );
@@ -288,7 +289,7 @@ export async function authenticateUser(
   try {
     await client.user.update({ where: { id: user.id }, data: { lastLoginAt: now } });
   } catch (error) {
-    console.error(
+    guvenliHata(
       '[auth] lastLoginAt güncellenemedi:',
       error instanceof Error ? error.message : error,
     );
@@ -332,7 +333,7 @@ export async function verifyTotpWithRecovery(
     secret = user.totpSecret ? decryptSecret(user.totpSecret) : null;
   } catch (error) {
     // §8.20 — secret'ın kendisi değil, yalnızca olayın oluştuğu loga yazılır.
-    console.error('[auth] TOTP secret çözülemedi:', error instanceof Error ? error.message : error);
+    guvenliHata('[auth] TOTP secret çözülemedi:', error instanceof Error ? error.message : error);
     secret = null;
   }
 
@@ -358,7 +359,7 @@ export async function verifyTotpWithRecovery(
     });
   } catch (error) {
     // Tüketim yazılamadıysa girişi REDDET — aksi hâlde kod sınırsız kullanılabilir.
-    console.error(
+    guvenliHata(
       '[auth] kurtarma kodu tüketimi kaydedilemedi:',
       error instanceof Error ? error.message : error,
     );
@@ -458,10 +459,7 @@ export async function refreshTwoFactorClaim<T extends SessionClaims>(
     token[TWO_FACTOR_CLAIM] = state.enabled;
   } catch (error) {
     // §8.20 — ayrıntı yalnızca loga.
-    console.error(
-      '[auth] 2FA durumu tazelenemedi:',
-      error instanceof Error ? error.message : error,
-    );
+    guvenliHata('[auth] 2FA durumu tazelenemedi:', error instanceof Error ? error.message : error);
   }
 
   return token;

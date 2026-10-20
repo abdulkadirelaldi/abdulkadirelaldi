@@ -1,5 +1,6 @@
 import { REDACTED_FIELD_NAMES } from '@/lib/schemas';
 import type { AuditAction } from '@/types';
+import { guvenliHata } from '@/lib/security/guvenli-log';
 
 /**
  * `AuditLog` yazma yardımcısı + redaksiyon — §8.19, §8.20, ADR-020, ADR-022.
@@ -114,7 +115,7 @@ export async function writeAuditLog(
       },
     });
   } catch (error) {
-    console.error(
+    guvenliHata(
       '[audit] denetim kaydı yazılamadı:',
       error instanceof Error ? error.message : error,
     );

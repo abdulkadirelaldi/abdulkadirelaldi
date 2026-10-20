@@ -1,6 +1,7 @@
 import * as z from 'zod';
 
 import type { ApiErrorCode, ApiFailure, ApiResponse, ApiSuccess } from '@/types';
+import { guvenliHata } from '@/lib/security/guvenli-log';
 
 /**
  * §7.2 yanıt zarfı yardımcıları.
@@ -86,7 +87,7 @@ export function notFound(message = 'Kayıt bulunamadı.'): ApiFailure {
  * döner. Stack trace veya veritabanı hatası hiçbir koşulda yanıta girmez.
  */
 export function internalError(context: string, error: unknown): ApiFailure {
-  console.error(`[${context}]`, error instanceof Error ? error.message : error);
+  guvenliHata(`[${context}]`, error instanceof Error ? error.message : error);
   return fail('INTERNAL_ERROR', 'İşlem tamamlanamadı. Lütfen tekrar deneyin.');
 }
 
