@@ -5,13 +5,11 @@
  * yönlendiren, izinler). Başka hiçbir dosyada güvenlik başlığı yazılmaz;
  * `middleware.ts` yalnızca burayı okur ve uygular.
  *
- * BİLEREK EKSİK — F0 kapsamı dışı, T-004 görev kartında yazılı:
- *   - `Content-Security-Policy` (§8.13, nonce tabanlı) → F6 / T-060.
- *     React Bits (§5) henüz kurulmadı; bileşenlerin inline script/style üretip
- *     üretmediği bilinmeden yazılacak bir CSP ya F2'de çöker ya da `unsafe-inline`
- *     tavizi verdirir. STATUS.md R1 bunu izliyor.
- *   - Oturum/yetki kontrolü (§8.5–8.6) → F1 / T-014. Auth.js henüz yok;
- *     buradaki koruma şu an YALNIZCA yol tabanlıdır ve kimlik doğrulamaz.
+ * §8.13 — nonce tabanlı CSP T-060'ta geldi (`buildContentSecurityPolicy`).
+ * F0'da bilerek ertelenmişti: React Bits (§5) kurulmadan yazılacak bir CSP
+ * ya F2'de çökerdi ya da `unsafe-inline` tavizi verdirirdi (STATUS.md R1).
+ * T-060'ta envanter çıkarıldı: uygulama kodunda satır içi `<script>` YOK,
+ * `dangerouslySetInnerHTML` §2 gereği yasak, fontlar yerel, dış köken yok.
  *
  * Bu modül saf (pure) tutulur: `next/server` dahil hiçbir çalışma zamanına
  * bağımlı değildir, bu yüzden DB'siz ve `.env`'siz test edilebilir.
@@ -153,4 +151,97 @@ export function isHttpsRequest(forwardedProto: string | null, urlProtocol: strin
   }
 
   return urlProtocol === 'https:';
+}
+
+/* ===========================================================================
+ * §8.13 — CONTENT-SECURITY-POLICY (T-060)
+ * ======================================================================== */
+
+/**
+ * İstek başına nonce — 128 bit rastgelelik, base64.
+ *
+ * `crypto.getRandomValues` Edge ve Node'da ortak; `node:crypto` ara katmanda
+ * (Edge) yok. Nonce TAHMİN EDİLEMEZ olmalı ve HER YANITTA farklı olmalı —
+ * sabit ya da yeniden kullanılan bir nonce, `unsafe-inline`dan farksızdır.
+ */
+export function generateNonce(): string {
+  const bytes = new Uint8Array(16);
+  crypto.getRandomValues(bytes);
+  let ikili = '';
+  for (const b of bytes) ikili += String.fromCharCode(b);
+  return btoa(ikili);
+}
+
+export interface CspContext {
+  nonce: string;
+  isProduction: boolean;
+  isHttps: boolean;
+}
+
+/**
+ * CSP başlık değeri — SAF.
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * KARARLAR
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * `script-src 'nonce-…' 'strict-dynamic'` — `unsafe-inline` YOK (§8.13'ün
+ *   asıl şartı). Next.js, istek başlığındaki CSP'den nonce'u okuyup kendi
+ *   betiklerine basıyor; `strict-dynamic` o betiklerin yüklediği parçaları
+ *   (chunk) zincirleme güvenilir sayıyor. `'self'` yalnızca `strict-dynamic`i
+ *   tanımayan eski tarayıcılar için geri dönüş — destekleyenler onu yok sayar.
+ *
+ * `style-src 'unsafe-inline'` — BİLİNÇLİ TAVİZ, ve §8.13 ile ÇELİŞMİYOR:
+ *   madde yalnızca SCRIPT için yasaklıyor. React'in `style={{…}}` öznitelikleri
+ *   (grafik geometrisi, alışkanlık rengi, iskelet yüksekliği) nonce ALAMAZ —
+ *   CSP öznitelik stillerine nonce uygulamıyor. Stil enjeksiyonu betik
+ *   çalıştıramaz; kalan risk (CSS ile veri sızdırma) `connect-src`/`img-src`
+ *   'self' olduğu için dışarı çıkış yolu bulamıyor.
+ *
+ * `img-src 'self' data: blob:` — `next/image` ve iskeletler. R2 imzalı
+ *   adresleri bugün HİÇBİR ekran çizmiyor (T-037f bekliyor); o arayüz
+ *   geldiğinde R2 kökeni BURAYA ve `connect-src`e (doğrudan PUT) eklenmeli.
+ *   Kullanılmayan bir izni şimdiden açmak, gereksiz açık bir kapı olurdu.
+ *
+ * `frame-ancestors 'none'` — `X-Frame-Options: DENY`in CSP karşılığı; ikisi
+ *   birlikte, çünkü eski tarayıcı yalnızca birini tanıyor.
+ *
+ * GELİŞTİRME: React'in geliştirme yapısı `eval` kullanıyor ve HMR `ws:`
+ *   üzerinden bağlanıyor. İkisi YALNIZCA `isProduction === false` iken; üretim
+ *   politikasında bulunmaları testle kilitli.
+ */
+export function buildContentSecurityPolicy(context: CspContext): string {
+  const { nonce, isProduction, isHttps } = context;
+
+  const direktifler: Array<[string, string[]]> = [
+    ['default-src', ["'self'"]],
+    [
+      'script-src',
+      [
+        "'self'",
+        `'nonce-${nonce}'`,
+        "'strict-dynamic'",
+        ...(isProduction ? [] : ["'unsafe-eval'"]),
+      ],
+    ],
+    ['style-src', ["'self'", "'unsafe-inline'"]],
+    ['img-src', ["'self'", 'data:', 'blob:']],
+    ['font-src', ["'self'"]],
+    ['connect-src', ["'self'", ...(isProduction ? [] : ['ws:'])]],
+    ['worker-src', ["'self'", 'blob:']],
+    ['object-src', ["'none'"]],
+    ['base-uri', ["'self'"]],
+    ['form-action', ["'self'"]],
+    ['frame-ancestors', ["'none'"]],
+  ];
+
+  const satirlar = direktifler.map(([ad, degerler]) => `${ad} ${degerler.join(' ')}`);
+
+  /*
+   * Yalnızca üretim + HTTPS: yerelde `http://localhost`ta alt kaynakları
+   * HTTPS'e yükseltmek geliştirme sunucusunu kırar (HSTS ile aynı gerekçe).
+   */
+  if (isProduction && isHttps) satirlar.push('upgrade-insecure-requests');
+
+  return satirlar.join('; ');
 }

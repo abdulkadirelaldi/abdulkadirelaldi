@@ -4,7 +4,9 @@ import {
   BASELINE_SECURITY_HEADERS,
   HSTS_VALUE,
   PANEL_ROBOTS_HEADER,
+  buildContentSecurityPolicy,
   buildSecurityHeaders,
+  generateNonce,
   isHttpsRequest,
   isPanelPath,
 } from '@/lib/security/headers';
@@ -155,5 +157,80 @@ describe('isHttpsRequest', () => {
   it('başlık yoksa isteğin kendi şemasına düşer', () => {
     expect(isHttpsRequest(null, 'https:')).toBe(true);
     expect(isHttpsRequest(null, 'http:')).toBe(false);
+  });
+});
+
+/* ===========================================================================
+ * §8.13 — CSP (T-060)
+ * ======================================================================== */
+
+/** Politikayı `{ direktif: [değerler] }` sözlüğüne ayırır. */
+function ayristir(csp: string): Record<string, string[]> {
+  return Object.fromEntries(
+    csp.split(';').map((parca) => {
+      const [ad = '', ...degerler] = parca.trim().split(/\s+/);
+      return [ad, degerler];
+    }),
+  );
+}
+
+describe('§8.13 — buildContentSecurityPolicy', () => {
+  const URETIM = { nonce: 'QUJDREVGR0hJSktMTU5PUA==', isProduction: true, isHttps: true };
+  const GELISTIRME = { ...URETIM, isProduction: false, isHttps: false };
+
+  it('⚠️ script-src `unsafe-inline` TAŞIMIYOR — maddenin asıl şartı', () => {
+    for (const ctx of [URETIM, GELISTIRME]) {
+      expect(ayristir(buildContentSecurityPolicy(ctx))['script-src']).not.toContain(
+        "'unsafe-inline'",
+      );
+    }
+  });
+
+  it('script-src nonce + strict-dynamic taşıyor', () => {
+    const script = ayristir(buildContentSecurityPolicy(URETIM))['script-src'];
+    expect(script).toContain(`'nonce-${URETIM.nonce}'`);
+    expect(script).toContain("'strict-dynamic'");
+  });
+
+  it('⚠️ ÜRETİMDE `unsafe-eval` ve `ws:` YOK — yalnızca geliştirmede', () => {
+    const uretim = ayristir(buildContentSecurityPolicy(URETIM));
+    expect(uretim['script-src']).not.toContain("'unsafe-eval'");
+    expect(uretim['connect-src']).not.toContain('ws:');
+
+    const gelistirme = ayristir(buildContentSecurityPolicy(GELISTIRME));
+    expect(gelistirme['script-src']).toContain("'unsafe-eval'");
+    expect(gelistirme['connect-src']).toContain('ws:');
+  });
+
+  it('çerçeveleme, eklenti, base ve form kapalı/kendinden', () => {
+    const p = ayristir(buildContentSecurityPolicy(URETIM));
+    expect(p['frame-ancestors']).toEqual(["'none'"]);
+    expect(p['object-src']).toEqual(["'none'"]);
+    expect(p['base-uri']).toEqual(["'self'"]);
+    expect(p['form-action']).toEqual(["'self'"]);
+    expect(p['default-src']).toEqual(["'self'"]);
+  });
+
+  it('dış köken YOK — connect/img/font yalnızca kendinden (R2 arayüzü gelince açılacak)', () => {
+    const p = ayristir(buildContentSecurityPolicy(URETIM));
+    for (const ad of ['connect-src', 'img-src', 'font-src']) {
+      for (const deger of p[ad] ?? []) expect(deger, `${ad}: ${deger}`).not.toMatch(/^https?:/);
+    }
+  });
+
+  it('`upgrade-insecure-requests` yalnızca üretim + HTTPS', () => {
+    expect(buildContentSecurityPolicy(URETIM)).toContain('upgrade-insecure-requests');
+    expect(buildContentSecurityPolicy({ ...URETIM, isHttps: false })).not.toContain(
+      'upgrade-insecure-requests',
+    );
+    expect(buildContentSecurityPolicy(GELISTIRME)).not.toContain('upgrade-insecure-requests');
+  });
+});
+
+describe('§8.13 — generateNonce', () => {
+  it('128 bit base64 ve HER ÇAĞRIDA farklı', () => {
+    const nonceler = new Set(Array.from({ length: 200 }, () => generateNonce()));
+    expect(nonceler.size).toBe(200);
+    for (const n of nonceler) expect(n).toMatch(/^[A-Za-z0-9+/]{22}==$/);
   });
 });

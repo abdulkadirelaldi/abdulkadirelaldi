@@ -1,6 +1,12 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
-import { buildSecurityHeaders, isHttpsRequest, isPanelPath } from '@/lib/security/headers';
+import {
+  buildContentSecurityPolicy,
+  buildSecurityHeaders,
+  generateNonce,
+  isHttpsRequest,
+  isPanelPath,
+} from '@/lib/security/headers';
 import { readSession } from '@/lib/security/session';
 import { requiresTwoFactorSetup, TWO_FACTOR_SETUP_PATH } from '@/lib/security/two-factor';
 
@@ -29,7 +35,10 @@ import { requiresTwoFactorSetup, TWO_FACTOR_SETUP_PATH } from '@/lib/security/tw
  * │ HTTP ucudur; bu dosya onları hiç görmez.                              │
  * └───────────────────────────────────────────────────────────────────────┘
  *
- * BİLEREK EKSİK: nonce tabanlı CSP (§8.13) → F6/T-060.
+ * §8.13 — nonce tabanlı CSP (T-060). Nonce İSTEK BAŞINA üretilir ve İKİ yere
+ * yazılır: İSTEK başlığına (Next.js oradaki CSP'den nonce'u okuyup kendi
+ * betiklerine basıyor; sayfalar ADR-011 gereği zaten dinamik, nonce bunu
+ * şart koşuyor) ve YANIT başlığına (tarayıcının uyguladığı politika).
  */
 
 /** Oturumsuz kullanıcının gönderileceği sayfa — `auth.ts` `pages.signIn` ile aynı. */
@@ -70,11 +79,27 @@ export function safeCallbackPath(pathname: string, search: string): string | nul
 export async function middleware(request: NextRequest): Promise<NextResponse> {
   const { pathname, search } = request.nextUrl;
 
-  const headers = buildSecurityHeaders({
-    pathname,
-    isProduction: process.env.NODE_ENV === 'production',
-    isHttps: isHttpsRequest(request.headers.get('x-forwarded-proto'), request.nextUrl.protocol),
-  });
+  const isProduction = process.env.NODE_ENV === 'production';
+  const isHttps = isHttpsRequest(
+    request.headers.get('x-forwarded-proto'),
+    request.nextUrl.protocol,
+  );
+  const nonce = generateNonce();
+  const csp = buildContentSecurityPolicy({ nonce, isProduction, isHttps });
+
+  const headers = buildSecurityHeaders({ pathname, isProduction, isHttps });
+  headers['Content-Security-Policy'] = csp;
+
+  /*
+   * İSTEK başlıkları — Next.js nonce'u `Content-Security-Policy` İSTEK
+   * başlığından okuyor; `x-nonce` ise bir Sunucu Bileşeni kendi satır içi
+   * betiğini yazmak zorunda kalırsa diye (bugün yok). İstemcinin gönderdiği
+   * aynı adlı başlıklar EZİLİYOR — uydurulmuş bir nonce'a güvenilmez.
+   */
+  const istekBasliklari = new Headers(request.headers);
+  istekBasliklari.set('x-nonce', nonce);
+  istekBasliklari.set('Content-Security-Policy', csp);
+  const devam = (): NextResponse => NextResponse.next({ request: { headers: istekBasliklari } });
 
   const withHeaders = (response: NextResponse): NextResponse => {
     for (const [name, value] of Object.entries(headers)) {
@@ -84,7 +109,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
   };
 
   if (!isProtectedPath(pathname)) {
-    return withHeaders(NextResponse.next());
+    return withHeaders(devam());
   }
 
   const session = await readSession(request, {
@@ -134,7 +159,7 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
       return withHeaders(NextResponse.redirect(setupUrl));
     }
 
-    return withHeaders(NextResponse.next());
+    return withHeaders(devam());
   }
 
   /**

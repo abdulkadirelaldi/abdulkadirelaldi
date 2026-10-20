@@ -13,6 +13,23 @@ import * as z from 'zod';
  * (§7.2 "kullanıcıya düzeltici mesaj döner").
  */
 
+/**
+ * §8.13 — ZOD JIT KAPALI (T-060).
+ *
+ * Zod 4, nesne şemalarını hızlandırmak için açılışta `new Function("")` ile
+ * `eval` desteğini YOKLUYOR. Nonce tabanlı CSP `unsafe-eval` vermediği için
+ * tarayıcı yoklamayı engelliyor; Zod yakalayıp yavaş yola düşüyor — yani form
+ * ÇALIŞIYOR, ama her sayfa açılışında bir `script-src ← eval` İHLAL RAPORU
+ * üretiliyordu. T-060'ın E2E paketi bunu üç form sayfasında ölçtü (`/iletisim`,
+ * `/giris`, MDX editörü). Zod'un kendi kaynağı çözümü yazıyor: `jitless`
+ * yoklamayı hiç yapmıyor.
+ *
+ * Neden burada: her şema bu modülden geçiyor, yani yapılandırma şemalardan
+ * ÖNCE çalışıyor. Sunucuda da kapalı — iki tarafın aynı yoldan doğrulaması,
+ * hızdan (tek kullanıcılı panelde ölçülemeyecek kadar küçük) daha değerli.
+ */
+z.config({ jitless: true });
+
 /* ===========================================================================
  * KİMLİK & YEREL
  * ======================================================================== */
