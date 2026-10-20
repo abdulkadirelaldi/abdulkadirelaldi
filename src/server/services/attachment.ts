@@ -474,3 +474,47 @@ export async function uploadRateGate(
   );
   return null;
 }
+
+/**
+ * Eklentinin SAHİBİ olan public içeriğin önbellek hedefleri — T-037f.
+ *
+ * ⚠️ `cached.ts` bunu T-045'ten beri UYARIYORDU: proje detay girdisi galeriyi
+ * de kapsıyor ve eklenti mutasyonu sahibinin `slugTag`ini düşürmek ZORUNDA.
+ * Düşürülmeseydi galeriye eklenen görsel public sayfada önbellek süresince
+ * GÖRÜNMEZ, silinen görsel KIRIK bir kare olarak kalırdı (dosya ucu 404).
+ *
+ * Makbuz/iş/müşteri eklentilerinin public önbelleği yok → `null`.
+ */
+export async function attachmentOwnerCacheTargets(
+  entity: AttachmentEntity,
+  entityId: string,
+): Promise<{
+  contentEntity: 'project' | 'post' | 'profile';
+  locales: string[];
+  slugs: { locale: string; slug: string }[];
+} | null> {
+  switch (entity) {
+    case 'PROJECT': {
+      const p = await db.project.findUnique({
+        where: { id: entityId },
+        select: { slug: true, locale: true },
+      });
+      return p ? { contentEntity: 'project', locales: [p.locale], slugs: [p] } : null;
+    }
+    case 'POST': {
+      const p = await db.post.findUnique({
+        where: { id: entityId },
+        select: { slug: true, locale: true },
+      });
+      return p ? { contentEntity: 'post', locales: [p.locale], slugs: [p] } : null;
+    }
+    case 'PROFILE': {
+      const p = await db.profile.findUnique({ where: { id: entityId }, select: { locale: true } });
+      return p ? { contentEntity: 'profile', locales: [p.locale], slugs: [] } : null;
+    }
+    case 'TRANSACTION':
+    case 'JOB':
+    case 'CLIENT':
+      return null;
+  }
+}

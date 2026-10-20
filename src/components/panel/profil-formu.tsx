@@ -1,17 +1,21 @@
 'use client';
 
-import { FileText, ImageOff } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import type * as z from 'zod';
 
 import { Alan, BOS_ISE_YOK } from '@/components/panel/alan';
+import { DosyaYukleyici } from '@/components/panel/dosya-yukleyici';
 import { FormKabugu, usePanelForm } from '@/components/panel/panel-form';
+import { KapakGorsel } from '@/components/public/kapak-gorsel';
 import { buttonClasses } from '@/components/ui/button';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Input, Textarea } from '@/components/ui/input';
+import { dosyaAdresi } from '@/lib/dosya-adresi';
 import { updateProfileSchema } from '@/lib/schemas/profile';
 import { saveProfileAction } from '@/server/actions/profile';
+import type { AttachmentDto } from '@/server/services/attachment';
 import type { ProfileDto } from '@/server/services/content-dto';
 
 /**
@@ -233,68 +237,111 @@ export function ProfilFormu({ profil }: { profil: ProfileDto }) {
         </CardContent>
       </Card>
 
-      <DosyaDurumu profil={profil} />
+      <DosyaDurumu
+        profil={profil}
+        onAvatar={(dosya) => form.setValue('avatarAttachmentId', dosya.id, { shouldDirty: true })}
+        onCv={(dosya) => form.setValue('cvAttachmentId', dosya.id, { shouldDirty: true })}
+      />
     </div>
   );
 }
 
 /**
- * AVATAR VE CV — DURUM BİLDİRİMİ, YÜKLEME DEĞİL.
+ * AVATAR VE CV — YÜKLEME (T-037f, ADR-044).
  *
- * ═══════════════════════════════════════════════════════════════════════════
- * NE "YÜKLE" DÜĞMESİ NE DE "YAKINDA" SÖZÜ
- * ═══════════════════════════════════════════════════════════════════════════
+ * T-036b'de burası bilinçli olarak yalnızca DURUM bildiriyordu: R2 bağlı
+ * değildi ve ne ölü bir "Yükle" düğmesi ne tarihsiz bir "yakında" sözü
+ * istendi. Yükleme artık gerçek; ilke aynı kaldı — ekran yalnızca DOĞRU olanı
+ * söylüyor.
  *
- * R2 anahtarları yok (T-037), yani yükleme bugün YAPILAMAZ. İki kolay ve iki
- * yanlış seçenek vardı:
- *
- *   - Tıklayınca hiçbir şey olmayan "Yükle" düğmesi → T-018'in yasakladığı şey.
- *   - "Yakında" rozeti → tarihini bilmediğim bir söz; T-034'te panelde "410
- *     dönüyor" yazıp sonra ölçüp geri almak zorunda kaldığım hatanın aynısı.
- *
- * Seçtiğim üçüncü yol: KAYDIN BUGÜNKÜ HÂLİNİ ve ZİYARETÇİNİN NE GÖRDÜĞÜNÜ
- * söylemek. İkisi de doğrulanabilir olgu, söz değil. CV için `/cv` sayfasına
- * bağlantı veriyorum çünkü o sayfa GERÇEKTEN çalışıyor ve dosyaya bağlı değil
- * — yazar tıklayıp ziyaretçinin gördüğünü kendi gözüyle görebilir.
- *
- * Form bu alanları yine de GİZLİ olarak taşıyor: mevcut bir eklenti kimliğini
- * düşürmeden kaydedebilmek için.
+ * Yüklemek BAĞLAMAK değil: dosya profilin havuzuna girer, avatar/CV olması
+ * formun KAYDIYLA olur (`onAvatar`/`onCv` formun gizli alanlarını dolduruyor).
+ * Böylece değişiklik formun geri kalanıyla tek kayıtta ve tek denetim satırında.
  */
-function DosyaDurumu({ profil }: { profil: ProfileDto }) {
+function DosyaDurumu({
+  profil,
+  onAvatar,
+  onCv,
+}: {
+  profil: ProfileDto;
+  onAvatar: (dosya: AttachmentDto) => void;
+  onCv: (dosya: AttachmentDto) => void;
+}) {
+  const [avatar, setAvatar] = useState(profil.avatar);
+  const [cv, setCv] = useState(profil.cv);
+  const bekleyen = avatar?.id !== profil.avatar?.id || cv?.id !== profil.cv?.id;
+
   return (
     <Card>
-      <CardContent className="flex flex-col gap-4">
+      <CardContent className="flex flex-col gap-5">
         <CardTitle seviye="h2">Dosyalar</CardTitle>
 
-        <div className="border-line bg-elevated/40 rounded-card flex items-start gap-3 border border-dashed p-4">
-          <ImageOff className="text-muted mt-0.5 size-5 shrink-0" aria-hidden="true" />
-          <div className="flex flex-col gap-1">
-            <p className="text-primary text-sm font-medium">Avatar</p>
-            <p className="text-muted text-sm">
-              {profil.avatar
-                ? `Bağlı bir görsel var (${profil.avatar.mime}). Kaydetmek onu düşürmez — kimliği gizli alanda taşınıyor.`
-                : 'Bağlı bir görsel yok. Ana sayfa ve /hakkimda bugün token’lı yer tutucu çiziyor; düzen bir görsel bağlandığında da değişmeyecek.'}
-            </p>
-          </div>
-        </div>
-
-        <div className="border-line bg-elevated/40 rounded-card flex flex-col gap-3 border border-dashed p-4">
-          <div className="flex items-start gap-3">
-            <FileText className="text-muted mt-0.5 size-5 shrink-0" aria-hidden="true" />
-            <div className="flex flex-col gap-1">
-              <p className="text-primary text-sm font-medium">Özgeçmiş (PDF)</p>
-              <p className="text-muted text-sm">
-                {profil.cv
-                  ? `Bağlı bir dosya var (${profil.cv.mime}). İmzalı indirme adresi henüz üretilmiyor, bu yüzden /hakkimda’daki indirme kutusu tıklanamaz duruyor.`
-                  : 'Bağlı bir PDF yok. /hakkimda sayfasındaki indirme kutusu bu yüzden ziyaretçiyi yazdırılabilir CV sayfasına yönlendiriyor.'}
-              </p>
+        <section aria-labelledby="avatar-baslik" className="flex flex-col gap-3">
+          <h3 id="avatar-baslik" className="text-primary text-sm font-medium">
+            Avatar
+          </h3>
+          {avatar ? (
+            <div className="w-32">
+              <KapakGorsel kapak={avatar} baslik="Avatar" className="rounded-full" />
             </div>
-          </div>
+          ) : (
+            <p className="text-muted text-sm">Bağlı bir görsel yok.</p>
+          )}
+          <DosyaYukleyici
+            entity="PROFILE"
+            entityId={profil.id}
+            tur="gorsel"
+            etiket={avatar ? 'Avatarı değiştir' : 'Avatar yükle'}
+            onYuklendi={(dosya) => {
+              setAvatar({
+                id: dosya.id,
+                key: dosya.key,
+                mime: dosya.mime,
+                width: dosya.width,
+                height: dosya.height,
+              });
+              onAvatar(dosya);
+            }}
+          />
+        </section>
 
-          {/*
-            GERÇEKTEN ÇALIŞAN tek eylem: yazarın ziyaretçinin gördüğünü görmesi.
-            Yükleme yerine konan bir "sanki" değil — var olan bir sayfa.
-          */}
+        <section aria-labelledby="cv-baslik" className="flex flex-col gap-3">
+          <h3 id="cv-baslik" className="text-primary text-sm font-medium">
+            Özgeçmiş (PDF)
+          </h3>
+          <p className="text-muted text-sm">
+            {cv ? (
+              <>
+                Bağlı bir PDF var.{' '}
+                <a
+                  href={dosyaAdresi(cv.id)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="link focus-ring rounded"
+                >
+                  Dosyayı aç
+                </a>
+              </>
+            ) : (
+              'Bağlı bir PDF yok — /hakkimda ziyaretçiyi yazdırılabilir CV sayfasına yönlendiriyor.'
+            )}
+          </p>
+          <DosyaYukleyici
+            entity="PROFILE"
+            entityId={profil.id}
+            tur="pdf"
+            etiket={cv ? 'CV’yi değiştir' : 'CV yükle'}
+            onYuklendi={(dosya) => {
+              setCv({
+                id: dosya.id,
+                key: dosya.key,
+                mime: dosya.mime,
+                width: dosya.width,
+                height: dosya.height,
+              });
+              onCv(dosya);
+            }}
+          />
           <Link
             href="/cv"
             target="_blank"
@@ -303,12 +350,14 @@ function DosyaDurumu({ profil }: { profil: ProfileDto }) {
           >
             Yazdırılabilir CV sayfasını aç
           </Link>
-        </div>
+        </section>
 
-        <p className="text-muted text-xs">
-          Dosya yükleme panelden henüz yapılamıyor: nesne deposu bağlanmadı. Bugün yapılabilen,
-          bağlı bir dosya varsa onu korumak — yukarıdaki metinler kaydın gerçek hâlini gösteriyor.
-        </p>
+        {bekleyen && (
+          <p role="status" className="text-warning text-sm">
+            Yeni dosya yüklendi — profil formunu <span className="font-medium">kaydedince</span>{' '}
+            geçerli olur.
+          </p>
+        )}
       </CardContent>
     </Card>
   );

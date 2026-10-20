@@ -156,10 +156,10 @@ export const getFeaturedProjects = cachedRead(
  * (eski+yeni), dil değişimi (eski+yeni), durum değişikliği, arşivleme. Yani
  * düşürülmesi gereken detay girdisi daima bir `slugTag` ile yakalanıyor.
  *
- * ⚠️ T-037'YE NOT: bu girdi `fetchProjectGallery`yi de kapsıyor. Eklenti
- * mutasyonu geldiğinde, sahibi olan kaydın `slugTag`ini DÜŞÜRMEK ZORUNDA —
- * eskiden `localeTag` onu tesadüfen kapsıyordu, artık kapsamıyor. Bugün eklenti
- * yazma eylemi YOK, yani gerileme değil; gelecek turun bilmesi gereken bir şart.
+ * ⚠️ Bu girdi `fetchProjectGallery`yi de kapsıyor: eklenti mutasyonu sahibi
+ * olan kaydın `slugTag`ini DÜŞÜRMEK ZORUNDA. T-037f'te karşılandı — yükleme
+ * ucu ve `deleteAttachmentAction` `attachmentOwnerCacheTargets` ile sahibin
+ * etiketlerini düşürüyor (bu not olmasa galeri bayat kalacaktı).
  */
 export const getProjectBySlug = cachedRead(
   (slug: string, locale: string = DEFAULT_LOCALE) => fetchProjectBySlug(slug, { locale }),

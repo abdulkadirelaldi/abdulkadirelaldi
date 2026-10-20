@@ -2,7 +2,9 @@ import { NextResponse } from 'next/server';
 
 import { MAX_UPLOAD_BYTES, uploadFormSchema } from '@/lib/schemas/attachment';
 import { currentActorId } from '@/server/actions/_shared';
+import { revalidateContent } from '@/server/actions/tags';
 import {
+  attachmentOwnerCacheTargets,
   attachmentTargetExists,
   storeAttachment,
   uploadRateGate,
@@ -160,6 +162,14 @@ export async function POST(request: Request): Promise<NextResponse<ApiResponse<A
       },
       db,
     );
+
+    /*
+     * ADR-029 — sahibin public önbelleği DÜŞÜRÜLÜYOR (galeri detay girdisinde).
+     * Mutasyondan SONRA: önce düşürülseydi araya giren bir okuma eski hâli
+     * yeniden önbelleğe yazabilirdi.
+     */
+    const hedef = await attachmentOwnerCacheTargets(entity, entityId);
+    if (hedef) revalidateContent(hedef.contentEntity, hedef);
 
     return json(ok(attachment), 201);
   } catch (error) {

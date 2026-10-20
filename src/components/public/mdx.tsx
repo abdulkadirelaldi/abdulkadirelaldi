@@ -214,8 +214,9 @@ const BILESENLER = {
     kullanılamıyor — o kalıp `AttachmentRefDto`'nun width/height'ine dayanıyor.
     `next/image` de uzak alan adı yapılandırması ister (`next.config.ts` ortak
     dosya, §10.1). Bugün seed'de MDX görseli YOK; geldiğinde ölçü bilgisi
-    olmadığı için CLS riski taşır — T-037'de imzalı URL ve boyut birlikte
-    geldiğinde burası da o kalıba bağlanmalı.
+    olmadığı için CLS riski taşır. T-037f eklentileri bağladı ama MDX
+    gövdesindeki görsel bir eklenti DEĞİL (serbest `src`) — ölçüsü yok;
+    bağlanması ayrı bir karar (boyut MDX'te nasıl taşınacak).
   */
   img: ({ className, alt, ...props }: ComponentProps<'img'>) => (
     // eslint-disable-next-line @next/next/no-img-element -- gerekçe yukarıda

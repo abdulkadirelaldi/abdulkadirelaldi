@@ -1,5 +1,6 @@
 import { Briefcase, GraduationCap } from 'lucide-react';
 import type { Metadata } from 'next';
+import { dosyaAdresi } from '@/lib/dosya-adresi';
 import Link from 'next/link';
 
 import { CvIndir } from '@/components/public/cv-indir';
@@ -115,12 +116,8 @@ export default async function HakkimdaSayfasi() {
           Özgeçmiş
         </h2>
 
-        {/*
-          `indirmeUrl` BİLEREK verilmiyor: `AttachmentRefDto` imzalı URL taşımıyor
-          (ADR-018) ve üretimi T-037'de gelecek. O gün buraya tek bir prop
-          eklenecek; bileşenin üç durumu zaten hazır.
-        */}
-        <CvIndir cv={profil.cv} />
+        {/* Kalıcı, aynı kökenli adres (ADR-044) — T-037'nin öngördüğü "tek prop". */}
+        <CvIndir cv={profil.cv} indirmeUrl={profil.cv ? dosyaAdresi(profil.cv.id) : null} />
       </section>
     </div>
   );

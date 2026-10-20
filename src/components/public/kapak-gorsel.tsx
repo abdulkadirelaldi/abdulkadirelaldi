@@ -1,6 +1,7 @@
 import { ImageIcon } from 'lucide-react';
 
 import type { AttachmentRefDto } from '@/server/services/content-dto';
+import { dosyaAdresi } from '@/lib/dosya-adresi';
 import { cn } from '@/lib/utils/cn';
 
 /** Kapak görseli yokken kullanılan en-boy oranı (§5.1 proje ızgarası). */
@@ -11,9 +12,8 @@ export type KapakGorselProps = {
   /** Görselin neyi temsil ettiği — `alt` metni ve yer tutucu etiketi. */
   baslik: string;
   /**
-   * İmzalı URL. ADR-018 gereği `AttachmentRefDto` URL TAŞIMAZ; imzalı adres
-   * istek anında `key`den üretilir (T-037). O gelene kadar burası HEP boş ve
-   * yer tutucu çizilir.
+   * Adresi elle vermek için (nadir). Verilmezse `kapak` görselse adres KİMLİKTEN
+   * üretiliyor (`dosyaAdresi`, ADR-044) — çağıranların hiçbiri değişmedi.
    */
   src?: string;
   className?: string;
@@ -34,24 +34,30 @@ export type KapakGorselProps = {
  */
 export function KapakGorsel({ kapak, baslik, src, className }: KapakGorselProps) {
   const oran = kapak?.width && kapak.height ? kapak.width / kapak.height : VARSAYILAN_ORAN;
+  // PDF gibi görsel olmayan bir eklenti kapak olarak ÇİZİLMEZ — yer tutucu kalır.
+  const adres = src ?? (kapak?.mime.startsWith('image/') ? dosyaAdresi(kapak.id) : undefined);
 
   return (
     <div
       className={cn('bg-elevated relative w-full overflow-hidden', className)}
       style={{ aspectRatio: oran }}
     >
-      {src ? (
+      {adres ? (
         /*
-         * T-037 buraya `next/image` koyacak. `width`/`height` DTO'dan geldiği
-         * için `sizes` ile birlikte CLS üretmeden çalışır.
-         * eslint-disable gerekçesi: uzak alan adı yapılandırması `next.config.ts`
-         * içinde ve o dosya ortak (§10.1) — imzalı URL görevi geldiğinde birlikte
-         * çözülecek.
+         * DÜZ `<img>`, `next/image` DEĞİL — T-037f kararı. Görsel AYNI KÖKENDEN
+         * ve kalıcı adresle geliyor (`immutable` önbellek), `width`/`height`
+         * DTO'dan geliyor ve kutu `aspect-ratio` ile zaten ayrılmış — yani CLS
+         * yok. `next/image`in kazancı (yeniden boyutlandırma, AVIF) ölçülmedi;
+         * eklemek optimizasyon sunucusunu bu uca ikinci bir okuma yolu olarak
+         * bağlardı. Lighthouse bir gün görsel boyutunu işaret ederse yeniden
+         * değerlendirilir.
          */
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={src}
+          src={adres}
           alt={baslik}
+          loading="lazy"
+          decoding="async"
           width={kapak?.width ?? undefined}
           height={kapak?.height ?? undefined}
           className="h-full w-full object-cover"

@@ -187,15 +187,11 @@ const BILDIRIM: UlasilmazBildirim[] = [
    * ⚠️ T-111'İN ALTI OKUMASI (`exercise`, `workout`, `personal-record`)
    * T-114'TE SİLİNDİ — `/panel/spor` ekranları bağladı.
    */
-  {
-    anahtar: 'attachment.ts → fetchAttachmentsForEntity',
-    sebep: 'bekleyen',
-    not:
-      'ADR-018 · galeri okuması (`entity`+`entityId`, `order`a göre sıralı). ' +
-      'T-037 sözleşmeyi yazdı; yükleme/galeri arayüzü T-037f`te geliyor — kart ' +
-      'açıkça "senin sözleşmen gelmeden yükleme arayüzü yazılamaz" dedi, yani ' +
-      'sıra bilinçli ve tüketici BİR SONRAKİ tur.',
-  },
+  /*
+   * ⚠️ `attachment.ts → fetchAttachmentsForEntity` SATIRI T-037f'TE SİLİNDİ —
+   * proje düzenleme sayfasının galeri yönetimi bağladı (notu "tüketici BİR
+   * SONRAKİ tur" diyordu ve tuttu).
+   */
   /*
    * ⚠️ `attachment.ts → signedUrlForKey` SATIRI T-037f'TE SİLİNDİ — ihraç
    * silindi (ADR-044: HTML'de imzalı adres yok; sunum aynı kökenden).

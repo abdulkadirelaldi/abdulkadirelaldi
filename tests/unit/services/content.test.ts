@@ -281,13 +281,23 @@ describe('fetchProjectBySlug — 404 / 410 ayrımı (ADR-019)', () => {
 });
 
 describe('fetchProjectGallery — polimorfik ilişki (ADR-018)', () => {
-  it('entity=PROJECT ve order asc ile sorgular', async () => {
+  it('entity=PROJECT, YALNIZCA GÖRSEL, order + createdAt ile sorgular', async () => {
     const findMany = vi.fn().mockResolvedValue([]);
     await fetchProjectGallery('p1', clientWith({ attachment: { findMany } }));
 
     const args = findMany.mock.calls[0]?.[0];
-    expect(args.where).toEqual({ entity: 'PROJECT', entityId: 'p1' });
-    expect(args.orderBy).toEqual([{ order: 'asc' }]);
+    expect(args.where).toEqual({
+      entity: 'PROJECT',
+      entityId: 'p1',
+      mime: { startsWith: 'image/' },
+    });
+    expect(args.orderBy).toEqual([{ order: 'asc' }, { createdAt: 'asc' }]);
+  });
+
+  it('⚠️ KAPAK galeriden HARİÇ — yoksa kapak bağlanınca iki kez görünürdü (T-037f)', async () => {
+    const findMany = vi.fn().mockResolvedValue([]);
+    await fetchProjectGallery('p1', clientWith({ attachment: { findMany } }), 'kapak_1');
+    expect(findMany.mock.calls[0]?.[0].where.NOT).toEqual({ id: 'kapak_1' });
   });
 
   it('galeri yoksa boş dizi', async () => {

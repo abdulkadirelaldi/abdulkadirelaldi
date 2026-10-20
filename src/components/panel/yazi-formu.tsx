@@ -1,6 +1,5 @@
 'use client';
 
-import { ImageOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type * as z from 'zod';
@@ -8,6 +7,7 @@ import type * as z from 'zod';
 import { ANI_ISOYA, Alan, BOS_ISE_YOK, isodanYerelAna } from '@/components/panel/alan';
 import { DURUM_ETIKET } from '@/components/panel/icerik-gorunumleri';
 import { MdxEditor } from '@/components/panel/mdx-editor';
+import { KapakSecici } from '@/components/panel/kapak-secici';
 import { FormKabugu, usePanelForm } from '@/components/panel/panel-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
@@ -31,7 +31,7 @@ import { ContentStatus } from '@/types';
  * kullanıcı değiştirmedikçe aynı değer geri yazılıyor. T-043f'te projelerde
  * kapatılan sessiz yayına alma kusurunun burada hiç doğmaması için.
  *
- * KAPAK yer tutucu, ölü düğme yok (T-037). `coverAttachmentId` gizli alanda
+ * KAPAK `KapakSecici` ile (T-037f, ADR-044). `coverAttachmentId` gizli alanda
  * taşınıyor ki kapağı olan bir kaydı kaydetmek kapağı düşürmesin — ve
  * `BOS_ISE_YOK` ile: boş dize `cuidSchema`ya takılıp gönderimi SESSİZCE
  * engelliyordu (T-043f'te ölçülen kusur, aynısı burada tekrarlanmasın).
@@ -222,18 +222,13 @@ export function YaziFormu({ yazi }: { yazi?: PostPanelDto }) {
             )}
           </Alan>
 
-          {/* KAPAK — yer tutucu, ölü düğme yok. */}
-          <div className="border-line bg-elevated/40 rounded-card flex items-start gap-3 border border-dashed p-4">
-            <ImageOff className="text-muted mt-0.5 size-5 shrink-0" aria-hidden="true" />
-            <div className="flex flex-col gap-1">
-              <p className="text-primary text-sm font-medium">Kapak görseli</p>
-              <p className="text-muted text-sm">
-                {yazi?.cover
-                  ? `Mevcut kapak korunuyor (${yazi.cover.mime}). Kaydetmek onu düşürmez — kimlik gizli alanda taşınıyor. Değiştirme T-037’de açılacak.`
-                  : 'Görsel yükleme henüz açık değil (T-037). Kapak bağlanana kadar public tarafta token’lı yer tutucu çiziliyor; düzen değişmeyecek.'}
-              </p>
-            </div>
-          </div>
+          <KapakSecici
+            entity="POST"
+            entityId={yazi?.id}
+            mevcut={yazi?.cover ?? null}
+            baslik={yazi?.title ?? 'Yeni kayıt'}
+            onSec={(dosya) => form.setValue('coverAttachmentId', dosya.id, { shouldDirty: true })}
+          />
         </FormKabugu>
 
         <Button

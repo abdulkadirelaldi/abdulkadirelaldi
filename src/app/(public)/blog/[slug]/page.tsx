@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 
 import { tamGun } from '@/components/public/gun-bicim';
 import { Icindekiler } from '@/components/public/icindekiler';
+import { KapakGorsel } from '@/components/public/kapak-gorsel';
 import { Mdx } from '@/components/public/mdx';
 import { Badge } from '@/components/ui/badge';
 import { buttonClasses } from '@/components/ui/button';
@@ -151,6 +152,16 @@ export default async function YaziSayfasi({ params }: SayfaProps) {
           )}
         </div>
       </header>
+
+      {/*
+        KAPAK — yalnızca VARSA (T-037f). Listede kapak yok (`yazi-karti.tsx`
+        gerekçesi); detayda okuyucu yazıya girmiş, görsel bağlam veriyor. Yoksa
+        yer tutucu ÇİZİLMİYOR: kapaksız bir yazıda boş 16/10'luk kutu bilgi
+        taşımaz.
+      */}
+      {yazi.cover && (
+        <KapakGorsel kapak={yazi.cover} baslik={yazi.title} className="rounded-card" />
+      )}
 
       {/*
         İÇİNDEKİLER İÇERİKTEN ÖNCE ve `<nav>`: klavyeyle gelen okuyucu, yazının

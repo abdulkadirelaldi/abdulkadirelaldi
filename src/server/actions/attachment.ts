@@ -2,7 +2,7 @@
 
 import { entityIdSchema } from '@/lib/schemas';
 import { db } from '@/server/db';
-import { fetchAttachmentById } from '@/server/services/attachment';
+import { attachmentOwnerCacheTargets, fetchAttachmentById } from '@/server/services/attachment';
 import { deleteObjectQuietly } from '@/server/storage/r2';
 import {
   notFound,
@@ -13,6 +13,7 @@ import {
 } from '@/server/services/_shared';
 
 import { currentActorId, toFailure, unauthorized } from './_shared';
+import { revalidateContent } from './tags';
 
 /**
  * EKLENTİ Server Action'ları — §8.11, ADR-018, ADR-044.
@@ -74,6 +75,10 @@ export async function deleteAttachmentAction(raw: unknown): Promise<ApiResponse<
       },
       db,
     );
+
+    // ADR-029 — silinen görsel public galeride kırık kare olarak kalmasın.
+    const hedef = await attachmentOwnerCacheTargets(mevcut.entity, mevcut.entityId);
+    if (hedef) revalidateContent(hedef.contentEntity, hedef);
 
     return ok({ id: mevcut.id });
   } catch (error) {

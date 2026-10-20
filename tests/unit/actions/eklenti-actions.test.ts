@@ -49,7 +49,10 @@ const { dbMock } = vi.hoisted(() => {
         delete: vi.fn().mockResolvedValue(satir),
         findMany: vi.fn().mockResolvedValue([satir]),
       },
-      project: { count: vi.fn().mockResolvedValue(1) },
+      project: {
+        count: vi.fn().mockResolvedValue(1),
+        findUnique: vi.fn().mockResolvedValue({ slug: 'deneme-proje', locale: 'tr' }),
+      },
       post: { count: vi.fn().mockResolvedValue(1) },
       profile: { count: vi.fn().mockResolvedValue(1) },
       transaction: { count: vi.fn().mockResolvedValue(1) },
@@ -64,6 +67,9 @@ const { dbMock } = vi.hoisted(() => {
 });
 
 vi.mock('@/server/db', () => ({ db: dbMock }));
+
+const { revalidateTagMock } = vi.hoisted(() => ({ revalidateTagMock: vi.fn() }));
+vi.mock('next/cache', () => ({ revalidateTag: revalidateTagMock }));
 
 const { deleteAttachmentAction } = await import('@/server/actions/attachment');
 
@@ -168,5 +174,13 @@ describe('deleteAttachmentAction', () => {
 
     expect(satir.action).toBe('DELETE');
     expect(JSON.stringify(yazilanDiff())).toContain('project/prj_1/rnd.png');
+  });
+});
+
+describe('⚠️ silme — sahibin public önbelleği düşürülüyor (ADR-029)', () => {
+  it('proje görseli silinince projenin SLUG etiketi düşüyor — galeride kırık kare kalmasın', async () => {
+    await deleteAttachmentAction({ id: 'att_1' });
+    const etiketler = revalidateTagMock.mock.calls.map((c) => c[0] as string);
+    expect(etiketler.some((e) => e.includes('deneme-proje'))).toBe(true);
   });
 });

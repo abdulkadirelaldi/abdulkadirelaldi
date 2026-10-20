@@ -8,12 +8,9 @@ export type CvIndirProps = {
   /** `ProfileDto.cv` — dosya YÜKLENMİŞSE dolu, URL taşımaz (ADR-018). */
   cv: AttachmentRefDto | null;
   /**
-   * İmzalı indirme adresi — T-037 gelince doldurulacak TEK yer.
-   *
-   * Bugün hiçbir çağıran bunu vermiyor; `AttachmentRefDto` yalnızca R2 nesne
-   * anahtarını taşıyor ve imzalı URL üretimi Backend'de henüz yok. Prop olarak
-   * durması bilinçli: T-037 tamamlandığında `/hakkimda` sayfasında tek satır
-   * değişecek, bu bileşen ve dallarının hiçbiri yeniden yazılmayacak.
+   * İndirme adresi — `/hakkimda` `dosyaAdresi(cv.id)` veriyor (ADR-044, T-037f).
+   * Prop olarak durması T-037'nin öngörüsüydü ve tuttu: bağlamak tek satır
+   * oldu, bu bileşenin dallarının hiçbiri yeniden yazılmadı.
    */
   indirmeUrl?: string | null;
 };

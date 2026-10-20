@@ -12,7 +12,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
  *      olduğunu da söylemiyor); proje görseli herkese açık ve kalıcı önbellekli.
  */
 
-const { authMock, writesRevokedMock, r2Mock, dbMock } = vi.hoisted(() => {
+const { authMock, writesRevokedMock, r2Mock, dbMock, revalidateTagMock } = vi.hoisted(() => {
   const satir = {
     id: 'ckattachment0000000000001',
     key: 'project/ckproject000000000000001/rnd.png',
@@ -26,6 +26,7 @@ const { authMock, writesRevokedMock, r2Mock, dbMock } = vi.hoisted(() => {
     createdAt: new Date('2026-10-14T12:00:00.000Z'),
   };
   return {
+    revalidateTagMock: vi.fn(),
     authMock: vi.fn(),
     writesRevokedMock: vi.fn(),
     r2Mock: {
@@ -38,7 +39,7 @@ const { authMock, writesRevokedMock, r2Mock, dbMock } = vi.hoisted(() => {
         create: vi.fn().mockResolvedValue(satir),
         findUnique: vi.fn(),
       },
-      project: { count: vi.fn() },
+      project: { count: vi.fn(), findUnique: vi.fn() },
       post: { count: vi.fn().mockResolvedValue(1) },
       profile: { count: vi.fn().mockResolvedValue(1) },
       transaction: { count: vi.fn().mockResolvedValue(1) },
@@ -53,6 +54,7 @@ vi.mock('@/server/auth', () => ({ auth: authMock }));
 vi.mock('@/server/auth/write-gate', () => ({ writesRevoked: writesRevokedMock }));
 vi.mock('@/server/storage/r2', () => r2Mock);
 vi.mock('@/server/db', () => ({ db: dbMock }));
+vi.mock('next/cache', () => ({ revalidateTag: revalidateTagMock }));
 
 const { POST } = await import('@/app/api/v1/panel/eklenti/route');
 const { GET } = await import('@/app/api/v1/dosya/[id]/route');
@@ -93,6 +95,7 @@ beforeEach(() => {
   r2Mock.deleteObjectQuietly.mockResolvedValue(true);
   r2Mock.getObjectBytes.mockResolvedValue(Buffer.from(png()));
   dbMock.project.count.mockResolvedValue(1);
+  dbMock.project.findUnique.mockResolvedValue({ slug: 'deneme-proje', locale: 'tr' });
   dbMock.auditLog.count.mockResolvedValue(0);
   dbMock.auditLog.create.mockResolvedValue(undefined);
   dbMock.attachment.create.mockImplementation(async (args: { data: Record<string, unknown> }) => ({
@@ -217,6 +220,23 @@ describe('⚠️ yükleme — yetim nesne', () => {
     expect(diff.key).toMatch(/^project\//);
     expect(diff.targetEntity).toBe('PROJECT');
     expect(JSON.stringify(diff)).not.toMatch(/[a-f0-9]{64}/);
+  });
+});
+
+/* ===========================================================================
+ * YÜKLEME — sahibin public önbelleği (ADR-029, `cached.ts` uyarısı)
+ * ======================================================================== */
+
+describe('⚠️ yükleme — sahibin önbelleği düşürülüyor', () => {
+  it('proje görseli → projenin SLUG etiketi düşüyor (galeri detay girdisinde)', async () => {
+    await yukle();
+    const etiketler = revalidateTagMock.mock.calls.map((c) => c[0]);
+    expect(etiketler.some((e: string) => e.includes('deneme-proje'))).toBe(true);
+  });
+
+  it('başarısız yüklemede etiket DÜŞÜRÜLMÜYOR', async () => {
+    await yukle('düz metin');
+    expect(revalidateTagMock).not.toHaveBeenCalled();
   });
 });
 
