@@ -127,6 +127,49 @@ const ESLESMELER: Eslesme[] = [
     not: '`dueDate` bir TERMİN GÜNÜ — saati yok. Aynı kural.',
   },
   {
+    servis: 'src/server/services/health-log.ts',
+    model: 'HealthLog',
+    alan: 'date',
+    beklenen: 'gun',
+    not:
+      '§4.2 sağlık kaydı. `date` `@db.Date` VE `@unique` — şema yorumu sebebini ' +
+      'söylüyor: "`DateTime` olsaydı bu unique gece 00:00–03:00 arasında ' +
+      'beklenmedik davranırdı." Yani tekillik GÜNE bağlı, ana değil → ' +
+      '`appDayToDate`. ⚠️ `createdAt`/`updatedAt` ise `timestamp` ve gün ' +
+      'dönüşümünden GEÇMİYOR; aynı dosyada iki sütun ailesi var ve ayrımı tip ' +
+      'belirliyor (T-102 kuralı).',
+  },
+  {
+    servis: 'src/server/services/workout.ts',
+    model: 'Workout',
+    alan: 'date',
+    beklenen: 'gun',
+    not:
+      '§4.2 antrenman kaydı. `date` `@db.Date` → `appDayToDate`/`dateToAppDay`. ' +
+      '⚠️ `HealthLog.date`TEN FARKI: BURASI `@unique` DEĞİL — aynı güne iki ' +
+      'antrenman düşebilir (sabah koşu, akşam ağırlık; şema `type` alanını tam ' +
+      'bunun için taşıyor). İki sonucu var: günde tek kayıt kontrolü YOK, ve ' +
+      'sıralamada İKİNCİL ANAHTAR (`createdAt`) ZORUNLU — yoksa aynı güne düşen ' +
+      'iki antrenmanın sırası belirsiz kalır ve sayfalama satır TEKRARLAR. ' +
+      '⚠️ `createdAt`/`updatedAt` `timestamp` ve gün dönüşümünden GEÇMİYOR.',
+  },
+  {
+    servis: 'src/server/services/_shared/personal-record.ts',
+    model: 'PersonalRecord',
+    alan: 'date',
+    beklenen: 'gun',
+    not:
+      'ADR-021 · rekorun kırıldığı gün, `@db.Date` → `appDayToDate`. ⚠️ GÜN ' +
+      'YAZILMIYOR, TÜRETİLİYOR: değer setin ait olduğu `Workout.date`ten geliyor ' +
+      '(`dateToAppDay(set.workout.date)`), yani iki sütun da `@db.Date` ve ' +
+      'dönüşüm İKİ YÖNLÜ. ⚠️ T-111`de burada ELLE kurulmuş iki ' +
+      '`new Date(`${day}T00:00:00.000Z`)` vardı — aynı sonucu veriyordu ama saf ' +
+      'yardımcının İKİNCİ TANIMIYDI (BULGU-024`ün sınıfı); `appDayToDate`e ' +
+      'geçildi. ⚠️ Günün kıyasa da girdiği yer: eşitlikte ÖNCE olan gün kazanıyor ' +
+      '(PR Kararı 2), yani yanlış sınır yalnızca tarihi değil HANGİ SETİN REKOR ' +
+      'OLDUĞUNU değiştirirdi.',
+  },
+  {
     servis: 'src/server/services/recurring-transaction.ts',
     model: 'RecurringTransaction',
     alan: 'startDate',

@@ -141,6 +141,19 @@ export * from './export';
 // eylemi çağırır. İdempotanslık `@@unique([sourceRecurringId, periodKey])`.
 export * from './recurring-transaction';
 
+// F5 §4.2 — sağlık kaydı (T-110). ⚠️ Sağlık DEĞERLERİ denetim kaydına
+// yazılmıyor; gerekçe `actions/health-log.ts`in başında (T-100'den FARKLI karar).
+export * from './health-log';
+
+// F5 §4.2 — antrenman & PR (T-111). ⚠️ ÜÇ PR KARARININ GEREKÇESİ
+// `_shared/personal-record.ts`in başında; set yolundaki tetikleyici
+// `workout-set.ts`. `personal-record.ts` YALNIZCA OKUMA — türetilmiş veriye
+// elle yazma yolu bilinçli olarak YOK (gerekçe o dosyanın başında).
+export * from './exercise';
+export * from './personal-record';
+export * from './workout';
+export * from './workout-set';
+
 // ADR-026 — içerik servisleri (F2 public okuma tarafı)
 export * from './experience';
 export * from './post';

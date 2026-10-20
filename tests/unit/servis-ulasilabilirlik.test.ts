@@ -146,10 +146,36 @@ const BILDIRIM: UlasilmazBildirim[] = [
     sebep: 'bekleyen',
     not: 'F5 · haftalık spor/alışkanlık özetleri. ADR-016 hafta başlangıcını burada sabitliyor.',
   },
+  /*
+   * ⚠️ `_shared/decimal.ts → toMeasureString` SATIRI T-110'DA SİLİNDİ ve
+   * silinmesini BU KAPI söyledi ("bildirim ÖLÜ SATIR taşımıyor" kırıldı).
+   *
+   * Notu şöyleydi: *"F5 · `weightKg`/`bodyFatPct` gibi ÖLÇÜ sütunları."*
+   * T-110 `services/health-log.ts`i yazdı ve üç ondalık alanı (her biri KENDİ
+   * ölçeğiyle) oradan geçirdi — yani bekleyen tüketici GELDİ.
+   */
   {
-    anahtar: '_shared/decimal.ts → toMeasureString',
+    anahtar: 'health-log.ts → fetchHealthLogs',
     sebep: 'bekleyen',
-    not: 'F5 · `weightKg`/`bodyFatPct` gibi ÖLÇÜ sütunları — para değil, bu yüzden ayrı dönüştürücü.',
+    not:
+      'F5 · §4.2 `/panel/saglik` giriş formu listesi. Servis T-110`da yazıldı, ' +
+      'ekran F5 arayüz turunda geliyor (bu turda `src/app/**` Frontend`in ve ' +
+      'T-037f paralel çalışıyor).',
+  },
+  {
+    anahtar: 'health-log.ts → fetchHealthLogById',
+    sebep: 'bekleyen',
+    not:
+      'F5 · düzenleme formunun tek kayıt okuması. Aynı tur, aynı sebep — ' +
+      'yazma yolu (`createHealthLogAction`) ULAŞILABİLİR, yani servis ölü değil.',
+  },
+  {
+    anahtar: 'health-log.ts → fetchHealthTrend',
+    sebep: 'bekleyen',
+    not:
+      'F5 · §4.2 "trend grafikleri". Listeden AYRI bir okuma çünkü sorusu farklı: ' +
+      'grafik ARTAN sıra ve aralığın tamamını istiyor, sayfalanmış bir grafik ' +
+      'yanlış çizer. `TREND_MAX_DAYS` üst sınırı var.',
   },
   {
     anahtar: '_shared/period-key.ts → periodKeyForInstant',
@@ -161,10 +187,63 @@ const BILDIRIM: UlasilmazBildirim[] = [
     sebep: 'bekleyen',
     not: 'ADR-015 · dışarıdan gelen dönem anahtarının doğrulanması; şu an anahtarları yalnızca biz üretiyoruz.',
   },
+  /*
+   * ⚠️ `_shared/personal-record.ts → recalculatePersonalRecords` SATIRI
+   * T-111'DE SİLİNDİ ve silinmesini BU KAPI söyledi ("bildirim ÖLÜ SATIR
+   * taşımıyor" kırıldı). İkinci kez oluyor (T-110'da `toMeasureString`).
+   *
+   * Notu şöyleydi: *"F5 · spor modülü set kaydettiğinde rekorları yeniden
+   * hesaplayacak."* T-111 `services/workout-set.ts`i yazdı ve üç set
+   * mutasyonunun hepsi hesabı tetikliyor — yani bekleyen tüketici GELDİ.
+   *
+   * ⚠️ VE BAĞLAMA İKİ GERÇEK HATA ORTAYA ÇIKARDI (BULGU-025, BULGU-026):
+   * hesaplayıcı %100 kapsamlıydı ama gerçek Prisma istemcisiyle hiç
+   * koşmamıştı. Kapının "ulaşılabilirliği ölç, kapsamı değil" ilkesinin
+   * ölçülmüş karşılığı: bağlanmamış kod, test edilmiş sayılamaz.
+   */
   {
-    anahtar: '_shared/personal-record.ts → recalculatePersonalRecords',
+    anahtar: 'exercise.ts → fetchExercises',
     sebep: 'bekleyen',
-    not: 'F5 · spor modülü set kaydettiğinde rekorları yeniden hesaplayacak.',
+    not:
+      'F5 · §4.2 "egzersiz kütüphanesi" liste ekranı. Servis T-111`de yazıldı, ' +
+      'ekran F5 arayüz turunda geliyor (`src/app/**` Frontend`in). Yazma yolu ' +
+      '(`createExerciseAction`) ULAŞILABİLİR, yani servis ölü değil.',
+  },
+  {
+    anahtar: 'exercise.ts → fetchExerciseById',
+    sebep: 'bekleyen',
+    not: 'F5 · egzersiz düzenleme formunun tek kayıt okuması. Aynı tur, aynı sebep.',
+  },
+  {
+    anahtar: 'workout.ts → fetchWorkouts',
+    sebep: 'bekleyen',
+    not:
+      'F5 · §4.2 "antrenman kaydı" liste ekranı. ⚠️ `date` `@unique` DEĞİL ' +
+      '(`HealthLog`un tersi), bu yüzden ikincil sıralama anahtarı `createdAt` ' +
+      've ZORUNLU — yoksa sayfalama satır tekrarlar.',
+  },
+  {
+    anahtar: 'workout.ts → fetchWorkoutById',
+    sebep: 'bekleyen',
+    not:
+      'F5 · antrenman detayı, SETLERİYLE birlikte (ayrı bir set okuması YOK: ' +
+      'bir antrenmanı açmanın tek sebebi setlerini görmek).',
+  },
+  {
+    anahtar: 'personal-record.ts → fetchPersonalRecords',
+    sebep: 'bekleyen',
+    not:
+      'F5 · §4.2 "PR takibi" liste ekranı. Sıra `reps` ARTAN — ağırlığa göre ' +
+      'sıralamak 100×1 ile 100×10`u yan yana düşürür ve tekrar bazındalığı ' +
+      '(ADR-021) görsel olarak kaybettirir.',
+  },
+  {
+    anahtar: 'personal-record.ts → fetchRecordsForExercise',
+    sebep: 'bekleyen',
+    not:
+      'F5 · tek hareketin rekor eğrisi. Listeden AYRI okuma çünkü sorusu farklı; ' +
+      'üst sınır GEREKMİYOR çünkü rekor sayısı `@@unique([exerciseId, reps])` ile ' +
+      'tavanlı (set geçmişi büyüdükçe BÜYÜMÜYOR — `fetchHealthTrend`ten farkı bu).',
   },
 
   {
