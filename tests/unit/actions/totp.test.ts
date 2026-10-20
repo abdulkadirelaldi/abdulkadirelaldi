@@ -12,9 +12,11 @@ const mocks = vi.hoisted(() => ({
   userUpdate: vi.fn(),
   auditCreate: vi.fn(),
   auditCount: vi.fn(),
+  writesRevoked: vi.fn(),
 }));
 
 vi.mock('@/server/auth', () => ({ auth: mocks.auth }));
+vi.mock('@/server/auth/write-gate', () => ({ writesRevoked: mocks.writesRevoked }));
 vi.mock('next/cache', () => ({ revalidatePath: mocks.revalidatePath }));
 
 /** Prisma istemcisi — eylemler varsayılan `db`'yi kullanıyor, onu taklit ediyoruz. */
@@ -87,12 +89,44 @@ beforeEach(() => {
   userUpdate.mockResolvedValue({});
   auditCreate.mockResolvedValue({});
   auditCount.mockResolvedValue(0);
+  mocks.writesRevoked.mockResolvedValue(false);
 });
 
 afterEach(() => {
   if (ORIGINAL_KEY === undefined) delete process.env.TOTP_ENCRYPTION_KEY;
   else process.env.TOTP_ENCRYPTION_KEY = ORIGINAL_KEY;
   vi.clearAllMocks();
+});
+
+/* ===================== BULGU-027 — ADR-035/B yazma iptali ================= */
+
+describe('⚠️ BULGU-027 — yazma yetkisi İPTAL EDİLMİŞ oturum 2FA yazamaz', () => {
+  it.each([
+    ['startTotpSetup', () => startTotpSetup()],
+    ['confirmTotpSetup', () => confirmTotpSetup('123456')],
+    ['regenerateBackupCodes', () => regenerateBackupCodes('123456')],
+  ] as const)('%s — UNAUTHORIZED ve veritabanına YAZMIYOR', async (_ad, cagir) => {
+    /*
+     * Şifre değiştirildi (ADR-035/B): bu oturumun jetonu `writesValidFrom`dan
+     * eski. T-062'ye kadar üç eylem bunu görmüyordu.
+     */
+    mocks.writesRevoked.mockResolvedValue(true);
+    givenUser({ totpSecret: 'x', totpEnabled: true, totpConfirmedAt: new Date() });
+
+    const sonuc = await cagir();
+
+    expect(sonuc.ok).toBe(false);
+    if (!sonuc.ok) expect(sonuc.error.code).toBe('UNAUTHORIZED');
+    expect(userUpdate).not.toHaveBeenCalled();
+  });
+
+  it('OKUMA (`getTotpStatus`) iptalden ETKİLENMİYOR — ADR-035 okumaları F6/C`ye bıraktı', async () => {
+    mocks.writesRevoked.mockResolvedValue(true);
+    givenUser({ totpEnabled: true, totpConfirmedAt: new Date() });
+
+    expect((await getTotpStatus()).enabled).toBe(true);
+    expect(mocks.writesRevoked).not.toHaveBeenCalled();
+  });
 });
 
 /* ========================== getTotpStatus ================================ */

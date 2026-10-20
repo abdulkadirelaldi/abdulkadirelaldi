@@ -14,6 +14,8 @@ import {
 } from '@/server/auth/totp';
 import { db } from '@/server/db';
 import { writeAuditLog } from '@/server/services/_shared';
+
+import { currentActorId } from './_shared';
 import {
   enableTotp,
   findUserTotpRecord,
@@ -69,7 +71,22 @@ async function recordTotpFailure(userId: string, context: string): Promise<void>
   );
 }
 
-/** Oturumdaki kullanıcı kimliği; yoksa `null`. */
+/**
+ * Oturumdaki kullanıcı kimliği; yoksa `null` — YALNIZCA OKUMA için.
+ *
+ * ⚠️ BULGU-027 (T-062): bu yardımcı ADR-035/B'nin `writesRevoked` kontrolünü
+ * YAPMIYOR ve T-062'ye kadar dört eylemin DÖRDÜ de onu kullanıyordu — üçü
+ * YAZMA. Şifre değiştirmek eski oturumların yazmalarını iptal ediyor; iptal
+ * edilmiş bir oturum yine de 2FA'yı kurabiliyor ve kurtarma kodlarını
+ * yeniden üretebiliyordu. (Sömürülebilirlik düşük: yeniden üretme geçerli bir
+ * TOTP kodu istiyor. Ama ADR-035'in değişmezi "iptal edilen oturum YAZAMAZ"
+ * idi ve bu üç eylemde tutmuyordu.) Sebep tarih: bu dosya T-015b'de,
+ * `currentActorId` ise T-046'da (ADR-035) geldi ve buraya taşınmadı.
+ *
+ * Yazmalar artık `currentActorId()`; okuma (`getTotpStatus`) bilerek burada
+ * kalıyor — ADR-035 okumaları F6/C'ye bıraktı. Hepsini kaynaktan tarayan kapı:
+ * `tests/unit/kisisel-veri-erisimi.test.ts` → eylem yetki taraması.
+ */
 async function currentUserId(): Promise<string | null> {
   const session = await auth();
   return session?.user?.id ?? null;
@@ -105,7 +122,7 @@ export async function getTotpStatus(): Promise<TotpStatus> {
 export async function startTotpSetup(): Promise<
   TotpResult<{ secret: string; otpauthUri: string }>
 > {
-  const userId = await currentUserId();
+  const userId = await currentActorId();
   if (!userId) return totpFail('UNAUTHORIZED');
 
   try {
@@ -150,7 +167,7 @@ export async function startTotpSetup(): Promise<
  * ======================================================================== */
 
 export async function confirmTotpSetup(totpCode: string): Promise<TotpResult<BackupCodesPayload>> {
-  const userId = await currentUserId();
+  const userId = await currentActorId();
   if (!userId) return totpFail('UNAUTHORIZED');
 
   // §8.8 — girdi Zod ile doğrulanır. Biçim hatası da geçersiz koddur.
@@ -230,7 +247,7 @@ export async function confirmTotpSetup(totpCode: string): Promise<TotpResult<Bac
 export async function regenerateBackupCodes(
   totpCode: string,
 ): Promise<TotpResult<BackupCodesPayload>> {
-  const userId = await currentUserId();
+  const userId = await currentActorId();
   if (!userId) return totpFail('UNAUTHORIZED');
 
   const parsed = totpCodeSchema.safeParse(totpCode);
