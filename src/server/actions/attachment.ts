@@ -10,9 +10,13 @@ import {
   uploadRequestSchema,
 } from '@/lib/schemas';
 import { db } from '@/server/db';
+import { UPLOAD_RATE_LIMIT, uploadWindowStart } from '@/lib/security/rate-limit';
 import {
+  UPLOAD_CONTEXTS,
   buildAttachmentKey,
+  countRecentUploadCalls,
   fetchAttachmentById,
+  type UploadContext,
   type AttachmentDto,
   type UploadTicketDto,
 } from '@/server/services/attachment';
@@ -84,6 +88,39 @@ import { currentActorId, toFailure, unauthorized } from './_shared';
  * sayısı. Altı varlık türü tek bir `switch`te; `default` YOK, yani
  * `AttachmentEntity`ye yeni bir değer eklenirse `tsc` burayı eksik bulup kırar.
  */
+/**
+ * §8.16 — yükleme ucunun hız kapısı (T-061). Sınır aşıldıysa §7.2 zarfı,
+ * değilse `null` — ve İZİN VERİLEN çağrı sayaca YAZILIYOR.
+ *
+ * ⚠️ SIRA: say → karar ver → yaz. Reddedilen çağrı YAZILMIYOR: yazılsaydı
+ * sınırdaki istemci her denemesiyle pencereyi kendi aleyhine uzatırdı ve
+ * meşru bir kullanıcı bir dakika beklese bile kilitli kalabilirdi.
+ *
+ * ⚠️ YARIŞ kabul edildi: say ile yaz arasında eşzamanlı iki çağrı ikisi de
+ * "9" görüp geçebilir — sınır en fazla birkaç çağrı aşılır. Kapının amacı
+ * kaynak tüketimini SINIRLAMAK (dakikada binlerce değil), tam sayıya kilitlemek
+ * değil; tam kilit bir kilit tablosu ister ve tek kullanıcılı panelde bedeli
+ * kazancını aşar.
+ */
+async function yuklemeHizKapisi(
+  actorId: string,
+  context: UploadContext,
+): Promise<ApiResponse<never> | null> {
+  const sayi = await countRecentUploadCalls(actorId, context, uploadWindowStart(new Date()));
+  if (sayi >= UPLOAD_RATE_LIMIT.maxRequests) {
+    return fail(
+      'RATE_LIMITED',
+      `Çok fazla yükleme isteği. Dakikada en fazla ${UPLOAD_RATE_LIMIT.maxRequests} istek yapılabilir; biraz bekleyip tekrar deneyin.`,
+    );
+  }
+
+  await writeAuditLog(
+    { actorId, action: 'CREATE', entity: 'Attachment', entityId: null, diff: { context } },
+    db,
+  );
+  return null;
+}
+
 async function hedefVarMi(
   entity: Parameters<typeof buildAttachmentKey>[0],
   entityId: string,
@@ -112,6 +149,9 @@ export async function requestUploadAction(raw: unknown): Promise<ApiResponse<Upl
   if (!parsed.ok) return parsed.failure;
 
   try {
+    const sinir = await yuklemeHizKapisi(actorId, UPLOAD_CONTEXTS.ticket);
+    if (sinir) return sinir;
+
     if (!(await hedefVarMi(parsed.data.entity, parsed.data.entityId))) {
       return fail(
         'VALIDATION_ERROR',
@@ -189,6 +229,9 @@ export async function confirmUploadAction(raw: unknown): Promise<ApiResponse<Att
   const { key, entity, entityId, order } = parsed.data;
 
   try {
+    const sinir = await yuklemeHizKapisi(actorId, UPLOAD_CONTEXTS.confirm);
+    if (sinir) return sinir;
+
     /*
      * ⚠️ ANAHTAR ÖN EKİ DOĞRULANIYOR. `key` istemciden geliyor ve
      * `requestUpload`ta ürettiğimiz anahtar olmak ZORUNDA. Kontrol olmasa
