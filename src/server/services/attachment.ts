@@ -209,7 +209,6 @@ const MIME_EXTENSIONS: Record<SniffedMime, string> = {
   'image/png': 'png',
   'image/webp': 'webp',
   'image/avif': 'avif',
-  'image/svg+xml': 'svg',
   'application/pdf': 'pdf',
 };
 

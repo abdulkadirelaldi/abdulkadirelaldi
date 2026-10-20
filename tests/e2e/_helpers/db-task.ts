@@ -319,7 +319,66 @@ const komutlar: Record<string, (arg?: string) => Promise<unknown>> = {
       }),
     ]);
 
-    return { proje, mesaj, denetim, islem, toplam: proje + mesaj + denetim + islem };
+    /*
+     * ⚠️ F5 İZLERİ T-116'DA EKLENDİ — aynı kural: sayıma girmeyen bir iz,
+     * çöken bir `afterAll`dan sonra "kalıntı yok" diye raporlanırdı.
+     * Egzersiz ve alışkanlık arayüzden SİLİNEMİYOR (yalnızca arşiv), yani
+     * test izi ancak `kisiselSondaSil` ile gider.
+     */
+    const [egzersiz, aliskanlik] = await Promise.all([
+      db.exercise.count({ where: { name: { startsWith: 'e2e', mode: 'insensitive' } } }),
+      db.habit.count({ where: { name: { startsWith: 'e2e', mode: 'insensitive' } } }),
+    ]);
+    const kisisel = egzersiz + aliskanlik;
+
+    return {
+      proje,
+      mesaj,
+      denetim,
+      islem,
+      kisisel,
+      toplam: proje + mesaj + denetim + islem + kisisel,
+    };
+  },
+
+  /**
+   * F5 kişisel modül izlerini siler (T-116).
+   *
+   * Arayüzde SİLME YOLU YOK ve bilinçli: egzersiz `Restrict` FK'lı referans
+   * veri, alışkanlık silinince `HabitLog` CASCADE geçmişi götürür. Test ise
+   * kendi izini bırakmamak ZORUNDA (ADR-030). Sıra FK'lara göre: setler ve
+   * rekorlar önce, egzersiz sonra. Sabit test gününün (`gun`) sağlık kaydı ve
+   * antrenmanları da gider — gün 2001'de, gerçek veriyle çakışmaz.
+   */
+  async kisiselSondaSil(arg) {
+    const { onek, gun } = JSON.parse(arg ?? '{}') as { onek: string; gun: string };
+    if (!onek || onek.length < 4 || !/^\d{4}-\d{2}-\d{2}$/.test(gun ?? '')) {
+      throw new Error('kisiselSondaSil: en az 4 karakterlik önek ve YYYY-AA-GG gün zorunlu.');
+    }
+    const tarih = new Date(`${gun}T00:00:00.000Z`);
+
+    const egzersizler = await db.exercise.findMany({
+      where: { name: { startsWith: onek } },
+      select: { id: true },
+    });
+    const ids = egzersizler.map((e) => e.id);
+
+    const antrenman = await db.workout.deleteMany({ where: { date: tarih } });
+    const set = await db.workoutSet.deleteMany({ where: { exerciseId: { in: ids } } });
+    const rekor = await db.personalRecord.deleteMany({ where: { exerciseId: { in: ids } } });
+    const egzersiz = await db.exercise.deleteMany({ where: { id: { in: ids } } });
+    const aliskanlik = await db.habit.deleteMany({ where: { name: { startsWith: onek } } });
+    const saglik = await db.healthLog.deleteMany({ where: { date: tarih } });
+
+    return {
+      silinen:
+        antrenman.count +
+        set.count +
+        rekor.count +
+        egzersiz.count +
+        aliskanlik.count +
+        saglik.count,
+    };
   },
 
   /**

@@ -217,6 +217,8 @@ export interface E2EKalintisi {
   denetim: number;
   /** §9/5 senaryosunun yazdığı işlemler — T-107c'de eklendi. */
   islem: number;
+  /** F5 egzersiz + alışkanlık izleri — T-116'da eklendi. */
+  kisisel: number;
   toplam: number;
 }
 
@@ -243,6 +245,15 @@ export async function arsivliBagSondasiSil(onek: string): Promise<number> {
   const { silinen } = await runTask<{ silinen: number }>(
     'arsivliBagSondasiSil',
     JSON.stringify({ onek }),
+  );
+  return silinen;
+}
+
+/** F5 izlerini siler — gerekçe `db-task.ts` → `kisiselSondaSil`. */
+export async function kisiselSondaSil(onek: string, gun: string): Promise<number> {
+  const { silinen } = await runTask<{ silinen: number }>(
+    'kisiselSondaSil',
+    JSON.stringify({ onek, gun }),
   );
   return silinen;
 }

@@ -136,21 +136,28 @@ interface UlasilmazBildirim {
 
 const BILDIRIM: UlasilmazBildirim[] = [
   /* ---- BEKLEYEN — tüketicisinden önce yazıldı, görevi biliniyor ------- */
-  {
-    anahtar: '_shared/app-date.ts → differenceInAppDays',
-    sebep: 'bekleyen',
-    not: 'F5 · alışkanlık serisi ve hedef geri sayımı gün farkı istiyor (§4.2 kişisel).',
-  },
-  {
-    anahtar: '_shared/app-date.ts → appWeekRange',
-    sebep: 'bekleyen',
-    not: 'F5 · haftalık spor/alışkanlık özetleri. ADR-016 hafta başlangıcını burada sabitliyor.',
-  },
-  {
-    anahtar: '_shared/decimal.ts → toMeasureString',
-    sebep: 'bekleyen',
-    not: 'F5 · `weightKg`/`bodyFatPct` gibi ÖLÇÜ sütunları — para değil, bu yüzden ayrı dönüştürücü.',
-  },
+  /*
+   * ⚠️ `_shared/app-date.ts → differenceInAppDays` ve `→ appWeekRange`
+   * SATIRLARI T-112'DE SİLİNDİ — kapı söyledi (üçüncü kez: T-110, T-111).
+   * Bekleyen tüketiciler geldi: `goal.ts` (`daysLeft`) ve `habit.ts`
+   * (haftalık pano). Notları "alışkanlık serisi ve hedef geri sayımı" idi.
+   */
+  /*
+   * ⚠️ T-112'NİN YEDİ OKUMASI (`habit`, `goal`, `journal-entry`) T-115'TE
+   * SİLİNDİ — `/panel/hayat` ekranları ve dashboard'un kişisel özeti bağladı.
+   */
+  /*
+   * ⚠️ `_shared/decimal.ts → toMeasureString` SATIRI T-110'DA SİLİNDİ ve
+   * silinmesini BU KAPI söyledi ("bildirim ÖLÜ SATIR taşımıyor" kırıldı).
+   *
+   * Notu şöyleydi: *"F5 · `weightKg`/`bodyFatPct` gibi ÖLÇÜ sütunları."*
+   * T-110 `services/health-log.ts`i yazdı ve üç ondalık alanı (her biri KENDİ
+   * ölçeğiyle) oradan geçirdi — yani bekleyen tüketici GELDİ.
+   */
+  /*
+   * ⚠️ `health-log.ts` ÜÇ SATIRI (`fetchHealthLogs`, `fetchHealthLogById`,
+   * `fetchHealthTrend`) T-113'TE SİLİNDİ — `/panel/saglik` ekranı bağladı.
+   */
   {
     anahtar: '_shared/period-key.ts → periodKeyForInstant',
     sebep: 'bekleyen',
@@ -161,12 +168,25 @@ const BILDIRIM: UlasilmazBildirim[] = [
     sebep: 'bekleyen',
     not: 'ADR-015 · dışarıdan gelen dönem anahtarının doğrulanması; şu an anahtarları yalnızca biz üretiyoruz.',
   },
-  {
-    anahtar: '_shared/personal-record.ts → recalculatePersonalRecords',
-    sebep: 'bekleyen',
-    not: 'F5 · spor modülü set kaydettiğinde rekorları yeniden hesaplayacak.',
-  },
+  /*
+   * ⚠️ `_shared/personal-record.ts → recalculatePersonalRecords` SATIRI
+   * T-111'DE SİLİNDİ ve silinmesini BU KAPI söyledi ("bildirim ÖLÜ SATIR
+   * taşımıyor" kırıldı). İkinci kez oluyor (T-110'da `toMeasureString`).
+   *
+   * Notu şöyleydi: *"F5 · spor modülü set kaydettiğinde rekorları yeniden
+   * hesaplayacak."* T-111 `services/workout-set.ts`i yazdı ve üç set
+   * mutasyonunun hepsi hesabı tetikliyor — yani bekleyen tüketici GELDİ.
+   *
+   * ⚠️ VE BAĞLAMA İKİ GERÇEK HATA ORTAYA ÇIKARDI (BULGU-025, BULGU-026):
+   * hesaplayıcı %100 kapsamlıydı ama gerçek Prisma istemcisiyle hiç
+   * koşmamıştı. Kapının "ulaşılabilirliği ölç, kapsamı değil" ilkesinin
+   * ölçülmüş karşılığı: bağlanmamış kod, test edilmiş sayılamaz.
+   */
 
+  /*
+   * ⚠️ T-111'İN ALTI OKUMASI (`exercise`, `workout`, `personal-record`)
+   * T-114'TE SİLİNDİ — `/panel/spor` ekranları bağladı.
+   */
   {
     anahtar: 'attachment.ts → fetchAttachmentsForEntity',
     sebep: 'bekleyen',

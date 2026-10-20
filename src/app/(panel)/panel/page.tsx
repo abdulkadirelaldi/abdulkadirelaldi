@@ -14,6 +14,11 @@ import { fetchContactMessages } from '@/server/services/contact-message';
 import { fetchMonthlyReport } from '@/server/services/report';
 import { fetchJobsForPanel } from '@/server/services/job';
 import { fetchSiteStats } from '@/server/services/stats';
+import { ANTRENMAN_TURU, olcuBicim } from '@/components/panel/kisisel-etiketler';
+import { appToday } from '@/server/services/_shared';
+import { fetchHabitWeek, isDayComplete } from '@/server/services/habit';
+import { fetchHealthLogs } from '@/server/services/health-log';
+import { fetchWorkouts } from '@/server/services/workout';
 
 export const metadata: Metadata = {
   title: 'Panel',
@@ -40,8 +45,9 @@ export const metadata: Metadata = {
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * §4.2 dört şey istiyor: aylık gelir/gider, aktif işler, bugünün planı, sağlık
- * özeti. DÖRDÜNDEN ÜÇÜ bugün türetilemiyor — finans, iş ve sağlık servisleri
- * yazılmadı (F4/F5). İki kolay ve iki yanlış seçenek vardı:
+ * özeti. T-054f'te DÖRDÜNDEN ÜÇÜ türetilemiyordu — finans, iş ve sağlık
+ * servisleri yazılmamıştı. (F4 finansı ve işi, F5 kişisel özeti getirdi; bugün
+ * dördü de gerçek veriden.) O gün iki kolay ve iki yanlış seçenek vardı:
  *
  *   - BOŞ KARTLAR: dört kart iskeleti, içi "—". Ölü arayüz; kullanıcı her gün
  *     bakıp hiçbir şey öğrenmez ve kartların bozuk olduğunu sanır.
@@ -90,6 +96,25 @@ export default async function PanelDashboardPage() {
     /* Yalnızca SAYAÇ gerekiyor — `perPage: 1`, satırlara ihtiyaç yok. */
     fetchJobsForPanel({ page: 1, perPage: 1, status: JobStatus.ACTIVE }),
   ]);
+
+  /*
+    KİŞİSEL ÖZET — üç okuma, üçü de küçük. "Bugün" sunucuda İstanbul gününe
+    göre (`appToday`, ADR-016); `simdi.getMonth()` gibi sunucu saat dilimine
+    bağlı bir değer burada gece yarısından sonra üç saat yanlış gün verirdi.
+  */
+  const bugun = appToday();
+  const [olcumler, antrenmanlar, aliskanlik] = await Promise.all([
+    /* EN SON kayıt, pencere yok: kilo yavaş değişir ve son ölçümün GÜNÜ yanında yazılı. */
+    fetchHealthLogs({ page: 1, perPage: 1 }),
+    fetchWorkouts({ page: 1, perPage: 1 }),
+    fetchHabitWeek(bugun),
+  ]);
+  const sonOlcum = olcumler.items[0];
+  const sonAntrenman = antrenmanlar.items[0];
+  const bugunSirasi = aliskanlik.days.indexOf(bugun);
+  const bugunTamamlanan = aliskanlik.habits.filter((h) =>
+    isDayComplete(h.counts[bugunSirasi] ?? 0, h.targetPerDay),
+  ).length;
 
   return (
     <>
@@ -205,41 +230,89 @@ export default async function PanelDashboardPage() {
             </CardContent>
           </Card>
 
-          {/* ── HENÜZ TÜRETİLEMEYEN — BOŞ KART DEĞİL, TEK BLOK ───────────── */}
+          {/*
+            ── KİŞİSEL · BUGÜN — F5'te geldi ───────────────────────────────
+
+            ⚠️ BURADA "Henüz burada olmayan özet" BLOĞU VARDI ve "sağlık özeti —
+            antrenman, ölçüm ve alışkanlık modülü yok" diyordu. F5 o modülleri
+            yazdı; blok bırakılsaydı T-054f'te düzeltilen "Yedek durumu" metninin
+            aynı sınıfı olurdu — var olmayan bir eksikliği şimdiki zamanda
+            anlatmak. Dört özetin dördü de artık gerçek veriden.
+          */}
           <Card>
-            <CardContent className="flex flex-col gap-3">
-              <CardTitle seviye="h2">Henüz burada olmayan özet</CardTitle>
+            <CardContent className="flex flex-col gap-4">
+              <CardTitle seviye="h2">Kişisel · bugün</CardTitle>
 
-              {/*
-                ⚠️ BU BLOK T-105'TE DARALDI — ve daraltmak zorunluydu, seçenek
-                değildi. T-054f'te ÜÇ madde sayıyordu; ikisi artık YANLIŞTI:
-                finans modülü T-104'te, iş modülü T-103'te yazıldı. Ekranda
-                "modül yok" yazmaya devam etmek, T-054f'te düzelttiğim "Yedek
-                durumu" metninin aynı sınıfı olurdu — var olmayan bir eksikliği
-                şimdiki zamanda anlatmak.
-              */}
-              <p className="text-muted text-sm">
-                §4.2 bu sayfada dört özet tanımlıyor; üçü artık yukarıda gerçek sayılarla duruyor.
-                Biri için gereken veri katmanı henüz yazılmadı:
-              </p>
+              <dl className="grid gap-4 sm:grid-cols-3">
+                <div className="flex flex-col gap-0.5">
+                  <dt className="text-muted text-xs">Son ölçüm</dt>
+                  <dd className="text-body text-sm">
+                    {sonOlcum ? (
+                      <>
+                        <span className="tabular text-primary text-lg">
+                          {olcuBicim(sonOlcum.weightKg, 'kg')}
+                        </span>
+                        <span className="text-muted block text-xs">
+                          <span className="tabular">{sonOlcum.date}</span>
+                          {sonOlcum.sleepHours && ` · uyku ${olcuBicim(sonOlcum.sleepHours, 'sa')}`}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-muted">Henüz ölçüm yok.</span>
+                    )}
+                    <Link
+                      href="/panel/saglik"
+                      className="focus-ring link block w-fit rounded text-xs"
+                    >
+                      Sağlığa git
+                    </Link>
+                  </dd>
+                </div>
 
-              <ul className="text-muted flex flex-col gap-1.5 text-sm">
-                <li>
-                  <span className="text-body">Sağlık özeti</span> — antrenman, ölçüm ve alışkanlık
-                  modülü yok.
-                </li>
-              </ul>
+                <div className="flex flex-col gap-0.5">
+                  <dt className="text-muted text-xs">Son antrenman</dt>
+                  <dd className="text-body text-sm">
+                    {sonAntrenman ? (
+                      <>
+                        <span className="text-primary text-lg">
+                          {ANTRENMAN_TURU[sonAntrenman.type]}
+                        </span>
+                        <span className="text-muted block text-xs">
+                          <span className="tabular">{sonAntrenman.date}</span> ·{' '}
+                          <span className="tabular">{sonAntrenman.setCount}</span> set
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-muted">Henüz antrenman yok.</span>
+                    )}
+                    <Link
+                      href="/panel/spor"
+                      className="focus-ring link block w-fit rounded text-xs"
+                    >
+                      Spora git
+                    </Link>
+                  </dd>
+                </div>
 
-              {/*
-                "YAKINDA" DEMİYOR ve bu bilinçli: tarihini bilmediğim bir söz
-                vermek, T-034'te panelde "410 dönüyor" yazıp sonra ölçüp geri
-                almak zorunda kaldığım hatanın aynı sınıfı. Cümle bir OLGU:
-                modüller yazıldığında kartlar eklenecek.
-              */}
-              <p className="text-muted text-sm">
-                Modüller yazıldığında kartlar buraya eklenecek. O zamana kadar bu sayfada uydurma
-                bir sayı göstermemeyi tercih ediyoruz — panelin söylediği her sayı gerçek.
-              </p>
+                <div className="flex flex-col gap-0.5">
+                  <dt className="text-muted text-xs">Bugünün alışkanlıkları</dt>
+                  <dd className="text-body text-sm">
+                    {aliskanlik.habits.length > 0 ? (
+                      <span className="tabular text-primary text-lg">
+                        {bugunTamamlanan} / {aliskanlik.habits.length}
+                      </span>
+                    ) : (
+                      <span className="text-muted">Aktif alışkanlık yok.</span>
+                    )}
+                    <Link
+                      href="/panel/hayat"
+                      className="focus-ring link block w-fit rounded text-xs"
+                    >
+                      Hayata git
+                    </Link>
+                  </dd>
+                </div>
+              </dl>
             </CardContent>
           </Card>
         </div>

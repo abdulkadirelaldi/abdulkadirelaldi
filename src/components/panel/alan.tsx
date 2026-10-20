@@ -90,6 +90,22 @@ export const SAYI_YA_DA_YOK = {
   },
 };
 
+/**
+ * Ondalık ölçü girdisi (kilo, uyku saati) — boşsa `undefined`, VİRGÜL → NOKTA.
+ *
+ * Türkçe klavyede ondalık ayırıcı virgül; `decimalSchema` ise `82.5` bekliyor.
+ * Çevrilmeseydi "82,5" yazan kullanıcı biçim hatası görürdü — doğru değeri
+ * doğru yazımla girdiği hâlde. Sayıya ÇEVRİLMİYOR (ADR-014/D): dize olarak
+ * kalıyor, yalnızca ayırıcı değişiyor.
+ */
+export const ONDALIK_YA_DA_YOK = {
+  setValueAs: (deger: unknown) => {
+    if (typeof deger !== 'string') return deger;
+    const temiz = deger.trim();
+    return temiz === '' ? undefined : temiz.replace(',', '.');
+  },
+};
+
 /** `datetime-local` çıktısını ISO 8601 anına çevirir. */
 export const ANI_ISOYA = {
   setValueAs: (deger: unknown) => {

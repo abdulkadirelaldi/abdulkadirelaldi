@@ -12,13 +12,35 @@ import { cuidSchema, orderSchema, paginationSchema } from './common';
  * gelirdi. İmzalı URL istek anında `key`den üretilir.
  */
 
-/** §8.11 — yalnızca izin verilen tipler. Magic byte kontrolü T-015'te ayrıca yapılır. */
+/**
+ * §8.11 — yalnızca izin verilen tipler. Tespit UZANTIDAN DEĞİL İÇERİKTEN
+ * (`_shared/file-type.ts`).
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * ⚠️ `image/svg+xml` LİSTEDEN ÇIKARILDI — ADR-043
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * T-037'de riski ölçüp karara bıraktım; karar ÇIKARMAK oldu ve üç gerekçesi var:
+ *
+ * 1. SEZGİSEL TESPİT BU PROJENİN KENDİ DOSYASINDA KIRILDI. SVG'nin sihirli
+ *    baytı yok; metin biçimi olduğu için yorum/bildirim/DOCTYPE ile
+ *    başlayabiliyor. `src/app/icon.svg`in `<svg` etiketi 514. bayttaydı ve ilk
+ *    uygulamam o dosyayı tanımıyordu. Diğer beş tip sabit imzayla KESİN
+ *    tanınıyor; SVG tahmine dayanıyordu.
+ * 2. BETİK ÇALIŞTIRABİLEN TEK TİP. İmzalı adresle doğrudan açıldığında tarayıcı
+ *    SVG içindeki `<script>`i çalıştırır.
+ * 3. İHTİYAÇ ÖLÇÜLMEDİ. Frontend T-109h'te ölçtü: eksik olan şey görsel yükleme
+ *    değil, logo verisinin MODELİ.
+ *
+ * ⚠️ GÜVEN SINIRI "KİM YAZDI", "HANGİ TİP" DEĞİL: depodaki SVG'ler (ikonlar,
+ * `icon.svg`) etkilenmiyor — onlar bizim yazdığımız, derlemeye giren
+ * dosyalar. Çıkarılan şey YÜKLENEN SVG.
+ */
 export const ALLOWED_MIME_TYPES = [
   'image/jpeg',
   'image/png',
   'image/webp',
   'image/avif',
-  'image/svg+xml',
   'application/pdf',
 ] as const;
 

@@ -222,8 +222,15 @@ kartlarında da geçerli: çalışıyormuş gibi görünen hiçbir beyan bırak�
 /panel/musteriler
 /panel/musteriler/yeni · /[id]      müşteri ekleme / düzenleme (T-103)
 /panel/saglik             Kilo, uyku, su, ölçüm girişi + trend grafikleri
+/panel/saglik/yeni · /[id]          sağlık kaydı ekleme / düzenleme (T-113)
 /panel/spor               Antrenman kaydı, egzersiz kütüphanesi, PR takibi
+/panel/spor/yeni · /[id]            antrenman açma / detay + set girişi (T-114)
+/panel/spor/egzersizler   egzersiz kütüphanesi (+ /yeni · /[id], T-114)
+/panel/spor/rekorlar      kişisel rekorlar — salt okunur, türetilmiş (T-114)
 /panel/hayat              Alışkanlık takibi, hedefler, günlük
+/panel/hayat/aliskanliklar          alışkanlık yönetimi (+ /yeni · /[id], T-115)
+/panel/hayat/hedefler               hedefler (+ /yeni · /[id], T-115)
+/panel/hayat/gunluk                 günlük (+ /yeni · /[id], T-115)
 /panel/icerik/projeler    Portföy projesi CRUD
 /panel/icerik/blog        Yazı CRUD (MDX editör + önizleme)
 /panel/icerik/profil      Hero metni, biyografi, sosyal linkler, CV dosyası

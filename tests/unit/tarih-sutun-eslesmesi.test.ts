@@ -127,6 +127,92 @@ const ESLESMELER: Eslesme[] = [
     not: '`dueDate` bir TERMİN GÜNÜ — saati yok. Aynı kural.',
   },
   {
+    servis: 'src/server/services/health-log.ts',
+    model: 'HealthLog',
+    alan: 'date',
+    beklenen: 'gun',
+    not:
+      '§4.2 sağlık kaydı. `date` `@db.Date` VE `@unique` — şema yorumu sebebini ' +
+      'söylüyor: "`DateTime` olsaydı bu unique gece 00:00–03:00 arasında ' +
+      'beklenmedik davranırdı." Yani tekillik GÜNE bağlı, ana değil → ' +
+      '`appDayToDate`. ⚠️ `createdAt`/`updatedAt` ise `timestamp` ve gün ' +
+      'dönüşümünden GEÇMİYOR; aynı dosyada iki sütun ailesi var ve ayrımı tip ' +
+      'belirliyor (T-102 kuralı).',
+  },
+  {
+    servis: 'src/server/services/workout.ts',
+    model: 'Workout',
+    alan: 'date',
+    beklenen: 'gun',
+    not:
+      '§4.2 antrenman kaydı. `date` `@db.Date` → `appDayToDate`/`dateToAppDay`. ' +
+      '⚠️ `HealthLog.date`TEN FARKI: BURASI `@unique` DEĞİL — aynı güne iki ' +
+      'antrenman düşebilir (sabah koşu, akşam ağırlık; şema `type` alanını tam ' +
+      'bunun için taşıyor). İki sonucu var: günde tek kayıt kontrolü YOK, ve ' +
+      'sıralamada İKİNCİL ANAHTAR (`createdAt`) ZORUNLU — yoksa aynı güne düşen ' +
+      'iki antrenmanın sırası belirsiz kalır ve sayfalama satır TEKRARLAR. ' +
+      '⚠️ `createdAt`/`updatedAt` `timestamp` ve gün dönüşümünden GEÇMİYOR.',
+  },
+  {
+    servis: 'src/server/services/_shared/personal-record.ts',
+    model: 'PersonalRecord',
+    alan: 'date',
+    beklenen: 'gun',
+    not:
+      'ADR-021 · rekorun kırıldığı gün, `@db.Date` → `appDayToDate`. ⚠️ GÜN ' +
+      'YAZILMIYOR, TÜRETİLİYOR: değer setin ait olduğu `Workout.date`ten geliyor ' +
+      '(`dateToAppDay(set.workout.date)`), yani iki sütun da `@db.Date` ve ' +
+      'dönüşüm İKİ YÖNLÜ. ⚠️ T-111`de burada ELLE kurulmuş iki ' +
+      '`new Date(`${day}T00:00:00.000Z`)` vardı — aynı sonucu veriyordu ama saf ' +
+      'yardımcının İKİNCİ TANIMIYDI (BULGU-024`ün sınıfı); `appDayToDate`e ' +
+      'geçildi. ⚠️ Günün kıyasa da girdiği yer: eşitlikte ÖNCE olan gün kazanıyor ' +
+      '(PR Kararı 2), yani yanlış sınır yalnızca tarihi değil HANGİ SETİN REKOR ' +
+      'OLDUĞUNU değiştirirdi.',
+  },
+  {
+    servis: 'src/server/services/habit.ts',
+    model: 'HabitLog',
+    alan: 'date',
+    beklenen: 'gun',
+    not:
+      '§4.2 haftalık alışkanlık panosu ve seri hesabı. `HabitLog.date` `@db.Date` ' +
+      '→ `appDayToDate`/`dateToAppDay`. ⚠️ Hafta sınırı (`appWeekRange`, ' +
+      'pazartesi) ve seri penceresi GÜN aritmetiğiyle (`addAppDays`) kuruluyor, ' +
+      'an aritmetiğiyle değil — yani bir `AppDay` hiçbir noktada saate dönmüyor ' +
+      've 3 saatlik kayma sınıfı burada doğamıyor.',
+  },
+  {
+    servis: 'src/server/services/habit-log.ts',
+    model: 'HabitLog',
+    alan: 'date',
+    beklenen: 'gun',
+    not:
+      'İşaret yazma yolu. `@@unique([habitId, date])` ve `date` `@db.Date` — ' +
+      'tekillik GÜNE bağlı (`HealthLog.date @unique` ile aynı gerekçe). Yanlış ' +
+      'yardımcı (anlık) aynı günü İKİ farklı değere çevirip tekilliği delerdi: ' +
+      'gece 01:00`deki tık bir önceki güne yazılırdı.',
+  },
+  {
+    servis: 'src/server/services/goal.ts',
+    model: 'Goal',
+    alan: 'targetDate',
+    beklenen: 'gun',
+    not:
+      '§4.2 hedef tarihi, `DateTime? @db.Date` (OPSİYONEL) → `appDayToDate`. ' +
+      '`daysLeft` `differenceInAppDays` ile GÜN farkı olarak türetiliyor; ' +
+      '`createdAt`/`updatedAt` `timestamp` ve gün dönüşümünden GEÇMİYOR.',
+  },
+  {
+    servis: 'src/server/services/journal-entry.ts',
+    model: 'JournalEntry',
+    alan: 'date',
+    beklenen: 'gun',
+    not:
+      '§4.2 günlük. `date` `@db.Date` ama `@unique` DEĞİL (`HealthLog`un tersi, ' +
+      '`Workout` ile aynı) — günde birden çok kayıt; sıralamada ikincil anahtar ' +
+      '`createdAt` ZORUNLU ve o bir `timestamp`, gün dönüşümünden geçmiyor.',
+  },
+  {
     servis: 'src/server/services/recurring-transaction.ts',
     model: 'RecurringTransaction',
     alan: 'startDate',

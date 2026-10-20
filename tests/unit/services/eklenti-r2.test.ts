@@ -102,27 +102,54 @@ describe('⚠️ sniffMime — İÇERİK okunuyor', () => {
     expect(sniffMime(mp4)).toBeNull();
   });
 
-  it('⚠️ SVG YORUMLA BAŞLAYABİLİYOR — ve bu projenin KENDİ dosyası öyle', () => {
+  it('⚠️⚠️ SVG ARTIK REDDEDİLİYOR — ADR-043', () => {
     /*
-     * ÖLÇÜLDÜ: `src/app/icon.svg` bir XML yorumuyla başlıyor (`<!--\n  Site
-     * simgesi…`). Naif bir `startsWith('<svg')` kontrolü MEŞRU BİR SVG'Yİ
-     * reddediyordu. SVG'nin sihirli baytı YOK; tespit doğası gereği sezgisel.
+     * T-037'de SVG listedeydi ve tespiti SEZGİSELDİ: sihirli baytı yok, metin
+     * biçimi olduğu için yorum/bildirim/DOCTYPE ile başlayabiliyor. Ölçüm o
+     * sezginin bu projenin KENDİ dosyasında kırıldığını gösterdi —
+     * `src/app/icon.svg`in `<svg` etiketi 514. baytta.
+     *
+     * ADR-043 üç gerekçeyle listeden çıkardı: tespit tahmine dayanıyordu, SVG
+     * betik çalıştırabilen tek tipti, ve ihtiyaç ölçülmedi.
+     *
+     * ⚠️ BU TEST ESKİ TESTİN TERSİ VE BİLEREK: eski iddia SVG'nin TANINDIĞINI
+     * ölçüyordu, yenisi REDDEDİLDİĞİNİ. T-053'te öğrenilen ders — sapma
+     * imkânsızlaştığında assert'i düzeltmek değil SORUYU DEĞİŞTİRMEK gerekir.
      */
     const gercekSvg = readFileSync(join(KOK, 'src/app/icon.svg'));
-    expect(gercekSvg.toString('utf8', 0, 4)).toBe('<!--');
-    expect(sniffMime(gercekSvg)).toBe('image/svg+xml');
 
-    // Bildirimle, DOCTYPE ile ve sade başlayan biçimler de tanınıyor.
-    expect(sniffMime(Buffer.from('<?xml version="1.0"?><svg xmlns="x"></svg>'))).toBe(
-      'image/svg+xml',
-    );
-    expect(sniffMime(Buffer.from('<svg viewBox="0 0 1 1"/>'))).toBe('image/svg+xml');
-    // `<svgx` gibi benzer bir etiket SVG değil.
-    expect(sniffMime(Buffer.from('<svgx></svgx>'))).toBeNull();
+    // Depodaki SVG hâlâ bir SVG; değişen şey YÜKLENEBİLİR olup olmadığı.
+    expect(gercekSvg.toString('utf8', 0, 4)).toBe('<!--');
+    expect(sniffMime(gercekSvg)).toBeNull();
+
+    // Hiçbir SVG biçimi tanınmıyor — bildirimli, sade, hepsi.
+    expect(sniffMime(Buffer.from('<?xml version="1.0"?><svg xmlns="x"></svg>'))).toBeNull();
+    expect(sniffMime(Buffer.from('<svg viewBox="0 0 1 1"/>'))).toBeNull();
+    expect(sniffMime(Buffer.from('<svg onload="alert(1)"/>'))).toBeNull();
   });
 
-  it('İKİLİ imzalar SVG taramasından ÖNCE deneniyor', () => {
-    // İçinde `<svg ` geçen bir PNG, PNG olarak tanınmalı.
+  it('⚠️ METİN TARAMA MANTIĞI SİLİNDİ — kodda kalıntı yok', () => {
+    /*
+     * ADR-043 "daha az kod, daha az tahmin" dedi. Kalan beş tipin hepsi sabit
+     * imzalı; bir metin penceresi artık hiçbir şeye hizmet etmiyor. Kalıntı
+     * bırakmak, ileride birinin onu yeniden bağlamasını kolaylaştırırdı.
+     */
+    /*
+     * ⚠️ YORUMLAR AYIKLANIYOR (T-040 dersi): dosya ADR-043'ün GEREKÇESİNİ
+     * anlatan yorumlar taşıyor ve onlar kalmalı — silinen şey KOD. Ham metinde
+     * arama yapan ilk iddiam bu yüzden kırıldı ve haklı olarak kırıldı.
+     */
+    const kaynak = readFileSync(join(KOK, 'src/server/services/_shared/file-type.ts'), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, ' ')
+      .replace(/\/\/.*$/gm, ' ');
+
+    expect(kaynak).not.toContain('SVG_SCAN_BYTES');
+    expect(kaynak).not.toContain("'image/svg+xml'");
+    // Metne çeviren bir tarama kalmadı; yalnızca `ascii` imza okumaları var.
+    expect(kaynak).not.toMatch(/toString\('utf8'/);
+  });
+
+  it('içinde `<svg` geçen bir PNG hâlâ PNG — sabit imza kazanıyor', () => {
     const png = Buffer.concat([GERCEK_PNG.subarray(0, 64), Buffer.from('<svg >')]);
     expect(sniffMime(png)).toBe('image/png');
   });
@@ -133,7 +160,6 @@ describe('⚠️ sniffMime — İÇERİK okunuyor', () => {
       'image/png',
       'image/webp',
       'image/avif',
-      'image/svg+xml',
       'application/pdf',
     ];
     expect([...taninanlar].sort()).toEqual([...ALLOWED_MIME_TYPES].sort());
@@ -206,20 +232,16 @@ describe('readImageDimensions', () => {
     expect(readImageDimensions(vp8l, 'image/webp')).toEqual({ width: 200, height: 100 });
   });
 
-  it('⚠️ AVIF · SVG · PDF → `null` (kullanıcı onaylı karar)', () => {
+  it('⚠️ AVIF · PDF → `null` (kullanıcı onaylı karar; SVG ADR-043 ile çıktı)', () => {
     /*
      * AVIF boyutu ISOBMFF kutu ağacında ve depoda sınanacak gerçek AVIF YOK;
-     * sınanmayan ayrıştırıcı yazmak reddedildi. SVG'nin içsel raster ölçüsü
-     * zaten olmayabilir. Şema `Int?`, yani `null` meşru.
+     * sınanmayan ayrıştırıcı yazmak reddedildi. Şema `Int?`, `null` meşru.
      */
     const avif = Buffer.alloc(64);
     avif.write('ftyp', 4, 'ascii');
     avif.write('avif', 8, 'ascii');
 
     expect(readImageDimensions(avif, 'image/avif')).toBeNull();
-    expect(
-      readImageDimensions(Buffer.from('<svg width="64" height="64"/>'), 'image/svg+xml'),
-    ).toBeNull();
     expect(readImageDimensions(Buffer.from('%PDF-1.7'), 'application/pdf')).toBeNull();
   });
 
@@ -249,7 +271,7 @@ describe('⚠️ buildAttachmentKey', () => {
 
   it('⚠️ UZANTI DOĞRULANMIŞ MIME`DAN, istemciden DEĞİL', () => {
     // İstemci `.html` isterse diye bir yol yok: uzantı eşlemeden geliyor.
-    expect(buildAttachmentKey('POST', 'p1', 'image/svg+xml', 'r')).toBe('post/p1/r.svg');
+    expect(buildAttachmentKey('POST', 'p1', 'image/webp', 'r')).toBe('post/p1/r.webp');
     expect(buildAttachmentKey('CLIENT', 'c1', 'application/pdf', 'r')).toBe('client/c1/r.pdf');
     expect(buildAttachmentKey('JOB', 'j1', 'image/jpeg', 'r')).toBe('job/j1/r.jpg');
   });

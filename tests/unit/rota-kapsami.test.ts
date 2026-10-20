@@ -203,6 +203,106 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     kanit: [],
     not: "T-103 ile eklendi. Okuma `fetchClientForPanel` TEK KAYIT — `notes` YALNIZCA burada geliyor, liste DTO'su taşımıyor; formu listeden beslemek kaydetmenin `notes`u silmesi olurdu (T-043f'te proje MDX'inde ölçülen kusurun aynı sınıfı). Yazma `updateClientAction`. `isArchived` BU FORMDA YOK ve olmamalı: arşivleme ayrı bir eylem ve `updateClientAction` o alanı hiç almıyor. ÖLÇÜLMEYEN: (1) Var olmayan kimlikte 404 dışı davranış. (2) Kimlik numaralandırma (cuid tahmin edilemez VARSAYILDI). (3) `notes`un kaydedilip geri okunduğu uçtan uca denenmedi.",
   },
+  '/panel/saglik': {
+    kapilar: ['e2e'],
+    kanit: ["page.goto('/panel/saglik'"],
+    not: "ÖLÇÜLÜYOR (T-116, `panel-kisisel.spec.ts`): dört trend grafiğinin (Kilo/Uyku/Dinlenik nabız/Adım) çizildiği ve sayfanın 360 px'te yatay taşmadığı, iki projede. T-113 ile eklendi (ADR-036). Kimlik zinciri `(panel)` düzeni + ara katman + §8.1 2FA kapısı; `robots: noindex/nofollow/nocache`. İKİ AYRI OKUMA: `fetchHealthTrend` (ARTAN, aralığın tamamı, `TREND_MAX_DAYS` tavanlı) grafikler için, `fetchHealthLogs` (en yeni önce, sayfalı 20) liste için — sayfalı listeden grafik çizmek yalnızca ilk sayfayı çizerdi. Üçüncü okuma `findHealthLogIdByDay(bugün)` üst çubuktaki 'Bugünü kaydet / düzenle' düğmesini seçiyor (günde tek kayıt). `?aralik=` KAPALI KÜME (30/90/365), tanınmayan değer 90'a düşüyor — `TREND_MAX_DAYS` adresten delinemez (ADR-032). Yazma liste satırından `deleteHealthLogAction`. Grafikler RECHARTS DEĞİL: bağımlılıksız SVG (`trend-grafigi.tsx`), çünkü `agir-yigin-tembel` kapısı Recharts'ı tek bileşene bağlıyor ve tek serili çizgi 109 kB'ı haklı çıkarmıyor. ÖLÇÜLMEYEN: (1) Grafik geometrisi (eksen adımları, boş ölçünün nokta ÜRETMEMESİ) birim testinde değil, yalnızca tarayıcıda gözle doğrulandı. (2) Sayfa boyutu SABİT 20. (3) 'Bugün' sunucuda `appToday()` ile İstanbul gününe göre — gece 00:00–03:00 sınırı arayüzden denenmedi, servis birim testlerinde.",
+  },
+  '/panel/saglik/yeni': {
+    kapilar: ['e2e'],
+    kanit: ["page.goto('/panel/saglik/yeni'"],
+    not: "ÖLÇÜLÜYOR (T-116): virgüllü ölçü (`82,5`) NOKTALI kaydedilip düzenlemede `82,50` okunuyor; aynı güne ikinci kayıt CONFLICT'i 'O günün kaydını düzenle' bağlantısına dönüşüp mevcut kayda götürüyor. T-113 ile eklendi. Okuma yok; gün varsayılanı SUNUCUDA `appToday()` — istemcide `new Date()` gece yarısından sonra üç saat boyunca DÜNÜ önerirdi. Yazma `createHealthLogAction`. Aynı güne ikinci kayıt CONFLICT dönüyor ve `fields.existingId` formda 'O günün kaydını düzenle' bağlantısına çevriliyor (kimlik formun alanı değil, kabuk basmazdı). Ölçüler DİZE gidiyor; `ONDALIK_YA_DA_YOK` yalnızca virgülü noktaya çeviriyor. ÖLÇÜLMEYEN: (1) CONFLICT bağlantısının uçtan uca davranışı; eylem dalı birim testinde (`saglik-actions.test.ts`). (2) `ONDALIK_YA_DA_YOK`un birden fazla virgül içeren girdide davranışı — şema reddediyor, mesajın alan altına düştüğü denenmedi.",
+  },
+  '/panel/saglik/[id]': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: "T-113 ile eklendi. Okuma `fetchHealthLogById` TEK KAYIT; yoksa 404. Yazma `updateHealthLogAction` + `deleteHealthLogAction`. Silme onayı değerlerin HİÇBİR YERDE kalmadığını söylüyor — T-110 kararı (denetim kaydına yalnızca gün yazılıyor); `deneyim`deki 'denetim kaydında görünmeye devam eder' metni burada yalan olurdu, bu yüzden onay metni çağırandan geliyor (`kalici-sil-dugmesi.tsx`). ÖLÇÜLMEYEN: (1) BİLİNEN SINIR: güncelleme şeması kısmi, dolu alanı boşaltmak değeri SİLMİYOR — ekranda yazıyor, davranış değiştirilmedi. (2) Tarihi başka bir kayda ait güne çekmek CONFLICT veriyor; mesajın alan altına düştüğü arayüzden denenmedi.",
+  },
+  '/panel/spor': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: "T-114 ile eklendi. `(panel)` kimlik zinciri + §8.1 2FA kapısı; `robots: noindex/nofollow/nocache`. Okuma `fetchWorkouts` (ham, önbelleksiz; sıra gün AZALAN + `createdAt` AZALAN — `date` `@unique` değil). Yazma YOK — silme bilinçli olarak detayda (cascade + rekor hesabı satırdaki küçük bir düğmeye sığmıyor). Sayfa `workoutFilterSchema`'dan geçiyor (ADR-032). `SporSekmeleri` kütüphane ve rekorlara tek giriş noktası. ÖLÇÜLMEYEN: (1) Sayfa boyutu SABİT 20. (2) `setCount`un doğruluğu servis testlerinde, arayüzden ölçülmedi. (3) `type`/`from`/`to` süzgeçleri şemada var ama arayüzde yok.",
+  },
+  '/panel/spor/yeni': {
+    kapilar: ['e2e'],
+    kanit: ["page.goto('/panel/spor/yeni'"],
+    not: "ÖLÇÜLÜYOR (T-116): 'Antrenmanı aç' başarıda `/panel/spor/<id>` detayına düşüyor; detayda set eklemek rekor bildirimi üretiyor ve antrenmanı SİLMEK o rekoru rekor listesinden DÜŞÜRÜYOR (cascade + yeniden hesap, gerçek veritabanıyla). T-114 ile eklendi. Okuma yok; gün varsayılanı sunucuda `appToday()` (ADR-016). Yazma `createWorkoutAction`; başarıda `/panel/spor/<id>`e geçiyor (set girişi orada). ÖLÇÜLMEYEN: (1) Gece 00:00–03:00 gün önerisi ölçülmedi (`saglik/yeni` ile aynı mekanizma).",
+  },
+  '/panel/spor/[id]': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: 'T-114 ile eklendi. Okuma `fetchWorkoutById` (setleriyle) + `fetchExercises({isArchived:false, perPage:100})` (yeni set seçicisi) + setlerin işaret ettiği ama aktif listede olmayan her egzersiz için `fetchExerciseById` (arşivli harekete ait set düzenlenirken bağ kopmasın — `islem-formu.tsx` dersi). Yazma `updateWorkoutAction`, `deleteWorkoutAction` (onay setlerin silineceğini ve rekorların yeniden hesaplanacağını söylüyor), `createWorkoutSetAction`, `updateWorkoutSetAction`, `deleteWorkoutSetAction`; set eylemlerinin rekor sonucu `role="status"` ile gösteriliyor. CONFLICT (`setNo`) `fields.setNo` ile alana basılıyor; `workoutId` `gorunmezAlanlar`da. ÖLÇÜLMEYEN: (1) Rekor yeniden hesabının doğruluğu servis testlerinde, ekrandan ölçülmedi. (2) CONFLICT dalı arayüzde denenmedi. (3) Arşivli egzersizin \'(arşivli)\' seçenek olarak görünmesi denenmedi. (4) Güncelleme KISMİ: ağırlık/RPE/süre/not boşaltmak değeri silmez (metinde yazılı). (5) Seçici tavanı 100 egzersiz.',
+  },
+  '/panel/spor/egzersizler': {
+    kapilar: ['e2e'],
+    kanit: ['page.goto(`/panel/spor/egzersizler?'],
+    not: "ÖLÇÜLÜYOR (T-116): `?q=` araması tek satıra daralıyor ve satırdan arşivleme onaylı çalışıyor. T-114 ile eklendi. Okuma `fetchExercises` (`exerciseFilterSchema`'dan geçiyor, ADR-032; `q` + `gorunum` + `sayfa`). ⚠️ VARSAYILAN GÖRÜNÜM ARŞİVİ GİZLEMİYOR (servisin `isArchived` varsayılanı yok, korundu). Yazma satırdan `archiveExerciseAction` (iki yönlü; arşivleme onaylı, geri alma onaysız — müşteriler kararı). SİLME YOK (Restrict FK; eylem yazılmadı). ÖLÇÜLMEYEN: (1) Üç görünümün süzme doğruluğu servis testlerinde. (2) `q` büyük/küçük harf duyarsızlığı Türkçe İ/ı için denenmedi. (3) Sayfa boyutu SABİT 25.",
+  },
+  '/panel/spor/egzersizler/yeni': {
+    kapilar: ['e2e'],
+    kanit: ["page.goto('/panel/spor/egzersizler/yeni'"],
+    not: 'ÖLÇÜLÜYOR (T-116): egzersiz ekleme kütüphaneye dönüyor ve hareket set seçicisinde görünüyor. T-114 ile eklendi. Okuma yok; yazma `createExerciseAction`, başarıda kütüphaneye dönüyor. `name @unique` CONFLICT`i `fields.name` ile alana basılıyor. ÖLÇÜLMEYEN: (1) CONFLICT dalı arayüzde denenmedi. (2) Adın büyük/küçük harf farkıyla ikinci kez eklenebilmesi — veritabanı kuralı, ölçülmedi.',
+  },
+  '/panel/spor/egzersizler/[id]': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: 'T-114 ile eklendi. Okuma `fetchExerciseById` + `fetchRecordsForExercise` (sayfasız, `reps` artan). Yazma `updateExerciseAction`; `isArchived` formda YOK (arşivleme ayrı eylem, listeden). ÖLÇÜLMEYEN: (1) Kas grubu değişikliğinin eski setleri yeniden gruplaması (yardım metninde yazılı) ölçülmedi. (2) Geçersiz kimlikte 404 dışı davranış.',
+  },
+  '/panel/spor/rekorlar': {
+    kapilar: ['e2e'],
+    kanit: ["page.goto('/panel/spor/rekorlar'"],
+    not: "ÖLÇÜLÜYOR (T-116): set sonrası rekor satırı `100,5` ile görünüyor; antrenman silinince satır KALKIYOR. T-114 ile eklendi. Okuma `fetchPersonalRecords` (sıra servisin: egzersiz, `reps` artan) + süzgeç seçicisi için `fetchExercises({perPage:100})` — ARŞİV DAHİL (geçmişi okuyor; set seçicisinin tersi). `?egzersiz=` `personalRecordFilterSchema.safeParse` ile doğrulanıyor (ADR-032); geçersiz değer süzgeçsiz listeye düşüyor ve ekran bunu söylüyor. SALT OKUNUR (PR türetilmiş, ADR-021). `workoutSetId === null` 'kaynaksız' rozetiyle görünür. ÖLÇÜLMEYEN: (1) Kaynak antrenmana bağlantı YOK (set→antrenman çözen servis okuması yok). (2) Süzgeç seçicisi tavanı 100.",
+  },
+  '/panel/hayat': {
+    kapilar: ['e2e'],
+    kanit: ["page.goto('/panel/hayat'"],
+    not: "ÖLÇÜLÜYOR (T-116): bugünün hücresi `aria-pressed` false→true, YENİLEMEDEN SONRA da true (kalıcı yazma, iyimser değil); ikinci tık false ve o da kalıcı; ızgara 360 px'te sayfayı taşırmıyor (T-116'da 252 px taşıyordu — kaydırma kabında `relative` eksikti). T-115 ile eklendi (ADR-036). Kimlik zinciri `(panel)` düzeni + ara katman + §8.1 2FA kapısı; `robots: noindex/nofollow/nocache`. ÜÇ PARALEL OKUMA: `fetchHabitWeek(gün)` (pazartesi başlangıçlı 7 gün + bugünden geriye 400 günlük seri penceresi), `fetchGoals({status:'ACTIVE', perPage:5})`, `fetchJournalEntries({perPage:5})` — liste DTO'su, `content` TAŞIMIYOR. `?hafta=` `dayDateSchema.safeParse` ile doğrulanıyor; geçersiz ya da GELECEKTEKİ gün `appToday()`ye düşüyor (ADR-032). Yazma panodaki hücrelerden `toggleHabitDayAction` (aç/kapa ya da +1) ve `setHabitDayCountAction` (sayaçlı alışkanlıkta −1 düzeltme). Hücre İYİMSER güncelleniyor, sunucunun döndürdüğü `count` ile kesinleşiyor, hatada geri dönüyor + `FormAlert`; seri iyimser HESAPLANMIYOR, başarıdan sonra `router.refresh()`. Gelecek günler devre dışı. İstekteki hücre kilitli (aynı sekmede çift tık yarışı kapalı). ÖLÇÜLMEYEN: (1) İyimser güncellemenin GERİ ALMA dalı tarayıcıda denenmedi. (2) Başka sekmeden gelen eşzamanlı artırma yarışı (servis kabul etti) arayüzden denenmedi. (3) Ekran okuyucu duyurusu (`aria-pressed`) gerçek bir okuyucuyla denenmedi. (4) Gece 00:00–03:00 'bugün' sınırı arayüzden denenmedi.",
+  },
+  '/panel/hayat/aliskanliklar': {
+    kapilar: ['e2e'],
+    kanit: ["page.goto('/panel/hayat/aliskanliklar'"],
+    not: 'ÖLÇÜLÜYOR (T-116): listeden kayda geçiş ve kayıt ekranından arşivleme. T-115 ile eklendi. Okuma `fetchHabits` (ham, önbeleksiz, sayfa boyutu SABİT 25); filtre `habitFilterSchema`dan geçiyor. Görünüm KAPALI KÜME: hepsi (arşiv DAHİL — T-038/musteriler kararı) / panoda (`isActive && !isArchived`) / ara verildi (`!isActive && !isArchived`) / arşiv. Yazma satırdan `archiveHabitAction` iki yönlü — arşivle onaylı, arşivden çıkar onaysız. SİLME YOK (`HabitLog` CASCADE geçmişi götürürdü) ve ekran bunu yazıyor. ÖLÇÜLMEYEN: (1) Dört görünümün süzme doğruluğu yalnızca `buildHabitWhere` birim testlerinde. (2) Arşivden çıkarmanın onaysız olması karar, ölçülmedi.',
+  },
+  '/panel/hayat/aliskanliklar/yeni': {
+    kapilar: ['e2e'],
+    kanit: ["page.goto('/panel/hayat/aliskanliklar/yeni'"],
+    not: 'ÖLÇÜLÜYOR (T-116): alışkanlık ekleme listeye dönüyor ve panoda görünüyor. T-115 ile eklendi. Okuma yok; yazma `createHabitAction`. `panel-form` + Server Action zinciri `projeler/yeni`de uçtan uca ölçülüyor. ÖLÇÜLMEYEN: (1) `color` #RRGGBB hatasının alan altına düştüğü arayüzden denenmedi. (2) `icon` serbest metin/emoji — 255 karakter üst sınırı dışında doğrulama yok.',
+  },
+  '/panel/hayat/aliskanliklar/[id]': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: 'T-115 ile eklendi. Okuma `fetchHabitById` TEK KAYIT; yoksa 404. Arşivlenmiş alışkanlık da açılıyor (arşivden çıkarmanın ikinci yolu). Yazma `updateHabitAction` + `archiveHabitAction`. ÖLÇÜLMEYEN: (1) BİLİNEN SINIR: güncelleme şeması kısmi — `targetPerDay` ve `color` boşaltılınca TEMİZLENMİYOR (sayaçlı alışkanlık aç/kapa türüne dönemez); ekranda yazıyor. (2) `targetPerDay` değişince geçmişin yeniden yorumlanması (servis kararı) arayüzden denenmedi.',
+  },
+  '/panel/hayat/hedefler': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: "T-115 ile eklendi. Okuma `fetchGoals` (sayfa boyutu SABİT 25); filtre `goalFilterSchema`dan geçiyor — durum sekmeleri KAPALI KÜME, `?q=` düz GET formu. Şema reddederse aramasız listeye düşülüyor ve ekranda SÖYLENİYOR. Kalan gün rozeti yalnızca ACTIVE/PAUSED hedefte (kapalı hedefte 'gecikti' yanlış alarm olurdu). Yazma satırdan `deleteGoalAction` (GERÇEK silme, FK yok). ÖLÇÜLMEYEN: (1) `kalanGunMetni` metin dönüşümü birim testinde değil. (2) Arama Türkçe İ/ı davranışı denenmedi.",
+  },
+  '/panel/hayat/hedefler/yeni': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: "T-115 ile eklendi. Okuma yok; yazma `createGoalAction`. Durum 'Ulaşıldı'ya çekilince ilerleme istemcide 100'e getiriliyor (servisin (a) yorumu); şemanın çapraz kuralı istemcide `progress` alanına basıyor. ÖLÇÜLMEYEN: (1) `description` denetim kaydına değeriyle girmiyor (yalnızca `changed`) — eylem birim testinde, arayüzden değil.",
+  },
+  '/panel/hayat/hedefler/[id]': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: "T-115 ile eklendi. Okuma `fetchGoalById` TEK KAYIT; yoksa 404. Yazma `updateGoalAction` + `deleteGoalAction` (onay 'Vazgeçildi' durumunu hatırlatıyor). Ulaşılmış hedefin ilerlemesini düşürmek önce istemci şemasında `progress` hatası; istemci atlatılırsa sunucunun VALIDATION_ERROR'u `fields.progress` ile AYNI alana düşüyor. ÖLÇÜLMEYEN: (1) Sunucu dalı (`GoalRuleError`) arayüzden hiç tetiklenmedi — istemci şeması önce yakalıyor; eylem birim testinde. (2) BİLİNEN SINIR: `targetDate` boşaltılınca TEMİZLENMİYOR (kısmi şema); ekranda yazıyor.",
+  },
+  '/panel/hayat/gunluk': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: "T-115 ile eklendi. Okuma `fetchJournalEntries` (sayfa boyutu SABİT 20) — liste DTO'su `excerpt` + `truncated` taşıyor, TAM METİN TAŞIMIYOR. Filtre `journalEntryFilterSchema`dan geçiyor: `?q=` (başlık+içerik) düz GET formu, `?etiket=` (tam eşleşme) etiket bağlantılarından; reddedilirse süzgeçsiz liste + ekranda uyarı. Yazma YOK (silme kaydın kendi ekranında). ÖLÇÜLMEYEN: (1) İçerikte `contains` aramasının 100.000 karakterlik kayıtlarda sorgu maliyeti ölçülmedi. (2) Etiket büyük/küçük harf duyarlılığı arayüzden denenmedi.",
+  },
+  '/panel/hayat/gunluk/yeni': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: 'T-115 ile eklendi. Okuma yok; gün varsayılanı SUNUCUDA `appToday()`. Yazma `createJournalEntryAction`. Etiketler ekranda virgüllü METİN, formda DİZİ (`etiketleriAyir`): boş parça atılır, tekrar teke iner, uzunluk KESİLMEZ (sınırı `tagsSchema` söyler). ÖLÇÜLMEYEN: (1) Öğe düzeyi sunucu hatası (`tags.3`) form düzeyine düşer — denenmedi. (2) Denetim kaydına yalnızca gün + alan adları girdiği eylem birim testinde, arayüzden değil.',
+  },
+  '/panel/hayat/gunluk/[id]': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: "T-115 ile eklendi. Okuma `fetchJournalEntryById` TEK KAYIT, TAM METİN yalnızca burada; yoksa 404 — formu liste özetinden beslemek metni 240 karaktere keserdi. `metadata.title` SABİT, kaydın başlığı sekmeye/geçmişe sızmıyor. Yazma `updateJournalEntryAction` + `deleteJournalEntryAction`; silme onayı içeriğin hiçbir yerde saklanmadığını söylüyor. ÖLÇÜLMEYEN: (1) BİLİNEN SINIR: `mood` 'Girilmedi'ye çekilince TEMİZLENMİYOR (kısmi şema); ekranda yazıyor. (2) Kimlik numaralandırma (cuid tahmin edilemez VARSAYILDI).",
+  },
   '/panel/isler': {
     kapilar: ['kapsanmiyor'],
     kanit: [],
