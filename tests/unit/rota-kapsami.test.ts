@@ -448,9 +448,9 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     not: "T-047 ile eklendi. Okuma `fetchPostsForPanel`, YAZMA YOK, filtre `postFilterSchema`'dan geçiyor (adres çubuğu kullanıcı girdisidir — ADR-032). Kimlik zinciri `projeler`/`deneyim` ile AYNI: `(panel)` düzeni + ara katman, çerezsiz istek 307 → /giris, oturum + 2FA; `robots: noindex/nofollow/nocache`. E2E'ye alınmadı çünkü aynı liste kalıbı (`VeriTablosu` + `?durum=` sekmeleri + sayfalama) `projeler` tarafında ölçülüyor. ÖLÇÜLMEYEN: sayfa boyutu SABİT 25, adresten verilemiyor; sıralama ve süzme doğruluğu (birim testlerinde).",
   },
   '/panel/icerik/blog/yeni': {
-    kapilar: ['kapsanmiyor'],
-    kanit: [],
-    not: "T-047 ile eklendi; yazma `createPostAction`. Gerekçe `deneyim/yeni` ile aynı: aynı `panel-form` + Server Action + ADR-029 zinciri `projeler/yeni` tarafında uçtan uca ölçülüyor ve `post.ts` action'ları `project.ts`in birebir kardeşi (etiket hesabı dahil). ÖLÇÜLMEYEN: slug çakışmasının bu rotadaki hâli; MDX ÖNİZLEMESİNİN İSTEMCİ TARAFI KAYNAK TÜKETİMİ — önizleme derleyicisi tarayıcıda koşuyor, derleme bombası/özyinelemeli yapı denenmedi (sunucu etkilenmiyor; kabul edilen risk, gerekçesi docs/security/README.md'de).",
+    kapilar: ['e2e'],
+    kanit: ["'/panel/icerik/blog/yeni'"],
+    not: "ÖLÇÜLÜYOR (T-060, `csp.spec.ts`): MDX editörü nonce'lu CSP altında İHLALSİZ yükleniyor — Zod 4'ün `eval` yoklaması burada ölçüldü ve `jitless` ile kapatıldı. T-047 ile eklendi; yazma `createPostAction`. Gerekçe `deneyim/yeni` ile aynı: aynı `panel-form` + Server Action + ADR-029 zinciri `projeler/yeni` tarafında uçtan uca ölçülüyor ve `post.ts` action'ları `project.ts`in birebir kardeşi (etiket hesabı dahil). ÖLÇÜLMEYEN: slug çakışmasının bu rotadaki hâli; MDX ÖNİZLEMESİNİN İSTEMCİ TARAFI KAYNAK TÜKETİMİ — önizleme derleyicisi tarayıcıda koşuyor, derleme bombası/özyinelemeli yapı denenmedi (sunucu etkilenmiyor; kabul edilen risk, gerekçesi docs/security/README.md'de).",
   },
   '/panel/icerik/blog/[id]': {
     kapilar: ['kapsanmiyor'],

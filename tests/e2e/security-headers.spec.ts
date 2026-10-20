@@ -140,16 +140,19 @@ test.describe('§8.12 — HSTS', () => {
 });
 
 /**
- * F0 SINIRI — bu test bilerek "henüz yok" doğrular.
+ * §8.13 — CSP VAR (T-060).
  *
- * CSP (§8.13) F6/T-060'ta yazılacak. Buradaki beklenti T-060'ta TERSİNE
- * ÇEVRİLECEK; testin varlığı, CSP'nin sessizce unutulmamasını ve eklendiğinde
- * bu dosyanın güncellenmesini garanti eder.
+ * ⚠️ BURADA F0'DA "CSP henüz yok" İDDİASI VARDI ve tasarlandığı gibi T-060'ta
+ * ATEŞLENDİ — kendi metni "T-060 bu beklentiyi tersine çevirecek" diyordu.
+ * CSP'nin tarayıcıdaki davranışı (ihlal yok, nonce basılmış, hidrasyon)
+ * `csp.spec.ts`te; burası yalnızca başlığın VARLIĞINI ve asıl şartı tutuyor.
  */
-test('§8.13 — CSP F0 kapsamında henüz yok (T-060 bu beklentiyi tersine çevirecek)', async ({
-  request,
-}) => {
-  const headers = (await request.get('/')).headers();
+test('§8.13 — CSP var, nonce tabanlı, betikte `unsafe-inline` yok', async ({ request }) => {
+  const birinci = (await request.get('/')).headers()['content-security-policy'] ?? '';
+  const ikinci = (await request.get('/')).headers()['content-security-policy'] ?? '';
 
-  expect(headers['content-security-policy']).toBeUndefined();
+  expect(birinci).toMatch(/script-src [^;]*'nonce-[A-Za-z0-9+/=]+'/);
+  expect(birinci).not.toMatch(/script-src[^;]*'unsafe-inline'/);
+  // Nonce İSTEK BAŞINA — iki yanıtta aynı nonce, `unsafe-inline`dan farksız olurdu.
+  expect(birinci).not.toBe(ikinci);
 });

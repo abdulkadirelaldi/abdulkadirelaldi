@@ -278,7 +278,7 @@ ve bu turda Frontend'in ölçüm görevi var (ADR-023: iki ölçüm görevi para
 
 | #     | Görev                                                                            | Ajan                | Bağımlılık   |
 | ----- | -------------------------------------------------------------------------------- | ------------------- | ------------ |
-| T-060 | Nonce tabanlı CSP + tüm güvenlik başlıkları (§8.12–14)                           | Güvenlik            | F2–F5        |
+| T-060 | Nonce tabanlı CSP + tüm güvenlik başlıkları (§8.12–14) — 🟢 **Tamam** (§8.13 ✅, 133 E2E) | Güvenlik            | F2–F5        |
 | T-061 | Hız sınırlama katmanı tamamlanması (§8.15–16)                                    | Güvenlik            | T-060        |
 | T-062 | §8'in 25 maddesi tam denetimi + bulgu kayıtları                                  | Güvenlik            | T-060, T-061 |
 | T-063 | Bulgu düzeltmeleri (Backend/Frontend'e dağıtılır)                                | Backend + Frontend  | T-062        |
