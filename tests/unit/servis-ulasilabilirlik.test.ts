@@ -136,15 +136,55 @@ interface UlasilmazBildirim {
 
 const BILDIRIM: UlasilmazBildirim[] = [
   /* ---- BEKLEYEN — tüketicisinden önce yazıldı, görevi biliniyor ------- */
+  /*
+   * ⚠️ `_shared/app-date.ts → differenceInAppDays` ve `→ appWeekRange`
+   * SATIRLARI T-112'DE SİLİNDİ — kapı söyledi (üçüncü kez: T-110, T-111).
+   * Bekleyen tüketiciler geldi: `goal.ts` (`daysLeft`) ve `habit.ts`
+   * (haftalık pano). Notları "alışkanlık serisi ve hedef geri sayımı" idi.
+   */
   {
-    anahtar: '_shared/app-date.ts → differenceInAppDays',
+    anahtar: 'habit.ts → fetchHabits',
     sebep: 'bekleyen',
-    not: 'F5 · alışkanlık serisi ve hedef geri sayımı gün farkı istiyor (§4.2 kişisel).',
+    not:
+      'F5 · §4.2 `/panel/hayat` alışkanlık YÖNETİM listesi (arşiv dahil). Servis ' +
+      'T-112`de yazıldı, ekran T-115`te. Yazma yolu (`createHabitAction`) ' +
+      'ULAŞILABİLİR, yani servis ölü değil.',
   },
   {
-    anahtar: '_shared/app-date.ts → appWeekRange',
+    anahtar: 'habit.ts → fetchHabitById',
     sebep: 'bekleyen',
-    not: 'F5 · haftalık spor/alışkanlık özetleri. ADR-016 hafta başlangıcını burada sabitliyor.',
+    not: 'F5 · alışkanlık düzenleme formunun tek kayıt okuması. T-115, aynı sebep.',
+  },
+  {
+    anahtar: 'habit.ts → fetchHabitWeek',
+    sebep: 'bekleyen',
+    not:
+      'F5 · §4.2 alışkanlık panosunun ANA okuması — haftalık ızgara + seri. ' +
+      'Yazma yolu (`toggleHabitDayAction`) ulaşılabilir; ızgara T-115`te.',
+  },
+  {
+    anahtar: 'goal.ts → fetchGoals',
+    sebep: 'bekleyen',
+    not:
+      'F5 · §4.2 hedef listesi. Sıra durum → en yakın hedef tarihi (tarihsizler ' +
+      'sonda) → id. Ekran T-115`te; yazma yolu (`createGoalAction`) ulaşılabilir.',
+  },
+  {
+    anahtar: 'goal.ts → fetchGoalById',
+    sebep: 'bekleyen',
+    not: 'F5 · hedef düzenleme formunun tek kayıt okuması. T-115, aynı sebep.',
+  },
+  {
+    anahtar: 'journal-entry.ts → fetchJournalEntries',
+    sebep: 'bekleyen',
+    not:
+      'F5 · §4.2 günlük listesi — ÖZET taşır, tam metin değil (`content` 100.000 ' +
+      'karaktere kadar). Ekran T-115`te; yazma yolu ulaşılabilir.',
+  },
+  {
+    anahtar: 'journal-entry.ts → fetchJournalEntryById',
+    sebep: 'bekleyen',
+    not: 'F5 · günlük kaydının TAM metni — okuma/düzenleme ekranı. T-115, aynı sebep.',
   },
   /*
    * ⚠️ `_shared/decimal.ts → toMeasureString` SATIRI T-110'DA SİLİNDİ ve

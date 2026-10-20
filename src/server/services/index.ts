@@ -154,6 +154,14 @@ export * from './personal-record';
 export * from './workout';
 export * from './workout-set';
 
+// F5 §4.2 — alışkanlık, hedef, günlük (T-112). Alışkanlık SİLİNMEZ (`HabitLog`
+// cascade geçmişi götürürdü); "ulaşıldı ⇔ %100" kuralının birleşik hâli
+// `goal.ts`te; günlük İÇERİĞİ denetim kaydına girmiyor (`actions/journal-entry.ts`).
+export * from './goal';
+export * from './habit';
+export * from './habit-log';
+export * from './journal-entry';
+
 // ADR-026 — içerik servisleri (F2 public okuma tarafı)
 export * from './experience';
 export * from './post';

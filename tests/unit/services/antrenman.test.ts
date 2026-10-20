@@ -872,13 +872,13 @@ describe('kapılar', () => {
     }
   });
 
-  it('⚠️ T-112 KAPSAMI YAZILMADI — `Habit`/`Goal`/`JournalEntry` yok', () => {
-    // Kart bunları açıkça bir sonraki tura bıraktı ("tek turda dokuz model
-    // fazla"). Yazılmış olsalardı bağlanmamış kod olurlardı.
-    for (const ad of ['habit', 'habit-log', 'goal', 'journal-entry']) {
-      expect(() => readFileSync(join(KOK, `src/server/services/${ad}.ts`))).toThrow();
-    }
-  });
+  /*
+   * ⚠️ BURADA T-111'İN KAPSAM KİLİDİ VARDI: "`Habit`/`Goal`/`JournalEntry`
+   * YAZILMADI". Kart onları bir sonraki tura bırakmıştı ("tek turda dokuz model
+   * fazla"). T-112 o tur — kilit tasarlandığı gibi ATEŞLENDİ ve silindi.
+   * Kapsam ayrımı artık dosya sınırında: o dört servisin testleri
+   * `services/hayat.test.ts`te.
+   */
 
   it('`BigInt` yok — `Decimal` dizeye çevriliyor (ADR-014/D)', () => {
     for (const yol of dosyalar) expect(kod(yol)).not.toContain('BigInt');

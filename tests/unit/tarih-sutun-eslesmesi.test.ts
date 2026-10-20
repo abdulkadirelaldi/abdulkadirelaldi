@@ -170,6 +170,49 @@ const ESLESMELER: Eslesme[] = [
       'OLDUĞUNU değiştirirdi.',
   },
   {
+    servis: 'src/server/services/habit.ts',
+    model: 'HabitLog',
+    alan: 'date',
+    beklenen: 'gun',
+    not:
+      '§4.2 haftalık alışkanlık panosu ve seri hesabı. `HabitLog.date` `@db.Date` ' +
+      '→ `appDayToDate`/`dateToAppDay`. ⚠️ Hafta sınırı (`appWeekRange`, ' +
+      'pazartesi) ve seri penceresi GÜN aritmetiğiyle (`addAppDays`) kuruluyor, ' +
+      'an aritmetiğiyle değil — yani bir `AppDay` hiçbir noktada saate dönmüyor ' +
+      've 3 saatlik kayma sınıfı burada doğamıyor.',
+  },
+  {
+    servis: 'src/server/services/habit-log.ts',
+    model: 'HabitLog',
+    alan: 'date',
+    beklenen: 'gun',
+    not:
+      'İşaret yazma yolu. `@@unique([habitId, date])` ve `date` `@db.Date` — ' +
+      'tekillik GÜNE bağlı (`HealthLog.date @unique` ile aynı gerekçe). Yanlış ' +
+      'yardımcı (anlık) aynı günü İKİ farklı değere çevirip tekilliği delerdi: ' +
+      'gece 01:00`deki tık bir önceki güne yazılırdı.',
+  },
+  {
+    servis: 'src/server/services/goal.ts',
+    model: 'Goal',
+    alan: 'targetDate',
+    beklenen: 'gun',
+    not:
+      '§4.2 hedef tarihi, `DateTime? @db.Date` (OPSİYONEL) → `appDayToDate`. ' +
+      '`daysLeft` `differenceInAppDays` ile GÜN farkı olarak türetiliyor; ' +
+      '`createdAt`/`updatedAt` `timestamp` ve gün dönüşümünden GEÇMİYOR.',
+  },
+  {
+    servis: 'src/server/services/journal-entry.ts',
+    model: 'JournalEntry',
+    alan: 'date',
+    beklenen: 'gun',
+    not:
+      '§4.2 günlük. `date` `@db.Date` ama `@unique` DEĞİL (`HealthLog`un tersi, ' +
+      '`Workout` ile aynı) — günde birden çok kayıt; sıralamada ikincil anahtar ' +
+      '`createdAt` ZORUNLU ve o bir `timestamp`, gün dönüşümünden geçmiyor.',
+  },
+  {
     servis: 'src/server/services/recurring-transaction.ts',
     model: 'RecurringTransaction',
     alan: 'startDate',
