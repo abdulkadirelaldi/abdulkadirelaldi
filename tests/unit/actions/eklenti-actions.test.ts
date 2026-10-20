@@ -63,7 +63,10 @@ const { dbMock } = vi.hoisted(() => {
       transaction: { count: vi.fn().mockResolvedValue(1) },
       job: { count: vi.fn().mockResolvedValue(1) },
       client: { count: vi.fn().mockResolvedValue(1) },
-      auditLog: { create: vi.fn().mockResolvedValue(undefined) },
+      auditLog: {
+        create: vi.fn().mockResolvedValue(undefined),
+        count: vi.fn().mockResolvedValue(0),
+      },
     },
   };
 });
@@ -97,6 +100,7 @@ beforeEach(() => {
   r2Mock.getObjectBytes.mockResolvedValue(gercekPng());
   r2Mock.deleteObjectQuietly.mockResolvedValue(true);
   r2Mock.presignUpload.mockReturnValue('https://imzali.example/put');
+  dbMock.auditLog.count.mockResolvedValue(0);
 });
 
 function yazilanDiff(): unknown {
@@ -414,5 +418,68 @@ describe('deleteAttachmentAction', () => {
 
     expect(satir.action).toBe('DELETE');
     expect(JSON.stringify(yazilanDiff())).toContain('project/prj_1/rnd.png');
+  });
+});
+
+/* ===========================================================================
+ * §8.16 — YÜKLEME HIZ SINIRI (T-061)
+ * ======================================================================== */
+
+describe('§8.16 — yükleme uçları dakikada 10', () => {
+  const bilet = () =>
+    requestUploadAction({
+      mime: 'image/png',
+      size: 1000,
+      entity: 'PROJECT',
+      entityId: 'prj_1',
+    });
+
+  it('sınırın ALTINDA bilet veriliyor ve çağrı sayaca YAZILIYOR', async () => {
+    dbMock.auditLog.count.mockResolvedValue(9);
+    expect((await bilet()).ok).toBe(true);
+
+    const yazilan = dbMock.auditLog.create.mock.calls.map(
+      (c) => (c[0] as { data: { diff: unknown } }).data.diff,
+    );
+    expect(yazilan).toContainEqual({ context: 'UPLOAD_TICKET' });
+  });
+
+  it('⚠️ 10. çağrıda RATE_LIMITED — imzalı adres ÜRETİLMİYOR', async () => {
+    dbMock.auditLog.count.mockResolvedValue(10);
+    const sonuc = await bilet();
+
+    expect(sonuc.ok).toBe(false);
+    if (!sonuc.ok) expect(sonuc.error.code).toBe('RATE_LIMITED');
+    expect(r2Mock.presignUpload).not.toHaveBeenCalled();
+  });
+
+  it('⚠️ reddedilen çağrı sayaca YAZILMIYOR — pencere kendi aleyhine uzamaz', async () => {
+    dbMock.auditLog.count.mockResolvedValue(10);
+    await bilet();
+    expect(dbMock.auditLog.create).not.toHaveBeenCalled();
+  });
+
+  it('⚠️ onay ayrı sayılıyor ve sınırda R2 OKUNMUYOR', async () => {
+    dbMock.auditLog.count.mockResolvedValue(10);
+    const sonuc = await confirmUploadAction(ONAY);
+
+    expect(sonuc.ok).toBe(false);
+    if (!sonuc.ok) expect(sonuc.error.code).toBe('RATE_LIMITED');
+    expect(r2Mock.getObjectBytes).not.toHaveBeenCalled();
+
+    const where = dbMock.auditLog.count.mock.calls.at(-1)?.[0].where;
+    expect(where.diff).toEqual({ path: ['context'], equals: 'UPLOAD_CONFIRM' });
+  });
+
+  it('sayım AKTÖRE ve son 60 saniyeye bağlı', async () => {
+    const once = Date.now();
+    await bilet();
+    const where = dbMock.auditLog.count.mock.calls.at(-1)?.[0].where;
+
+    expect(where.actorId).toBe('usr_1');
+    expect(where.entity).toBe('Attachment');
+    const fark = once - (where.createdAt.gte as Date).getTime();
+    expect(fark).toBeGreaterThan(59_000);
+    expect(fark).toBeLessThan(61_000);
   });
 });

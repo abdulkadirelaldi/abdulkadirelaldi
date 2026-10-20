@@ -264,3 +264,56 @@ export async function fetchAttachmentById(
 export function signedUrlForKey(key: string, deps?: Parameters<typeof presignDownload>[1]): string {
   return presignDownload(key, deps);
 }
+
+/* ===========================================================================
+ * §8.16 — YÜKLEME HIZ SINIRI SAYACI (T-061)
+ * ======================================================================== */
+
+/**
+ * Sayaç bağlamları — denetim kaydının `diff.context` değeri, kodda SABİT
+ * (`SHOWN_DIFF_VALUE_KEYS` beyaz listesindeki `context`, yani ekranda okunur).
+ */
+export const UPLOAD_CONTEXTS = {
+  ticket: 'UPLOAD_TICKET',
+  confirm: 'UPLOAD_CONFIRM',
+} as const;
+
+export type UploadContext = (typeof UPLOAD_CONTEXTS)[keyof typeof UPLOAD_CONTEXTS];
+
+export interface UploadRateClient {
+  auditLog: {
+    count(args: {
+      where: {
+        actorId: string;
+        entity: 'Attachment';
+        createdAt: { gte: Date };
+        diff: { path: ['context']; equals: string };
+      };
+    }): Promise<number>;
+  };
+}
+
+/**
+ * Pencere içindeki yükleme çağrıları — `AuditLog`dan.
+ *
+ * SAYAÇ NEDEN DENETİM KAYDINDA (bellek değil): tek kullanıcılı, tek süreçli
+ * bir uygulamada bellek de çalışırdı, ama yeniden başlatmada SIFIRLANIRDI ve
+ * Coolify sağlık kontrolü düşen süreci yeniden başlatıyor (§13.6). Ayrıca
+ * kalıp zaten var: TOTP ve şifre değiştirme sayaçları da `AuditLog`da
+ * (T-015b/K1) — üçüncü bir mekanizma icat etmek yerine aynısı.
+ */
+export async function countRecentUploadCalls(
+  actorId: string,
+  context: UploadContext,
+  since: Date,
+  client: UploadRateClient = db,
+): Promise<number> {
+  return client.auditLog.count({
+    where: {
+      actorId,
+      entity: 'Attachment',
+      createdAt: { gte: since },
+      diff: { path: ['context'], equals: context },
+    },
+  });
+}

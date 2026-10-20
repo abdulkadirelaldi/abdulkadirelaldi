@@ -34,6 +34,28 @@ export const LOGIN_RATE_LIMIT = {
 
 const MS_PER_MINUTE = 60_000;
 
+/**
+ * §8.16 — "Yükleme uçları: dakikada 10" (T-061).
+ *
+ * UÇ BAŞINA AYRI SAYILIR: bilet (`requestUploadAction`) ve onay
+ * (`confirmUploadAction`) iki ayrı maliyet — ilki imzalı PUT üretiyor, ikincisi
+ * R2'den 10 MB'a kadar nesne OKUYOR. Tek ortak sayaç meşru bir yüklemeyi (iki
+ * çağrı) yarı fiyattan sayardı; ayrı sayaç her ucu kendi ölçüsüyle sınırlıyor.
+ *
+ * Eşik ve pencere TEK YERDE — §8.4 ile aynı kural: hangi sayının yürürlükte
+ * olduğu koda bakmadan söylenebilmeli.
+ */
+export const UPLOAD_RATE_LIMIT = {
+  /** Pencere içinde İZİN VERİLEN çağrı sayısı; bu sayıya ulaşınca reddedilir. */
+  maxRequests: 10,
+  windowSeconds: 60,
+} as const;
+
+/** Yükleme sayım penceresinin başlangıcı. */
+export function uploadWindowStart(now: Date): Date {
+  return new Date(now.getTime() - UPLOAD_RATE_LIMIT.windowSeconds * 1000);
+}
+
 /** Sayım penceresinin başlangıcı — bu andan öncesi dikkate alınmaz. */
 export function rateLimitWindowStart(now: Date): Date {
   return new Date(now.getTime() - LOGIN_RATE_LIMIT.windowMinutes * MS_PER_MINUTE);
