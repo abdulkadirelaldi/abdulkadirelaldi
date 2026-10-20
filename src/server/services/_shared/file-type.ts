@@ -44,14 +44,9 @@
  */
 export const SNIFF_BYTES = 512;
 
-
 /** `ALLOWED_MIME_TYPES` ile birebir aynı küme (`schemas/attachment.ts`). */
 export type SniffedMime =
-  | 'image/jpeg'
-  | 'image/png'
-  | 'image/webp'
-  | 'image/avif'
-  | 'application/pdf';
+  'image/jpeg' | 'image/png' | 'image/webp' | 'image/avif' | 'application/pdf';
 
 function startsWith(buf: Buffer, ...bytes: number[]): boolean {
   return bytes.every((value, index) => buf[index] === value);

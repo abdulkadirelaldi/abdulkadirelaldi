@@ -356,9 +356,7 @@ function setClient(opts: { satir?: unknown; onceki?: { exerciseId: string } | nu
   const satir = opts.satir ?? SET_SATIR;
   const create = vi.fn().mockResolvedValue(satir);
   const update = vi.fn().mockResolvedValue(satir);
-  const deleteFn = vi
-    .fn()
-    .mockResolvedValue({ id: 'ws_1', exerciseId: 'ex_1', workoutId: 'w_1' });
+  const deleteFn = vi.fn().mockResolvedValue({ id: 'ws_1', exerciseId: 'ex_1', workoutId: 'w_1' });
   const findUnique = vi.fn().mockResolvedValue(opts.onceki ?? { exerciseId: 'ex_1' });
   // Hesaplayıcının yüzeyi — `recalculatePersonalRecords` buradan okuyor.
   const setFindMany = vi.fn().mockResolvedValue([]);
@@ -704,10 +702,7 @@ describe('PersonalRecord — okuma yolu', () => {
     const h = prClient();
     await fetchPersonalRecords(personalRecordFilterSchema.parse({}), h.client);
 
-    expect(h.findMany.mock.calls[0]?.[0].orderBy).toEqual([
-      { exerciseId: 'asc' },
-      { reps: 'asc' },
-    ]);
+    expect(h.findMany.mock.calls[0]?.[0].orderBy).toEqual([{ exerciseId: 'asc' }, { reps: 'asc' }]);
   });
 
   it('DTO egzersiz adını ve kas grubunu taşıyor', async () => {
@@ -721,9 +716,9 @@ describe('PersonalRecord — okuma yolu', () => {
 
   it('süzgeç: egzersiz ve tekrar', () => {
     expect(buildPersonalRecordWhere(personalRecordFilterSchema.parse({}))).toEqual({});
-    expect(
-      buildPersonalRecordWhere(personalRecordFilterSchema.parse({ reps: '5' })),
-    ).toEqual({ reps: 5 });
+    expect(buildPersonalRecordWhere(personalRecordFilterSchema.parse({ reps: '5' }))).toEqual({
+      reps: 5,
+    });
   });
 
   it('⚠️ `workoutSetId: null` HATA DEĞİL, İŞARET — DTO`da taşınıyor', async () => {
@@ -779,7 +774,9 @@ describe('⚠️ hiçbir DTO yüzeyi `Decimal` sızdırmıyor', () => {
     );
     expect(decimalKalanlar(await fetchWorkoutById('w_1', w.client))).toEqual([]);
     expect(
-      decimalKalanlar(await createWorkout(createWorkoutSchema.parse({ date: '2026-10-14' }), w.client)),
+      decimalKalanlar(
+        await createWorkout(createWorkoutSchema.parse({ date: '2026-10-14' }), w.client),
+      ),
     ).toEqual([]);
     expect(
       decimalKalanlar(await updateWorkout(updateWorkoutSchema.parse({ id: 'w_1' }), w.client)),

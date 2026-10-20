@@ -245,10 +245,7 @@ describe('yazma yolu', () => {
 
   it('boş not `null` oluyor', async () => {
     const { client, create } = istemci();
-    await createHealthLog(
-      createHealthLogSchema.parse({ date: '2026-10-14', note: '   ' }),
-      client,
-    );
+    await createHealthLog(createHealthLogSchema.parse({ date: '2026-10-14', note: '   ' }), client);
     expect(create.mock.calls[0]?.[0].data.note).toBeNull();
   });
 

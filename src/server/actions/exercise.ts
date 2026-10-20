@@ -1,10 +1,6 @@
 'use server';
 
-import {
-  archiveExerciseSchema,
-  createExerciseSchema,
-  updateExerciseSchema,
-} from '@/lib/schemas';
+import { archiveExerciseSchema, createExerciseSchema, updateExerciseSchema } from '@/lib/schemas';
 import { db } from '@/server/db';
 import {
   archiveExercise,

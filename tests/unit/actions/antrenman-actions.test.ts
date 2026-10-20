@@ -104,15 +104,12 @@ const { dbMock, izle } = vi.hoisted(() => {
 
 vi.mock('@/server/db', () => ({ db: dbMock }));
 
-const { archiveExerciseAction, createExerciseAction, updateExerciseAction } = await import(
-  '@/server/actions/exercise'
-);
-const { createWorkoutAction, deleteWorkoutAction, updateWorkoutAction } = await import(
-  '@/server/actions/workout'
-);
-const { createWorkoutSetAction, deleteWorkoutSetAction, updateWorkoutSetAction } = await import(
-  '@/server/actions/workout-set'
-);
+const { archiveExerciseAction, createExerciseAction, updateExerciseAction } =
+  await import('@/server/actions/exercise');
+const { createWorkoutAction, deleteWorkoutAction, updateWorkoutAction } =
+  await import('@/server/actions/workout');
+const { createWorkoutSetAction, deleteWorkoutSetAction, updateWorkoutSetAction } =
+  await import('@/server/actions/workout-set');
 
 const CUID = 'c'.repeat(25);
 
@@ -149,8 +146,9 @@ function sonDiff(): unknown {
 }
 
 function sonKayit(): { action: string; entity: string } {
-  return (dbMock.auditLog.create.mock.calls.at(-1)?.[0] as { data: { action: string; entity: string } })
-    .data;
+  return (
+    dbMock.auditLog.create.mock.calls.at(-1)?.[0] as { data: { action: string; entity: string } }
+  ).data;
 }
 
 /* ===========================================================================

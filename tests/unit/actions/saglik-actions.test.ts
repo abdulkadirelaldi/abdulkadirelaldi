@@ -52,9 +52,8 @@ const { dbMock } = vi.hoisted(() => {
 
 vi.mock('@/server/db', () => ({ db: dbMock }));
 
-const { createHealthLogAction, deleteHealthLogAction, updateHealthLogAction } = await import(
-  '@/server/actions/health-log'
-);
+const { createHealthLogAction, deleteHealthLogAction, updateHealthLogAction } =
+  await import('@/server/actions/health-log');
 
 const GECERLI = {
   date: '2026-10-14',

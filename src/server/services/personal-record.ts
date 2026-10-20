@@ -2,7 +2,13 @@ import type { PersonalRecordFilterInput } from '@/lib/schemas';
 import { db } from '@/server/db';
 import type { MuscleGroup } from '@/types';
 
-import { dateToAppDay, panelSkipTake, toMeasureString, toPagedResult, type DecimalLike } from './_shared';
+import {
+  dateToAppDay,
+  panelSkipTake,
+  toMeasureString,
+  toPagedResult,
+  type DecimalLike,
+} from './_shared';
 import type { PagedResult } from './content-dto';
 
 /**
