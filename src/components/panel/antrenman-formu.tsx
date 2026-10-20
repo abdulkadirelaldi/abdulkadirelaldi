@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import type * as z from 'zod';
 
-import { Alan, BOS_ISE_YOK, SAYI_YA_DA_YOK } from '@/components/panel/alan';
+import { Alan, BOS_ISE_YOK, SAYI_YA_DA_YOK, bosaltilanlariNullYap } from '@/components/panel/alan';
 import { KaliciSilDugmesi } from '@/components/panel/kalici-sil-dugmesi';
 import { ANTRENMAN_TURU, RUH_HALI, secenekler } from '@/components/panel/kisisel-etiketler';
 import { FormKabugu, usePanelForm } from '@/components/panel/panel-form';
@@ -43,8 +43,7 @@ import type { WorkoutDto } from '@/server/services/workout';
  * "antrenman silinir" demek, kullanıcının 5RM rekorunun neden ekrandan
  * kaybolduğunu açıklamadan bırakırdı.
  *
- * ⚠️ BİLİNEN SINIR: güncelleme şeması KISMİ — dolu bir alanı (süre, his, not)
- * boşaltmak onu silmez. `SaglikFormu` ile aynı sınıf; yardım metni söylüyor.
+ * Dolu bir alanı (süre, his, not) boşaltmak onu siler (`bosaltilanlariNullYap`).
  * Gün değişikliği ise rekor günlerini de günceller (eylem yeniden hesaplıyor).
  */
 
@@ -76,7 +75,10 @@ export function AntrenmanFormu({
 
   const kaydet = async (degerler: AntrenmanFormGirdi) => {
     if (antrenman) {
-      const sonuc = await updateWorkoutAction({ ...degerler, id: antrenman.id });
+      const sonuc = await updateWorkoutAction({
+        ...bosaltilanlariNullYap(degerler, antrenman, ['durationMin', 'feeling', 'note']),
+        id: antrenman.id,
+      });
       if (sonuc.ok) router.refresh();
       return sonuc;
     }
@@ -210,12 +212,6 @@ export function AntrenmanFormu({
           <Alan id="note" etiket="Not" hata={errors.note?.message}>
             {(b) => <Textarea id="note" rows={3} {...b} {...register('note', BOS_ISE_YOK)} />}
           </Alan>
-
-          {duzenleme && (
-            <p className="text-muted text-xs">
-              Dolu bir alanı boşaltmak değeri silmez. Yanlış girilmiş bir değeri düzeltin.
-            </p>
-          )}
         </FormKabugu>
 
         <Button

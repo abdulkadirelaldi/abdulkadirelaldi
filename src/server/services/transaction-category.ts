@@ -217,7 +217,7 @@ export async function transactionCategoryExists(
 }
 
 /** Boş dize `null` olur — "girilmedi" ile "boş girildi" panelde aynı şey. */
-function bosaNull(value: string | undefined): string | null {
+function bosaNull(value: string | null | undefined): string | null {
   return value?.trim() ? value : null;
 }
 

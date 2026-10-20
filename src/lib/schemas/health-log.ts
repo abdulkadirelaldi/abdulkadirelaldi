@@ -27,8 +27,23 @@ const healthLogBase = z.object({
 });
 
 export const createHealthLogSchema = healthLogBase;
+/*
+ * TEMİZLENEBİLİR ALANLAR — `null` = "boşalt", `undefined` = "dokunma" (T-031
+ * kuralı). `partialWithoutDefaults` alanı yalnızca VERİLMEYEBİLİR yapıyordu;
+ * veritabanında boş olabilen bir sütunu temizlemenin yolu YOKTU ve dolu bir
+ * alanı formda boşaltmak eski değeri sessizce koruyordu (F5 formları bunu
+ * ekranda uyarı olarak yazıyordu). Kural taban şemadan türetiliyor — tek yer.
+ */
 export const updateHealthLogSchema = partialWithoutDefaults(healthLogBase).extend({
   id: cuidSchema,
+  weightKg: healthLogBase.shape.weightKg.nullable(),
+  bodyFatPct: healthLogBase.shape.bodyFatPct.nullable(),
+  sleepHours: healthLogBase.shape.sleepHours.nullable(),
+  waterMl: healthLogBase.shape.waterMl.nullable(),
+  restingHr: healthLogBase.shape.restingHr.nullable(),
+  steps: healthLogBase.shape.steps.nullable(),
+  mood: healthLogBase.shape.mood.nullable(),
+  note: healthLogBase.shape.note.nullable(),
 });
 
 export const healthLogFilterSchema = paginationSchema.extend({

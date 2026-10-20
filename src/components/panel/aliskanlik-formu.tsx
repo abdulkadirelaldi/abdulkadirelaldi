@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type * as z from 'zod';
 
-import { Alan, BOS_ISE_YOK, SAYI_YA_DA_YOK } from '@/components/panel/alan';
+import { Alan, BOS_ISE_YOK, SAYI_YA_DA_YOK, bosaltilanlariNullYap } from '@/components/panel/alan';
 import { ArsivleDugmesi } from '@/components/panel/arsivle-dugmesi';
 import { FormKabugu, usePanelForm } from '@/components/panel/panel-form';
 import { Badge } from '@/components/ui/badge';
@@ -33,15 +33,10 @@ import type { HabitDto } from '@/server/services/habit';
  * ⚠️ BİLİNEN SINIR — DOLU ALANI BOŞALTMAK ONU TEMİZLEMİYOR (iki alanda)
  * ═══════════════════════════════════════════════════════════════════════════
  *
- * Güncelleme şeması KISMİ (`partialWithoutDefaults`): `undefined` "dokunma"
- * demek ve şemada "temizle" anlamına gelen bir değer YOK (`null` kabul
- * edilmiyor). Sonuç:
- *   - `targetPerDay` boşaltılırsa sayaçlı alışkanlık aç/kapa türüne DÖNMEZ;
- *   - `color` boşaltılırsa renk KALIR (`''` biçim hatası verirdi, o yüzden
- *     `BOS_ISE_YOK` ile gönderilmiyor).
- * Arayüz bunu düzenleme ekranında açıkça yazıyor. `icon` BU SINIRA TAKILMIYOR:
- * servis boş metni `null`a çeviriyor, bu yüzden `icon` `BOS_ISE_YOK` OLMADAN
- * kaydediliyor ve boşaltmak gerçekten temizliyor.
+ * BOŞALTMAK SİLİYOR: `targetPerDay` boşaltılırsa sayaçlı alışkanlık aç/kapa
+ * türüne döner, `color` boşaltılırsa renk kalkar (`bosaltilanlariNullYap`;
+ * önceden kısmi şema "temizle" diyemiyordu). `icon` boş metinle zaten
+ * temizleniyordu — servis `''`yi `null`a çeviriyor.
  *
  * `isArchived` FORMUN ALANI DEĞİL — ayrı eylem (`archiveHabitAction`), başlıkta.
  */
@@ -71,7 +66,10 @@ export function AliskanlikFormu({ kayit }: { kayit?: HabitDto }) {
 
   const kaydet = async (degerler: AliskanlikFormGirdi) => {
     const sonuc = kayit
-      ? await updateHabitAction({ ...degerler, id: kayit.id })
+      ? await updateHabitAction({
+          ...bosaltilanlariNullYap(degerler, kayit, ['targetPerDay', 'color']),
+          id: kayit.id,
+        })
       : await createHabitAction(degerler);
 
     if (sonuc.ok) {
@@ -199,7 +197,7 @@ export function AliskanlikFormu({ kayit }: { kayit?: HabitDto }) {
               hata={errors.targetPerDay?.message}
               yardim={
                 duzenleme
-                  ? 'Gün içinde kaç KEZ (ör. 8 bardak su). Boşaltmak mevcut değeri silmez.'
+                  ? 'Gün içinde kaç KEZ (ör. 8 bardak su). Boşaltmak alışkanlığı yapıldı/yapılmadı türüne çevirir.'
                   : 'Gün içinde kaç KEZ (ör. 8 bardak su). Boş bırakılırsa "yapıldı/yapılmadı" yeterli.'
               }
             >
@@ -225,7 +223,7 @@ export function AliskanlikFormu({ kayit }: { kayit?: HabitDto }) {
               hata={errors.color?.message}
               yardim={
                 duzenleme
-                  ? '#RRGGBB biçiminde. Boşaltmak mevcut rengi silmez.'
+                  ? '#RRGGBB biçiminde. Boşaltmak rengi kaldırır.'
                   : '#RRGGBB biçiminde. Boş bırakılabilir.'
               }
             >

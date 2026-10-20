@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type * as z from 'zod';
 
-import { Alan, SAYI_YA_DA_YOK } from '@/components/panel/alan';
+import { Alan, SAYI_YA_DA_YOK, bosaltilanlariNullYap } from '@/components/panel/alan';
 import { etiketleriAyir, gunAyYil } from '@/components/panel/hayat-bicim';
 import { KaliciSilDugmesi } from '@/components/panel/kalici-sil-dugmesi';
 import { RUH_HALI } from '@/components/panel/kisisel-etiketler';
@@ -45,10 +45,9 @@ import type { JournalEntryDto } from '@/server/services/journal-entry';
  * etiketler bile içeriğin özeti olabilir). Silme onayı bunu söylüyor:
  * silinen metin hiçbir yerde kalmıyor, kayıtta yalnızca gün görünüyor.
  *
- * ⚠️ BİLİNEN SINIR — RUH HÂLİ TEMİZLENEMİYOR: güncelleme şeması kısmi; "Girilmedi"
- * seçmek `undefined` gönderir ve eski değer kalır. `title` bu sınıra
- * TAKILMIYOR — servis boş metni `null`a çeviriyor, bu yüzden `BOS_ISE_YOK`
- * OLMADAN kaydediliyor. `tags` boş diziyle gerçekten temizleniyor.
+ * "Girilmedi" seçmek ruh hâlini siler (`bosaltilanlariNullYap`; önceden kısmi
+ * şema "temizle" diyemiyordu). `title` boş metinle, `tags` boş diziyle zaten
+ * temizleniyordu.
  */
 
 type GunlukFormGirdi = z.input<typeof createJournalEntrySchema>;
@@ -93,7 +92,10 @@ export function GunlukFormu({ kayit, gun }: { kayit?: JournalEntryDto; gun: stri
 
   const kaydet = async (degerler: GunlukFormGirdi) => {
     const sonuc = kayit
-      ? await updateJournalEntryAction({ ...degerler, id: kayit.id })
+      ? await updateJournalEntryAction({
+          ...bosaltilanlariNullYap(degerler, kayit, ['mood']),
+          id: kayit.id,
+        })
       : await createJournalEntryAction(degerler);
 
     if (sonuc.ok) {
@@ -172,12 +174,7 @@ export function GunlukFormu({ kayit, gun }: { kayit?: JournalEntryDto; gun: stri
               )}
             </Alan>
 
-            <Alan
-              id="mood"
-              etiket="Ruh hâli"
-              hata={errors.mood?.message}
-              yardim={duzenleme ? '“Girilmedi” seçmek kayıtlı değeri silmez.' : undefined}
-            >
+            <Alan id="mood" etiket="Ruh hâli" hata={errors.mood?.message}>
               {(b) => (
                 <select
                   id="mood"

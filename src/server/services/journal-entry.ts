@@ -225,7 +225,7 @@ export async function fetchJournalEntryById(
  * YAZMA
  * ======================================================================== */
 
-function bosaNull(value: string | undefined): string | null {
+function bosaNull(value: string | null | undefined): string | null {
   return value?.trim() ? value : null;
 }
 
