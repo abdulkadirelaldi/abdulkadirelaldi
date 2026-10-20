@@ -18,45 +18,40 @@
  * Dolayısıyla ortam değişkeni olmadan, R2 olmadan, DB olmadan sınanabiliyor.
  *
  * ───────────────────────────────────────────────────────────────────────────
- * ⚠️ SVG'NİN SİHİRLİ BAYTI YOK — VE BU ÖLÇÜLDÜ
+ * ⚠️ BEŞ TİP, HEPSİ SABİT İMZALI — TAHMİN YOK (ADR-043)
  * ───────────────────────────────────────────────────────────────────────────
  *
- * SVG bir METİN biçimi: `<?xml`, `<!DOCTYPE`, bir YORUM ya da sade boşlukla
- * başlayabilir. Bu projenin KENDİ `src/app/icon.svg`i bir XML YORUMUYLA
- * başlıyor (`<!--\n  Site simgesi…`), yani naif bir `startsWith('<svg')`
- * kontrolü MEŞRU BİR SVG'Yİ REDDEDİYOR — ölçtüm.
+ * T-037'de burada bir SVG tespiti vardı ve DOĞASI GEREĞİ SEZGİSELDİ: SVG bir
+ * metin biçimi, sihirli baytı yok, `<?xml`/`<!DOCTYPE`/yorum/boşlukla
+ * başlayabiliyor. Sezgi bu projenin KENDİ dosyasında kırıldı —
+ * `src/app/icon.svg` bir XML yorumuyla başlıyor ve `<svg` etiketi 514. baytta.
  *
- * Bu yüzden SVG tespiti "ilk N baytta bir `<svg` ETİKETİ var mı" biçiminde
- * yapılıyor ve DOĞASI GEREĞİ sezgisel kalıyor. Sonucu raporladım: SVG,
- * `ALLOWED_MIME_TYPES` içinde içerikten güvenilir biçimde DOĞRULANAMAYAN tek
- * tip, ve ayrıca betik çalıştırabilen tek tip. İkisi birlikte onu listedeki
- * diğerlerinden ayırıyor.
+ * ADR-043 SVG'yi `ALLOWED_MIME_TYPES`tan ÇIKARDI ve tarama mantığı SİLİNDİ.
+ * Geriye kalan beş tipin hepsi ilk 12 bayttaki SABİT imzayla KESİN tanınıyor,
+ * yani bu modülde artık hiçbir tahmin yok.
+ *
+ * ⚠️ DEPODAKİ SVG'LER ETKİLENMEDİ: güven sınırı "kim yazdı", "hangi tip"
+ * değil. `icon.svg` bizim yazdığımız, derlemeye giren bir dosya; çıkarılan şey
+ * YÜKLENEN SVG.
  */
 
 /**
- * İKİLİ imzalar için okunması yeterli ön kısım — hepsi ilk 12 baytta.
+ * Okunması yeterli ön kısım — beş imzanın hepsi ilk 12 baytta.
+ *
+ * ADR-043 öncesinde ayrıca bir SVG metin penceresi (`SVG_SCAN_BYTES`) vardı;
+ * SVG listeden çıkınca o pencere de silindi. Geriye yalnızca sabit imzalar
+ * kaldı, yani okunan ön kısım fazlasıyla yeterli.
  */
 export const SNIFF_BYTES = 512;
 
-/**
- * SVG taraması için pencere — İKİLİ İMZALARDAN ÇOK DAHA GENİŞ, ve sebebi ölçüldü.
- *
- * ⚠️ 512 BAYT YETMİYOR VE BUNU BU PROJENİN KENDİ DOSYASI GÖSTERDİ:
- * `src/app/icon.svg` bir XML yorumuyla başlıyor ve `<svg` etiketi **514.
- * baytta** — pencerenin iki bayt ötesinde. İlk uygulamam o dosyayı SVG olarak
- * tanımıyordu.
- *
- * İkili biçimlerin imzası sabit ofsette (en fazla 12. bayt), yani onlar için
- * küçük pencere yeterli. SVG bir METİN biçimi: önünde yorum, `<?xml`
- * bildirimi, DOCTYPE ve boşluk olabilir ve uzunluğu sınırsız. Dört kilobayt,
- * gerçekçi her başlangıç için fazlasıyla geniş; sınırsız taramak ise 10 MB'lık
- * bir dosyanın tamamını dizeye çevirmek olurdu.
- */
-export const SVG_SCAN_BYTES = 4096;
 
 /** `ALLOWED_MIME_TYPES` ile birebir aynı küme (`schemas/attachment.ts`). */
 export type SniffedMime =
-  'image/jpeg' | 'image/png' | 'image/webp' | 'image/avif' | 'image/svg+xml' | 'application/pdf';
+  | 'image/jpeg'
+  | 'image/png'
+  | 'image/webp'
+  | 'image/avif'
+  | 'application/pdf';
 
 function startsWith(buf: Buffer, ...bytes: number[]): boolean {
   return bytes.every((value, index) => buf[index] === value);
@@ -65,9 +60,9 @@ function startsWith(buf: Buffer, ...bytes: number[]): boolean {
 /**
  * Baytlardan gerçek MIME tipini çıkarır. Tanınmazsa `null`.
  *
- * SIRA ÖNEMLİ: ikili biçimler ÖNCE, metin tabanlı SVG EN SONDA. SVG kontrolü
- * bir dize taraması olduğu için bir ikili dosyanın içinde tesadüfen `<svg`
- * geçmesi mümkün; ikili imzalar önce denenerek o yanlış pozitif kapatılıyor.
+ * ADR-043 sonrası BEŞ TİPİN HEPSİ SABİT İMZALI, yani sıralamanın bir yanlış
+ * pozitif riski kalmadı. (Önceden SVG metin taraması en sonda duruyordu çünkü
+ * bir ikili dosyanın içinde tesadüfen `<svg` geçebiliyordu.)
  */
 export function sniffMime(buf: Buffer): SniffedMime | null {
   // PNG: 8 baytlık sabit imza.
@@ -91,13 +86,10 @@ export function sniffMime(buf: Buffer): SniffedMime | null {
   if (startsWith(buf, 0x25, 0x50, 0x44, 0x46)) return 'application/pdf';
 
   /*
-   * SVG — SEZGİSEL, ve bu kabul edilmiş bir sınır (gerekçe dosya başında).
-   * Yorum/bildirim/DOCTYPE ile başlayabildiği için `<svg` etiketi ilk
-   * `SNIFF_BYTES` içinde ARANIYOR, başta olması şart değil.
+   * ⚠️ METİN TARAMASI YOK — ADR-043 ile SVG listeden çıktı ve tarama mantığı
+   * SİLİNDİ. Kalan beş tipin hepsi SABİT İMZAYLA kesin tanınıyor; hiçbir
+   * tahmin kalmadı. Daha az kod, daha az tahmin.
    */
-  const bas = buf.toString('utf8', 0, SVG_SCAN_BYTES);
-  if (/<svg[\s>]/i.test(bas)) return 'image/svg+xml';
-
   return null;
 }
 
@@ -114,7 +106,7 @@ export interface ImageDimensions {
  * Görsel boyutlarını BAŞLIKTAN okur. Okunamıyorsa `null`.
  *
  * ═══════════════════════════════════════════════════════════════════════════
- * ⚠️ AVIF VE SVG BİLEREK DESTEKLENMİYOR — KULLANICI ONAYLI KARAR (T-037)
+ * ⚠️ AVIF BİLEREK DESTEKLENMİYOR — KULLANICI ONAYLI KARAR (T-037)
  * ═══════════════════════════════════════════════════════════════════════════
  *
  * AVIF boyutu ISOBMFF kutu ağacında (`ftyp → meta → iprp → ipco → ispe`) ve
@@ -122,10 +114,9 @@ export interface ImageDimensions {
  * yazmak, bu projenin tekrar tekrar reddettiği şey — özellikle ziyaretçi
  * baytlarını gezen bir ayrıştırıcıda.
  *
- * SVG'nin İÇSEL RASTER ÖLÇÜSÜ zaten olmayabilir: `width`/`height` yüzde
- * olabilir ya da hiç bulunmayabilir, yalnızca `viewBox` olabilir.
+ * (SVG ADR-043 ile listeden çıktı, yani artık bir soru değil.)
  *
- * SONUÇ: ikisinde de `width`/`height` `null` kalıyor ve ŞEMA BUNA ZATEN İZİN
+ * SONUÇ: AVIF'te `width`/`height` `null` kalıyor ve ŞEMA BUNA ZATEN İZİN
  * VERİYOR (`Int?`). Bedeli kayıtlı: AVIF yüklenirse `next/image` boyutu
  * bilmiyor ve o formatta CLS riski sürüyor. Bir bağımlılık (`image-size`)
  * bunu çözerdi; karar kullanıcının ve "sıfır bağımlılık, sınanmayan kod yok"
@@ -141,7 +132,6 @@ export function readImageDimensions(buf: Buffer, mime: SniffedMime): ImageDimens
       return readWebpDimensions(buf);
     // ⚠️ `default` YOK: yeni bir MIME eklenirse `tsc` burayı eksik bulup kırar.
     case 'image/avif':
-    case 'image/svg+xml':
     case 'application/pdf':
       return null;
   }
