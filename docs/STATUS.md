@@ -3,9 +3,9 @@
 > Orkestra Şefi tarafından tutulur. Her ajan raporundan sonra güncellenir.
 > Kaynak: `PROGRAM.md` §11 Yol Haritası.
 
-**Son güncelleme:** 2026-08-11
-**Aktif faz:** F3 — Panel Çekirdek · **F2 kapandı**
-**Genel ilerleme:** 3 / 8 faz tamamlandı · ~55 görev bitti
+**Son güncelleme:** 2026-10-20
+**Aktif faz:** F5 — Sağlık, Spor, Hayat · **kabul kontrolü bekliyor** (dal `feat/T-110-T-111-saglik-spor-servisleri`)
+**Genel ilerleme:** 5 / 8 faz tamamlandı (F0–F4) · F5'in yedi görevi yazıldı
 
 ---
 
@@ -15,10 +15,10 @@
 | --- | ----------------------------------------- | ----------------------------- | ----------- |
 | F0  | Temel — kurulum, token, tema, iskelet, CI | Backend + Frontend + Güvenlik | 🟢 **Tamam** |
 | F1  | Veri & Auth                               | Backend                       | 🟢 **Tamam** |
-| F2  | Public İskelet                            | Frontend                      | ⚪ Bekliyor |
-| F3  | Panel Çekirdek                            | Backend + Frontend            | 🔵 Aktif    |
-| F4  | İş & Muhasebe                             | Backend + Frontend            | ⚪ Bekliyor |
-| F5  | Sağlık, Spor, Hayat                       | Backend + Frontend            | ⚪ Bekliyor |
+| F2  | Public İskelet                            | Frontend                      | 🟢 **Tamam** |
+| F3  | Panel Çekirdek                            | Backend + Frontend            | 🟢 **Tamam** |
+| F4  | İş & Muhasebe                             | Backend + Frontend            | 🟢 **Tamam** |
+| F5  | Sağlık, Spor, Hayat                       | Backend + Frontend            | 🟡 Yazıldı, kabul bekliyor |
 | F6  | Sertleştirme                              | Güvenlik & Test               | ⚪ Bekliyor |
 | F7  | Yayın                                     | Hepsi                         | ⚪ Bekliyor |
 
@@ -258,17 +258,17 @@ ve bu turda Frontend'in ölçüm görevi var (ADR-023: iki ölçüm görevi para
 
 ---
 
-### F5 — Sağlık, Spor, Hayat 🔵 **SIRADA**
+### F5 — Sağlık, Spor, Hayat 🟡 **YAZILDI — kabul kontrolü bekliyor**
 
 | #     | Görev                                                                        | Ajan     | Bağımlılık  |
 | ----- | ---------------------------------------------------------------------------- | -------- | ----------- |
-| T-110 | `HealthLog` servis + şema                                                    | Backend  | T-015       |
-| T-111 | `Exercise`, `Workout`, `WorkoutSet`, `PersonalRecord` servisleri + PR hesabı | Backend  | T-015       |
-| T-112 | `Habit`, `HabitLog`, `Goal`, `JournalEntry` servisleri                       | Backend  | T-015       |
-| T-113 | `/panel/saglik` — giriş formu + trend grafikleri                             | Frontend | T-110       |
-| T-114 | `/panel/spor` — antrenman kaydı, egzersiz kütüphanesi, PR takibi             | Frontend | T-111       |
-| T-115 | `/panel/hayat` — alışkanlık, hedef, günlük                                   | Frontend | T-112       |
-| T-116 | Hassas veri erişim denetimi (sağlık tabloları)                               | Güvenlik | T-113…T-115 |
+| T-110 | `HealthLog` servis + şema — 🟢 **Tamam**                                     | Backend  | T-015       |
+| T-111 | `Exercise`, `Workout`, `WorkoutSet`, `PersonalRecord` + PR hesabı — 🟢 **Tamam** (BULGU-025, BULGU-026 kapandı) | Backend  | T-015       |
+| T-112 | `Habit`, `HabitLog`, `Goal`, `JournalEntry` servisleri — 🟢 **Tamam**        | Backend  | T-015       |
+| T-113 | `/panel/saglik` — giriş formu + trend grafikleri — 🟢 **Tamam**              | Frontend | T-110       |
+| T-114 | `/panel/spor` — antrenman, egzersiz kütüphanesi, PR takibi — 🟢 **Tamam**    | Frontend | T-111       |
+| T-115 | `/panel/hayat` — alışkanlık, hedef, günlük — 🟢 **Tamam**                    | Frontend | T-112       |
+| T-116 | Hassas veri erişim denetimi + F5 E2E — 🟢 **Tamam**                          | Güvenlik | T-113…T-115 |
 
 **Sıra:** (T-110 ∥ T-111 ∥ T-112) → (T-113 ∥ T-114 ∥ T-115) → T-116
 
@@ -1517,3 +1517,48 @@ Artı ADR-040'ın tetikleyicisi: `tekrarlayan-kalemler.tsx` → `muhasebe/page.t
 | **T-066** | Yedekleme + `restore.md` + **geri yükleme provası** — Güvenlik yükseltti: *"defterde gerçek para verisi var"* |
 
 ⚠️ **Token rotasyonu bekliyor:** anahtarlar sohbet geçmişine girdi, ölçüm onlarla yapıldı, rotasyon tek adımlık.
+
+---
+
+## F5 yazıldı — kabul kontrolü için özet (2026-10-20)
+
+Dal `feat/T-110-T-111-saglik-spor-servisleri` · **2280 birim (95 dosya) + 109 E2E, 0 atlanan** ·
+kalan E2E izi 0 · `lint`/`typecheck`/`format:check` temiz.
+
+### Ne geldi
+
+| Görev | Özü |
+|-------|-----|
+| T-110 | `HealthLog` — günde tek kayıt (CONFLICT + mevcut kimlik), değerler denetim kaydına **girmiyor** |
+| T-111 | Antrenman/set/PR — PR her set mutasyonunda sıfırdan; BULGU-025 (ilişki seçilmiyordu) ve BULGU-026 (`workoutSetId @unique` upsert sırası) kapandı |
+| T-112 | Alışkanlık (silinmez, arşivlenir), seri (gün/hafta birimi, "bugün henüz bitmedi" kuralı), hedef ("ulaşıldı ⇔ %100" birleşik hâlde), günlük (içerik denetim kaydına girmiyor) |
+| T-113 | `/panel/saglik` — bağımlılıksız SVG trend grafikleri (Recharts §5.2 kapısıyla tek bileşene bağlı) |
+| T-114 | `/panel/spor` — 7 rota, set girişi rekor sonucunu bildiriyor |
+| T-115 | `/panel/hayat` — 10 rota, haftalık alışkanlık panosu |
+| T-116 | `kisisel-veri-erisimi.test.ts` (yetki/okuma ihracı/panel dışı içe aktarma) + `panel-kisisel.spec.ts` |
+| — | Dashboard'un "sağlık özeti — modül yok" metni gerçek "Kişisel · bugün" kartına dönüştü (dört özetin dördü gerçek) |
+
+### E2E ve gözle doğrulamanın bulduğu kusurlar (hepsi düzeltildi)
+
+1. Alışkanlık ızgarası 360 px'te sayfayı **252 px** taşırıyordu — kaydırma kabında `relative` yoktu (T-043f'te `veri-tablosu.tsx`te belgelenen sınıfın aynısı).
+2. Tohum verisinin Lucide adı olan simgeleri (`book-open`) ekranda düz metin basılıyordu.
+3. Trend grafiği: 365 günlük eksende dört ölçüm dikey bir çizgiye sıkışıyordu → X ekseni ölçüm aralığı, son ölçüm günü başlıkta.
+4. T-116 kapısının ilk sürümü dönüş tipindeki nesne tipini gövde sandı (iki yanlış alarm) — mutasyon vakası olarak eklendi.
+
+### Kabul kontrolünde bakılacaklar / bilinen sınırlar
+
+- **Kısmi güncelleme şemaları dolu alanı temizleyemiyor** (`partialWithoutDefaults`): sağlık ölçüsü, alışkanlığın `targetPerDay`/`color`, hedefin `targetDate`, günlüğün `mood`. Her form ekranda söylüyor; çözümü şema düzeyinde `null` kabulü — ayrı bir Backend kararı.
+- Rekor satırından kaynak antrenmana bağlantı yok (set → antrenman çözen okuma yok).
+- Seçici tavanları 100 egzersiz (`perPage` üst sınırı).
+- 20 yeni rotanın 9'u E2E kanıtlı; geri kalanların `ÖLÇÜLMEYEN` listeleri `rota-kapsami.test.ts`te.
+- Alt rotalar §4.2'ye eklendi (PROGRAM.md).
+
+### Kullanıcı eylemi bekleyenler (değişmedi)
+
+- ⚠️ **R2 token rotasyonu** — anahtarlar sohbet geçmişine girmişti.
+- ADVISORY-002 hatırlatması **2026-11-22**.
+- Q6 — `main` için `pull_request` kuralı.
+
+### Sırada
+
+F5 kabul kontrolü → **F6 Sertleştirme**: T-060 nonce CSP → T-061 hız sınırı → T-062 §8 tam denetim (⏳ 3) → T-063 → T-064 → T-065 (T-066 erken kapandı, PR #24).
