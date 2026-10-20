@@ -67,9 +67,9 @@ export const PANEL_GRUPLARI: ReadonlyArray<{
   {
     title: 'Kişisel',
     items: [
-      { href: '/panel/saglik', label: 'Sağlık', icon: Activity },
-      { href: '/panel/spor', label: 'Spor', icon: Dumbbell },
-      { href: '/panel/hayat', label: 'Hayat', icon: Sparkles },
+      { href: '/panel/saglik', label: 'Sağlık', icon: Activity, hazir: true },
+      { href: '/panel/spor', label: 'Spor', icon: Dumbbell, hazir: true },
+      { href: '/panel/hayat', label: 'Hayat', icon: Sparkles, hazir: true },
     ],
   },
   {
@@ -99,6 +99,11 @@ const EK_ETIKETLER: Record<string, string> = {
   '/panel/ayarlar/denetim': 'Denetim kaydı',
   '/panel/muhasebe/kategoriler': 'Kategoriler',
   '/panel/muhasebe/raporlar': 'Raporlar',
+  '/panel/spor/egzersizler': 'Egzersizler',
+  '/panel/spor/rekorlar': 'Rekorlar',
+  '/panel/hayat/aliskanliklar': 'Alışkanlıklar',
+  '/panel/hayat/hedefler': 'Hedefler',
+  '/panel/hayat/gunluk': 'Günlük',
   /* `/panel/icerik` bir sayfa DEĞİL, yalnızca kırıntı yolundaki ara segment. */
   '/panel/icerik': 'İçerik',
 };
@@ -110,6 +115,11 @@ const HAZIR_EK_YOLLAR: ReadonlySet<string> = new Set([
   '/panel/ayarlar/denetim',
   '/panel/muhasebe/kategoriler',
   '/panel/muhasebe/raporlar',
+  '/panel/spor/egzersizler',
+  '/panel/spor/rekorlar',
+  '/panel/hayat/aliskanliklar',
+  '/panel/hayat/hedefler',
+  '/panel/hayat/gunluk',
 ]);
 
 const ETIKETLER: Record<string, string> = {

@@ -142,50 +142,10 @@ const BILDIRIM: UlasilmazBildirim[] = [
    * Bekleyen tüketiciler geldi: `goal.ts` (`daysLeft`) ve `habit.ts`
    * (haftalık pano). Notları "alışkanlık serisi ve hedef geri sayımı" idi.
    */
-  {
-    anahtar: 'habit.ts → fetchHabits',
-    sebep: 'bekleyen',
-    not:
-      'F5 · §4.2 `/panel/hayat` alışkanlık YÖNETİM listesi (arşiv dahil). Servis ' +
-      'T-112`de yazıldı, ekran T-115`te. Yazma yolu (`createHabitAction`) ' +
-      'ULAŞILABİLİR, yani servis ölü değil.',
-  },
-  {
-    anahtar: 'habit.ts → fetchHabitById',
-    sebep: 'bekleyen',
-    not: 'F5 · alışkanlık düzenleme formunun tek kayıt okuması. T-115, aynı sebep.',
-  },
-  {
-    anahtar: 'habit.ts → fetchHabitWeek',
-    sebep: 'bekleyen',
-    not:
-      'F5 · §4.2 alışkanlık panosunun ANA okuması — haftalık ızgara + seri. ' +
-      'Yazma yolu (`toggleHabitDayAction`) ulaşılabilir; ızgara T-115`te.',
-  },
-  {
-    anahtar: 'goal.ts → fetchGoals',
-    sebep: 'bekleyen',
-    not:
-      'F5 · §4.2 hedef listesi. Sıra durum → en yakın hedef tarihi (tarihsizler ' +
-      'sonda) → id. Ekran T-115`te; yazma yolu (`createGoalAction`) ulaşılabilir.',
-  },
-  {
-    anahtar: 'goal.ts → fetchGoalById',
-    sebep: 'bekleyen',
-    not: 'F5 · hedef düzenleme formunun tek kayıt okuması. T-115, aynı sebep.',
-  },
-  {
-    anahtar: 'journal-entry.ts → fetchJournalEntries',
-    sebep: 'bekleyen',
-    not:
-      'F5 · §4.2 günlük listesi — ÖZET taşır, tam metin değil (`content` 100.000 ' +
-      'karaktere kadar). Ekran T-115`te; yazma yolu ulaşılabilir.',
-  },
-  {
-    anahtar: 'journal-entry.ts → fetchJournalEntryById',
-    sebep: 'bekleyen',
-    not: 'F5 · günlük kaydının TAM metni — okuma/düzenleme ekranı. T-115, aynı sebep.',
-  },
+  /*
+   * ⚠️ T-112'NİN YEDİ OKUMASI (`habit`, `goal`, `journal-entry`) T-115'TE
+   * SİLİNDİ — `/panel/hayat` ekranları ve dashboard'un kişisel özeti bağladı.
+   */
   /*
    * ⚠️ `_shared/decimal.ts → toMeasureString` SATIRI T-110'DA SİLİNDİ ve
    * silinmesini BU KAPI söyledi ("bildirim ÖLÜ SATIR taşımıyor" kırıldı).
@@ -194,29 +154,10 @@ const BILDIRIM: UlasilmazBildirim[] = [
    * T-110 `services/health-log.ts`i yazdı ve üç ondalık alanı (her biri KENDİ
    * ölçeğiyle) oradan geçirdi — yani bekleyen tüketici GELDİ.
    */
-  {
-    anahtar: 'health-log.ts → fetchHealthLogs',
-    sebep: 'bekleyen',
-    not:
-      'F5 · §4.2 `/panel/saglik` giriş formu listesi. Servis T-110`da yazıldı, ' +
-      'ekran F5 arayüz turunda geliyor (bu turda `src/app/**` Frontend`in ve ' +
-      'T-037f paralel çalışıyor).',
-  },
-  {
-    anahtar: 'health-log.ts → fetchHealthLogById',
-    sebep: 'bekleyen',
-    not:
-      'F5 · düzenleme formunun tek kayıt okuması. Aynı tur, aynı sebep — ' +
-      'yazma yolu (`createHealthLogAction`) ULAŞILABİLİR, yani servis ölü değil.',
-  },
-  {
-    anahtar: 'health-log.ts → fetchHealthTrend',
-    sebep: 'bekleyen',
-    not:
-      'F5 · §4.2 "trend grafikleri". Listeden AYRI bir okuma çünkü sorusu farklı: ' +
-      'grafik ARTAN sıra ve aralığın tamamını istiyor, sayfalanmış bir grafik ' +
-      'yanlış çizer. `TREND_MAX_DAYS` üst sınırı var.',
-  },
+  /*
+   * ⚠️ `health-log.ts` ÜÇ SATIRI (`fetchHealthLogs`, `fetchHealthLogById`,
+   * `fetchHealthTrend`) T-113'TE SİLİNDİ — `/panel/saglik` ekranı bağladı.
+   */
   {
     anahtar: '_shared/period-key.ts → periodKeyForInstant',
     sebep: 'bekleyen',
@@ -241,51 +182,11 @@ const BILDIRIM: UlasilmazBildirim[] = [
    * koşmamıştı. Kapının "ulaşılabilirliği ölç, kapsamı değil" ilkesinin
    * ölçülmüş karşılığı: bağlanmamış kod, test edilmiş sayılamaz.
    */
-  {
-    anahtar: 'exercise.ts → fetchExercises',
-    sebep: 'bekleyen',
-    not:
-      'F5 · §4.2 "egzersiz kütüphanesi" liste ekranı. Servis T-111`de yazıldı, ' +
-      'ekran F5 arayüz turunda geliyor (`src/app/**` Frontend`in). Yazma yolu ' +
-      '(`createExerciseAction`) ULAŞILABİLİR, yani servis ölü değil.',
-  },
-  {
-    anahtar: 'exercise.ts → fetchExerciseById',
-    sebep: 'bekleyen',
-    not: 'F5 · egzersiz düzenleme formunun tek kayıt okuması. Aynı tur, aynı sebep.',
-  },
-  {
-    anahtar: 'workout.ts → fetchWorkouts',
-    sebep: 'bekleyen',
-    not:
-      'F5 · §4.2 "antrenman kaydı" liste ekranı. ⚠️ `date` `@unique` DEĞİL ' +
-      '(`HealthLog`un tersi), bu yüzden ikincil sıralama anahtarı `createdAt` ' +
-      've ZORUNLU — yoksa sayfalama satır tekrarlar.',
-  },
-  {
-    anahtar: 'workout.ts → fetchWorkoutById',
-    sebep: 'bekleyen',
-    not:
-      'F5 · antrenman detayı, SETLERİYLE birlikte (ayrı bir set okuması YOK: ' +
-      'bir antrenmanı açmanın tek sebebi setlerini görmek).',
-  },
-  {
-    anahtar: 'personal-record.ts → fetchPersonalRecords',
-    sebep: 'bekleyen',
-    not:
-      'F5 · §4.2 "PR takibi" liste ekranı. Sıra `reps` ARTAN — ağırlığa göre ' +
-      'sıralamak 100×1 ile 100×10`u yan yana düşürür ve tekrar bazındalığı ' +
-      '(ADR-021) görsel olarak kaybettirir.',
-  },
-  {
-    anahtar: 'personal-record.ts → fetchRecordsForExercise',
-    sebep: 'bekleyen',
-    not:
-      'F5 · tek hareketin rekor eğrisi. Listeden AYRI okuma çünkü sorusu farklı; ' +
-      'üst sınır GEREKMİYOR çünkü rekor sayısı `@@unique([exerciseId, reps])` ile ' +
-      'tavanlı (set geçmişi büyüdükçe BÜYÜMÜYOR — `fetchHealthTrend`ten farkı bu).',
-  },
 
+  /*
+   * ⚠️ T-111'İN ALTI OKUMASI (`exercise`, `workout`, `personal-record`)
+   * T-114'TE SİLİNDİ — `/panel/spor` ekranları bağladı.
+   */
   {
     anahtar: 'attachment.ts → fetchAttachmentsForEntity',
     sebep: 'bekleyen',
