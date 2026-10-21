@@ -43,6 +43,20 @@ export function filtreAdresi(secim: { etiket?: string; teknoloji?: string }): st
   return sorgu ? `/projeler?${sorgu}` : '/projeler';
 }
 
+/**
+ * ADR-045 — süzgeç çipi. Seçili çip DOLU (açık zemin, koyu metin): durum
+ * yalnızca renkle verilmiyor, zemin/kenar biçimi de değişiyor (K5).
+ * Blog etiketleri de aynı sınıfları kullanıyor.
+ */
+export function cipSiniflari(secili: boolean) {
+  return cn(
+    'focus-ring rounded-pill ease-brand inline-flex h-9 items-center border px-4 text-[0.7rem] font-semibold tracking-[0.12em] uppercase transition-colors duration-300',
+    secili
+      ? 'bg-primary text-canvas border-primary'
+      : 'border-line-hover text-body hover:border-primary hover:text-primary',
+  );
+}
+
 function Cip({
   adres,
   secili,
@@ -61,12 +75,7 @@ function Cip({
         ayrıca DOLU zemin ve kalın kenarla ayrışıyor.
       */
       aria-current={secili ? 'true' : undefined}
-      className={cn(
-        'focus-ring rounded-pill ease-brand duration-micro border px-3 py-1.5 text-sm transition-colors',
-        secili
-          ? 'bg-accent/15 text-accent-soft border-accent/40 font-medium'
-          : 'border-line text-body hover:border-line-hover hover:text-primary',
-      )}
+      className={cipSiniflari(secili)}
     >
       {children}
     </Link>
@@ -85,7 +94,9 @@ export function ProjeFiltre({
     <div className="flex flex-col gap-4">
       {etiketler.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-muted w-20 shrink-0 text-xs tracking-wider uppercase">Etiket</span>
+          <span className="tabular text-muted w-24 shrink-0 text-xs">
+            <span aria-hidden="true">--</span>etiket
+          </span>
 
           <Cip adres={filtreAdresi({ teknoloji: seciliTeknoloji })} secili={!seciliEtiket}>
             Tümü
@@ -105,8 +116,8 @@ export function ProjeFiltre({
 
       {teknolojiler.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-muted w-20 shrink-0 text-xs tracking-wider uppercase">
-            Teknoloji
+          <span className="tabular text-muted w-24 shrink-0 text-xs">
+            <span aria-hidden="true">--</span>teknoloji
           </span>
 
           <Cip adres={filtreAdresi({ etiket: seciliEtiket })} secili={!seciliTeknoloji}>

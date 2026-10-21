@@ -21,7 +21,11 @@
    <html class="dark"> açık koyu seçimidir ve (b)'yi ezer.
    -------------------------------------------------------------------------- */
 
-:root {
+/* ADR-045: `.site-koyu` public sitenin kabı — kullanıcının tema çerezi ya da
+   sistem tercihi ne olursa olsun koyu token'ları YENİDEN basar. Panel bu
+   sınıfın dışında kalır ve tema seçimini korur. */
+:root,
+.site-koyu {
   /* Zeminler */
   --bg-base: #0a0a12;
   --bg-surface: #12121f;
@@ -72,6 +76,18 @@
   /* §3.1 — gradient yalnızca birincil buton, aktif nav göstergesi ve isim vurgusunda */
   --gradient-accent: linear-gradient(135deg, var(--accent) 0%, var(--accent-blue) 100%);
 
+  /* ADR-045 — public sitenin vurgu gradyanı (gradient düğme, isim vurgusu).
+     Beyaz metin her durakta ≥ 4.6:1: #d1127f 5.12, #7756ff 4.61 (ölçüldü). */
+  --gradient-vurgu: linear-gradient(100deg, #d1127f 0%, #7756ff 100%);
+
+  /* ADR-045 — dekoratif geometrik şekiller (alt bilgi şeridi, yüzen öğeler).
+     YALNIZCA aria-hidden süslerde; metin rengi olarak KULLANILMAZ. */
+  --sekil-mor: #8b5cf6;
+  --sekil-yesil: #a3e635;
+  --sekil-turuncu: #fb923c;
+  --sekil-pembe: #ec4899;
+  --sekil-beyaz: #f5f5f7;
+
   /* §3.4 — hareket */
   --ease-brand: cubic-bezier(0.22, 1, 0.36, 1);
   --duration-micro: 150ms;
@@ -82,8 +98,11 @@
 }
 
 /* (a) Kullanıcı açıkça aydınlık seçti.
-   NOT: bu blok ile aşağıdaki medya sorgusu bloğu BİREBİR aynı olmalı. */
-.light {
+   NOT: bu blok ile aşağıdaki medya sorgusu bloğu BİREBİR aynı olmalı.
+   ADR-045: `.panel-acik` public sitenin AÇIK panelleri (Hizmetler, İletişim) —
+   aynı ölçülmüş aydınlık değerleri o panelin içine kapsamlı olarak basar. */
+.light,
+.panel-acik {
   --bg-base: #f8f8fc;
   --bg-surface: #ffffff;
   --bg-elevated: #ffffff;
@@ -186,6 +205,8 @@
   --font-body: var(--font-inter);
   --font-sans: var(--font-inter);
   --font-mono: var(--font-jetbrains-mono);
+  /* ADR-045 — dev başlıklar (Archivo, geniş, 800–900). Public layout basar. */
+  --font-dev: var(--font-archivo-genis), var(--font-space-grotesk);
 
   /* Boşluk — §3.3, 4px tabanlı. Varsayılan adım zaten 0.25rem; açıkça sabitlendi.
      4/8/12/16/24/32/48/64/96px  ->  1/2/3/4/6/8/12/16/24 */
@@ -342,6 +363,91 @@
   * {
     scrollbar-color: var(--border-hover) transparent;
     scrollbar-width: thin;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   ADR-045 — PUBLIC SİTE DİLİ
+   Dev, geniş, büyük harf başlıklar; kontur (içi boş) yazı; gradyan düğme;
+   kayan şeritler ve yüzen şekiller. Hepsinin hareketi aşağıdaki
+   `prefers-reduced-motion` bloğuna tabi.
+   -------------------------------------------------------------------------- */
+
+@utility dev-baslik {
+  /* `--font-dev` DEĞİL: `@theme inline` değişkeni :root'a basmayabilir; font
+     değişkeni public layout'un kabında tanımlı, doğrudan oradan okunuyor. */
+  font-family: var(--font-archivo-genis), var(--font-space-grotesk), sans-serif;
+  font-weight: 900;
+  text-transform: uppercase;
+  line-height: 0.88;
+  letter-spacing: -0.035em;
+  text-wrap: balance;
+}
+
+/* İçi boş yazı. Okunabilirliği DOLU kopyası taşır (kontur-baslik.tsx); bu
+   katman her zaman aria-hidden süstür. */
+@utility metin-kontur {
+  color: transparent;
+  -webkit-text-stroke: 1.5px var(--text-primary);
+}
+
+@utility bg-gradient-vurgu {
+  background-image: var(--gradient-vurgu);
+}
+
+@utility text-gradient-vurgu {
+  background-image: var(--gradient-vurgu);
+  background-clip: text;
+  color: transparent;
+}
+
+@theme {
+  --animate-kayan-serit: kayan-serit var(--serit-sure, 40s) linear infinite;
+  --animate-harf-yuksel: harf-yuksel 0.9s var(--ease-brand) both;
+  --animate-yuzme: yuzme 6s ease-in-out infinite;
+  --animate-sayfa-giris: sayfa-giris 0.6s var(--ease-brand) both;
+}
+
+@keyframes kayan-serit {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@keyframes harf-yuksel {
+  from {
+    transform: translate3d(0, 105%, 0);
+  }
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes yuzme {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(0, -14px, 0) rotate(4deg);
+  }
+}
+
+/* Opaklık 0'dan DEĞİL 0.01'den başlıyor: Chrome opaklığı 0 olan öğeyi LCP
+   adayı saymıyor, sayfa girişi LCP'yi animasyon süresi kadar geciktirirdi. */
+@keyframes sayfa-giris {
+  from {
+    opacity: 0.01;
+    transform: translate3d(0, 24px, 0);
+  }
+  /* Bitişte `none`: kalıcı bir dönüşüm, içerideki `position: fixed` öğeleri
+     sarmalayıcıya hapseder ve yeni bir yığın bağlamı açardı. */
+  to {
+    opacity: 1;
+    transform: none;
   }
 }
 

@@ -90,18 +90,21 @@ test.describe('§8.13 · public', () => {
   test('HİDRASYON gerçekleşiyor — nonce Next.js betiklerine basılmış', async ({ page }) => {
     /*
      * Betikler reddedilseydi sayfa HTML olarak yine görünürdü; ayırt edici
-     * olan istemci etkileşimi. Tema düğmesi bir istemci bileşeni ve etiketi
-     * React DURUMUNDAN geliyor — tıktan sonra değişiyorsa hidrasyon olmuştur.
+     * olan istemci etkileşimi. Mobil menü düğmesi bir istemci bileşeni ve
+     * etiketi React DURUMUNDAN geliyor — tıktan sonra değişiyorsa hidrasyon
+     * olmuştur.
+     *
+     * ADR-045: önceki sonda public'teki TEMA düğmesiydi; public site artık hep
+     * koyu ve düğme yalnızca panelde. Menü düğmesi yalnızca dar ekranda
+     * görünür, bu yüzden görünüm her iki projede de mobile çekiliyor.
      */
+    await page.setViewportSize({ width: 390, height: 844 });
     await page.goto('/');
-    const dugme = page.getByRole('button', { name: /na geç$/ }).first();
-    const once = await dugme.getAttribute('aria-label');
+    const dugme = page.getByRole('button', { name: /^Menüyü (aç|kapat)$/ });
+    await expect(dugme).toHaveAttribute('aria-label', 'Menüyü aç');
     await dugme.click();
     // React durumu değişti → etiket değişti. Hidrasyon olmasaydı tık hiçbir şey yapmazdı.
-    await expect(page.getByRole('button', { name: /na geç$/ }).first()).not.toHaveAttribute(
-      'aria-label',
-      once ?? '',
-    );
+    await expect(dugme).toHaveAttribute('aria-label', 'Menüyü kapat');
   });
 });
 

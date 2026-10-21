@@ -1,116 +1,98 @@
-'use client';
-
-/*
- * İSTEMCİ BİLEŞENİ OLARAK KALDI — T-023'te sunucuya alındı, ÖLÇÜLDÜ, geri alındı.
- *
- * Beklenti: `'use client'` kalkarsa bölümün işaretlemesi istemci paketinden
- * çıkar. Derleme çıktısı bunu doğruladı bile: ana sayfa parçası 11.5 kB →
- * 3.39 kB, ilk yük 127 kB → 118 kB.
- *
- * GERÇEK ÖLÇÜM TERSİNİ SÖYLEDİ (Lighthouse mobil, her kol için 3 koşu, medyan;
- * her koşudan önce `.next` silinip sunucu yeniden ayağa kaldırıldı):
- *
- *   | Bölümler | belge | FCP    | LCP     | performans |
- *   | -------- | ----- | ------ | ------- | ---------- |
- *   | istemci  | 11 kB | 758 ms | 3312 ms | 92/91/92   |
- *   | sunucu   | 19 kB | 909 ms | 3556 ms | 91/91/89   |
- *
- * SEBEP: bölüm sunucuda render edilince RSC yükü BELGEYE SATIR İÇİ giriyor —
- * aynı içerik hem HTML hem flight verisi olarak iki kez. Belge 8 kB büyüyor ve
- * Slow 4G'de bu, ilk boyamayı doğrudan geciktiriyor. "First Load JS" sayısı
- * düşerken kullanıcının gördüğü an gecikiyor; derleme çıktısındaki sayı burada
- * yanıltıcı bir vekil.
- *
- * §7'nin "varsayılan Sunucu Bileşeni" kuralı hâlâ doğru; bu altı bölüm, uçtan
- * uca istemci bileşenlerinden (React Bits sarmalayıcıları, `BolumGiris`) oluşan
- * bir ağacın kökü oldukları için ölçüme dayalı istisna. Yeniden denenecekse
- * yukarıdaki tablo yeniden üretilmeli — sayısız değil, sayıyla tartışılsın.
- */
-
-import { BolumGiris } from '@/components/public/bolum-giris';
-import { SpotlightCard } from '@/components/reactbits/lazy';
 import { KATEGORI_BASLIK } from '@/components/public/yetenek-kategori';
-import { EmptyState } from '@/components/ui/empty-state';
+import { KayanSerit } from '@/components/public/tasarim/kayan-serit';
+import { KonturBaslik } from '@/components/public/tasarim/kontur-baslik';
+import { ParlakGlif, ParlakKup } from '@/components/public/tasarim/sekiller';
+import { Yuzen } from '@/components/public/tasarim/yuzen';
 import type { SkillDto } from '@/server/services/content-dto';
-import { SkillCategory } from '@/types';
 
 export type YeteneklerProps = {
-  /** ADR-026 sözleşmesi. Gruplama `category` alanına göre yapılır. */
   yetenekler: SkillDto[];
 };
 
-/**
- * Kategori → görünen başlık. `SkillCategory` Backend'in enum'u (§7.3);
- * burada yalnızca TÜRKÇE KARŞILIĞI tanımlanıyor, yeni bir kavram değil.
- * Sıra da buradan gelir — `Object.keys` sırası şablonun sırasıdır.
- */
+/** Bundan azında kayan şerit seyrek görünüyor; düz ızgaraya düşülüyor. */
+const SERIT_ESIGI = 6;
 
-/** Kategoriye göre gruplar; `order` alanına saygı duyar, boş grubu atlar. */
-function grupla(yetenekler: SkillDto[]) {
-  const sirali = [...yetenekler].sort((a, b) => a.order - b.order);
-
-  return (Object.keys(KATEGORI_BASLIK) as SkillCategory[])
-    .map((kategori) => ({
-      kategori,
-      baslik: KATEGORI_BASLIK[kategori],
-      uyeler: sirali.filter((y) => y.category === kategori),
-    }))
-    .filter((grup) => grup.uyeler.length > 0);
+function YetenekKarti({ yetenek }: { yetenek: SkillDto }) {
+  return (
+    <article className="border-line-hover bg-surface mx-2 flex w-72 shrink-0 flex-col gap-5 rounded-[1.5rem] border p-5 md:w-80">
+      <div className="flex items-center justify-between gap-3">
+        <span className="tabular text-muted text-[0.68rem] tracking-[0.14em] uppercase">
+          {KATEGORI_BASLIK[yetenek.category]}
+        </span>
+        <span className="tabular text-primary text-xs">{yetenek.level}%</span>
+      </div>
+      <h3 className="text-primary font-display text-xl font-bold">{yetenek.name}</h3>
+      {/* Seviye çubuğu SÜS: sayı hemen yukarıda metin olarak var. */}
+      <div aria-hidden="true" className="bg-elevated h-1.5 overflow-hidden rounded-full">
+        <div
+          className="bg-gradient-vurgu h-full rounded-full"
+          style={{ width: `${yetenek.level}%` }}
+        />
+      </div>
+    </article>
+  );
 }
 
 /**
- * "Yetenekler" bölümü — §4.1.
+ * ADR-045 — "Neyle çalışıyorum" (örnekteki "What Clients Are Saying").
  *
- * Kartlar `SpotlightCard` (§5.1): hover'da imleci takip eden mor ışık.
- * İşaretçisi olmayan cihazda ve hareket tercihi kapalıyken kart sabit kalır —
- * bileşen kendi içinde hover'a bağlı, kendiliğinden hareket etmiyor.
+ * Örnekte müşteri yorumları var; veritabanında yorum YOK ve uydurma yorum
+ * yazılmaz (kullanıcı kararı, 2026-10-21). Aynı görünüm — iki sıra, ters
+ * yönlerde kayan kartlar — gerçek yetenek verisiyle.
  *
- * SEVİYE YÜZDESİ GÖSTERİLMİYOR: `Skill.level` alanı şemada var ama "React %87"
- * gibi uydurma bir kesinlik güven kaybettirir. Seviye ayrımı `/hakkimda`
- * sayfasında gruplama olarak kullanılabilir (T-000 kararı).
+ * Kayan şeridin ikinci kopyası `aria-hidden` + `inert` (KayanSerit); her kart
+ * ekran okuyucuya bir kez okunuyor.
  */
 export function Yetenekler({ yetenekler }: YeteneklerProps) {
-  const gruplar = grupla(yetenekler);
-  return (
-    <section id="yetenekler" aria-labelledby="yetenekler-baslik" className="scroll-mt-20">
-      <div className="mx-auto max-w-6xl px-4 py-16 md:py-24">
-        <BolumGiris className="flex flex-col gap-3">
-          <p className="tabular text-accent-soft text-xs tracking-wider uppercase">
-            03 — Yetenekler
-          </p>
-          <h2 id="yetenekler-baslik" className="text-3xl md:text-4xl">
-            Neyle çalışıyorum
-          </h2>
-        </BolumGiris>
+  if (yetenekler.length === 0) return null;
 
-        {gruplar.length === 0 ? (
-          <EmptyState
-            className="mt-8"
-            title="Yetenekler henüz eklenmedi"
-            description="Panelden yetenek eklendiğinde bu bölüm otomatik dolar."
-          />
-        ) : (
-          <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {gruplar.map((grup, sira) => (
-              <BolumGiris key={grup.kategori} gecikme={sira * 0.06}>
-                <SpotlightCard className="h-full">
-                  <h3 className="text-primary mb-3 text-base font-semibold">{grup.baslik}</h3>
-                  <ul className="flex flex-wrap gap-2">
-                    {grup.uyeler.map((yetenek) => (
-                      <li
-                        key={yetenek.id}
-                        className="border-line bg-elevated text-body rounded-pill border px-2.5 py-0.5 text-xs"
-                      >
-                        {yetenek.name}
-                      </li>
-                    ))}
-                  </ul>
-                </SpotlightCard>
-              </BolumGiris>
-            ))}
-          </div>
-        )}
+  const sirali = [...yetenekler].sort((a, b) => a.order - b.order);
+  const ust = sirali.filter((_, i) => i % 2 === 0);
+  const alt = sirali.filter((_, i) => i % 2 === 1);
+
+  return (
+    <section
+      id="yetenekler"
+      aria-labelledby="yetenekler-baslik"
+      className="relative isolate overflow-hidden pt-24 pb-32 md:pt-32 md:pb-44"
+    >
+      <Yuzen hiz={-140} className="top-24 right-[6%] w-16 md:w-24">
+        <ParlakKup className="w-full" />
+      </Yuzen>
+      <Yuzen hiz={-80} gecikme={0.8} className="bottom-24 left-[4%] w-20 md:w-28">
+        <ParlakGlif glif="#" className="text-[5rem] md:text-[7rem]" />
+      </Yuzen>
+
+      <div className="mx-auto max-w-7xl px-4 md:px-8">
+        <KonturBaslik
+          id="yetenekler-baslik"
+          metin="Neyle çalışıyorum"
+          className="mx-auto max-w-5xl text-center text-[clamp(2.1rem,7vw,6.5rem)]"
+        />
       </div>
+
+      {sirali.length < SERIT_ESIGI ? (
+        <ul className="mx-auto mt-16 flex max-w-7xl flex-wrap justify-center gap-y-4 px-4 md:px-8">
+          {sirali.map((y) => (
+            <li key={y.id}>
+              <YetenekKarti yetenek={y} />
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="mt-16 flex flex-col gap-4 md:mt-20">
+          <KayanSerit sure={55} durdur etiket="Yetenekler — birinci sıra">
+            {ust.map((y) => (
+              <YetenekKarti key={y.id} yetenek={y} />
+            ))}
+          </KayanSerit>
+          <KayanSerit sure={60} ters durdur etiket="Yetenekler — ikinci sıra">
+            {alt.map((y) => (
+              <YetenekKarti key={y.id} yetenek={y} />
+            ))}
+          </KayanSerit>
+        </div>
+      )}
     </section>
   );
 }

@@ -4,6 +4,9 @@ import { dosyaAdresi } from '@/lib/dosya-adresi';
 import Link from 'next/link';
 
 import { CvIndir } from '@/components/public/cv-indir';
+import { SayfaBasligi } from '@/components/public/tasarim/sayfa-basligi';
+import { ParlakGlif, ParlakKure } from '@/components/public/tasarim/sekiller';
+import { Yuzen } from '@/components/public/tasarim/yuzen';
 import { ZamanCizelgesi } from '@/components/public/zaman-cizelgesi';
 import { buttonClasses } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -42,83 +45,110 @@ export default async function HakkimdaSayfasi() {
   const isler = deneyimler.filter((d) => d.type === ExperienceType.WORK);
   const egitim = deneyimler.filter((d) => d.type === ExperienceType.EDUCATION);
 
+  const [ilk, ...diger] = paragraflar;
+
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-16 px-4 py-16 md:py-24">
-      <header className="flex flex-col gap-4">
-        <p className="tabular text-accent-soft text-xs tracking-wider uppercase">Hakkımda</p>
+    <>
+      {/*
+        Sayfadaki TEK <h1> ve İSİM taşıyor, ünvan değil: arama sonucunda ve sekme
+        başlığında sayfanın KİM hakkında olduğunu söylesin. Bölümler <h2>,
+        kayıtlar <h3>.
+      */}
+      <SayfaBasligi
+        baslik={SITE_NAME}
+        yol="~/hakkimda"
+        aciklama={
+          <>
+            <span className="text-primary font-semibold">{profil.headline}</span>
+            {profil.subtitle && <> — {profil.subtitle}</>}
+          </>
+        }
+        susler={
+          <>
+            <Yuzen hiz={-140} className="top-28 right-[5%] w-20 md:w-32">
+              <ParlakGlif glif="{ }" className="text-[4.5rem] md:text-[7rem]" />
+            </Yuzen>
+            <Yuzen hiz={-90} gecikme={1} className="right-[28%] bottom-4 hidden w-16 md:block">
+              <ParlakKure className="w-full" renk="var(--sekil-pembe)" />
+            </Yuzen>
+          </>
+        }
+      />
 
-        {/*
-          Sayfadaki TEK <h1> ve İSİM taşıyor, ünvan değil. Ünvanı başlık yapmak
-          ("Full Stack Developer") arama sonucunda ve sekme başlığında sayfanın
-          KİM hakkında olduğunu söylemez; bu sayfanın konusu kişinin kendisi.
-          Bölüm başlıkları <h2>, kayıt başlıkları <h3>.
-        */}
-        <h1 className="text-3xl md:text-5xl">{SITE_NAME}</h1>
+      <div className="mx-auto flex max-w-7xl flex-col gap-24 px-4 pb-32 md:gap-32 md:px-8">
+        {ilk && (
+          <section
+            aria-labelledby="biyografi-baslik"
+            className="grid gap-8 md:grid-cols-[14rem_1fr]"
+          >
+            <h2
+              id="biyografi-baslik"
+              className="tabular text-muted text-xs font-normal tracking-[0.16em] uppercase"
+            >
+              01 — Kısaca ben
+            </h2>
+            <div className="flex flex-col gap-6">
+              <p className="text-primary text-2xl leading-snug font-medium text-balance md:text-4xl">
+                {ilk}
+              </p>
+              {diger.map((paragraf) => (
+                <p key={paragraf.slice(0, 32)} className="text-body max-w-3xl md:text-lg">
+                  {paragraf}
+                </p>
+              ))}
+            </div>
+          </section>
+        )}
 
-        <p className="text-accent-soft text-lg font-medium">{profil.headline}</p>
-
-        {profil.subtitle && <p className="text-body max-w-2xl text-lg">{profil.subtitle}</p>}
-      </header>
-
-      {paragraflar.length > 0 && (
-        <section aria-labelledby="biyografi-baslik" className="flex flex-col gap-4">
-          <h2 id="biyografi-baslik" className="text-2xl">
-            Kısaca ben
+        <section aria-labelledby="deneyim-baslik" className="flex flex-col gap-10">
+          <h2
+            id="deneyim-baslik"
+            className="dev-baslik text-primary text-[clamp(2.25rem,7vw,5.5rem)]"
+          >
+            Deneyim
           </h2>
-
-          {paragraflar.map((paragraf) => (
-            <p key={paragraf.slice(0, 32)} className="text-body max-w-2xl">
-              {paragraf}
-            </p>
-          ))}
+          {isler.length > 0 ? (
+            <ZamanCizelgesi kayitlar={isler} />
+          ) : (
+            <EmptyState
+              icon={Briefcase}
+              title="Deneyim kayıtları hazırlanıyor"
+              description="Çalışma geçmişimi buraya ekleyeceğim. Ne yaptığımı şimdiden konuşabiliriz."
+              action={
+                <Link href="/iletisim" className={buttonClasses({ size: 'sm' })}>
+                  Bana yaz
+                </Link>
+              }
+            />
+          )}
         </section>
-      )}
 
-      <section aria-labelledby="deneyim-baslik" className="flex flex-col gap-6">
-        <h2 id="deneyim-baslik" className="text-2xl">
-          Deneyim
-        </h2>
+        <section aria-labelledby="egitim-baslik" className="flex flex-col gap-10">
+          <h2
+            id="egitim-baslik"
+            className="dev-baslik metin-kontur text-[clamp(2.25rem,7vw,5.5rem)]"
+          >
+            Eğitim
+          </h2>
+          {egitim.length > 0 ? (
+            <ZamanCizelgesi kayitlar={egitim} />
+          ) : (
+            <EmptyState
+              icon={GraduationCap}
+              title="Eğitim bilgisi henüz eklenmedi"
+              description="Panelden eklendiğinde bu bölüm otomatik dolar."
+            />
+          )}
+        </section>
 
-        {isler.length > 0 ? (
-          <ZamanCizelgesi kayitlar={isler} />
-        ) : (
-          <EmptyState
-            icon={Briefcase}
-            title="Deneyim kayıtları hazırlanıyor"
-            description="Çalışma geçmişimi buraya ekleyeceğim. Ne yaptığımı şimdiden konuşabiliriz."
-            action={
-              <Link href="/iletisim" className={buttonClasses({ size: 'sm' })}>
-                Bana yaz
-              </Link>
-            }
-          />
-        )}
-      </section>
-
-      <section aria-labelledby="egitim-baslik" className="flex flex-col gap-6">
-        <h2 id="egitim-baslik" className="text-2xl">
-          Eğitim
-        </h2>
-
-        {egitim.length > 0 ? (
-          <ZamanCizelgesi kayitlar={egitim} />
-        ) : (
-          <EmptyState
-            icon={GraduationCap}
-            title="Eğitim bilgisi henüz eklenmedi"
-            description="Panelden eklendiğinde bu bölüm otomatik dolar."
-          />
-        )}
-      </section>
-
-      <section aria-labelledby="cv-baslik" className="flex flex-col gap-6">
-        <h2 id="cv-baslik" className="text-2xl">
-          Özgeçmiş
-        </h2>
-
-        {/* Kalıcı, aynı kökenli adres (ADR-044) — T-037'nin öngördüğü "tek prop". */}
-        <CvIndir cv={profil.cv} indirmeUrl={profil.cv ? dosyaAdresi(profil.cv.id) : null} />
-      </section>
-    </div>
+        <section aria-labelledby="cv-baslik" className="flex flex-col gap-10">
+          <h2 id="cv-baslik" className="dev-baslik text-primary text-[clamp(2.25rem,7vw,5.5rem)]">
+            Özgeçmiş
+          </h2>
+          {/* Kalıcı, aynı kökenli adres (ADR-044) — T-037'nin öngördüğü "tek prop". */}
+          <CvIndir cv={profil.cv} indirmeUrl={profil.cv ? dosyaAdresi(profil.cv.id) : null} />
+        </section>
+      </div>
+    </>
   );
 }

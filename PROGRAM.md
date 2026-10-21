@@ -72,6 +72,12 @@ onaysız yeni bağımlılık eklenmesi.
 
 ## 3. Tasarım Sistemi
 
+> **ADR-045 (2026-10-21):** public site yeni bir görsel dile geçti — her zaman koyu sahne,
+> Archivo geniş dev başlıklar, kayan açık paneller, `--gradient-vurgu`. Aşağıdaki token'lar ve
+> kontrast kuralları geçerliliğini koruyor (açık paneller `.panel-acik` ile §3.1'in aydınlık
+> değerlerini kullanıyor); public'teki tema seçimi, display fontu ve §5.1 haritası için ADR-045
+> esastır. Panel bu bölümü aynen izler.
+
 Referans yön: koyu, derin mor-lacivert zemin; mor→mavi gradient vurgular; cam etkili
 kartlar; yumuşak glow. Aydınlık tema da zorunlu (kullanıcı tercihi + sistem tercihi).
 
