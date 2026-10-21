@@ -12,9 +12,9 @@ import { guvenliHata, guvenliUyari } from '@/lib/security/guvenli-log';
  * F7'ye kalabilir: bu dosya hiçbir sağlayıcıya bağımlılık İÇE AKTARMAZ,
  * `package.json`'a paket eklenmez.
  *
- * F7'DE YAPILACAK TEK ŞEY: `NotificationAdapter` uygulayan bir modül yazmak ve
- * `resolveContactNotifier`'ın döndürdüğü değeri onunla değiştirmek. Çağıran
- * taraf (route handler) değişmez.
+ * ADR-042 EKİ (2026-10-21): Resend adaptörü eklendi, ortam değişkenleriyle
+ * İSTEĞE BAĞLI (`resolveContactNotifier`). Çağıran taraf (route handler)
+ * değişmedi — adaptör sözleşmesi tam bunun için kurulmuştu.
  *
  * ═══════════════════════════════════════════════════════════════════════════
  * BAŞARISIZLIK AKIŞI DURDURMAZ
@@ -79,22 +79,103 @@ export const noopNotificationAdapter: NotificationAdapter = {
 
 export type NotificationEnv = Record<string, string | undefined>;
 
+/** Resend'in gönderim ucu — https://resend.com/docs/api-reference/emails/send-email */
+const RESEND_UCU = 'https://api.resend.com/emails';
+
+/**
+ * Doğrulanmış bir alan adı olmadan Resend YALNIZCA bu göndericiyle ve yalnızca
+ * hesap sahibinin kendi adresine gönderir — kurulumu denemek için yeter.
+ * Alan adı doğrulanınca `CONTACT_FROM_EMAIL` ile değiştirilir (docs/yayin.md).
+ */
+const VARSAYILAN_GONDEREN = 'Site <onboarding@resend.dev>';
+
+/** Sağlayıcı yavaşsa form yanıtı en fazla bu kadar bekler (ziyaretçi bekliyor). */
+const ZAMAN_ASIMI_MS = 5_000;
+
+/** Konu tek satır: CR/LF ve kontrol karakterleri boşluğa iner, uzunluk sınırlı. */
+function tekSatir(metin: string, enCok = 140): string {
+  return metin
+    .replace(/[\u0000-\u001f\u007f]+/g, ' ')
+    .trim()
+    .slice(0, enCok);
+}
+
+/**
+ * Resend adaptörü — ADR-042 eki (2026-10-21): bildirim İSTEĞE BAĞLI açıldı.
+ *
+ * DÜZ METİN, HTML YOK: ziyaretçinin yazdığı her şey gövdeye olduğu gibi girer;
+ * HTML gövde, kaçışlama hatasında e-posta istemcisinde içerik enjeksiyonu
+ * demekti. "Yanıtla" ziyaretçiye gider (`reply_to`), gönderen bizim adresimiz.
+ * Paket YOK — tek bir `fetch` (ADR-004: bağımlılık eklenmedi).
+ */
+export function resendNotificationAdapter(ayar: {
+  apiKey: string;
+  to: string;
+  from: string;
+}): NotificationAdapter {
+  return {
+    name: 'resend',
+    async send(n) {
+      const konu = tekSatir(
+        `${n.isSpam ? '[SPAM?] ' : ''}[Site] ${n.subject ?? 'Yeni mesaj'} — ${n.name}`,
+      );
+      const govde = [
+        `Gönderen: ${n.name} <${n.email}>`,
+        n.subject ? `Konu: ${n.subject}` : null,
+        n.sourcePage ? `Sayfa: ${n.sourcePage}` : null,
+        `Zaman: ${n.receivedAt.toISOString()}`,
+        n.isSpam ? 'UYARI: spam puanı eşiği aştı — dikkatle oku.' : null,
+        '',
+        n.message,
+        '',
+        `Panel: /panel/mesajlar/${n.messageId}`,
+      ]
+        .filter((satir) => satir !== null)
+        .join('\n');
+
+      const yanit = await fetch(RESEND_UCU, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${ayar.apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: ayar.from,
+          to: [ayar.to],
+          reply_to: n.email,
+          subject: konu,
+          text: govde,
+        }),
+        signal: AbortSignal.timeout(ZAMAN_ASIMI_MS),
+      });
+      if (!yanit.ok) {
+        // Gövde LOGA GİRMİYOR — sağlayıcı hata metni adresi yankılayabilir (§8.20).
+        throw new Error(`Resend ${yanit.status}`);
+      }
+    },
+  };
+}
+
 /**
  * Yürürlükteki adaptörü seçer.
  *
- * BUGÜN HER ZAMAN `noop` DÖNER — sağlayıcı seçimi (Q2) F7'de yapılacak. İmza
- * şimdiden burada olsun ki route handler F7'de DEĞİŞMESİN: o turda yalnızca bu
- * fonksiyonun gövdesine bir dal eklenecek (`env.RESEND_API_KEY` varsa Resend
- * adaptörü, yoksa `noop`).
+ * `RESEND_API_KEY` VE `CONTACT_NOTIFY_EMAIL` ikisi de doluysa Resend, yoksa
+ * `noop` (form yine tam çalışır; mesaj panelde, okunmamış rozetiyle — ADR-042).
+ * Biri eksikken Resend'i yarım kurmak, sessizce hiçbir yere gitmeyen bir
+ * adaptör üretirdi; o yüzden ikisi birden şart.
  *
  * `env` parametre olarak alınıyor — modül yüklenirken `process.env` okumak,
  * testin ortam değişkeni kurmasını zorunlu kılardı.
  */
-export function resolveContactNotifier(
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars -- F7'de okunacak; imza şimdiden sabit.
-  env: NotificationEnv = process.env,
-): NotificationAdapter {
-  return noopNotificationAdapter;
+export function resolveContactNotifier(env: NotificationEnv = process.env): NotificationAdapter {
+  const apiKey = env.RESEND_API_KEY?.trim();
+  const to = env.CONTACT_NOTIFY_EMAIL?.trim();
+  if (!apiKey || !to) return noopNotificationAdapter;
+  return resendNotificationAdapter({
+    apiKey,
+    to,
+    from: env.CONTACT_FROM_EMAIL?.trim() || VARSAYILAN_GONDEREN,
+  });
 }
 
 export interface NotifyResult {

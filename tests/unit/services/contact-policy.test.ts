@@ -260,8 +260,74 @@ describe('bildirim adaptörü — başarısızlık akışı DURDURMAZ', () => {
     expect(uyari.mock.calls.flat().map(String).join(' ')).not.toContain(BILDIRIM.email);
   });
 
-  it('F7 öncesi yürürlükteki adaptör noop — sağlayıcı seçimi (Q2) açık', () => {
+  it('anahtar ve alıcı BİRLİKTE yoksa noop — yarım kurulum sessizce hiçbir yere gitmesin', () => {
     expect(resolveContactNotifier({}).name).toBe('noop');
     expect(resolveContactNotifier({ RESEND_API_KEY: 'x' })).toBe(noopNotificationAdapter);
+    expect(resolveContactNotifier({ CONTACT_NOTIFY_EMAIL: 'a@b.co' })).toBe(
+      noopNotificationAdapter,
+    );
+    expect(resolveContactNotifier({ RESEND_API_KEY: ' ', CONTACT_NOTIFY_EMAIL: 'a@b.co' })).toBe(
+      noopNotificationAdapter,
+    );
+  });
+
+  describe('Resend adaptörü (ADR-042 eki)', () => {
+    const ORTAM = { RESEND_API_KEY: 'anahtar', CONTACT_NOTIFY_EMAIL: 'ben@ornek.co' };
+
+    function yakala(durum = 200) {
+      const cagri = vi.fn<typeof fetch>(async () => new Response('{}', { status: durum }));
+      vi.stubGlobal('fetch', cagri);
+      return cagri;
+    }
+
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it('ikisi de doluysa Resend seçiliyor', () => {
+      expect(resolveContactNotifier(ORTAM).name).toBe('resend');
+    });
+
+    it('istek: yetki başlığı, alıcı, yanıtla = ziyaretçi, DÜZ METİN gövde', async () => {
+      const cagri = yakala();
+      await resolveContactNotifier(ORTAM).send(BILDIRIM);
+
+      const [adres, ayar] = cagri.mock.calls[0] ?? [];
+      expect(adres).toBe('https://api.resend.com/emails');
+      expect((ayar?.headers as Record<string, string>).Authorization).toBe('Bearer anahtar');
+      const govde = JSON.parse(String(ayar?.body)) as Record<string, unknown>;
+      expect(govde.to).toEqual(['ben@ornek.co']);
+      expect(govde.reply_to).toBe(BILDIRIM.email);
+      expect(govde.from).toBe('Site <onboarding@resend.dev>');
+      expect(govde).not.toHaveProperty('html');
+      expect(String(govde.text)).toContain(BILDIRIM.message);
+    });
+
+    it('CONTACT_FROM_EMAIL varsa gönderen o', async () => {
+      const cagri = yakala();
+      await resolveContactNotifier({ ...ORTAM, CONTACT_FROM_EMAIL: 'Site <site@alan.co>' }).send(
+        BILDIRIM,
+      );
+      const govde = JSON.parse(String(cagri.mock.calls[0]?.[1]?.body)) as Record<string, unknown>;
+      expect(govde.from).toBe('Site <site@alan.co>');
+    });
+
+    it('konu tek satır — CR/LF ziyaretçi girdisinden temizleniyor', async () => {
+      const cagri = yakala();
+      await resolveContactNotifier(ORTAM).send({
+        ...BILDIRIM,
+        subject: 'Merhaba\r\nBcc: kotu@ornek.co',
+      });
+      const govde = JSON.parse(String(cagri.mock.calls[0]?.[1]?.body)) as Record<string, unknown>;
+      expect(String(govde.subject)).not.toMatch(/[\r\n]/);
+    });
+
+    it('sağlayıcı hata dönerse notify FIRLATMAZ, delivered:false', async () => {
+      yakala(422);
+      await expect(notifyContactMessage(BILDIRIM, resolveContactNotifier(ORTAM))).resolves.toEqual({
+        delivered: false,
+        adapter: 'resend',
+      });
+    });
   });
 });

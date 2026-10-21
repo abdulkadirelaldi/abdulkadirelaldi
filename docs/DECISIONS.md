@@ -2356,6 +2356,21 @@ ihtiyaç olur). İkisi de bugün yok.
 
 ---
 
+
+### Ek — 2026-10-21: iletişim bildirimi isteğe bağlı açıldı
+
+Kullanıcı "tüm eksikleri gider" dedi ve mesajın e-postaya düşmesini istedi. Karar
+tersine çevrilmedi, **genişletildi**: `notification.ts`'teki adaptör sözleşmesi tam
+bunun için kurulmuştu ve çağıran uç değişmedi.
+
+- `RESEND_API_KEY` **ve** `CONTACT_NOTIFY_EMAIL` doluysa Resend, yoksa `noop` — bugünkü
+  davranış. Biri eksikken yarım kurulum sessizce hiçbir yere gitmesin diye ikisi birden şart.
+- Paket yok, tek `fetch` (ADR-004). Gövde **düz metin** (HTML enjeksiyonu yüzeyi yok),
+  konu tek satıra indirgeniyor (CR/LF temizliği mutasyonla sınandı), `reply_to` ziyaretçi.
+- 5 sn zaman aşımı; hata akışı durdurmuyor (adaptörün baştan beri kuralı). Log'a adres
+  ya da sağlayıcı gövdesi girmiyor (§8.20).
+- Şifre sıfırlama vb. diğer mail ihtiyaçları hâlâ kapsam dışı.
+
 ## ADR-043 — Yüklenen SVG Kabul Edilmez
 
 **Tarih:** 2026-10-16 · **Durum:** Kabul edildi · **Kaynak:** T-037 (Backend sordu), Orkestra Şefi kararı
