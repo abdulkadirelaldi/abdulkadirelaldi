@@ -5,7 +5,13 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type * as z from 'zod';
 
-import { Alan, BOS_ISE_YOK, ONDALIK_YA_DA_YOK, SAYI_YA_DA_YOK } from '@/components/panel/alan';
+import {
+  Alan,
+  BOS_ISE_YOK,
+  ONDALIK_YA_DA_YOK,
+  SAYI_YA_DA_YOK,
+  bosaltilanlariNullYap,
+} from '@/components/panel/alan';
 import { KaliciSilDugmesi } from '@/components/panel/kalici-sil-dugmesi';
 import { RUH_HALI } from '@/components/panel/kisisel-etiketler';
 import { FormKabugu, usePanelForm } from '@/components/panel/panel-form';
@@ -36,10 +42,9 @@ import type { HealthLogDto } from '@/server/services/health-log';
  * ⚠️ ÖLÇÜLER SAYIYA ÇEVRİLMİYOR: `weightKg`/`bodyFatPct`/`sleepHours` dize
  * olarak gidiyor (`ONDALIK_YA_DA_YOK` yalnızca virgülü noktaya çeviriyor).
  *
- * ⚠️ BİLİNEN SINIR: güncelleme şeması KISMİ (`partialWithoutDefaults`), yani
- * dolu bir alanı BOŞALTMAK onu silmez — alan gönderilmez ve eski değer kalır.
- * Yardım metni bunu söylüyor; yanlış ölçüm için yol kaydı silip yeniden
- * girmek ya da değeri düzeltmek.
+ * BOŞALTMAK SİLİYOR: dolu bir ölçüyü boşaltıp kaydetmek onu `null` yapar
+ * (`bosaltilanlariNullYap`). Önceden kısmi şema "temizle" diyemiyordu ve
+ * değer sessizce kalıyordu.
  */
 
 type SaglikFormGirdi = z.input<typeof createHealthLogSchema>;
@@ -70,7 +75,19 @@ export function SaglikFormu({ kayit, gun }: { kayit?: HealthLogDto; gun: string 
   const kaydet = async (degerler: SaglikFormGirdi) => {
     setMevcutId(null);
     const sonuc = kayit
-      ? await updateHealthLogAction({ ...degerler, id: kayit.id })
+      ? await updateHealthLogAction({
+          ...bosaltilanlariNullYap(degerler, kayit, [
+            'weightKg',
+            'bodyFatPct',
+            'sleepHours',
+            'waterMl',
+            'restingHr',
+            'steps',
+            'mood',
+            'note',
+          ]),
+          id: kayit.id,
+        })
       : await createHealthLogAction(degerler);
 
     if (sonuc.ok) {
@@ -265,13 +282,6 @@ export function SaglikFormu({ kayit, gun }: { kayit?: HealthLogDto; gun: string 
           >
             {(b) => <Textarea id="note" rows={3} {...b} {...register('note', BOS_ISE_YOK)} />}
           </Alan>
-
-          {duzenleme && (
-            <p className="text-muted text-xs">
-              Dolu bir alanı boşaltmak değeri silmez. Yanlış girilmiş bir ölçümü düzeltin ya da
-              kaydı silip yeniden girin.
-            </p>
-          )}
         </FormKabugu>
 
         <Button

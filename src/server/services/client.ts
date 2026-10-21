@@ -387,7 +387,7 @@ export async function fetchClientForPanel(
  * e-postayla kaydetmek ikinci kayıtta benzersizlik ihlali verirdi, oysa ikisinin
  * de e-postası YOK.
  */
-function bosaNull(value: string | undefined): string | null {
+function bosaNull(value: string | null | undefined): string | null {
   return value?.trim() ? value : null;
 }
 

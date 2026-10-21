@@ -128,3 +128,31 @@ export function isodanYerelAna(iso: string | null | undefined): string | undefin
   const p = (s: number) => String(s).padStart(2, '0');
   return `${an.getFullYear()}-${p(an.getMonth() + 1)}-${p(an.getDate())}T${p(an.getHours())}:${p(an.getMinutes())}`;
 }
+
+/**
+ * DÜZENLEMEDE "BOŞALT" — kayıtta DOLU olup formda BOŞALTILAN alanları `null`
+ * yapar; diğer her şeye dokunmaz.
+ *
+ * Form boş alanı `undefined` olarak taşıyor (`BOS_ISE_YOK` ve kardeşleri) ve
+ * T-031 kuralında `undefined` = "dokunma". Bu yüzden dolu bir alanı boşaltmak
+ * eski değeri SESSİZCE koruyordu; F5 formları bunu ekranda uyarı olarak
+ * yazıyordu. Güncelleme şemaları artık temizlenebilir sütunlarda `null`
+ * kabul ediyor; burası "kullanıcı boşalttı" niyetini o değere çeviriyor.
+ *
+ * ⚠️ ZATEN BOŞ OLAN alana `null` GÖNDERİLMİYOR: gönderilseydi sonuç aynı
+ * olurdu ama denetim kaydı o alanı "değişti" diye yazardı — dokunulmayan
+ * alanların listesi, değişikliğin kaydını yalana çevirirdi.
+ */
+export function bosaltilanlariNullYap<T extends Record<string, unknown>, R extends object>(
+  degerler: T,
+  kayit: R,
+  /** Ad HEM formda HEM kayıtta olmalı — yanlış yazılmış bir ad derleme hatası. */
+  temizlenebilir: readonly (keyof T & keyof R & string)[],
+): { [K in keyof T]: T[K] | null } {
+  const sonuc: Record<string, unknown> = { ...degerler };
+  const eski = kayit as Record<string, unknown>;
+  for (const alan of temizlenebilir) {
+    if (sonuc[alan] === undefined && eski[alan] != null) sonuc[alan] = null;
+  }
+  return sonuc as { [K in keyof T]: T[K] | null };
+}

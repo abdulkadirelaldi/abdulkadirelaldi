@@ -216,7 +216,7 @@ const KAPSAM: Record<string, KapsamBeyani> = {
   '/panel/saglik/[id]': {
     kapilar: ['kapsanmiyor'],
     kanit: [],
-    not: "T-113 ile eklendi. Okuma `fetchHealthLogById` TEK KAYIT; yoksa 404. Yazma `updateHealthLogAction` + `deleteHealthLogAction`. Silme onayı değerlerin HİÇBİR YERDE kalmadığını söylüyor — T-110 kararı (denetim kaydına yalnızca gün yazılıyor); `deneyim`deki 'denetim kaydında görünmeye devam eder' metni burada yalan olurdu, bu yüzden onay metni çağırandan geliyor (`kalici-sil-dugmesi.tsx`). ÖLÇÜLMEYEN: (1) BİLİNEN SINIR: güncelleme şeması kısmi, dolu alanı boşaltmak değeri SİLMİYOR — ekranda yazıyor, davranış değiştirilmedi. (2) Tarihi başka bir kayda ait güne çekmek CONFLICT veriyor; mesajın alan altına düştüğü arayüzden denenmedi.",
+    not: "T-113 ile eklendi. Okuma `fetchHealthLogById` TEK KAYIT; yoksa 404. Yazma `updateHealthLogAction` + `deleteHealthLogAction`. Silme onayı değerlerin HİÇBİR YERDE kalmadığını söylüyor — T-110 kararı (denetim kaydına yalnızca gün yazılıyor); `deneyim`deki 'denetim kaydında görünmeye devam eder' metni burada yalan olurdu, bu yüzden onay metni çağırandan geliyor (`kalici-sil-dugmesi.tsx`). ÖLÇÜLMEYEN: (1) BOŞALTMAK SİLİYOR (önceden silmiyordu): temizlenebilir sütunlar güncellemede `null` kabul ediyor ve form dolu iken boşaltılan alanı `null`a çeviriyor (`bosaltilanlariNullYap`) — ÖLÇÜLÜYOR, `panel-kisisel.spec.ts`: kilo boşaltılıp kaydediliyor, yenilemeden sonra boş, uyku yerinde; mutasyonla eski kusur geri üretildi. (2) Tarihi başka bir kayda ait güne çekmek CONFLICT veriyor; mesajın alan altına düştüğü arayüzden denenmedi.",
   },
   '/panel/spor': {
     kapilar: ['kapsanmiyor'],
@@ -231,7 +231,7 @@ const KAPSAM: Record<string, KapsamBeyani> = {
   '/panel/spor/[id]': {
     kapilar: ['kapsanmiyor'],
     kanit: [],
-    not: 'T-114 ile eklendi. Okuma `fetchWorkoutById` (setleriyle) + `fetchExercises({isArchived:false, perPage:100})` (yeni set seçicisi) + setlerin işaret ettiği ama aktif listede olmayan her egzersiz için `fetchExerciseById` (arşivli harekete ait set düzenlenirken bağ kopmasın — `islem-formu.tsx` dersi). Yazma `updateWorkoutAction`, `deleteWorkoutAction` (onay setlerin silineceğini ve rekorların yeniden hesaplanacağını söylüyor), `createWorkoutSetAction`, `updateWorkoutSetAction`, `deleteWorkoutSetAction`; set eylemlerinin rekor sonucu `role="status"` ile gösteriliyor. CONFLICT (`setNo`) `fields.setNo` ile alana basılıyor; `workoutId` `gorunmezAlanlar`da. ÖLÇÜLMEYEN: (1) Rekor yeniden hesabının doğruluğu servis testlerinde, ekrandan ölçülmedi. (2) CONFLICT dalı arayüzde denenmedi. (3) Arşivli egzersizin \'(arşivli)\' seçenek olarak görünmesi denenmedi. (4) Güncelleme KISMİ: ağırlık/RPE/süre/not boşaltmak değeri silmez (metinde yazılı). (5) Seçici tavanı 100 egzersiz.',
+    not: 'T-114 ile eklendi. Okuma `fetchWorkoutById` (setleriyle) + `fetchExercises({isArchived:false, perPage:100})` (yeni set seçicisi) + setlerin işaret ettiği ama aktif listede olmayan her egzersiz için `fetchExerciseById` (arşivli harekete ait set düzenlenirken bağ kopmasın — `islem-formu.tsx` dersi). Yazma `updateWorkoutAction`, `deleteWorkoutAction` (onay setlerin silineceğini ve rekorların yeniden hesaplanacağını söylüyor), `createWorkoutSetAction`, `updateWorkoutSetAction`, `deleteWorkoutSetAction`; set eylemlerinin rekor sonucu `role="status"` ile gösteriliyor. CONFLICT (`setNo`) `fields.setNo` ile alana basılıyor; `workoutId` `gorunmezAlanlar`da. ÖLÇÜLMEYEN: (1) Rekor yeniden hesabının doğruluğu servis testlerinde, ekrandan ölçülmedi. (2) CONFLICT dalı arayüzde denenmedi. (3) Arşivli egzersizin \'(arşivli)\' seçenek olarak görünmesi denenmedi. (4) Ağırlık/RPE/süre/not boşaltmak artık SİLİYOR (`bosaltilanlariNullYap`); bu ekranda arayüzden ölçülmedi, sağlık ekranında ölçülen aynı mekanizma. (metinde yazılı). (5) Seçici tavanı 100 egzersiz.',
   },
   '/panel/spor/egzersizler': {
     kapilar: ['e2e'],
@@ -271,7 +271,7 @@ const KAPSAM: Record<string, KapsamBeyani> = {
   '/panel/hayat/aliskanliklar/[id]': {
     kapilar: ['kapsanmiyor'],
     kanit: [],
-    not: 'T-115 ile eklendi. Okuma `fetchHabitById` TEK KAYIT; yoksa 404. Arşivlenmiş alışkanlık da açılıyor (arşivden çıkarmanın ikinci yolu). Yazma `updateHabitAction` + `archiveHabitAction`. ÖLÇÜLMEYEN: (1) BİLİNEN SINIR: güncelleme şeması kısmi — `targetPerDay` ve `color` boşaltılınca TEMİZLENMİYOR (sayaçlı alışkanlık aç/kapa türüne dönemez); ekranda yazıyor. (2) `targetPerDay` değişince geçmişin yeniden yorumlanması (servis kararı) arayüzden denenmedi.',
+    not: 'T-115 ile eklendi. Okuma `fetchHabitById` TEK KAYIT; yoksa 404. Arşivlenmiş alışkanlık da açılıyor (arşivden çıkarmanın ikinci yolu). Yazma `updateHabitAction` + `archiveHabitAction`. ÖLÇÜLMEYEN: (1) `targetPerDay` ve `color` boşaltılınca artık TEMİZLENİYOR (`bosaltilanlariNullYap`); bu ekranda arayüzden ölçülmedi, sağlık ekranında ölçülen aynı mekanizma. (sayaçlı alışkanlık aç/kapa türüne dönemez); ekranda yazıyor. (2) `targetPerDay` değişince geçmişin yeniden yorumlanması (servis kararı) arayüzden denenmedi.',
   },
   '/panel/hayat/hedefler': {
     kapilar: ['kapsanmiyor'],
@@ -286,7 +286,7 @@ const KAPSAM: Record<string, KapsamBeyani> = {
   '/panel/hayat/hedefler/[id]': {
     kapilar: ['kapsanmiyor'],
     kanit: [],
-    not: "T-115 ile eklendi. Okuma `fetchGoalById` TEK KAYIT; yoksa 404. Yazma `updateGoalAction` + `deleteGoalAction` (onay 'Vazgeçildi' durumunu hatırlatıyor). Ulaşılmış hedefin ilerlemesini düşürmek önce istemci şemasında `progress` hatası; istemci atlatılırsa sunucunun VALIDATION_ERROR'u `fields.progress` ile AYNI alana düşüyor. ÖLÇÜLMEYEN: (1) Sunucu dalı (`GoalRuleError`) arayüzden hiç tetiklenmedi — istemci şeması önce yakalıyor; eylem birim testinde. (2) BİLİNEN SINIR: `targetDate` boşaltılınca TEMİZLENMİYOR (kısmi şema); ekranda yazıyor.",
+    not: "T-115 ile eklendi. Okuma `fetchGoalById` TEK KAYIT; yoksa 404. Yazma `updateGoalAction` + `deleteGoalAction` (onay 'Vazgeçildi' durumunu hatırlatıyor). Ulaşılmış hedefin ilerlemesini düşürmek önce istemci şemasında `progress` hatası; istemci atlatılırsa sunucunun VALIDATION_ERROR'u `fields.progress` ile AYNI alana düşüyor. ÖLÇÜLMEYEN: (1) Sunucu dalı (`GoalRuleError`) arayüzden hiç tetiklenmedi — istemci şeması önce yakalıyor; eylem birim testinde. (2) `targetDate` boşaltılınca artık TEMİZLENİYOR (`bosaltilanlariNullYap`); bu ekranda arayüzden ölçülmedi. (kısmi şema); ekranda yazıyor.",
   },
   '/panel/hayat/gunluk': {
     kapilar: ['kapsanmiyor'],
@@ -301,7 +301,7 @@ const KAPSAM: Record<string, KapsamBeyani> = {
   '/panel/hayat/gunluk/[id]': {
     kapilar: ['kapsanmiyor'],
     kanit: [],
-    not: "T-115 ile eklendi. Okuma `fetchJournalEntryById` TEK KAYIT, TAM METİN yalnızca burada; yoksa 404 — formu liste özetinden beslemek metni 240 karaktere keserdi. `metadata.title` SABİT, kaydın başlığı sekmeye/geçmişe sızmıyor. Yazma `updateJournalEntryAction` + `deleteJournalEntryAction`; silme onayı içeriğin hiçbir yerde saklanmadığını söylüyor. ÖLÇÜLMEYEN: (1) BİLİNEN SINIR: `mood` 'Girilmedi'ye çekilince TEMİZLENMİYOR (kısmi şema); ekranda yazıyor. (2) Kimlik numaralandırma (cuid tahmin edilemez VARSAYILDI).",
+    not: "T-115 ile eklendi. Okuma `fetchJournalEntryById` TEK KAYIT, TAM METİN yalnızca burada; yoksa 404 — formu liste özetinden beslemek metni 240 karaktere keserdi. `metadata.title` SABİT, kaydın başlığı sekmeye/geçmişe sızmıyor. Yazma `updateJournalEntryAction` + `deleteJournalEntryAction`; silme onayı içeriğin hiçbir yerde saklanmadığını söylüyor. ÖLÇÜLMEYEN: (1) `mood` 'Girilmedi'ye çekilince artık TEMİZLENİYOR (`bosaltilanlariNullYap`); bu ekranda arayüzden ölçülmedi. (kısmi şema); ekranda yazıyor. (2) Kimlik numaralandırma (cuid tahmin edilemez VARSAYILDI).",
   },
   '/panel/isler': {
     kapilar: ['kapsanmiyor'],

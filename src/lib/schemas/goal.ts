@@ -37,8 +37,19 @@ export const createGoalSchema = goalBase.refine(
   achievedIsComplete,
 );
 
+/*
+ * TEMİZLENEBİLİR ALANLAR — `null` = "boşalt", `undefined` = "dokunma" (T-031
+ * kuralı). `partialWithoutDefaults` alanı yalnızca VERİLMEYEBİLİR yapıyordu;
+ * veritabanında boş olabilen bir sütunu temizlemenin yolu YOKTU ve dolu bir
+ * alanı formda boşaltmak eski değeri sessizce koruyordu (F5 formları bunu
+ * ekranda uyarı olarak yazıyordu). Kural taban şemadan türetiliyor — tek yer.
+ */
 export const updateGoalSchema = partialWithoutDefaults(goalBase)
-  .extend({ id: cuidSchema })
+  .extend({
+    id: cuidSchema,
+    description: goalBase.shape.description.nullable(),
+    targetDate: goalBase.shape.targetDate.nullable(),
+  })
   .refine(
     (value) =>
       value.status !== 'ACHIEVED' || value.progress === undefined || value.progress === 100,

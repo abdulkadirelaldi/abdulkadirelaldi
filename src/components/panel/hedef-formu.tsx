@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import type * as z from 'zod';
 
-import { Alan, BOS_ISE_YOK, SAYI_YA_DA_YOK } from '@/components/panel/alan';
+import { Alan, BOS_ISE_YOK, SAYI_YA_DA_YOK, bosaltilanlariNullYap } from '@/components/panel/alan';
 import { HEDEF_DURUM_ROZETI, gunAyYil, kalanGunMetni } from '@/components/panel/hayat-bicim';
 import { HedefIlerleme } from '@/components/panel/hedef-ilerleme';
 import { KaliciSilDugmesi } from '@/components/panel/kalici-sil-dugmesi';
@@ -37,10 +37,9 @@ import type { GoalDto } from '@/server/services/goal';
  *     VALIDATION_ERROR'u `fields.progress` ile AYNI alana düşüyor
  *     (`usePanelForm` eşleme tablosuz basıyor).
  *
- * ⚠️ BİLİNEN SINIR — HEDEF TARİHİ TEMİZLENEMİYOR: güncelleme şeması kısmi ve
- * `dayDateSchema` boş dizeyi kabul etmiyor; boşaltılan tarih `undefined`
- * gider ve eski değer kalır. `description` bu sınıra TAKILMIYOR — servis boş
- * metni `null`a çeviriyor, bu yüzden `BOS_ISE_YOK` OLMADAN kaydediliyor.
+ * Hedef tarihini boşaltmak onu siler (`bosaltilanlariNullYap`; önceden kısmi
+ * şema "temizle" diyemiyordu ve tarih kalıyordu). `description` boş metinle
+ * zaten temizleniyordu — servis `''`yi `null`a çeviriyor.
  *
  * `description` denetim kaydına DEĞERİYLE girmiyor (yalnızca "değişti",
  * ADR-034); yardım metni bunu söylüyor.
@@ -71,7 +70,10 @@ export function HedefFormu({ kayit }: { kayit?: GoalDto }) {
 
   const kaydet = async (degerler: HedefFormGirdi) => {
     const sonuc = kayit
-      ? await updateGoalAction({ ...degerler, id: kayit.id })
+      ? await updateGoalAction({
+          ...bosaltilanlariNullYap(degerler, kayit, ['targetDate']),
+          id: kayit.id,
+        })
       : await createGoalAction(degerler);
 
     if (sonuc.ok) {
@@ -231,7 +233,7 @@ export function HedefFormu({ kayit }: { kayit?: GoalDto }) {
               hata={errors.targetDate?.message}
               yardim={
                 duzenleme
-                  ? 'İsteğe bağlı. Boşaltmak mevcut tarihi silmez.'
+                  ? 'İsteğe bağlı. Boşaltmak tarihi kaldırır.'
                   : 'İsteğe bağlı. Verilirse kalan gün gösterilir.'
               }
             >

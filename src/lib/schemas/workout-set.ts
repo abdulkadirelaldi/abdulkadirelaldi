@@ -33,8 +33,17 @@ const workoutSetBase = z.object({
 });
 
 export const createWorkoutSetSchema = workoutSetBase;
+/*
+ * TEMİZLENEBİLİR ALANLAR — `null` = "boşalt", `undefined` = "dokunma" (T-031
+ * kuralı). `partialWithoutDefaults` alanı yalnızca VERİLMEYEBİLİR yapıyordu;
+ * veritabanında boş olabilen bir sütunu temizlemenin yolu YOKTU ve dolu bir
+ * alanı formda boşaltmak eski değeri sessizce koruyordu (F5 formları bunu
+ * ekranda uyarı olarak yazıyordu). Kural taban şemadan türetiliyor — tek yer.
+ */
 export const updateWorkoutSetSchema = partialWithoutDefaults(workoutSetBase).extend({
   id: cuidSchema,
+  weightKg: workoutSetBase.shape.weightKg.nullable(),
+  rpe: workoutSetBase.shape.rpe.nullable(),
 });
 
 export const workoutSetFilterSchema = paginationSchema.extend({

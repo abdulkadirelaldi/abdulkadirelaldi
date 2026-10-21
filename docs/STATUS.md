@@ -1547,7 +1547,7 @@ kalan E2E izi 0 · `lint`/`typecheck`/`format:check` temiz.
 
 ### Kabul kontrolünde bakılacaklar / bilinen sınırlar
 
-- **Kısmi güncelleme şemaları dolu alanı temizleyemiyor** (`partialWithoutDefaults`): sağlık ölçüsü, alışkanlığın `targetPerDay`/`color`, hedefin `targetDate`, günlüğün `mood`. Her form ekranda söylüyor; çözümü şema düzeyinde `null` kabulü — ayrı bir Backend kararı.
+- ~~Kısmi güncelleme şemaları dolu alanı temizleyemiyordu~~ → **düzeltildi** (temizlenebilir sütunlar güncellemede `null` kabul ediyor, formlar boşaltılan dolu alanı `null`a çeviriyor; E2E ile ölçüldü).
 - Rekor satırından kaynak antrenmana bağlantı yok (set → antrenman çözen okuma yok).
 - Seçici tavanları 100 egzersiz (`perPage` üst sınırı).
 - 20 yeni rotanın 9'u E2E kanıtlı; geri kalanların `ÖLÇÜLMEYEN` listeleri `rota-kapsami.test.ts`te.

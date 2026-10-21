@@ -455,7 +455,7 @@ export async function updateHabit(
       ...(fields.targetPerWeek !== undefined ? { targetPerWeek: fields.targetPerWeek } : {}),
       ...(fields.targetPerDay !== undefined ? { targetPerDay: fields.targetPerDay } : {}),
       ...(fields.color !== undefined ? { color: fields.color } : {}),
-      ...(fields.icon !== undefined ? { icon: fields.icon.trim() ? fields.icon : null } : {}),
+      ...(fields.icon !== undefined ? { icon: fields.icon?.trim() ? fields.icon : null } : {}),
       ...(fields.isActive !== undefined ? { isActive: fields.isActive } : {}),
     },
     select: HABIT_SELECT,

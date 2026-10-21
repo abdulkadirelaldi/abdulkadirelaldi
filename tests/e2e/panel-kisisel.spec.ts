@@ -111,6 +111,18 @@ test.describe('F5 · sağlık', () => {
     await expect(page.getByLabel('Kilo (kg)')).toHaveValue('82,50');
     await expect(page.getByLabel('Uyku (saat)')).toHaveValue('7,50');
 
+    /*
+     * BOŞALTMAK SİLİYOR — kısmi şema "temizle" diyemiyordu ve boşaltılan
+     * değer sessizce kalıyordu. Kilo boşaltılıp kaydediliyor; yenilemeden
+     * sonra BOŞ, dokunulmayan uyku YERİNDE olmalı.
+     */
+    await page.getByLabel('Kilo (kg)').fill('');
+    await page.getByRole('button', { name: 'Kaydet' }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'Kaydedildi' })).toBeVisible();
+    await page.reload();
+    await expect(page.getByLabel('Kilo (kg)')).toHaveValue('');
+    await expect(page.getByLabel('Uyku (saat)')).toHaveValue('7,50');
+
     /* ---- Temizlik: arayüzden sil ------------------------------------ */
     await page.getByRole('button', { name: 'Sil' }).click();
     await page.getByRole('button', { name: 'Evet, sil' }).click();

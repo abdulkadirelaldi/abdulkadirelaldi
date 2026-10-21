@@ -7,7 +7,12 @@ import { useEffect, useRef, useState } from 'react';
 import type { DefaultValues } from 'react-hook-form';
 import type * as z from 'zod';
 
-import { Alan, ONDALIK_YA_DA_YOK, SAYI_YA_DA_YOK } from '@/components/panel/alan';
+import {
+  Alan,
+  ONDALIK_YA_DA_YOK,
+  SAYI_YA_DA_YOK,
+  bosaltilanlariNullYap,
+} from '@/components/panel/alan';
 import { KaliciSilDugmesi } from '@/components/panel/kalici-sil-dugmesi';
 import { KAS_GRUBU, olcuBicim } from '@/components/panel/kisisel-etiketler';
 import { FormKabugu, usePanelForm } from '@/components/panel/panel-form';
@@ -70,9 +75,9 @@ import type { MuscleGroup } from '@/types';
  * çakışırsa sunucu CONFLICT döndürüyor ve `fields.setNo` kabuk tarafından
  * doğrudan alana basılıyor.
  *
- * ⚠️ BİLİNEN SINIR: güncelleme şeması KISMİ — düzenlemede ağırlığı ya da
- * RPE'yi boşaltmak değeri SİLMEZ. Ağırlıklı bir seti ağırlıksıza çevirmenin
- * yolu seti silip yeniden girmek; formun yardım metni bunu söylüyor.
+ * Düzenlemede ağırlığı ya da RPE'yi boşaltmak değeri siler
+ * (`bosaltilanlariNullYap`) — ağırlıklı set ağırlıksıza çevrilebilir ve
+ * rekorlar yeniden hesaplanır.
  */
 
 export type SetEgzersizi = {
@@ -339,7 +344,10 @@ function SetFormu({
 
   const kaydet = async (degerler: SetFormGirdi) => {
     if (set) {
-      const sonuc = await updateWorkoutSetAction({ ...degerler, id: set.id });
+      const sonuc = await updateWorkoutSetAction({
+        ...bosaltilanlariNullYap(degerler, set, ['weightKg', 'rpe']),
+        id: set.id,
+      });
       if (sonuc.ok) {
         duzenlemeBitti(
           `${sonuc.data.set.exerciseName} ${sonuc.data.set.setNo}. set güncellendi. ${rekorMetni(sonuc.data.records)}`,
@@ -527,11 +535,7 @@ function SetFormu({
             </Alan>
           </div>
 
-          <p className="text-muted text-xs">
-            Ağırlıksız set (vücut ağırlığı) rekora girmez.
-            {duzenleme &&
-              ' Dolu bir alanı boşaltmak değeri silmez — ağırlığı kaldırmak için seti silip yeniden gir.'}
-          </p>
+          <p className="text-muted text-xs">Ağırlıksız set (vücut ağırlığı) rekora girmez.</p>
         </FormKabugu>
       </CardContent>
     </Card>

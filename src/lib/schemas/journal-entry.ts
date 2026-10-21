@@ -22,8 +22,17 @@ const journalEntryBase = z.object({
 });
 
 export const createJournalEntrySchema = journalEntryBase;
+/*
+ * TEMİZLENEBİLİR ALANLAR — `null` = "boşalt", `undefined` = "dokunma" (T-031
+ * kuralı). `partialWithoutDefaults` alanı yalnızca VERİLMEYEBİLİR yapıyordu;
+ * veritabanında boş olabilen bir sütunu temizlemenin yolu YOKTU ve dolu bir
+ * alanı formda boşaltmak eski değeri sessizce koruyordu (F5 formları bunu
+ * ekranda uyarı olarak yazıyordu). Kural taban şemadan türetiliyor — tek yer.
+ */
 export const updateJournalEntrySchema = partialWithoutDefaults(journalEntryBase).extend({
   id: cuidSchema,
+  title: journalEntryBase.shape.title.nullable(),
+  mood: journalEntryBase.shape.mood.nullable(),
 });
 
 export const journalEntryFilterSchema = paginationSchema.extend({

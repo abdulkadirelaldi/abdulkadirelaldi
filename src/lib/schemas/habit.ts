@@ -36,7 +36,19 @@ const habitBase = z.object({
 });
 
 export const createHabitSchema = habitBase;
-export const updateHabitSchema = partialWithoutDefaults(habitBase).extend({ id: cuidSchema });
+/*
+ * TEMİZLENEBİLİR ALANLAR — `null` = "boşalt", `undefined` = "dokunma" (T-031
+ * kuralı). `partialWithoutDefaults` alanı yalnızca VERİLMEYEBİLİR yapıyordu;
+ * veritabanında boş olabilen bir sütunu temizlemenin yolu YOKTU ve dolu bir
+ * alanı formda boşaltmak eski değeri sessizce koruyordu (F5 formları bunu
+ * ekranda uyarı olarak yazıyordu). Kural taban şemadan türetiliyor — tek yer.
+ */
+export const updateHabitSchema = partialWithoutDefaults(habitBase).extend({
+  id: cuidSchema,
+  targetPerDay: habitBase.shape.targetPerDay.nullable(),
+  color: habitBase.shape.color.nullable(),
+  icon: habitBase.shape.icon.nullable(),
+});
 
 export const archiveHabitSchema = z.object({
   id: cuidSchema,
