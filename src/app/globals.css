@@ -398,6 +398,18 @@
   --animate-sayfa-giris: sayfa-giris 0.6s var(--ease-brand) both;
 }
 
+/* Şerit ve yüzen süs: kendi katmanlarında (bileşimci animasyonu), ekran
+   dışındaysa çizim atlanır. `contain-intrinsic-size` atlanan şeridin yerini
+   tutar — kaydırma çubuğu zıplamaz. ÖLÇÜM: kayan-serit.tsx yorumu. */
+.kayan-serit-kap {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 160px;
+}
+
+.animate-yuzme {
+  will-change: transform;
+}
+
 @keyframes kayan-serit {
   from {
     transform: translate3d(0, 0, 0);
