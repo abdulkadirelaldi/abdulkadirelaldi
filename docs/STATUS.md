@@ -1576,12 +1576,12 @@ F5 kabul kontrolü → **F6 Sertleştirme**: T-060 nonce CSP → T-061 hız sın
 | #29 | T-062 — §8 tam denetim (✅ 23 · ⚠️ 2), BULGU-027, merkezî log maskeleme (§8.20) |
 | #32 | ADVISORY-007 — vite 8.2.4 |
 | #30 | Düzenlemede dolu alanı boşaltmak artık siliyor (`undefined` = dokunma, `null` = temizle) |
+| #31 | T-037f — aynı kökenden yükleme/sunum (ADR-044): kapak, galeri, avatar, CV |
 
 ### İncelemede (açık PR'lar, sıralı yığın)
 
 | PR | İçerik |
 |----|--------|
-| #31 | T-037f — aynı kökenden yükleme/sunum (ADR-044): kapak, galeri, avatar, CV |
 | #33 | T-117 — müşteri logoları: `Client.showOnSite` + `logoAttachmentId`; rıza geri alınabilir diye logo önbelleği 1 sa (immutable değil); başka varlığın dosyası logo yapılamıyor |
 | #34 | T-070/T-071 — üretim imajı, `docker-compose.prod.yml`, `scripts/uretim-baslat.ts`, `docs/yayin.md` |
 
