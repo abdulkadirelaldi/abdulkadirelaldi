@@ -238,7 +238,13 @@ export default async function ProjeDetaySayfasi({ params }: SayfaProps) {
               yürüyor; teklif ve sözleşme orada.
             </p>
           </div>
-          <GradyanDisBaglanti href={KIYI_MEDYA_URL} data-cta="proje-detay" data-proje={proje.slug}>
+          <GradyanDisBaglanti
+            href={KIYI_MEDYA_URL}
+            data-cta="proje-detay"
+            data-proje={proje.slug}
+            data-umami-event="proje-detay"
+            data-umami-event-proje={proje.slug}
+          >
             Kıyı Medya ile ilerle
           </GradyanDisBaglanti>
         </aside>

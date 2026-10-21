@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
+import { analitikAyari } from '@/lib/analitik';
 import {
   buildContentSecurityPolicy,
   buildSecurityHeaders,
@@ -85,7 +86,12 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     request.nextUrl.protocol,
   );
   const nonce = generateNonce();
-  const csp = buildContentSecurityPolicy({ nonce, isProduction, isHttps });
+  const csp = buildContentSecurityPolicy({
+    nonce,
+    isProduction,
+    isHttps,
+    analitikKoken: analitikAyari()?.koken,
+  });
 
   const headers = buildSecurityHeaders({ pathname, isProduction, isHttps });
   headers['Content-Security-Policy'] = csp;

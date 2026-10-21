@@ -173,6 +173,20 @@ kelimesi. Disk %90 üstünde uç `503` döner (`disk: critical`).
 
 ---
 
+### Ziyaretçi analitiği (isteğe bağlı) — Umami
+
+Çerez kullanmaz (onay bandı gerekmez), veri kendi sunucunda kalır.
+
+1. Coolify → **New Resource → Service → Umami** → alan adı `analiz.alanadi.com`.
+2. Umami paneli → **Websites → Add** → site adresi → **Website ID**'yi kopyala.
+3. Uygulamanın ortam değişkenleri: `UMAMI_URL=https://analiz.alanadi.com`,
+   `UMAMI_SITE_ID=<id>` → yeniden başlat (derleme GEREKMEZ — çalışma anında okunuyor).
+4. Kontrol: sayfa kaynağında `script.js`, yanıt başlığında
+   `connect-src 'self' https://analiz.alanadi.com`.
+
+Kıyı Medya düğmeleri (`data-umami-event="kiyi-medya"`, `"proje-detay"`) Umami'de
+olay olarak görünür — hangi hizmet ve projenin yönlendirdiği ayrı ayrı.
+
 ## 8. Sonra (alan adı kesinleşince)
 
 - **HSTS `preload`** — §8.12 bunu istiyor; geri alınması aylar sürer, bu yüzden

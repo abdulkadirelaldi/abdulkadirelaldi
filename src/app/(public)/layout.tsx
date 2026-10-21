@@ -1,8 +1,11 @@
+import { headers } from 'next/headers';
 import localFont from 'next/font/local';
+import Script from 'next/script';
 import type { ReactNode } from 'react';
 
 import { Footer } from '@/components/public/footer';
 import { Navbar } from '@/components/public/navbar';
+import { analitikAyari } from '@/lib/analitik';
 import { getProfile } from '@/server/services';
 import type { ProfileDto } from '@/server/services/content-dto';
 
@@ -47,6 +50,9 @@ async function altBilgiProfili(): Promise<ProfileDto | null> {
  */
 export default async function PublicLayout({ children }: { children: ReactNode }) {
   const profil = await altBilgiProfili();
+  // Analitik YALNIZCA public sitede (panel ölçülmez) ve yalnızca yapılandırıldıysa.
+  const analitik = analitikAyari();
+  const nonce = analitik ? ((await headers()).get('x-nonce') ?? undefined) : undefined;
 
   return (
     <div
@@ -67,6 +73,17 @@ export default async function PublicLayout({ children }: { children: ReactNode }
       </main>
 
       <Footer profil={profil} />
+
+      {analitik && (
+        // `afterInteractive`: ölçüm betiği ilk boyamayı ve LCP'yi beklemez.
+        // Nonce middleware'den — CSP `'strict-dynamic'` nonce'suz betiği reddeder.
+        <Script
+          src={analitik.betik}
+          data-website-id={analitik.siteId}
+          strategy="afterInteractive"
+          nonce={nonce}
+        />
+      )}
     </div>
   );
 }

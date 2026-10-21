@@ -40,6 +40,9 @@ export function HizmetListesi({
               target="_blank"
               rel="noopener noreferrer"
               data-cta="kiyi-medya"
+              // Umami (isteğe bağlı analitik) bu öznitelikli tıklamaları kendisi sayar.
+              data-umami-event="kiyi-medya"
+              data-umami-event-hizmet={hizmet.title}
               data-hizmet={hizmet.id}
               data-kaynak={kaynak}
               className="group focus-ring ease-brand grid grid-cols-[auto_1fr_auto] items-start gap-x-6 gap-y-2 py-8 transition-[padding] duration-500 hover:pl-4 md:grid-cols-[8rem_1fr_1.2fr_auto] md:items-center md:py-10"

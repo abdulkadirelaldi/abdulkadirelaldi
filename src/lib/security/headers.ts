@@ -176,6 +176,13 @@ export interface CspContext {
   nonce: string;
   isProduction: boolean;
   isHttps: boolean;
+  /**
+   * Analitik (Umami) kökeni — yalnızca `analitikAyari()` doğrulanmış bir köken
+   * döndürdüyse. `connect-src`e eklenir: betik ölçümü bu kökene gönderiyor.
+   * `script-src`e EKLENMEZ: `'strict-dynamic'` altında köken izinleri yok
+   * sayılıyor, betik nonce'la yükleniyor.
+   */
+  analitikKoken?: string;
 }
 
 /**
@@ -211,7 +218,7 @@ export interface CspContext {
  *   politikasında bulunmaları testle kilitli.
  */
 export function buildContentSecurityPolicy(context: CspContext): string {
-  const { nonce, isProduction, isHttps } = context;
+  const { nonce, isProduction, isHttps, analitikKoken } = context;
 
   const direktifler: Array<[string, string[]]> = [
     ['default-src', ["'self'"]],
@@ -227,7 +234,10 @@ export function buildContentSecurityPolicy(context: CspContext): string {
     ['style-src', ["'self'", "'unsafe-inline'"]],
     ['img-src', ["'self'", 'data:', 'blob:']],
     ['font-src', ["'self'"]],
-    ['connect-src', ["'self'", ...(isProduction ? [] : ['ws:'])]],
+    [
+      'connect-src',
+      ["'self'", ...(analitikKoken ? [analitikKoken] : []), ...(isProduction ? [] : ['ws:'])],
+    ],
     ['worker-src', ["'self'", 'blob:']],
     ['object-src', ["'none'"]],
     ['base-uri', ["'self'"]],

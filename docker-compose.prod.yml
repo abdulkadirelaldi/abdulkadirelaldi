@@ -59,6 +59,9 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       CONTACT_NOTIFY_EMAIL: ${CONTACT_NOTIFY_EMAIL:-}
       CONTACT_FROM_EMAIL: ${CONTACT_FROM_EMAIL:-}
+      # Ziyaretçi analitiği — İSTEĞE BAĞLI (src/lib/analitik.ts).
+      UMAMI_URL: ${UMAMI_URL:-}
+      UMAMI_SITE_ID: ${UMAMI_SITE_ID:-}
     depends_on:
       goc:
         condition: service_completed_successfully
