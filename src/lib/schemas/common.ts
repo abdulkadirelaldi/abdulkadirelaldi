@@ -225,7 +225,9 @@ export const rpeSchema = z
 
 /** 0–100 yüzde (`Skill.level`, `Goal.progress`). */
 export const percentSchema = z
-  .number()
+  // Tip hatası da Türkçe: boş bırakılan alan `undefined` geliyor ve Zod'un
+  // varsayılan İngilizce "expected number" iletisi forma düşüyordu.
+  .number({ error: '0 ile 100 arasında bir sayı girin.' })
   .int({ error: 'Değer tam sayı olmalıdır.' })
   .min(0, { error: 'Değer 0 ile 100 arasında olmalıdır.' })
   .max(100, { error: 'Değer 0 ile 100 arasında olmalıdır.' });

@@ -45,7 +45,13 @@ export async function createSkillAction(raw: unknown): Promise<ApiResponse<Skill
         action: 'CREATE',
         entity: 'Skill',
         entityId: dto.id,
-        diff: buildDiff(null, { name: dto.name, category: dto.category, level: dto.level }),
+        diff: buildDiff(null, {
+          name: dto.name,
+          category: dto.category,
+          level: dto.level,
+          iconKey: dto.iconKey,
+          order: dto.order,
+        }),
       },
       db,
     );
@@ -79,8 +85,22 @@ export async function updateSkillAction(raw: unknown): Promise<ApiResponse<Skill
         entity: 'Skill',
         entityId: dto.id,
         diff: buildDiff(
-          { name: before.name, category: before.category, level: before.level },
-          { name: dto.name, category: dto.category, level: dto.level },
+          // `iconKey` ve `order` panelden düzenlenebilir oldu (panel ekranı,
+          // 2026-10-21); listede olmasalardı değişiklikleri iz bırakmazdı.
+          {
+            name: before.name,
+            category: before.category,
+            level: before.level,
+            iconKey: before.iconKey,
+            order: before.order,
+          },
+          {
+            name: dto.name,
+            category: dto.category,
+            level: dto.level,
+            iconKey: dto.iconKey,
+            order: dto.order,
+          },
         ),
       },
       db,
