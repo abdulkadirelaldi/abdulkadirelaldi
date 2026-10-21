@@ -6,11 +6,15 @@ import {
   updateHabitSchema,
   updateHealthLogSchema,
   updateJournalEntrySchema,
+  updateServiceSchema,
+  updateSkillSchema,
   updateWorkoutSchema,
   updateWorkoutSetSchema,
 } from '@/lib/schemas';
 import { updateHabit, type HabitClient } from '@/server/services/habit';
 import { updateHealthLog, type HealthLogClient } from '@/server/services/health-log';
+import { updateService, type ServiceClient } from '@/server/services/service';
+import { updateSkill, type SkillClient } from '@/server/services/skill';
 
 /**
  * GÜNCELLEMEDE "BOŞALT" — `null` = temizle, `undefined` = dokunma (T-031).
@@ -56,6 +60,9 @@ describe('2 · şemalar — temizlenebilir sütunlar null kabul ediyor', () => {
     ['Habit.color', updateHabitSchema, { color: null }],
     ['Goal.targetDate', updateGoalSchema, { targetDate: null }],
     ['JournalEntry.mood', updateJournalEntrySchema, { mood: null }],
+    ['Skill.iconKey', updateSkillSchema, { iconKey: null }],
+    ['Service.iconKey', updateServiceSchema, { iconKey: null }],
+    ['Service.ctaUrl', updateServiceSchema, { ctaUrl: null }],
   ] as const)('%s', (_ad, sema, alan) => {
     const sonuc = sema.safeParse({ id: ID, ...alan });
     expect(sonuc.success).toBe(true);
@@ -66,6 +73,9 @@ describe('2 · şemalar — temizlenebilir sütunlar null kabul ediyor', () => {
     expect(updateHealthLogSchema.safeParse({ id: ID, date: null }).success).toBe(false);
     expect(updateHabitSchema.safeParse({ id: ID, name: null }).success).toBe(false);
     expect(updateGoalSchema.safeParse({ id: ID, title: null }).success).toBe(false);
+    expect(updateSkillSchema.safeParse({ id: ID, name: null }).success).toBe(false);
+    expect(updateSkillSchema.safeParse({ id: ID, level: null }).success).toBe(false);
+    expect(updateServiceSchema.safeParse({ id: ID, description: null }).success).toBe(false);
   });
 
   it('`undefined` hâlâ "dokunma" — alan çıktıya GİRMİYOR', () => {
@@ -119,5 +129,36 @@ describe('3 · servisler — null veritabanına iniyor', () => {
       client,
     );
     expect(update.mock.calls[0]?.[0].data).toEqual({ icon: null, targetPerDay: null, color: null });
+  });
+
+  it('Skill — boşaltılan simge anahtarı `update`e null olarak gidiyor', async () => {
+    const update = vi.fn().mockResolvedValue({
+      id: ID,
+      locale: 'tr',
+      name: 'Go',
+      category: 'BACKEND',
+      level: 60,
+      iconKey: null,
+      order: 0,
+    });
+    const client = { skill: { update } } as unknown as SkillClient;
+    await updateSkill(updateSkillSchema.parse({ id: ID, iconKey: null }), client);
+    expect(update.mock.calls[0]?.[0].data).toEqual({ iconKey: null });
+  });
+
+  it('Service — boşaltılan CTA null olur, public satır Kıyı Medya’ya döner', async () => {
+    const update = vi.fn().mockResolvedValue({
+      id: ID,
+      locale: 'tr',
+      title: 'Web',
+      description: 'Açıklama',
+      iconKey: null,
+      ctaUrl: null,
+      order: 0,
+    });
+    const client = { service: { update } } as unknown as ServiceClient;
+    await updateService(updateServiceSchema.parse({ id: ID, ctaUrl: null }), client);
+    // `HizmetListesi` `ctaUrl ?? kiyiMedyaUrl` okuyor — `null` varsayılana düşürür.
+    expect(update.mock.calls[0]?.[0].data).toEqual({ ctaUrl: null });
   });
 });

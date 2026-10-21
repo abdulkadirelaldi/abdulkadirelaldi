@@ -3,7 +3,13 @@ import { join, resolve } from 'node:path';
 
 import { describe, expect, it, vi } from 'vitest';
 
-import { experienceFilterSchema, postFilterSchema, projectFilterSchema } from '@/lib/schemas';
+import {
+  experienceFilterSchema,
+  postFilterSchema,
+  projectFilterSchema,
+  serviceFilterSchema,
+  skillFilterSchema,
+} from '@/lib/schemas';
 import { fetchExperienceForPanel, fetchExperienceForPanelById } from '@/server/services/experience';
 import { fetchPostForPanel, fetchPostsForPanel, fetchPublishedPosts } from '@/server/services/post';
 import {
@@ -11,6 +17,8 @@ import {
   fetchProjectsForPanel,
   fetchPublishedProjects,
 } from '@/server/services/project';
+import { fetchServiceForPanelById, fetchServicesForPanel } from '@/server/services/service';
+import { fetchSkillForPanelById, fetchSkillsForPanel } from '@/server/services/skill';
 
 /**
  * PANEL OKUMA YOLU — T-040, ENGEL-1.
@@ -263,6 +271,10 @@ describe('panel okumaları ÖNBELLEKLENMİYOR', () => {
     'fetchPostForPanel',
     'fetchExperienceForPanel',
     'fetchExperienceForPanelById',
+    'fetchSkillsForPanel',
+    'fetchSkillForPanelById',
+    'fetchServicesForPanel',
+    'fetchServiceForPanelById',
   ];
 
   it.each(PANEL_FONKSIYONLARI)('%s cached.ts’te SARMALANMAMIŞ', (fn) => {
@@ -481,5 +493,84 @@ describe('Experience — ENGEL-1’in durum kısmı burada YOK', () => {
     } as never);
 
     expect(e.findMany.mock.calls[0]?.[0].where).toMatchObject({ type: 'EDUCATION' });
+  });
+});
+
+/* ===========================================================================
+ * SKILL / SERVICE — deneyimle aynı sınıf: durum yok, sayfalı liste + tek kayıt
+ * ======================================================================== */
+
+const YETENEK_SATIRI = {
+  id: ID,
+  locale: 'tr',
+  name: 'TypeScript',
+  category: 'FRONTEND' as const,
+  level: 80,
+  iconKey: null,
+  order: 2,
+};
+
+const HIZMET_SATIRI = {
+  id: ID,
+  locale: 'tr',
+  title: 'Web sitesi',
+  description: 'Açıklama',
+  iconKey: null,
+  ctaUrl: null,
+  order: 1,
+};
+
+describe('Skill — panel okuması', () => {
+  it('liste sayfalı, durum filtresi YOK ve sıra public tarafla aynı', async () => {
+    const s = sahteIstemci(YETENEK_SATIRI, 4);
+    const sayfa = await fetchSkillsForPanel(skillFilterSchema.parse({ page: 2, perPage: 3 }), {
+      skill: s,
+    } as never);
+
+    const arg = s.findMany.mock.calls[0]?.[0];
+    expect(arg.where).not.toHaveProperty('status');
+    // Panelde gördüğün sıra sitede göreceğin sıra — `fetchSkills` ile aynı anahtar.
+    expect(arg.orderBy).toEqual([{ order: 'asc' }, { name: 'asc' }]);
+    expect(arg).toMatchObject({ skip: 3, take: 3 });
+    expect(sayfa.total).toBe(4);
+  });
+
+  it('kategori filtresi where’e giriyor', async () => {
+    const s = sahteIstemci(YETENEK_SATIRI);
+    await fetchSkillsForPanel(skillFilterSchema.parse({ category: 'AI' }), {
+      skill: s,
+    } as never);
+    expect(s.findMany.mock.calls[0]?.[0].where).toMatchObject({ category: 'AI' });
+  });
+
+  it('tek kayıt okuma id ile çalışıyor, yoksa null', async () => {
+    const s = sahteIstemci(YETENEK_SATIRI);
+    expect(await fetchSkillForPanelById(ID, { skill: s } as never)).toMatchObject({
+      name: 'TypeScript',
+      level: 80,
+    });
+
+    s.findUnique.mockResolvedValueOnce(null);
+    expect(await fetchSkillForPanelById(ID, { skill: s } as never)).toBeNull();
+  });
+});
+
+describe('Service — panel okuması', () => {
+  it('liste sayfalı ve sıra public tarafla aynı', async () => {
+    const s = sahteIstemci(HIZMET_SATIRI, 2);
+    const sayfa = await fetchServicesForPanel(serviceFilterSchema.parse({}), {
+      service: s,
+    } as never);
+
+    expect(s.findMany.mock.calls[0]?.[0].orderBy).toEqual([{ order: 'asc' }, { title: 'asc' }]);
+    expect(sayfa.items[0]).toMatchObject({ title: 'Web sitesi', ctaUrl: null });
+    expect(sayfa.total).toBe(2);
+  });
+
+  it('tek kayıt okuma id ile çalışıyor', async () => {
+    const s = sahteIstemci(HIZMET_SATIRI);
+    expect(await fetchServiceForPanelById(ID, { service: s } as never)).toMatchObject({
+      title: 'Web sitesi',
+    });
   });
 });

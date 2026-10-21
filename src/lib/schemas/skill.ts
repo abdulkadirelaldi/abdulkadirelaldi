@@ -23,7 +23,15 @@ const skillBase = z.object({
 });
 
 export const createSkillSchema = skillBase;
-export const updateSkillSchema = partialWithoutDefaults(skillBase).extend({ id: cuidSchema });
+/*
+ * TEMİZLENEBİLİR ALAN — `null` = "boşalt", `undefined` = "dokunma" (T-031).
+ * `iconKey` panelde boşaltılabilmeli; yalnızca kısmi şema bunu ifade
+ * edemiyordu ve dolu simge anahtarı sessizce kalırdı (bkz. `habit.ts`).
+ */
+export const updateSkillSchema = partialWithoutDefaults(skillBase).extend({
+  id: cuidSchema,
+  iconKey: skillBase.shape.iconKey.nullable(),
+});
 
 export const skillFilterSchema = paginationSchema.extend({
   category: z.enum(SkillCategory).optional(),

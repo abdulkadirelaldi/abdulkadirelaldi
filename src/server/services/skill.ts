@@ -1,10 +1,10 @@
-import type { CreateSkillInput, UpdateSkillInput } from '@/lib/schemas';
+import type { CreateSkillInput, SkillFilterInput, UpdateSkillInput } from '@/lib/schemas';
 import { db } from '@/server/db';
 import type { PrismaClient } from '@/server/generated/prisma/client';
 import type { SkillCategory } from '@/types';
 
-import { DEFAULT_LOCALE } from './_shared';
-import type { SkillDto } from './content-dto';
+import { DEFAULT_LOCALE, panelSkipTake, toPagedResult } from './_shared';
+import type { PagedResult, SkillDto } from './content-dto';
 
 /** `Skill` servisi — T-015 konvansiyonu. */
 
@@ -48,6 +48,60 @@ export async function fetchSkills(
     orderBy: [{ order: 'asc' }, { name: 'asc' }],
   });
   return rows.map(toDto);
+}
+
+/* ===========================================================================
+ * PANEL OKUMA YOLU
+ *
+ * `fetchSkills` public okuma: sayfalamaz ve yalnızca TEK DİLİ döndürür. Panelin
+ * iki ihtiyacı farklı — sayfalı liste ve düzenleme formu için `id` ile tek
+ * kayıt. Ayrı bir panel DTO'su YOK: `SkillDto` formun tam alan kümesini zaten
+ * taşıyor (`fetchExperienceForPanel` ile aynı karar).
+ *
+ * ÖNBELLEKLENMİYOR — `cached.ts`'e girmez (panel okumaları kuralı, T-038).
+ * ======================================================================== */
+
+/**
+ * TÜM yetenekler — panel listesi, sayfalı.
+ *
+ * SIRALAMA public tarafla AYNI (`order asc, name asc`): panelde gördüğün sıra
+ * sitede göreceğin sıra olsun. `level` sıralamaya GİRMİYOR — sitede gösterilmiyor,
+ * tablo başlığından ayrıca sıralanabiliyor.
+ */
+export async function fetchSkillsForPanel(
+  filter: SkillFilterInput,
+  client: SkillClient = db,
+): Promise<PagedResult<SkillDto>> {
+  const where: Record<string, unknown> = {};
+  if (filter.locale) where.locale = filter.locale;
+  if (filter.category) where.category = filter.category;
+
+  const { skip, take } = panelSkipTake(filter);
+
+  const [rows, total] = await Promise.all([
+    client.skill.findMany({
+      where,
+      orderBy: [{ order: 'asc' }, { name: 'asc' }],
+      skip,
+      take,
+    }),
+    client.skill.count({ where }),
+  ]);
+
+  return toPagedResult(rows, total, filter, toDto);
+}
+
+/**
+ * Panel TEK KAYIT — `id` ile. Yoksa `null`.
+ *
+ * `findSkillSnapshot` ile aynı okuma; ikinci bir İSİM, ikinci bir uygulama
+ * değil (gerekçe `fetchExperienceForPanelById`de).
+ */
+export async function fetchSkillForPanelById(
+  id: string,
+  client: SkillClient = db,
+): Promise<SkillDto | null> {
+  return findSkillSnapshot(id, client);
 }
 
 /* ===========================================================================

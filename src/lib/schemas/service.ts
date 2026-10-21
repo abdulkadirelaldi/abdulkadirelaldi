@@ -22,7 +22,16 @@ const serviceBase = z.object({
 });
 
 export const createServiceSchema = serviceBase;
-export const updateServiceSchema = partialWithoutDefaults(serviceBase).extend({ id: cuidSchema });
+/*
+ * TEMİZLENEBİLİR ALANLAR — `null` = "boşalt", `undefined` = "dokunma" (T-031).
+ * `ctaUrl` boşaltılınca public CTA Kıyı Medya'ya geri düşer; bu ancak
+ * sütun `null`a çekilebilirse mümkün (bkz. `habit.ts`).
+ */
+export const updateServiceSchema = partialWithoutDefaults(serviceBase).extend({
+  id: cuidSchema,
+  iconKey: serviceBase.shape.iconKey.nullable(),
+  ctaUrl: serviceBase.shape.ctaUrl.nullable(),
+});
 
 export const serviceFilterSchema = paginationSchema.extend({
   locale: z.string().optional(),

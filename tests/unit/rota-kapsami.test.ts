@@ -452,6 +452,36 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     kanit: [],
     not: 'T-043f ile eklendi; gerekçe `deneyim/yeni` satırıyla aynı. Bu modelde `status` YOK — yani `projeler/[id]`de ölçülen taslak→yayın geçişinin karşılığı burada bulunmuyor, kopyalanacak senaryo da yok. Silme (`deleteExperienceAction`) liste rotasından tetikleniyor ve denetim kaydı SİLİNEN SATIRIN TAMAMINI taşıyor — bkz. BULGU-019.',
   },
+  '/panel/icerik/yetenekler': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: "Deneyim ekranının kalıbıyla eklendi; gerekçe `/panel/icerik/deneyim` satırıyla aynı: `Skill`in public karşılığı bir SAYFA değil (ana sayfadaki yetenekler bölümü ve `/cv`), §9'un yedi senaryosundan hiçbiri bu akışı istemiyor ve aynı `panel-form` + Server Action + ADR-029 zinciri `projeler` tarafında ölçülüyor. Okuma `fetchSkillsForPanel` (önbelleksiz — `tests/unit/services/panel-okuma.test.ts`), silme `deleteSkillAction` (gerçek silme, AuditLog satırı taşıyor — `tests/unit/actions/content-actions.test.ts`). ÖLÇÜLMEYEN: (1) silmeden sonra ana sayfadaki yetenek bölümünün GERÇEKTEN güncellendiği (etiket hesabı birim testte, uçtan uca değil); (2) `KATEGORI_BASLIK` etiketlerinin tabloda doğru basıldığı.",
+  },
+  '/panel/icerik/yetenekler/yeni': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: "Gerekçe `deneyim/yeni` satırıyla aynı — aynı form kabuğu ve eylem zinciri `projeler/yeni` tarafında ölçülüyor. ÖLÇÜLMEYEN: `level` alanının sitede GÖSTERİLMEDİĞİNİ söyleyen yardım metni hiçbir kapıda dizeyle karşılaştırılmıyor; boş bırakılan `level`ın Türkçe hata yerine Zod'un varsayılan mesajını basabileceği denenmedi.",
+  },
+  '/panel/icerik/yetenekler/[id]': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: 'Gerekçe `deneyim/[id]` satırıyla aynı; `Skill`te `status` YOK. Düzenlemede dolu `iconKey`i boşaltmak onu SİLER: zincirin şema ve form-yardımcısı halkaları `tests/unit/guncelleme-temizleme.test.tsx`te ölçülüyor. ÖLÇÜLMEYEN: formun gönderdiği nesnenin tarayıcıda gerçekten `iconKey: null` taşıdığı (form kabuğu uçtan uca sürülmedi).',
+  },
+  '/panel/icerik/hizmetler': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: "Yetenekler ekranıyla aynı gerekçe: `Service`in public karşılığı ana sayfa bölümü ve `/hizmetler` (o sayfa public kapılarda ölçülüyor, panel akışı değil). Okuma `fetchServicesForPanel` (önbelleksiz), silme `deleteServiceAction` (gerçek silme, AuditLog satırı taşıyor). ÖLÇÜLMEYEN: listedeki 'Kıyı Medya / Özel bağlantı' rozetinin public CTA ile aynı kuralı (`ctaUrl ?? kiyiMedyaUrl`) izlediği — iki yer ayrı yazılmış, bir test karşılaştırmıyor.",
+  },
+  '/panel/icerik/hizmetler/yeni': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: "Gerekçe `deneyim/yeni` satırıyla aynı. `ctaUrl` şeması (`optionalUrlSchema`) birim testte; ÖLÇÜLMEYEN: boş bağlantının `BOS_ISE_YOK` ile `undefined`a çevrilip 'geçersiz bağlantı' hatası üretmediği tarayıcıda denenmedi.",
+  },
+  '/panel/icerik/hizmetler/[id]': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: "Gerekçe `deneyim/[id]` satırıyla aynı; `Service`te `status` YOK. Dolu `ctaUrl`i boşaltmak onu SİLER ve hizmet Kıyı Medya'ya döner — şema ve servis halkaları `tests/unit/guncelleme-temizleme.test.tsx`te ölçülüyor. ÖLÇÜLMEYEN: public `/hizmetler` sayfasının boşaltmadan sonra GERÇEKTEN Kıyı Medya'ya döndüğü (önbellek düşüşü birim testte, uçtan uca değil).",
+  },
   '/panel/icerik/blog': {
     kapilar: ['kapsanmiyor'],
     kanit: [],
