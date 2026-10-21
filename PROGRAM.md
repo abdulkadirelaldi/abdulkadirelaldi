@@ -286,6 +286,12 @@ docs/STATUS.md docs/DECISIONS.md docs/tasks/ docs/security/
 
 ## 5. React Bits Kullanım Kuralları
 
+> **ADR-045 (2026-10-21): React Bits bileşenlerinin tamamı kaldırıldı** — public site yeni
+> görsel dile geçti; hareket CSS (scroll-driven animations) ile, JS'siz. `ogl` ve
+> `framer-motion` bağımlılıkları silindi. Aşağıdaki kurallar geçmiş kayıt ve yeniden
+> eklenecek bir bileşen için hâlâ bağlayıcı (§5.2: tembel yükleme, sayfa başına ≤ 1 WebGL,
+> mobilde WebGL yok, `prefers-reduced-motion`).
+
 Kurulum **daima TypeScript + Tailwind varyantı** ile yapılır. Kayıt ucundan dosya
 içeriği alınır ve elle yerleştirilir:
 

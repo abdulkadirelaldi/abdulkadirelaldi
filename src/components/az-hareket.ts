@@ -14,8 +14,7 @@ const SORGU = '(prefers-reduced-motion: reduce)';
  * `reactbits/lazy.tsx` tam olarak bunu yapıyordu: 43 kB (sıkıştırılmış) ve
  * 4× CPU kısıtında ~280 ms ana iş parçacığı, üstelik React Bits bileşenlerinin
  * hepsi `ssr:false` ile TEMBEL yüklendiği hâlde. Aynı işi 12 satır `matchMedia`
- * yapıyor; framer-motion artık yalnızca kendisini gerçekten kullanan tembel
- * parçalarla birlikte iniyor.
+ * yapıyor. ADR-045 ile framer-motion bağımlılığı tümden kaldırıldı.
  *
  * İLK RENDER'DA HER ZAMAN `false`: `window` sunucuda yok. Bu yüzden çağıranlar
  * "hareket açık" varsayımıyla başlar ve bağlanmadan sonra düzeltir — statik

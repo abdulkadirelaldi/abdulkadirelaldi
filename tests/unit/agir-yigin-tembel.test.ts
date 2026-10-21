@@ -101,19 +101,11 @@ interface AgirYigin {
 }
 
 const AGIR_YIGINLAR: AgirYigin[] = [
-  {
-    paket: 'ogl',
-    bilesen: 'src/components/reactbits/aurora.tsx',
-    tembelSinir: 'src/components/reactbits/lazy.tsx',
-    tekIceAktaran: true,
-    olcum:
-      'BULGU-018 · WebGL yığını TBT`yi 80 ms → 9.990 ms yaptı (T-029b/T-029e ölçümü). ' +
-      'Projenin EN AĞIR yığını.',
-    not:
-      '⚠️ BU SATIRI KAPININ KENDİSİ BULDURDU. İlk bildirimimde yoktu; sayım iddiası ' +
-      '`reactbits/lazy.tsx`i görünce eklendi. Projenin en pahalı yığınını listeden ' +
-      'atlamıştım — sayım kapısının neden gerektiğinin kendi örneği.',
-  },
+  /*
+   * `ogl` (Aurora, WebGL) BU LİSTEDEYDİ — ADR-045 ile bileşen ve bağımlılık
+   * birlikte silindi (2026-10-21). Projenin en pahalı yığınıydı (BULGU-018:
+   * TBT 80 ms → 9 990 ms); geri gelirse buraya ölçümüyle dönmeli.
+   */
   {
     paket: 'recharts',
     bilesen: 'src/components/panel/yillik-grafik.tsx',
@@ -263,18 +255,12 @@ describe('§5.2 — ağır yığınlar yalnızca tembel sınırdan geçiyor', ()
     ].sort();
 
     /** Ağır OLMAYAN tembel hedefler — envanter, ağırlık iddiası değil. */
-    const AGIR_OLMAYAN = [
-      './blur-text',
-      './count-up',
-      './glass-icons',
-      './gooey-nav',
-      './logo-loop',
-      './rotating-text',
-      './shiny-text',
-      './spotlight-card',
-      './star-border',
-      './tilted-card',
-    ];
+    /*
+     * React Bits'in on tembel hedefi BURADAYDI; ADR-045 ile klasörün tamamı
+     * silindi. Liste boş ama duruyor: yeni ağır OLMAYAN bir hedef eklenirse
+     * yeri burası.
+     */
+    const AGIR_OLMAYAN: string[] = [];
 
     /**
      * KOŞULLU TEMBEL — ağır, ama `AGIR_YIGINLAR`ın "her yerde yalnızca dynamic()"
