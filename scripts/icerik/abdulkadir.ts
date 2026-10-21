@@ -334,7 +334,7 @@ Fabrikadaki makineler üretim sayaçlarını yalnızca operatör ekranında gös
 
 ## Sayılar
 
-| | |
+| Ölçü | Değer |
 | --- | --- |
 | F1 (sentetik veri) | 0,99 |
 | Parametre | 289 |
