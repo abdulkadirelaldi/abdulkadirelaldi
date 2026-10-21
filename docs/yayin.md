@@ -65,6 +65,7 @@ başına bir boşluk koy (`HISTCONTROL=ignorespace`).
 | `R2_ACCOUNT_ID` · `R2_ACCESS_KEY_ID` · `R2_SECRET_ACCESS_KEY` · `R2_BUCKET` | Uygulama dosyaları (kapak, CV, logo) |
 | `BACKUP_R2_BUCKET` · `BACKUP_ENCRYPTION_KEY` | ⚠️ aşağıya bak |
 | `ADMIN_EMAIL` · `ADMIN_PASSWORD_HASH` · `ADMIN_NAME` | Yalnızca ilk kurulum (adım 4) |
+| `RESEND_API_KEY` · `CONTACT_NOTIFY_EMAIL` · `CONTACT_FROM_EMAIL` | İsteğe bağlı — formdan gelen mesajı e-postayla bildirir (aşağıya bak) |
 
 > ⚠️ **`ADMIN_PASSWORD_HASH` TEK TIRNAKLA.** argon2 hash'i `$` taşıyor
 > (`$argon2id$v=19$m=…`). Compose tırnaksız değerdeki `$v`, `$m` parçalarını
@@ -76,6 +77,12 @@ başına bir boşluk koy (`HISTCONTROL=ignorespace`).
 > (`yedek/aelaldi-YYYY-AA-GG.dump.enc`) ve ortamı ayırt etmiyor. Geliştirme
 > ile üretim aynı bucket'ı kullanırsa aynı gün alınan geliştirme yedeği üretim
 > yedeğinin **üzerine yazar** — ölçüldü (T-071 denemesi bugünkü yedeği ezdi).
+
+> **İletişim bildirimi (isteğe bağlı).** resend.com'da hesap aç → **Domains**'te
+> alan adını doğrula (DNS'e verdiği TXT/MX kayıtlarını ekle) → **API Keys**'ten
+> anahtar al. `RESEND_API_KEY`, `CONTACT_NOTIFY_EMAIL` (mesajın gideceği adres)
+> ve `CONTACT_FROM_EMAIL` (ör. `Site <site@alanadi.com>`) gir. Boş bırakılırsa
+> hiçbir şey kırılmaz: mesajlar panelde, okunmamış rozetiyle durur.
 
 3. **Domains:** `uygulama` servisine alan adını ver, port `3000`. Coolify
    Let's Encrypt sertifikasını kendisi alır.
