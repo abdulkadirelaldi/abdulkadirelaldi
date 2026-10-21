@@ -280,7 +280,7 @@ ve bu turda Frontend'in ölçüm görevi var (ADR-023: iki ölçüm görevi para
 | ----- | -------------------------------------------------------------------------------- | ------------------- | ------------ |
 | T-060 | Nonce tabanlı CSP + tüm güvenlik başlıkları (§8.12–14) — 🟢 **Tamam** (§8.13 ✅, 133 E2E) | Güvenlik            | F2–F5        |
 | T-061 | Hız sınırlama katmanı tamamlanması (§8.15–16) — 🟢 **Tamam** (§8.16 ✅)           | Güvenlik            | T-060        |
-| T-062 | §8'in 25 maddesi tam denetimi + bulgu kayıtları                                  | Güvenlik            | T-060, T-061 |
+| T-062 | §8'in 25 maddesi tam denetimi — 🟡 **Kısmen** (5 satır yenilendi, 3 yapısal kapı, BULGU-027 kapandı) | Güvenlik            | T-060, T-061 |
 | T-063 | Bulgu düzeltmeleri (Backend/Frontend'e dağıtılır)                                | Backend + Frontend  | T-062        |
 | T-064 | E2E paketi tamamlanması (§9 — 7 senaryo) + kapsam ≥ %70                          | Güvenlik            | F5           |
 | T-065 | Lighthouse CI eşikleri sağlanana kadar optimizasyon                              | Frontend + Güvenlik | T-064        |
