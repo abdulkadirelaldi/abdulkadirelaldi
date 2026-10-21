@@ -203,6 +203,16 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     kanit: [],
     not: "T-103 ile eklendi. Okuma `fetchClientForPanel` TEK KAYIT — `notes` YALNIZCA burada geliyor, liste DTO'su taşımıyor; formu listeden beslemek kaydetmenin `notes`u silmesi olurdu (T-043f'te proje MDX'inde ölçülen kusurun aynı sınıfı). Yazma `updateClientAction`. `isArchived` BU FORMDA YOK ve olmamalı: arşivleme ayrı bir eylem ve `updateClientAction` o alanı hiç almıyor. ÖLÇÜLMEYEN: (1) Var olmayan kimlikte 404 dışı davranış. (2) Kimlik numaralandırma (cuid tahmin edilemez VARSAYILDI). (3) `notes`un kaydedilip geri okunduğu uçtan uca denenmedi.",
   },
+  '/api/v1/panel/eklenti': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: "T-037f ile eklendi (ADR-044). Kimlik İKİ KATMAN: ara katman `/api/v1/panel/*`ı oturumsuz 401'e çeviriyor (§8.5) + uçta `currentActorId` (§8.6, ADR-035/B). Sıra: kimlik → boyut (`Content-Length`, gövde OKUNMADAN) → §8.16 hız → form şeması → hedef varlığı (ADR-018) → `storeAttachment`: baytlar YAZMADAN ÖNCE doğrulanıyor (boyut, sihirli bayt, ADR-043), anahtar sunucuda. DB düşerse nesne hemen siliniyor. Birim: `tests/unit/api/eklenti-yukleme.test.ts` (route'un kendisi, gerçek `FormData` ile). ÖLÇÜLDÜ YERELDE, CI'DA DEĞİL (2026-10-20, tek seferlik paket, gerçek bucket): kapak seçici ve galeriden yükleme, public proje sayfasında görselin gerçekten çizilmesi (`naturalWidth` 64), oturumsuz 200, CSP ihlali 0, panelden silme; ayrıca ÖNBELLEK: önbellekli public sayfa ekleme sonrası 0→1, silme sonrası 1→0. CI'da R2 anahtarı yok ve 'atlanan test yok' nöbeti koşullu atlamayı kabul etmiyor. ÖLÇÜLMEYEN: (1) Yukarıdakinin CI'da tekrarı. (2) `Content-Length` yalan söyleyen 10 MB+ gövde `formData()` ile belleğe alınıyor; asıl sınır baytta — bellek tepe değeri ölçülmedi.",
+  },
+  '/api/v1/dosya/[id]': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: "T-037f ile eklendi (ADR-044). Eklentiyi R2'den okuyup AYNI KÖKENDEN sunuyor — HTML'de imzalı adres yok, CSP `img-src 'self'` kalıyor, ADR-018'in önbellek çatışması doğmuyor. VARSAYILAN REDDET: yalnızca `PROJECT`/`POST`/`PROFILE` herkese açık (`public, immutable` — içerik değişmez); makbuz/iş/müşteri yalnızca oturumla (`private, no-store`, noindex) ve oturumsuz istek 404 alıyor (401 varlığı söylerdi). ETag = sağlama; eşleşirse 304 ve R2 okunmuyor. Kimlik dar karakter kümesinden geçmeyen istek veritabanına gitmiyor. Birim: `eklenti-yukleme.test.ts`. ÖLÇÜLMEYEN: (1) Taslak bir projenin kapağı kimliği bilen birine açık — kimlik tahmin edilemez (cuid) VARSAYILDI; yayın durumuna bağlamak ek sorgu ister. (2) Büyük dosyada bellek: nesne tamamen okunup veriliyor (akış değil); 10 MB üst sınırla kabul.",
+  },
   '/panel/saglik': {
     kapilar: ['e2e'],
     kanit: ["page.goto('/panel/saglik'"],

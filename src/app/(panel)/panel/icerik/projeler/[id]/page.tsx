@@ -2,7 +2,9 @@ import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
 import { ProjeFormu } from '@/components/panel/proje-formu';
+import { ProjeGalerisi } from '@/components/panel/proje-galerisi';
 import { Topbar } from '@/components/panel/topbar';
+import { fetchAttachmentsForEntity } from '@/server/services/attachment';
 import { fetchProjectForPanel } from '@/server/services/project';
 
 export const metadata: Metadata = {
@@ -28,6 +30,9 @@ export default async function ProjeDuzenlePage({ params }: SayfaProps) {
 
   if (!proje) notFound();
 
+  // Projenin dosya havuzu — galeri yönetimi (T-037f). Kapak bu havuzdan.
+  const dosyalar = await fetchAttachmentsForEntity('PROJECT', proje.id);
+
   return (
     <>
       <Topbar title={proje.title} />
@@ -35,6 +40,7 @@ export default async function ProjeDuzenlePage({ params }: SayfaProps) {
       <main id="panel-icerik" className="flex-1 p-4 lg:p-6">
         <div className="flex max-w-3xl flex-col gap-6">
           <ProjeFormu proje={proje} />
+          <ProjeGalerisi projeId={proje.id} kapakId={proje.coverAttachmentId} dosyalar={dosyalar} />
         </div>
       </main>
     </>

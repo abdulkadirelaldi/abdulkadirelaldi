@@ -197,8 +197,8 @@ export default async function ProjeDetaySayfasi({ params }: SayfaProps) {
           {/*
             Sıra servisten geliyor (`order` ile sıralı, ADR-018) — burada
             yeniden sıralanmıyor. Kapaklarla AYNI bileşen kullanılıyor:
-            ikinci bir görsel yolu açmak, T-037 imzalı URL'leri getirdiğinde
-            iki yerde birden düzeltme gerektirirdi.
+            ikinci bir görsel yolu açmak, görsel kaynağı değiştiğinde iki yerde
+            birden düzeltme gerektirirdi — T-037f'te tek yerde bağlandı.
           */}
           <ul className="grid gap-4 sm:grid-cols-2">
             {proje.gallery.map((gorsel, sira) => (

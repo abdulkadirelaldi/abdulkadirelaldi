@@ -123,15 +123,32 @@ export async function fetchPublishedProjects(
   return rows.map(toListDto);
 }
 
-/** Bir projenin galerisi — polimorfik `Attachment`, `order` ile sıralı (ADR-018). */
+/**
+ * Bir projenin galerisi — polimorfik `Attachment`, `order` ile sıralı (ADR-018).
+ *
+ * ⚠️ KAPAK HARİÇ, YALNIZCA GÖRSEL (T-037f). Projenin dosyaları tek havuz:
+ * kapak da `entity: PROJECT` bir eklenti. Hariç tutulmasaydı kapak bağlandığı
+ * an galeride İKİNCİ KEZ görünürdü; görsel olmayan bir dosya (PDF) da kırık
+ * bir galeri karesi olurdu. Değiştirilen eski kapak galeride bir görsel olarak
+ * kalır — panelde silinebilir; KULLANIMDAKİ kapak `Restrict` ile silinemez.
+ *
+ * İkincil anahtar `createdAt`: `order` varsayılanı 0, yani yeni yüklemelerin
+ * sırası belirsiz kalırdı.
+ */
 export async function fetchProjectGallery(
   projectId: string,
   client: ProjectClient = db,
+  kapakId: string | null = null,
 ): Promise<ProjectDto['gallery']> {
   const rows = await client.attachment.findMany({
-    where: { entity: 'PROJECT', entityId: projectId },
+    where: {
+      entity: 'PROJECT',
+      entityId: projectId,
+      mime: { startsWith: 'image/' },
+      ...(kapakId ? { NOT: { id: kapakId } } : {}),
+    },
     select: ATTACHMENT_SELECT,
-    orderBy: [{ order: 'asc' }],
+    orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
   });
 
   return rows
@@ -174,7 +191,7 @@ export async function fetchProjectBySlug(
       liveUrl: row.liveUrl,
       repoUrl: row.repoUrl,
       clientName: row.clientName,
-      gallery: await fetchProjectGallery(row.id, client),
+      gallery: await fetchProjectGallery(row.id, client, row.cover?.id ?? null),
     },
   };
 }

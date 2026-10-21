@@ -1,10 +1,13 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 
 import { db } from '@/server/db';
-import { presignDownload } from '@/server/storage/r2';
+import { ALLOWED_MIME_TYPES, MAX_UPLOAD_BYTES } from '@/lib/schemas/attachment';
+import { deleteObjectQuietly, putObject, type R2Deps } from '@/server/storage/r2';
 import type { AttachmentEntity } from '@/types';
 
-import type { SniffedMime } from './_shared/file-type';
+import { readImageDimensions, sniffMime, type SniffedMime } from './_shared/file-type';
+import { UPLOAD_RATE_LIMIT, uploadWindowStart } from '@/lib/security/rate-limit';
+import { fail, writeAuditLog, type ApiFailure } from './_shared';
 
 /**
  * `Attachment` VARLIK KONTROLÜ — T-051/B.
@@ -119,15 +122,6 @@ export interface AttachmentDto {
 }
 
 /** Yükleme izni yanıtı — istemci bu adrese DOĞRUDAN PUT yapıyor. */
-export interface UploadTicketDto {
-  /** Sunucunun ürettiği anahtar — istemci bunu `confirmUpload`a geri verir. */
-  key: string;
-  /** İmzalı PUT adresi. Ömrü `SIGNED_PUT_TTL_SECONDS`. */
-  uploadUrl: string;
-  /** Adresin son kullanma anı (ISO) — arayüz "süre doldu" diyebilsin. */
-  expiresAt: string;
-}
-
 const ATTACHMENT_SELECT = {
   id: true,
   key: true,
@@ -261,10 +255,6 @@ export async function fetchAttachmentById(
 }
 
 /** §8.11 — 15 dakikalık imzalı okuma adresi. Önbelleğe GİRMEZ (gerekçe yukarıda). */
-export function signedUrlForKey(key: string, deps?: Parameters<typeof presignDownload>[1]): string {
-  return presignDownload(key, deps);
-}
-
 /* ===========================================================================
  * §8.16 — YÜKLEME HIZ SINIRI SAYACI (T-061)
  * ======================================================================== */
@@ -273,12 +263,15 @@ export function signedUrlForKey(key: string, deps?: Parameters<typeof presignDow
  * Sayaç bağlamları — denetim kaydının `diff.context` değeri, kodda SABİT
  * (`SHOWN_DIFF_VALUE_KEYS` beyaz listesindeki `context`, yani ekranda okunur).
  */
-export const UPLOAD_CONTEXTS = {
-  ticket: 'UPLOAD_TICKET',
-  confirm: 'UPLOAD_CONFIRM',
-} as const;
+export const UPLOAD_CONTEXT = 'UPLOAD' as const;
 
-export type UploadContext = (typeof UPLOAD_CONTEXTS)[keyof typeof UPLOAD_CONTEXTS];
+/*
+ * ADR-044 ÖNCESİNDE İKİ BAĞLAM VARDI (`UPLOAD_TICKET`, `UPLOAD_CONFIRM`): bilet
+ * ve onay iki ayrı uçtu. Tek uç kaldı; tek bağlam. (Eski bağlamlı satırlar
+ * denetim kaydında kalır ve SAYILMAZ — yeni bağlam adı, pencere 60 sn olduğu
+ * için geçişte en fazla bir dakikalık bir sayım boşluğu demek.)
+ */
+export type UploadContext = typeof UPLOAD_CONTEXT;
 
 export interface UploadRateClient {
   auditLog: {
@@ -316,4 +309,212 @@ export async function countRecentUploadCalls(
       diff: { path: ['context'], equals: context },
     },
   });
+}
+
+/* ===========================================================================
+ * ADR-044 — AYNI KÖKENDEN YÜKLEME VE SUNUM
+ * ======================================================================== */
+
+/**
+ * Herkese açık sunulabilen eklenti türleri. Diğerleri (makbuz, iş, müşteri)
+ * yalnızca oturumla — `GET /api/v1/dosya/[id]`.
+ *
+ * ⚠️ VARSAYILAN REDDET: yeni bir `AttachmentEntity` değeri buraya eklenmeden
+ * herkese açılmaz (ADR-034'ün beyaz liste polaritesi).
+ */
+export const PUBLIC_ATTACHMENT_ENTITIES: ReadonlySet<AttachmentEntity> = new Set<AttachmentEntity>([
+  'PROJECT',
+  'POST',
+  'PROFILE',
+]);
+
+/**
+ * Polimorfik hedefin VAR OLDUĞUNU doğrular — ADR-018: "Polimorfik ilişkide FK
+ * yok; bütünlük UYGULAMA KATMANINDA korunur." Kontrol olmasa, var olmayan bir
+ * `entityId` ile açılan eklenti hiçbir galeri sorgusunda görünmeyen yetim bir
+ * SATIR olurdu. `default` YOK: yeni bir tür eklenirse `tsc` burayı kırar.
+ * (T-037'de eylemdeydi; ADR-044 ile route handler da kullandığı için servise
+ * taşındı.)
+ */
+export async function attachmentTargetExists(
+  entity: AttachmentEntity,
+  entityId: string,
+): Promise<boolean> {
+  switch (entity) {
+    case 'PROJECT':
+      return (await db.project.count({ where: { id: entityId } })) > 0;
+    case 'POST':
+      return (await db.post.count({ where: { id: entityId } })) > 0;
+    case 'PROFILE':
+      return (await db.profile.count({ where: { id: entityId } })) > 0;
+    case 'TRANSACTION':
+      return (await db.transaction.count({ where: { id: entityId } })) > 0;
+    case 'JOB':
+      return (await db.job.count({ where: { id: entityId } })) > 0;
+    case 'CLIENT':
+      return (await db.client.count({ where: { id: entityId } })) > 0;
+  }
+}
+
+export type UploadRejection = 'EMPTY' | 'TOO_LARGE' | 'TYPE_NOT_ALLOWED';
+
+export type StoreResult =
+  | { ok: true; attachment: AttachmentDto; checksum: string }
+  | { ok: false; reason: UploadRejection };
+
+/**
+ * Baytları DOĞRULAR, R2'ye yazar, satırı oluşturur — ADR-044.
+ *
+ * ⚠️ SIRA: DOĞRULA → R2 → DB. T-037'de doğrulama yazmadan SONRAYDI (tarayıcı
+ * önce R2'ye yazıyordu) ve geçersiz bayt R2'de yetim kalabiliyordu. Artık
+ * geçersiz bayt R2'ye HİÇ yazılmıyor.
+ *
+ * R2 → DB sırası korunuyor (T-037 gerekçesi: düşen DB yazımı GÖRÜNMEZ yetim
+ * nesne bırakır; ters sıra GÖRÜNÜR kırık satır bırakırdı). DB düşerse nesne
+ * HEMEN siliniyor (telafi, fırlatmaz) ve asıl hata yukarı fırlatılıyor.
+ */
+export async function storeAttachment(
+  input: {
+    bytes: Buffer;
+    entity: AttachmentEntity;
+    entityId: string;
+    order: number;
+    actorId: string;
+  },
+  deps: { client?: AttachmentWriteClient; r2?: R2Deps } = {},
+): Promise<StoreResult> {
+  const { bytes, entity, entityId, order, actorId } = input;
+  const client = deps.client ?? db;
+
+  if (bytes.length === 0) return { ok: false, reason: 'EMPTY' };
+  // BOYUT BEYANDAN DEĞİL BAYTTAN (§8.11).
+  if (bytes.length > MAX_UPLOAD_BYTES) return { ok: false, reason: 'TOO_LARGE' };
+
+  // TİP UZANTIDAN DEĞİL İÇERİKTEN (ADR-043: beş tipin hepsi sabit imzalı).
+  const mime = sniffMime(bytes);
+  if (mime === null || !(ALLOWED_MIME_TYPES as readonly string[]).includes(mime)) {
+    return { ok: false, reason: 'TYPE_NOT_ALLOWED' };
+  }
+
+  const olcu = readImageDimensions(bytes, mime);
+  const checksum = createHash('sha256').update(bytes).digest('hex');
+  const key = buildAttachmentKey(entity, entityId, mime);
+
+  await putObject(key, bytes, mime, deps.r2);
+
+  try {
+    const row = await client.attachment.create({
+      data: {
+        key,
+        mime,
+        size: bytes.length,
+        checksum,
+        width: olcu?.width ?? null,
+        height: olcu?.height ?? null,
+        entity,
+        entityId,
+        order,
+        uploadedById: actorId,
+      },
+      select: ATTACHMENT_SELECT,
+    });
+    return { ok: true, attachment: toDto(row), checksum };
+  } catch (error) {
+    await deleteObjectQuietly(key, deps.r2);
+    throw error;
+  }
+}
+
+export interface AttachmentServeDto {
+  key: string;
+  mime: string;
+  size: number;
+  checksum: string;
+  entity: AttachmentEntity;
+}
+
+/** Sunum ucunun okuması — `checksum` ETag olarak kullanılıyor. */
+export async function fetchAttachmentForServing(id: string): Promise<AttachmentServeDto | null> {
+  return db.attachment.findUnique({
+    where: { id },
+    select: { key: true, mime: true, size: true, checksum: true, entity: true },
+  });
+}
+
+/**
+ * §8.16 — yükleme ucunun hız kapısı (T-061, ADR-044 ile tek uç). Sınır
+ * aşıldıysa §7.2 zarfı, değilse `null` — ve İZİN VERİLEN çağrı sayaca yazılıyor.
+ *
+ * ⚠️ SIRA: say → karar ver → yaz. Reddedilen çağrı YAZILMIYOR: yazılsaydı
+ * sınırdaki istemci her denemesiyle pencereyi kendi aleyhine uzatırdı.
+ * ⚠️ Say-yaz yarışı kabul (T-061 gerekçesi): amaç kaynak tüketimini
+ * sınırlamak, tam sayıya kilitlemek değil.
+ */
+export async function uploadRateGate(
+  actorId: string,
+  now: Date = new Date(),
+): Promise<ApiFailure | null> {
+  const sayi = await countRecentUploadCalls(actorId, UPLOAD_CONTEXT, uploadWindowStart(now));
+  if (sayi >= UPLOAD_RATE_LIMIT.maxRequests) {
+    return fail(
+      'RATE_LIMITED',
+      `Çok fazla yükleme isteği. Dakikada en fazla ${UPLOAD_RATE_LIMIT.maxRequests} dosya yüklenebilir; biraz bekleyip tekrar deneyin.`,
+    );
+  }
+
+  await writeAuditLog(
+    {
+      actorId,
+      action: 'CREATE',
+      entity: 'Attachment',
+      entityId: null,
+      diff: { context: UPLOAD_CONTEXT },
+    },
+    db,
+  );
+  return null;
+}
+
+/**
+ * Eklentinin SAHİBİ olan public içeriğin önbellek hedefleri — T-037f.
+ *
+ * ⚠️ `cached.ts` bunu T-045'ten beri UYARIYORDU: proje detay girdisi galeriyi
+ * de kapsıyor ve eklenti mutasyonu sahibinin `slugTag`ini düşürmek ZORUNDA.
+ * Düşürülmeseydi galeriye eklenen görsel public sayfada önbellek süresince
+ * GÖRÜNMEZ, silinen görsel KIRIK bir kare olarak kalırdı (dosya ucu 404).
+ *
+ * Makbuz/iş/müşteri eklentilerinin public önbelleği yok → `null`.
+ */
+export async function attachmentOwnerCacheTargets(
+  entity: AttachmentEntity,
+  entityId: string,
+): Promise<{
+  contentEntity: 'project' | 'post' | 'profile';
+  locales: string[];
+  slugs: { locale: string; slug: string }[];
+} | null> {
+  switch (entity) {
+    case 'PROJECT': {
+      const p = await db.project.findUnique({
+        where: { id: entityId },
+        select: { slug: true, locale: true },
+      });
+      return p ? { contentEntity: 'project', locales: [p.locale], slugs: [p] } : null;
+    }
+    case 'POST': {
+      const p = await db.post.findUnique({
+        where: { id: entityId },
+        select: { slug: true, locale: true },
+      });
+      return p ? { contentEntity: 'post', locales: [p.locale], slugs: [p] } : null;
+    }
+    case 'PROFILE': {
+      const p = await db.profile.findUnique({ where: { id: entityId }, select: { locale: true } });
+      return p ? { contentEntity: 'profile', locales: [p.locale], slugs: [] } : null;
+    }
+    case 'TRANSACTION':
+    case 'JOB':
+    case 'CLIENT':
+      return null;
+  }
 }

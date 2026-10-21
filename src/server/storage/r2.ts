@@ -194,7 +194,7 @@ export interface R2Deps {
   now?: Date;
 }
 
-/** Nesnenin TAMAMINI okur — `confirmUpload` doğrulaması bunu kullanıyor. */
+/** Nesnenin TAMAMINI okur — sunum ucu (`/api/v1/dosya/[id]`, ADR-044) kullanıyor. */
 export async function getObjectBytes(key: string, deps: R2Deps = {}): Promise<Buffer | null> {
   const url = presignUrl(
     { key, method: 'GET', expiresIn: SIGNED_GET_TTL_SECONDS, now: deps.now },
@@ -236,18 +236,32 @@ export async function deleteObjectQuietly(key: string, deps: R2Deps = {}): Promi
   }
 }
 
-/** Tarayıcının DOĞRUDAN yükleyeceği imzalı PUT adresi. */
-export function presignUpload(key: string, deps: R2Deps = {}): string {
-  return presignUrl(
+/**
+ * Nesneyi SUNUCUDAN yazar — ADR-044.
+ *
+ * T-037'de bunun yerine tarayıcıya imzalı PUT adresi veriliyordu
+ * (`presignUpload`); bucket'ta CORS olmadığı için hiçbir tarayıcıdan
+ * çalışmıyordu. Sunucudan yazmak CORS'a tabi değil ve imza AYNI
+ * (`presignUrl`), yani ikinci bir imzalama yolu yok.
+ *
+ * `Content-Type` YAZILIYOR: sunum ucu tipi satırdan okuyor ama nesnenin
+ * kendisi de doğru tipi taşısın (R2 panelinden ya da yedekten bakan biri için).
+ */
+export async function putObject(
+  key: string,
+  bytes: Buffer,
+  contentType: string,
+  deps: R2Deps = {},
+): Promise<void> {
+  const url = presignUrl(
     { key, method: 'PUT', expiresIn: SIGNED_PUT_TTL_SECONDS, now: deps.now },
     deps.config ?? readR2Config(),
   );
-}
-
-/** §8.11 — 15 dakikalık imzalı okuma adresi. */
-export function presignDownload(key: string, deps: R2Deps = {}): string {
-  return presignUrl(
-    { key, method: 'GET', expiresIn: SIGNED_GET_TTL_SECONDS, now: deps.now },
-    deps.config ?? readR2Config(),
-  );
+  const istek = deps.fetchImpl ?? fetch;
+  const yanit = await istek(url, {
+    method: 'PUT',
+    body: new Uint8Array(bytes),
+    headers: { 'Content-Type': contentType },
+  });
+  if (!yanit.ok) throw new Error(`R2 yazma başarısız: ${yanit.status}`);
 }

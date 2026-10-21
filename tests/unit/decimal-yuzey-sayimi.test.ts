@@ -361,6 +361,33 @@ describe('ADR-014/3 — `Decimal` taşıyan her servis yüzeyi ölçülüyor', (
         "KOYMUYOR, yani serileştirme sınırına `Decimal` çıkmıyor. KALDIRMA KOŞULU: DTO'ya " +
         'bir tutar alanı eklenirse bu satır silinir ve yüzey iddiaya bağlanır.',
     },
+    {
+      yuzey: 'fetchAttachmentsForEntity',
+      dto: 'AttachmentDto',
+      gerekce:
+        '`attachment.ts` Decimal modellerine (`transaction`, `job`) YALNIZCA `count()` ile ' +
+        "dokunuyor — ADR-044'te servise taşınan `attachmentTargetExists`, polimorfik hedefin " +
+        'VARLIĞINI soruyor, satırı okumuyor. DTO dosya meta verisi (anahtar, mime, boyut, ölçü, ' +
+        "sağlama) — okundu, para alanı yok. KALDIRMA KOŞULU: eklenti DTO'suna bir tutar girerse.",
+    },
+    {
+      yuzey: 'fetchAttachmentById',
+      dto: 'AttachmentDto',
+      gerekce:
+        '`attachment.ts` Decimal modellerine (`transaction`, `job`) YALNIZCA `count()` ile ' +
+        "dokunuyor — ADR-044'te servise taşınan `attachmentTargetExists`, polimorfik hedefin " +
+        'VARLIĞINI soruyor, satırı okumuyor. DTO dosya meta verisi (anahtar, mime, boyut, ölçü, ' +
+        "sağlama) — okundu, para alanı yok. KALDIRMA KOŞULU: eklenti DTO'suna bir tutar girerse.",
+    },
+    {
+      yuzey: 'fetchAttachmentForServing',
+      dto: 'AttachmentServeDto',
+      gerekce:
+        '`attachment.ts` Decimal modellerine (`transaction`, `job`) YALNIZCA `count()` ile ' +
+        "dokunuyor — ADR-044'te servise taşınan `attachmentTargetExists`, polimorfik hedefin " +
+        'VARLIĞINI soruyor, satırı okumuyor. DTO dosya meta verisi (anahtar, mime, boyut, ölçü, ' +
+        "sağlama) — okundu, para alanı yok. KALDIRMA KOŞULU: eklenti DTO'suna bir tutar girerse.",
+    },
   ];
 
   it('muafiyet ÖLÜ SATIR taşımıyor ve gerekçesi MEKANİK olarak sınanıyor', () => {

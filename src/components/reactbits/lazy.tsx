@@ -337,8 +337,8 @@ export const GooeyNav = dynamic(() => import('./gooey-nav'), {
  * ⚠️ BUGÜN ÇAĞIRAN YOK — T-026 kararı, gerekçesiyle:
  *
  * Gösterilecek logo VERİSİ yok. `Client` tablosu var ama public bir servisi
- * yok ve logolar `Attachment` olarak saklanacak; `AttachmentRefDto` da henüz
- * URL taşımıyor (ADR-018, T-037 bekliyor). Yani şerit ya boş kutularla ya da
+ * yok ve logolar `Attachment` olarak saklanacak. (Görsel sunumu T-037f'te
+ * geldi — ADR-044; eksik kalan yalnızca VERİ.) Yani şerit ya boş kutularla ya da
  * uydurma logolarla çizilirdi.
  *
  * İkisi de kabul edilmedi: "müşteri logoları" başlıklı bir şerit, içindekiler
@@ -346,8 +346,9 @@ export const GooeyNav = dynamic(() => import('./gooey-nav'), {
  * yasakladığı uydurma istatistikle aynı şey, üstelik görselle. Eksik bölüm,
  * yanlış iddiadan iyidir.
  *
- * BÖLÜMÜN AÇILMA KOŞULU (ikisi birden): (1) müşteri logolarını veren bir public
- * servis, (2) T-037'nin imzalı URL'leri. İkisi olduğunda `/hizmetler` sayfasına
+ * BÖLÜMÜN AÇILMA KOŞULU: müşteri logolarını veren bir public servis — ve
+ * öncesinde bir MODEL kararı (hangi müşteri logosu herkese açık; `Client`
+ * kişisel veri taşıyor). Görsel sunumu (eski ikinci koşul) T-037f'te geldi. İkisi olduğunda `/hizmetler` sayfasına
  * bir bölüm eklenir ve bu bileşen oradan çağrılır — bileşenin kendisi T-020'de
  * uyarlandı, hazır duruyor.
  */

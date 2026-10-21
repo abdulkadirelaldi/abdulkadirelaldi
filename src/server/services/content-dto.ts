@@ -30,14 +30,15 @@ import type { AppDay } from './_shared';
  *
  * `url` ALANI YOKTUR ve gelmeyecektir. §8.11 private bucket + 15 dk imzalı URL
  * istiyor; kalıcı URL ya bayat olurdu ya da bucket'ın public olduğu anlamına
- * gelirdi. İmzalı URL **istek anında** `key`den üretilir — üretici T-037'de gelecek.
+ * gelirdi. Dosyayı sunan `GET /api/v1/dosya/[id]` (ADR-044): adres KİMLİKTEN
+ * (`dosyaAdresi`), imzasız ve bayatlamaz — R2'yi sunucu kendi imzasıyla okur.
  *
  * `width`/`height` DTO'da BİLEREK var: Frontend `next/image` ile CLS'i ancak
  * boyutu bilerek önleyebilir (§5.2.3, K1 hedefi CLS < 0.05).
  */
 export interface AttachmentRefDto {
   id: string;
-  /** R2 nesne anahtarı. İmzalı URL bundan üretilir (T-037). */
+  /** R2 nesne anahtarı — yalnızca sunucu kullanır; tarayıcı `dosyaAdresi(id)` görür (ADR-044). */
   key: string;
   mime: string;
   /** Görsel değilse (örn. PDF) `null`. */

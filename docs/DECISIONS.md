@@ -49,6 +49,7 @@
 | ADR-041 | Q1: panel `/panel` altında kalır — alt alan adı yalıtım sağlamıyor | 2026-10-14 | Kabul edildi |
 | ADR-042 | Q2: v1 de mail sağlayıcı yok — bildirimin amacı panel rozetiyle karşılanıyor | 2026-10-14 | Kabul edildi |
 | ADR-043 | Yüklenen SVG kabul edilmez — güven sınırı "kim yazdı", "hangi tip" değil | 2026-10-16 | Kabul edildi |
+| ADR-044 | Dosyalar aynı kökenden yüklenir ve sunulur — tarayıcı R2'ye hiç gitmez | 2026-10-20 | Kabul edildi |
 
 ---
 
@@ -2432,3 +2433,48 @@ edilmis** bir SVG yolu (betik/olay niteliklerini soyen bir ayristirici) ya da
 - **Olani birakmak** — **reddedildi**: Backend riski olcup raporladi; olculmus bir
   riski "bugune kadar sorun olmadi" diye birakmak bu projenin kayit tuttugu her
   dersin tersi.
+
+---
+
+## ADR-044 — Dosyalar Aynı Kökenden Yüklenir ve Sunulur; Tarayıcı R2'ye Hiç Gitmez
+
+**Durum:** Kabul edildi · 2026-10-20 · **Kapsar:** T-037f · **Tersine çevirir:** T-037'nin tarayıcıdan doğrudan PUT akışı
+
+### Bağlam
+
+T-037 iki adımlı bir akış kurdu: sunucu imzalı PUT adresi verir, **tarayıcı doğrudan R2'ye** yükler, sunucu nesneyi geri okuyup onaylar. Gerekçe ölçülmüştü ve doğruydu: Server Action gövdesi varsayılan 1 MB, §8.11 ise 10 MB istiyor.
+
+T-037f'te arayüzü yazmadan önce **tarayıcının gerçekten yapacağı isteği** ölçtüm. İmzalı adrese `Origin` ve `Access-Control-Request-Method: PUT` ile ön uçuş:
+
+```
+preflight 403   access-control-allow-origin = null
+```
+
+Bucket'ta CORS tanımlı değil. T-037 akışı `curl` ile ölçülmüştü ve `curl` CORS'a tabi değil — yani **akış hiçbir tarayıcıdan çalışmazdı**. Çalıştırmak iki dış koşul istiyor: bucket CORS'una üretim kökenini yazmak (alan adı F7'de belli olacak; Cloudflare tarafında elle yapılandırma) ve CSP'nin `connect-src`ine R2 kökenini eklemek (T-060'ın kapattığı yüzeyi genişletmek).
+
+Sunum tarafı da açıktı: ADR-018 imzalı adresi "istek anında" istiyor ama public sayfalar önbellekli (ADR-011). T-037 çatışmayı "imzalı adres önbellekli DTO'ya girmesin" diye çözdü; görselin sayfaya **nasıl** gireceğini yazmadı. İmzalı adres HTML'e girseydi `img-src`e R2 kökeni gerekecekti ve 15 dakikada bayatlayan adresler önbellekli sayfalarla yine çatışacaktı.
+
+### Karar
+
+**Tarayıcı R2'ye hiç gitmez. Yükleme ve sunum aynı kökendeki iki uçtan geçer.**
+
+1. **Yükleme** — `POST /api/v1/panel/eklenti` (route handler, `multipart/form-data`). Route handler'lar Server Action'ın 1 MB sınırına TABİ DEĞİL; T-037'nin gerekçesi bu uç için geçerli değil. Sunucu baytları alır, **SAKLAMADAN ÖNCE** doğrular (boyut, sihirli bayt, ADR-043), anahtarı üretir, R2'ye sunucudan yazar, satırı oluşturur. Kimlik: ara katman (§8.5, `/api/v1/panel/*`) + uçta `currentActorId` (§8.6, ADR-035/B) + §8.16 hız sınırı.
+2. **Sunum** — `GET /api/v1/dosya/[id]`. Sunucu nesneyi R2'den okuyup verir.
+   - Proje, yazı, profil eklentileri **herkese açık**: `Cache-Control: public, max-age=31536000, immutable`. İçerik değişmez — yeni dosya yeni kimlik demek — yani önbellek asla bayatlamaz.
+   - Makbuz, iş, müşteri eklentileri **yalnızca oturumla**: `private, no-store`. Oturumsuz istek 404 alır (var olduğunu da söylemez).
+
+### Sonuçlar
+
+- CORS yapılandırması **gerekmiyor**; CSP **genişlemiyor** (`img-src`/`connect-src` `'self'` kalıyor).
+- Doğrulama yazmadan önce yapıldığı için T-037'nin **yetim nesne penceresi ve onay adımı ortadan kalkıyor**: geçersiz bayt R2'ye hiç yazılmıyor. DB yazımı düşerse nesne yine hemen siliniyor (telafi korunuyor).
+- ADR-018'in önbellek çatışması kapanıyor: HTML'de imzalı adres yok, yalnızca kalıcı `/api/v1/dosya/<id>`.
+- R2 yine **private**: imzasız erişim yok; sunucu kendi imzasıyla okuyor (§8.11 karşılanıyor).
+- **Bedel:** baytlar sunucudan geçiyor — yüklemede en fazla 10 MB, sunumda public dosyalar tarayıcıda kalıcı önbelleğe alınıyor. Tek kullanıcılı bir panel ve kişisel bir sitede ölçülemeyecek kadar küçük; trafik büyürse bu uca bir CDN konur, karar değişmez.
+- `requestUploadAction`/`confirmUploadAction` **kaldırılıyor**: tarayıcıdan çalışmayan ve arayüzü olmayan bir POST ucu, imzalı PUT adresi dağıtan gereksiz bir yüzeydi. Doğrulama mantığı servise taşındı, testleri onunla gitti.
+
+### Alternatifler ve neden reddedildi
+
+- **Bucket'a CORS tanımlamak (T-037'yi çalıştırmak)** — reddedildi: üretim kökeni henüz yok, Cloudflare'de elle yapılandırma ister (sürüm kontrolünün dışında) ve CSP'yi genişletir. Kazancı (baytların sunucudan geçmemesi) bu ölçekte ölçülemiyor.
+- **İmzalı adresi sayfaya basmak** — reddedildi: önbellekli sayfada 15 dakikada bayatlar (ADR-018'in öngördüğü çatışma) ve `img-src`e R2 kökeni ister.
+- **R2'yi public bucket yapmak** — reddedildi: §8.11 ile doğrudan çelişir; makbuzlar herkese açılırdı.
+
