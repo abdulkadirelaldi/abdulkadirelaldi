@@ -3,7 +3,6 @@ import { GradyanBaglanti } from '@/components/public/tasarim/gradyan-baglanti';
 import { KonturBaslik } from '@/components/public/tasarim/kontur-baslik';
 import { ParlakGlif, ParlakHalka, ParlakKure } from '@/components/public/tasarim/sekiller';
 import { Yuzen } from '@/components/public/tasarim/yuzen';
-import { CountUp } from '@/components/reactbits/lazy';
 import type { ProfileDto } from '@/server/services/content-dto';
 import type { SiteStatsDto } from '@/server/services/_shared/stats';
 
@@ -79,7 +78,9 @@ export function Hakkimda({ profil, istatistikler }: HakkimdaProps) {
                     {i.etiket}
                   </dt>
                   <dd className="dev-baslik text-primary order-1 text-5xl md:text-6xl">
-                    <CountUp to={i.deger} duration={1.4} />
+                    {/* Düz sayı, CountUp DEĞİL: sayaç framer-motion çekiyordu ve
+                        bu bölümün tek istemci bağımlılığıydı (ADR-045 ölçümü). */}
+                    {i.deger}
                     {i.sonek}
                   </dd>
                 </div>
