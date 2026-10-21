@@ -436,3 +436,28 @@ Yaklaşık 20 şehirde 100'den fazla işletmeye yönelik pazarlama ve saha çal�
 `,
   },
 ];
+
+/**
+ * HİZMETLER — Kıyı Medya üzerinden yürüyen ticari işler (CTA boş → Kıyı Medya).
+ * Her başlık belgelerdeki GERÇEK bir işe dayanıyor: 5 kurumsal site
+ * (kiyimedya.com, iscevaritma.com.tr, askarmedikal.com…), İSÇEV ve TesisBul
+ * platformları, yürütülen mobil uygulama. Gömülü/yapay zeka işleri ticari hizmet
+ * olarak listelenmedi — belgelerde öyle bir teklif yok.
+ */
+export const HIZMETLER = [
+  {
+    title: 'Kurumsal web sitesi',
+    description:
+      'Tasarımdan yayına uçtan uca: hızlı, arama motoru dostu ve içeriği panelden yönetilen kurumsal siteler. Kıyı Medya ile 5 kurumsal site bu şekilde teslim edildi.',
+  },
+  {
+    title: 'Web uygulaması ve yönetim paneli',
+    description:
+      'Rol tabanlı yetki, denetim izi ve iş akışlarıyla kurumsal platformlar; rezervasyon ve iş yönetimi gibi işe özel uygulamalar. Next.js, TypeScript ve PostgreSQL ile.',
+  },
+  {
+    title: 'Mobil uygulama',
+    description:
+      'Fikirden mağazaya mobil uygulama geliştirme süreci — gereksinim, tasarım, geliştirme ve yayın. Kıyı Medya bünyesinde yürütülüyor.',
+  },
+];

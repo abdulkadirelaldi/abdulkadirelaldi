@@ -4,13 +4,14 @@ import {
   createExperienceSchema,
   createPostSchema,
   createProjectSchema,
+  createServiceSchema,
   createSkillSchema,
   updateProfileSchema,
 } from '@/lib/schemas';
 import { closeDatabase, db } from '@/server/db';
 import { calculateReadingMinutes } from '@/server/services/_shared/reading-time';
 
-import { DENEYIMLER, PROFIL, PROJELER, YETENEKLER } from './icerik/abdulkadir';
+import { DENEYIMLER, HIZMETLER, PROFIL, PROJELER, YETENEKLER } from './icerik/abdulkadir';
 import { YAZILAR } from './icerik/yazilar';
 
 /**
@@ -25,6 +26,7 @@ import { YAZILAR } from './icerik/yazilar';
  *                     (panelden yönetiliyorlar).
  *   yetenek           (ad, dil)
  *   deneyim/ödül      (tür, kurum, ünvan, dil) — tabloda doğal anahtar yok
+ *   hizmet            (başlık, dil); `ctaUrl` DOKUNULMAZ
  *   proje / yazı      (slug, dil); KAPAK DOKUNULMAZ — panelden yüklenen kapak
  *                     yeniden çalıştırmada silinmesin.
  *
@@ -150,6 +152,30 @@ async function projeler(): Promise<string> {
   return `${PROJELER.length} yazıldı${ESITLE ? `, ${arsivlenen} arşivlendi` : ''}`;
 }
 
+async function hizmetler(): Promise<string> {
+  // Hizmette doğal anahtar yok (slug yok) — (başlık, dil) ile eşleniyor.
+  // `ctaUrl` YAZILMIYOR: panelden özel bağlantı verilmişse yeniden çalıştırma ezmesin.
+  const tutulan: string[] = [];
+  for (const [sira, ham] of HIZMETLER.entries()) {
+    const girdi = createServiceSchema.parse({ ...ham, locale: DIL, order: sira + 1 });
+    const { ctaUrl: _cta, iconKey: _ikon, ...veri } = girdi;
+    const mevcut = await db.service.findFirst({
+      where: { locale: DIL, title: girdi.title },
+      select: { id: true },
+    });
+    const kayit = mevcut
+      ? await db.service.update({ where: { id: mevcut.id }, data: veri, select: { id: true } })
+      : await db.service.create({ data: veri, select: { id: true } });
+    tutulan.push(kayit.id);
+  }
+  let silinen = 0;
+  if (ESITLE) {
+    const sonuc = await db.service.deleteMany({ where: { locale: DIL, id: { notIn: tutulan } } });
+    silinen = sonuc.count;
+  }
+  return `${HIZMETLER.length} yazıldı${ESITLE ? `, ${silinen} silindi` : ''}`;
+}
+
 async function yazilar(): Promise<string> {
   const simdi = new Date();
   for (const ham of YAZILAR) {
@@ -185,6 +211,7 @@ try {
     deneyim: await deneyimler(),
     proje: await projeler(),
     yazi: await yazilar(),
+    hizmet: await hizmetler(),
   };
   for (const [ad, sonuc] of Object.entries(sonuclar)) {
     process.stdout.write(`[icerik] ${ad}: ${sonuc}\n`);

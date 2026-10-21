@@ -115,12 +115,13 @@ BULGU-013) — ölçüldü; betikten sonra 200. Betik idempotent: tekrar
 > ⚠️ `prisma/seed.ts`i üretimde **ÇALIŞTIRMA** — demo müşteri, iş, işlem ve
 > sağlık kayıtları basar.
 
-Ardından sitenin gerçek içeriği (profil, yetenekler, deneyim, ödüller, projeler —
+Ardından sitenin gerçek içeriği (profil, yetenekler, deneyim, ödüller, projeler, blog
+yazıları, hizmetler —
 kaynak `scripts/icerik/abdulkadir.ts`, CV ve portfolyodan):
 
 ```bash
 node --import ./scripts/yedek-register.mjs scripts/icerik-yukle.ts
-# [icerik] profil: güncellendi · yetenek: 44 yazıldı · deneyim: 17 yazıldı · proje: 8 yazıldı
+# [icerik] profil · yetenek: 44 · deneyim: 17 · proje: 8 · yazi: 3 · hizmet: 3
 ```
 
 İdempotent; kapaklara, avatara ve CV dosyasına dokunmaz. Yeni içerik önbellek

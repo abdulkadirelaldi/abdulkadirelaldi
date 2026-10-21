@@ -4,11 +4,18 @@ import {
   createExperienceSchema,
   createPostSchema,
   createProjectSchema,
+  createServiceSchema,
   createSkillSchema,
   updateProfileSchema,
 } from '@/lib/schemas';
 
-import { DENEYIMLER, PROFIL, PROJELER, YETENEKLER } from '../../scripts/icerik/abdulkadir';
+import {
+  DENEYIMLER,
+  HIZMETLER,
+  PROFIL,
+  PROJELER,
+  YETENEKLER,
+} from '../../scripts/icerik/abdulkadir';
 import { YAZILAR } from '../../scripts/icerik/yazilar';
 
 /**
@@ -48,9 +55,14 @@ describe('gerçek içerik verisi', () => {
     expect(new Set(YAZILAR.map((y) => y.slug)).size).toBe(YAZILAR.length);
   });
 
+  it('her hizmet şemadan geçiyor ve başlık tekil (eşleme anahtarı)', () => {
+    for (const h of HIZMETLER) expect(() => createServiceSchema.parse(h), h.title).not.toThrow();
+    expect(new Set(HIZMETLER.map((h) => h.title)).size).toBe(HIZMETLER.length);
+  });
+
   it('herkese açık içerikte telefon numarası YOK', () => {
     // Bilinçli karar (abdulkadir.ts başlığı): numara toplayıcı botlara açık olmasın.
-    const metin = JSON.stringify({ PROFIL, DENEYIMLER, PROJELER, YAZILAR });
+    const metin = JSON.stringify({ PROFIL, DENEYIMLER, PROJELER, YAZILAR, HIZMETLER });
     expect(metin).not.toMatch(/0?5\d{2}[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}/);
   });
 });
