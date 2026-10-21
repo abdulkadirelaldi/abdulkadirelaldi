@@ -2,13 +2,16 @@ import process from 'node:process';
 
 import {
   createExperienceSchema,
+  createPostSchema,
   createProjectSchema,
   createSkillSchema,
   updateProfileSchema,
 } from '@/lib/schemas';
 import { closeDatabase, db } from '@/server/db';
+import { calculateReadingMinutes } from '@/server/services/_shared/reading-time';
 
 import { DENEYIMLER, PROFIL, PROJELER, YETENEKLER } from './icerik/abdulkadir';
+import { YAZILAR } from './icerik/yazilar';
 
 /**
  * İÇERİK YÜKLEME — sitenin gerçek içeriğini (`scripts/icerik/abdulkadir.ts`)
@@ -22,7 +25,7 @@ import { DENEYIMLER, PROFIL, PROJELER, YETENEKLER } from './icerik/abdulkadir';
  *                     (panelden yönetiliyorlar).
  *   yetenek           (ad, dil)
  *   deneyim/ödül      (tür, kurum, ünvan, dil) — tabloda doğal anahtar yok
- *   proje             (slug, dil); KAPAK DOKUNULMAZ — panelden yüklenen kapak
+ *   proje / yazı      (slug, dil); KAPAK DOKUNULMAZ — panelden yüklenen kapak
  *                     yeniden çalıştırmada silinmesin.
  *
  * `--esitle`: listede OLMAYAN yetenek ve deneyimleri SİLER, projeleri
@@ -147,12 +150,41 @@ async function projeler(): Promise<string> {
   return `${PROJELER.length} yazıldı${ESITLE ? `, ${arsivlenen} arşivlendi` : ''}`;
 }
 
+async function yazilar(): Promise<string> {
+  const simdi = new Date();
+  for (const ham of YAZILAR) {
+    const girdi = createPostSchema.parse({ ...ham, locale: DIL, status: 'PUBLISHED' });
+    // Okuma süresi panelle AYNI kaynaktan: türetilmiş alan yalnızca sunucuda (T-011).
+    const { coverAttachmentId: _kapak, publishedAt: _tarih, ...veri } = girdi;
+    const okuma = calculateReadingMinutes(veri.content);
+    await db.post.upsert({
+      where: { slug_locale: { slug: girdi.slug, locale: girdi.locale } },
+      update: { ...veri, readingMinutes: okuma },
+      create: { ...veri, readingMinutes: okuma, publishedAt: simdi },
+    });
+  }
+  let arsivlenen = 0;
+  if (ESITLE) {
+    const sonuc = await db.post.updateMany({
+      where: {
+        locale: DIL,
+        slug: { notIn: YAZILAR.map((y) => y.slug) },
+        status: { not: 'ARCHIVED' },
+      },
+      data: { status: 'ARCHIVED' },
+    });
+    arsivlenen = sonuc.count;
+  }
+  return `${YAZILAR.length} yazıldı${ESITLE ? `, ${arsivlenen} arşivlendi` : ''}`;
+}
+
 try {
   const sonuclar = {
     profil: await profil(),
     yetenek: await yetenekler(),
     deneyim: await deneyimler(),
     proje: await projeler(),
+    yazi: await yazilar(),
   };
   for (const [ad, sonuc] of Object.entries(sonuclar)) {
     process.stdout.write(`[icerik] ${ad}: ${sonuc}\n`);
