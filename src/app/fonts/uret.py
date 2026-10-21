@@ -22,20 +22,28 @@ from fontTools.ttLib import TTFont
 from fontTools.varLib import instancer
 
 # ---------------------------------------------------------------------------
-# ARALIKLAR — elle yazılmadı: `next/font/google`'ın ürettiği CSS'teki
-# `unicode-range` değerlerinden birebir kopyalandı (T-023c).
+# ARALIK — ADR-045 ÖLÇÜMÜYLE DARALTILDI (2026-10-21).
+#
+# Önceki kapsam `next/font/google`'ın `latin` + `latin-ext` birleşimiydi (T-023c).
+# `latin-ext`in büyük kısmı Latin Genişletilmiş-B, Ek Latin (Vietnamca),
+# IPA uzantıları — bu sitede HİÇ geçmeyen yazı sistemleri. Mobil Lighthouse'ta
+# ilk yüklemede istenen her bayt LCP benzetimine yazılıyor; Inter tek başına
+# 94 kB'tı.
+#
+# Yeni kapsam: Latin-1 + Latin Genişletilmiş-A (ğ ş ı İ dahil TÜM Türkçe ve
+# Avrupa dillerinin çoğu) + noktalama/oklar/para birimi + içerikte geçen birkaç
+# teknik işaret (≈ Ω µ ↔). Ölçüm (Inter): 94 444 → 35 956 bayt.
 # ---------------------------------------------------------------------------
-LATIN = (
-    "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,"
-    "U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,"
-    "U+2212,U+2215,U+FEFF,U+FFFD"
+ARALIK = (
+    "U+0000-00FF,U+0100-017F,U+02C6,U+02DA,U+02DC,U+0304,U+0307,U+0308,U+0327,"
+    "U+0394,U+03A9,U+03BC,U+2000-206F,U+20AC,U+20BA,U+2122,U+2190-2199,"
+    "U+2212,U+2215,U+2248,U+FEFF,U+FFFD"
 )
-LATIN_EXT = (
-    "U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,"
-    "U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,"
-    "U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF"
-)
-ARALIK = LATIN + "," + LATIN_EXT
+
+# OpenType özellikleri — yalnızca METİN DİZGİSİ için gerekenler. Stil
+# alternatifleri (ss01…, cv01…) hiç kullanılmıyor ve dosyanın üçte birini
+# tutuyordu. `locl` Türkçe i/İ biçimleri, `tnum` sekmeli rakam (§3.2) için.
+OZELLIKLER = "kern,liga,calt,ccmp,locl,mark,mkmk,case,tnum"
 
 KAYNAK = "https://raw.githubusercontent.com/google/fonts/main/ofl"
 
@@ -48,9 +56,9 @@ ISLER = [
     ("archivo/Archivo%5Bwdth,wght%5D.ttf", "archivo-genis", {"wdth": 125, "wght": (800, 900)}),
 ]
 
-# Doğrulama kümeleri: Türkçe harfler + latin-ext'in temsilcileri.
+# Doğrulama kümeleri: Türkçe harfler + Genişletilmiş-A ve para biriminin temsilcileri.
 TURKCE = "ĞğŞşİıÜüÖöÇç"
-LATIN_EXT_ORNEK = "ĀŒŹˆ€™ŁȘ"
+LATIN_EXT_ORNEK = "ĀŒŹˆ€™Ł"
 
 
 def uret(yol: str, ad: str, eksenler: dict) -> str:
@@ -68,7 +76,7 @@ def uret(yol: str, ad: str, eksenler: dict) -> str:
         [
             sys.executable, "-m", "fontTools.subset", ara,
             f"--unicodes={ARALIK}",
-            "--layout-features=*",
+            f"--layout-features={OZELLIKLER}",
             "--flavor=woff2",
             "--no-hinting",
             f"--output-file={hedef}",

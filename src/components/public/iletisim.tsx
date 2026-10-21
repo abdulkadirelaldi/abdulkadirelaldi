@@ -1,4 +1,5 @@
-import { IletisimFormu } from '@/components/public/iletisim-formu';
+import type { ReactNode } from 'react';
+
 import { SahnePaneli } from '@/components/public/tasarim/sahne-paneli';
 import { ParlakGlif, ParlakHalka } from '@/components/public/tasarim/sekiller';
 import { Yuzen } from '@/components/public/tasarim/yuzen';
@@ -22,10 +23,20 @@ export function IletisimBlogu({
   profil,
   baslikDuzeyi: Baslik = 'h2',
   katman = 30,
+  form,
 }: {
   profil: ProfileDto;
   baslikDuzeyi?: 'h1' | 'h2';
   katman?: number;
+  /**
+   * Form DIŞARIDAN, yuva olarak geliyor — bu modül hiçbir form bileşenini
+   * import ETMİYOR. Sebep ölçüldü: sunucu modülünün import ettiği her istemci
+   * bileşeni, çizilmese bile o rotanın paketine giriyor. Blok iki formu da
+   * import ettiğinde ana sayfa, tembel yüklediği formun Zod'unu (~32 kB) yine
+   * de ilk yüklemede indiriyordu. Ana sayfa `TembelIletisimFormu`, /iletisim
+   * `IletisimFormu` verir.
+   */
+  form: ReactNode;
 }) {
   const sosyal = profil.socials ?? {};
   const eposta = sosyal.email;
@@ -104,7 +115,7 @@ export function IletisimBlogu({
         </div>
 
         <div className="bg-surface border-line relative rounded-[1.75rem] border p-6 shadow-[0_30px_80px_-40px_rgba(20,20,43,0.35)] md:p-8">
-          <IletisimFormu eposta={eposta ?? null} />
+          {form}
         </div>
       </div>
     </SahnePaneli>

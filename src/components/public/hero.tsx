@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { preload } from 'react-dom';
 
 import { GradyanBaglanti, hapSiniflari } from '@/components/public/tasarim/gradyan-baglanti';
 import { HarfHarf } from '@/components/public/tasarim/harf-harf';
@@ -14,10 +15,10 @@ export type HeroProps = {
   /** Görünen isim — `ProfileDto`'da ad alanı yok, `SITE_NAME`'den gelir. */
   ad: string;
   /**
-   * 3B avatarın `public/` altındaki adresi; dosya yoksa `null` ve yerine
-   * parlak küre çiziliyor (bkz. `app/(public)/page.tsx` → `avatarAdresi`).
+   * Portrenin `public/` altındaki adresi (+ varsa küçük kopya); dosya yoksa
+   * `null` ve yerine parlak küre çiziliyor (bkz. `app/(public)/page.tsx`).
    */
-  avatar: string | null;
+  avatar: { src: string; srcSet?: string } | null;
 };
 
 /**
@@ -33,7 +34,25 @@ export type HeroProps = {
  * AVATAR: başlığın ÖNÜNDE, alt ortada; ismin üstüne biniyor (örnekteki gibi).
  * Dosya yoksa parlak küre + kod imi — "eksik görsel" değil, kasıtlı bir süs.
  */
+/**
+ * Görüntülenen genişlik: yükseklik `min(58dvh, 40rem)` × en/boy (900/1120).
+ * Mobilde BİLEREK küçük yazılıyor (340px): gerçek genişlik ~380px ve 1.75
+ * DPR'de tarayıcı 900w'yi seçiyordu (86 kB). 600w (45 kB) %10 büyütmeyle
+ * gözle ayırt edilmiyor; bu görsel mobil LCP öğesi, bayt LCP'ye yazılıyor.
+ */
+const AVATAR_SIZES = '(max-width: 767px) 340px, min(47vh, 515px)';
+
 export function Hero({ profil, ad, avatar }: HeroProps) {
+  // LCP öğesi: <head>'de, en yüksek öncelikle — gövdedeki <img>'i beklemeden
+  // ve fontlarla yarışmadan inmeye başlasın.
+  if (avatar) {
+    preload(avatar.src, {
+      as: 'image',
+      fetchPriority: 'high',
+      imageSrcSet: avatar.srcSet,
+      imageSizes: avatar.srcSet ? AVATAR_SIZES : undefined,
+    });
+  }
   const [ilkAd] = ad.split(' ');
 
   return (
@@ -92,7 +111,9 @@ export function Hero({ profil, ad, avatar }: HeroProps) {
                 />
                 {/* eslint-disable-next-line @next/next/no-img-element -- `public/`ten statik, ölçüsü sabit; next/image optimizasyonu standalone imaja `sharp` ister */}
                 <img
-                  src={avatar}
+                  src={avatar.src}
+                  srcSet={avatar.srcSet}
+                  sizes={avatar.srcSet ? AVATAR_SIZES : undefined}
                   alt=""
                   width={900}
                   height={1120}

@@ -276,8 +276,23 @@ describe('§5.2 — ağır yığınlar yalnızca tembel sınırdan geçiyor', ()
       './tilted-card',
     ];
 
+    /**
+     * KOŞULLU TEMBEL — ağır, ama `AGIR_YIGINLAR`ın "her yerde yalnızca dynamic()"
+     * kuralı BİLEREK uygulanmıyor: bir sayfada ekranın altında (tembel), başka
+     * bir sayfada sayfanın asıl içeriği (statik, ilk boyamada olmalı).
+     */
+    const KOSULLU_TEMBEL = [
+      {
+        hedef: '@/components/public/iletisim-formu',
+        olcum:
+          '~32 kB (zod + react-hook-form) · ADR-045 mobil Lighthouse: ana sayfada ' +
+          "tembel (formun Zod parçaları ilk yükten çıktı), /iletisim'de statik.",
+      },
+    ];
+
     const beklenen = [
       ...AGIR_OLMAYAN,
+      ...KOSULLU_TEMBEL.map((k) => k.hedef),
       // Ağır yığınların hedefleri bildirimden türetiliyor — elle tekrarlanmıyor.
       ...AGIR_YIGINLAR.map((y) => `./${(y.bilesen.split('/').pop() ?? '').replace(/\.tsx?$/, '')}`),
     ].sort();

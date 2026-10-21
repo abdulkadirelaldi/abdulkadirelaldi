@@ -37,6 +37,18 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
 
   reactStrictMode: true,
+
+  /*
+   * METADATA <head>'E, HER İSTEMCİDE — ÖLÇÜLDÜ (ADR-045 Lighthouse koşusu).
+   * Next 15.5 dinamik sayfalarda metadata'yı AKIŞLA gövdeye basıyor ve yalnızca
+   * `htmlLimitedBots` listesindeki botlara <head>'de veriyor. Ana sayfa 5 koşunun
+   * 4'ünde `meta-description` denetimini kaybetti (SEO 0.92 < 0.95); T-025'in
+   * detay sayfalarındaki SEO 91'i de aynı sebepti. JS çalıştırmayan her tarayıcı
+   * ve önizleme botu açısından doğru olan, metadata'nın <head>'de olması.
+   * Bedel: sayfa kabuğu metadata çözülene kadar bekler — public metadata ya
+   * statik ya da tek önbellekli okuma, ölçülebilir bir gecikme yok.
+   */
+  htmlLimitedBots: /.*/,
 };
 
 export default nextConfig;

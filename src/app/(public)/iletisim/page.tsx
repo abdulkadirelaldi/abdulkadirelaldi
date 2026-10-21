@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 
 import { IletisimBlogu } from '@/components/public/iletisim';
+import { IletisimFormu } from '@/components/public/iletisim-formu';
 import { SayfaBasligi } from '@/components/public/tasarim/sayfa-basligi';
 import { ParlakGlif } from '@/components/public/tasarim/sekiller';
 import { Yuzen } from '@/components/public/tasarim/yuzen';
@@ -36,7 +37,11 @@ export default async function IletisimSayfasi() {
         }
       />
       {/* Ana sayfayla AYNI blok (ADR-045); başlığı burada `h2` — sayfa `h1`'i yukarıda. */}
-      <IletisimBlogu profil={profil} katman={10} />
+      <IletisimBlogu
+        profil={profil}
+        katman={10}
+        form={<IletisimFormu eposta={profil.socials?.email ?? null} />}
+      />
     </>
   );
 }
