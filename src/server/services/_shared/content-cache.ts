@@ -35,7 +35,15 @@ import { unstable_cache } from 'next/cache';
 /** Önbellek etiketi öneki — tek yerde, elle dize yazılmaz. */
 const TAG_PREFIX = 'content';
 
-export type ContentEntity = 'profile' | 'project' | 'post' | 'experience' | 'skill' | 'service';
+export type ContentEntity =
+  | 'profile'
+  | 'project'
+  | 'post'
+  | 'experience'
+  | 'skill'
+  | 'service'
+  /** T-117 — yalnızca müşteri LOGOLARI şeridi; müşterinin başka hiçbir alanı public değil. */
+  | 'client';
 
 /** `content:project` — varlığın tamamı. */
 export function entityTag(entity: ContentEntity): string {

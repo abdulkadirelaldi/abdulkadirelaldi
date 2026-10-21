@@ -431,13 +431,15 @@ export interface AttachmentServeDto {
   size: number;
   checksum: string;
   entity: AttachmentEntity;
+  /** CLIENT logosu istisnası sahip kimliğini istiyor (T-117). */
+  entityId: string;
 }
 
 /** Sunum ucunun okuması — `checksum` ETag olarak kullanılıyor. */
 export async function fetchAttachmentForServing(id: string): Promise<AttachmentServeDto | null> {
   return db.attachment.findUnique({
     where: { id },
-    select: { key: true, mime: true, size: true, checksum: true, entity: true },
+    select: { key: true, mime: true, size: true, checksum: true, entity: true, entityId: true },
   });
 }
 

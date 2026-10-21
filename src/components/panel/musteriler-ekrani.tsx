@@ -105,6 +105,7 @@ export function MusterilerEkrani({
         <div className="flex flex-wrap gap-1">
           {m.isArchived && <Badge variant="warning">Arşiv</Badge>}
           {m.isKiyiMedya && <Badge variant="accent">Kıyı Medya</Badge>}
+          {m.showOnSite && <Badge variant="info">Sitede</Badge>}
           {!m.isArchived && !m.isKiyiMedya && <Badge variant="success">Aktif</Badge>}
         </div>
       ),

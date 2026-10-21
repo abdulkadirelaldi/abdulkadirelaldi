@@ -2,7 +2,8 @@ import type { ClientFilterInput, CreateClientInput, UpdateClientInput } from '@/
 import { db } from '@/server/db';
 
 import { panelSkipTake, toPagedResult } from './_shared';
-import type { PagedResult } from './content-dto';
+import { ATTACHMENT_SELECT, toAttachmentRef } from './_shared/content-query';
+import type { AttachmentRefDto, PagedResult } from './content-dto';
 
 /**
  * `Client` servisi — §4.2 müşteri yönetimi, ADR-017.
@@ -191,6 +192,8 @@ export interface ClientPanelListItemDto {
   phone: string | null;
   isKiyiMedya: boolean;
   isArchived: boolean;
+  /** Logo şeridinde görünsün mü (T-117) — varsayılan kapalı. */
+  showOnSite: boolean;
   /** Bağlı iş sayısı — "bu müşteri silinebilir mi" sorusunun cevabı da bu. */
   jobCount: number;
   createdAt: string;
@@ -200,6 +203,8 @@ export interface ClientPanelListItemDto {
 /** Düzenleme formunun TAM alan kümesi — `notes` dahil. */
 export interface ClientPanelDto extends ClientPanelListItemDto {
   notes: string | null;
+  /** T-117 — logo eklentisi; yalnızca detayda (form ve önizleme). */
+  logo: AttachmentRefDto | null;
 }
 
 const PANEL_LIST_SELECT = {
@@ -210,6 +215,7 @@ const PANEL_LIST_SELECT = {
   phone: true,
   isKiyiMedya: true,
   isArchived: true,
+  showOnSite: true,
   createdAt: true,
   updatedAt: true,
   /*
@@ -223,7 +229,11 @@ const PANEL_LIST_SELECT = {
   _count: { select: { jobs: true } },
 } as const;
 
-const PANEL_DETAIL_SELECT = { ...PANEL_LIST_SELECT, notes: true } as const;
+const PANEL_DETAIL_SELECT = {
+  ...PANEL_LIST_SELECT,
+  notes: true,
+  logo: { select: ATTACHMENT_SELECT },
+} as const;
 
 interface ClientPanelListRow {
   id: string;
@@ -233,6 +243,7 @@ interface ClientPanelListRow {
   phone: string | null;
   isKiyiMedya: boolean;
   isArchived: boolean;
+  showOnSite: boolean;
   createdAt: Date;
   updatedAt: Date;
   _count: { jobs: number };
@@ -240,6 +251,13 @@ interface ClientPanelListRow {
 
 interface ClientPanelDetailRow extends ClientPanelListRow {
   notes: string | null;
+  logo: {
+    id: string;
+    key: string;
+    mime: string;
+    width: number | null;
+    height: number | null;
+  } | null;
 }
 
 /** Bu servisin okuma ve panel yazması için Prisma'dan ihtiyaç duyduğu yüzey. */
@@ -265,6 +283,8 @@ export interface ClientPanelClient {
         phone: string | null;
         notes: string | null;
         isKiyiMedya: boolean;
+        showOnSite: boolean;
+        logoAttachmentId: string | null;
       };
       select: typeof PANEL_DETAIL_SELECT;
     }): Promise<ClientPanelDetailRow>;
@@ -289,6 +309,7 @@ function toListDto(row: ClientPanelListRow): ClientPanelListItemDto {
     phone: row.phone,
     isKiyiMedya: row.isKiyiMedya,
     isArchived: row.isArchived,
+    showOnSite: row.showOnSite,
     jobCount: row._count.jobs,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -296,7 +317,7 @@ function toListDto(row: ClientPanelListRow): ClientPanelListItemDto {
 }
 
 function toDetailDto(row: ClientPanelDetailRow): ClientPanelDto {
-  return { ...toListDto(row), notes: row.notes };
+  return { ...toListDto(row), notes: row.notes, logo: toAttachmentRef(row.logo) };
 }
 
 /**
@@ -403,6 +424,8 @@ export async function createClient(
       phone: bosaNull(input.phone),
       notes: bosaNull(input.notes),
       isKiyiMedya: input.isKiyiMedya,
+      showOnSite: input.showOnSite,
+      logoAttachmentId: input.logoAttachmentId ?? null,
     },
     select: PANEL_DETAIL_SELECT,
   });
@@ -438,6 +461,10 @@ export async function updateClient(
       ...(fields.phone !== undefined ? { phone: bosaNull(fields.phone) } : {}),
       ...(fields.notes !== undefined ? { notes: bosaNull(fields.notes) } : {}),
       ...(fields.isKiyiMedya !== undefined ? { isKiyiMedya: fields.isKiyiMedya } : {}),
+      ...(fields.showOnSite !== undefined ? { showOnSite: fields.showOnSite } : {}),
+      ...(fields.logoAttachmentId !== undefined
+        ? { logoAttachmentId: fields.logoAttachmentId }
+        : {}),
     },
     select: PANEL_DETAIL_SELECT,
   });
@@ -483,4 +510,82 @@ export async function setClientArchived(
 export async function clientExists(id: string, client: ClientPanelClient = db): Promise<boolean> {
   const row = await client.client.findUnique({ where: { id }, select: PANEL_DETAIL_SELECT });
   return row !== null;
+}
+
+/* ===========================================================================
+ * T-117 — HERKESE AÇIK LOGO ŞERİDİ
+ * ======================================================================== */
+
+/**
+ * Logo şeridinin TEK okuması — ve müşterinin public'e çıkan TEK yüzeyi.
+ *
+ * ⚠️ SEÇİM DAR VE BİLİNÇLİ: yalnızca `id`, `name` ve logo. `email`, `phone`,
+ * `notes`, `company` sorguya HİÇ GİRMİYOR — DTO'dan sonra süzmek değil,
+ * SEÇMEMEK (bir gün DTO'ya alan eklenirse sızıntı tip değişikliği ister).
+ *
+ * Koşulların ÜÇÜ de şart: `showOnSite` (bilinçli işaret), arşivde değil
+ * (bırakılan müşteri vitrine çıkmaz) ve logosu VAR (logosuz isim şeridi
+ * boş kutu demek). Sunum ucu da aynı üç koşulu ayrıca kontrol ediyor
+ * (`isPublicClientLogo`) — biri gevşerse öbürü tutar.
+ */
+export interface SiteClientLogoDto {
+  id: string;
+  name: string;
+  logo: AttachmentRefDto;
+}
+
+export const SITE_CLIENT_LOGO_WHERE = {
+  showOnSite: true,
+  isArchived: false,
+  logoAttachmentId: { not: null },
+} as const;
+
+export async function fetchSiteClientLogos(): Promise<SiteClientLogoDto[]> {
+  const rows = await db.client.findMany({
+    where: SITE_CLIENT_LOGO_WHERE,
+    select: { id: true, name: true, logo: { select: ATTACHMENT_SELECT } },
+    orderBy: [{ name: 'asc' }, { id: 'asc' }],
+  });
+
+  return rows.flatMap((row) => {
+    const logo = toAttachmentRef(row.logo);
+    return logo ? [{ id: row.id, name: row.name, logo }] : [];
+  });
+}
+
+/**
+ * Bu eklenti, vitrindeki bir müşterinin logosu mu — sunum ucunun CLIENT
+ * istisnası (ADR-044'ün "makbuz/iş/müşteri yalnızca oturumla" kuralının TEK
+ * deliği). Müşterinin BAŞKA bir eklentisi (sözleşme, fatura) bu sorudan
+ * geçemez: eşleşme `logoAttachmentId` üzerinden, entity üzerinden değil.
+ */
+export async function isPublicClientLogo(
+  attachmentId: string,
+  sahipClientId: string,
+): Promise<boolean> {
+  /*
+   * ⚠️ `id: sahipClientId` ŞART: eşleşme yalnızca `logoAttachmentId` üzerinden
+   * olsaydı, logo alanına BAŞKA bir kaydın eklentisi (ör. bir makbuz) yazılmış
+   * bir müşteri o makbuzu herkese açardı. Yazma tarafı bunu zaten reddediyor
+   * (`clientLogoBelongsTo`); bu ikinci kat.
+   */
+  const sayi = await db.client.count({
+    where: { ...SITE_CLIENT_LOGO_WHERE, id: sahipClientId, logoAttachmentId: attachmentId },
+  });
+  return sayi > 0;
+}
+
+/**
+ * Logo, BU müşterinin KENDİ eklentisi mi (entity CLIENT, entityId = müşteri).
+ * `cuidSchema` yalnızca biçimi doğruluyor; başka bir kaydın eklentisini logo
+ * yapmak, o dosyayı vitrine çıkarmak olurdu.
+ */
+export async function clientLogoBelongsTo(
+  clientId: string,
+  attachmentId: string,
+): Promise<boolean> {
+  const sayi = await db.attachment.count({
+    where: { id: attachmentId, entity: 'CLIENT', entityId: clientId },
+  });
+  return sayi > 0;
 }

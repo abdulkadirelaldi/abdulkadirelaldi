@@ -4,7 +4,9 @@ import Link from 'next/link';
 
 import { buttonClasses } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
-import { getServices } from '@/server/services';
+import { LogoLoop } from '@/components/reactbits/lazy';
+import { dosyaAdresi } from '@/lib/dosya-adresi';
+import { getServices, getSiteClientLogos } from '@/server/services';
 
 export const metadata: Metadata = {
   title: 'Hizmetler',
@@ -28,12 +30,19 @@ const KIYI_MEDYA_URL = process.env.NEXT_PUBLIC_KIYI_MEDYA_URL ?? 'https://kiyime
  * hizmet hem ana sayfada hem burada CTA üretiyor; kaynağı ayırmadan hangi
  * sayfanın dönüştürdüğü ölçülemezdi. Sonradan eklemek zor, şimdi ücretsiz.
  *
- * LOGO ŞERİDİ (LogoLoop) BU SAYFADA YOK — gerekçe raporda: gösterilecek logo
- * verisi yok ve uydurma logo koymak, ADR-027'nin yasakladığı uydurma
- * istatistikle aynı şey olurdu.
+ * LOGO ŞERİDİ (T-117) — YALNIZCA GERÇEK VERİYLE. T-026'da bu sayfada YOKTU:
+ * veri yoktu ve uydurma logo ADR-027'nin yasakladığı uydurma istatistikle aynı
+ * şey olurdu. Artık veri `showOnSite` işaretli müşterilerden geliyor
+ * (ad + logo, başka hiçbir alan). Eşik `LOGO_ESIGI`: altındaysa bölüm HİÇ
+ * çizilmiyor ve sayfa bugünkü gibi SIFIR istemci bileşenli kalıyor — LogoLoop
+ * tembel yüklenen bir istemci bileşeni, maliyetini yalnızca gösterecek şey
+ * varken ödüyoruz.
  */
+
+/** Şeridin çizilmesi için gereken en az logo — tek logoluk "şerit" iddialı ve boş durur. */
+const LOGO_ESIGI = 3;
 export default async function HizmetlerSayfasi() {
-  const hizmetler = await getServices();
+  const [hizmetler, logolar] = await Promise.all([getServices(), getSiteClientLogos()]);
   const sirali = [...hizmetler].sort((a, b) => a.order - b.order);
 
   return (
@@ -84,6 +93,26 @@ export default async function HizmetlerSayfasi() {
             </li>
           ))}
         </ul>
+      )}
+
+      {logolar.length >= LOGO_ESIGI && (
+        <section aria-labelledby="logolar-baslik" className="flex flex-col gap-4">
+          <h2 id="logolar-baslik" className="text-muted text-sm font-medium">
+            Birlikte çalıştığım ekipler
+          </h2>
+          <LogoLoop
+            logos={logolar.map((m) => ({
+              src: dosyaAdresi(m.logo.id),
+              alt: m.name,
+              title: m.name,
+            }))}
+            logoHeight={32}
+            gap={48}
+            pauseOnHover
+            fadeOut
+            ariaLabel="Birlikte çalışılan ekiplerin logoları"
+          />
+        </section>
       )}
 
       <section

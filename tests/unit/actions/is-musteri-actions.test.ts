@@ -70,12 +70,16 @@ const { dbMock } = vi.hoisted(() => {
         update: vi.fn().mockResolvedValue(clientSatiri),
         findUnique: vi.fn().mockResolvedValue(clientSatiri),
       },
+      attachment: { count: vi.fn().mockResolvedValue(1) },
       auditLog: { create: vi.fn().mockResolvedValue(undefined) },
     },
   };
 });
 
 vi.mock('@/server/db', () => ({ db: dbMock }));
+
+const { revalidateTagMock } = vi.hoisted(() => ({ revalidateTagMock: vi.fn() }));
+vi.mock('next/cache', () => ({ revalidateTag: revalidateTagMock }));
 
 const { archiveClientAction, createClientAction, updateClientAction } =
   await import('@/server/actions/client');
@@ -86,6 +90,7 @@ beforeEach(() => {
   vi.clearAllMocks();
   authMock.mockResolvedValue({ user: { id: 'usr_1' }, tokenIssuedAt: 1_800_000_000 });
   writesRevokedMock.mockResolvedValue(false);
+  dbMock.attachment.count.mockResolvedValue(1);
 });
 
 /** Son yazılan denetim satırının `diff`i. */
@@ -448,5 +453,59 @@ describe('bulunamayan kayıt', () => {
     expect(dbMock.job.update).not.toHaveBeenCalled();
     // Denetim kaydı da yazılmadı: olmayan bir şeyin değişimi kaydedilmez.
     expect(dbMock.auditLog.create).not.toHaveBeenCalled();
+  });
+});
+
+/* ===========================================================================
+ * T-117 — LOGO ŞERİDİ: sahiplik ve önbellek
+ * ======================================================================== */
+
+describe('⚠️ T-117 — müşteri logosu', () => {
+  const ID = 'cli_1';
+
+  it('⚠️ BAŞKA KAYDIN eklentisi logo yapılamıyor — makbuz vitrine çıkmasın', async () => {
+    dbMock.attachment.count.mockResolvedValue(0);
+    const sonuc = await updateClientAction({
+      id: ID,
+      logoAttachmentId: 'ckmakbuz000000000000000001',
+    });
+
+    expect(sonuc.ok).toBe(false);
+    if (!sonuc.ok) expect(sonuc.error.fields).toHaveProperty('logoAttachmentId');
+    expect(dbMock.client.update).not.toHaveBeenCalled();
+
+    // Sorgu sahipliği SORUYOR: entity CLIENT ve entityId = bu müşteri.
+    expect(dbMock.attachment.count.mock.calls[0]?.[0].where).toEqual({
+      id: 'ckmakbuz000000000000000001',
+      entity: 'CLIENT',
+      entityId: ID,
+    });
+  });
+
+  it('kendi logosu kabul ediliyor; logoyu kaldırmak (`null`) sahiplik sormuyor', async () => {
+    expect(
+      (await updateClientAction({ id: ID, logoAttachmentId: 'cklogo0000000000000000001' })).ok,
+    ).toBe(true);
+    dbMock.attachment.count.mockClear();
+    expect((await updateClientAction({ id: ID, logoAttachmentId: null })).ok).toBe(true);
+    expect(dbMock.attachment.count).not.toHaveBeenCalled();
+  });
+
+  it('YENİ kayıtta logo reddediliyor — müşteri yokken eklentisi de yok', async () => {
+    const sonuc = await createClientAction({
+      name: 'Yeni',
+      logoAttachmentId: 'cklogo0000000000000000001',
+    });
+    expect(sonuc.ok).toBe(false);
+    expect(dbMock.client.create).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['ekleme', () => createClientAction({ name: 'Yeni' })],
+    ['güncelleme', () => updateClientAction({ id: ID, showOnSite: true })],
+    ['arşivleme', () => archiveClientAction({ id: ID, isArchived: true })],
+  ] as const)('%s logo şeridinin önbelleğini (`content:client`) düşürüyor', async (_ad, cagir) => {
+    expect((await cagir()).ok).toBe(true);
+    expect(revalidateTagMock).toHaveBeenCalledWith('content:client');
   });
 });

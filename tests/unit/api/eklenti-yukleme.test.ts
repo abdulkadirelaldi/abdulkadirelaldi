@@ -282,6 +282,7 @@ function dosyaVar(entity: string) {
     size: 24,
     checksum: 'a'.repeat(64),
     entity,
+    entityId: 'ckclient00000000000000001',
   });
 }
 
@@ -297,7 +298,7 @@ describe('⚠️ sunum — kim görebilir', () => {
     expect(new Uint8Array(await yanit.arrayBuffer())).toEqual(png());
   });
 
-  it.each(['TRANSACTION', 'JOB', 'CLIENT'])(
+  it.each(['TRANSACTION', 'JOB'])(
     '⚠️ %s eklentisi OTURUMSUZ 404 — 401 DEĞİL (varlığını da söylemiyor) ve R2 OKUNMUYOR',
     async (entity) => {
       authMock.mockResolvedValue(null);
@@ -306,6 +307,27 @@ describe('⚠️ sunum — kim görebilir', () => {
       expect(r2Mock.getObjectBytes).not.toHaveBeenCalled();
     },
   );
+
+  it('⚠️ CLIENT eklentisi vitrin logosu DEĞİLSE oturumsuz 404 — sözleşme/fatura açılmaz', async () => {
+    authMock.mockResolvedValue(null);
+    dosyaVar('CLIENT');
+    dbMock.client.count.mockResolvedValue(0);
+    expect((await sun()).status).toBe(404);
+    expect(r2Mock.getObjectBytes).not.toHaveBeenCalled();
+  });
+
+  it('⚠️ CLIENT eklentisi vitrindeki müşterinin KENDİ logosuysa herkese açık (T-117)', async () => {
+    authMock.mockResolvedValue(null);
+    dosyaVar('CLIENT');
+    dbMock.client.count.mockResolvedValue(1);
+    const yanit = await sun();
+    expect(yanit.status).toBe(200);
+    // ⚠️ `immutable` DEĞİL: vitrin izni geri alınabilir, logo bir yıl önbellekte kalmasın.
+    expect(yanit.headers.get('cache-control')).toBe('public, max-age=3600');
+    // Sorgu SAHİBİ de soruyor — logo alanına yazılmış yabancı eklenti geçemez.
+    const where = dbMock.client.count.mock.calls.at(-1)?.[0].where;
+    expect(where).toMatchObject({ id: 'ckclient00000000000000001', logoAttachmentId: DOSYA_ID });
+  });
 
   it('makbuz OTURUMLA 200 ama `private, no-store` ve noindex', async () => {
     dosyaVar('TRANSACTION');
