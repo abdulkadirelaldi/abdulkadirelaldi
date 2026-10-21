@@ -5,6 +5,7 @@ import { HarfHarf } from '@/components/public/tasarim/harf-harf';
 import { ParlakGlif, ParlakHalka, ParlakKure } from '@/components/public/tasarim/sekiller';
 import { Yuzen } from '@/components/public/tasarim/yuzen';
 import { YerelSaat } from '@/components/public/yerel-saat';
+import { cn } from '@/lib/utils/cn';
 import type { ProfileDto } from '@/server/services/content-dto';
 
 export type HeroProps = {
@@ -65,19 +66,41 @@ export function Hero({ profil, ad, avatar }: HeroProps) {
           />
         </h1>
 
-        <div className="relative flex flex-1 flex-col items-center justify-end">
+        {/* ÜSTE yaslı (justify-start): portre her ekran yüksekliğinde ismin altına
+            biniyor; boşluk kalırsa portre ile alt şerit arasında kalır, isimle değil. */}
+        <div className="relative flex flex-1 flex-col items-center justify-start">
           {/* Avatar — başlığın ÜSTÜNE biniyor (negatif kenar boşluğu). */}
-          <div className="animate-sayfa-giris relative z-10 -mt-[4vw] w-[min(72vw,26rem)] [animation-delay:0.9s] md:-mt-[6vw]">
+          <div
+            className={cn(
+              'animate-sayfa-giris relative z-10 -mt-[4vw] [animation-delay:0.9s] md:-mt-[6vw]',
+              !avatar && 'w-[min(72vw,26rem)]',
+            )}
+          >
             {avatar ? (
-              // eslint-disable-next-line @next/next/no-img-element -- `public/`ten statik, ölçüsü sabit; next/image optimizasyonu standalone imaja `sharp` ister
-              <img
-                src={avatar}
-                alt=""
-                width={832}
-                height={832}
-                fetchPriority="high"
-                className="h-auto w-full drop-shadow-[0_40px_60px_rgba(0,0,0,0.6)]"
-              />
+              /*
+                DİK PORTRE (şeffaf PNG'den WebP, 900×1120): yükseklikle
+                ölçekleniyor ki alt şerit ekranın içinde kalsın. Alt kenar ve
+                omuzların DÜZ kesildiği yan kenarlar zemine eriyor (iki maskenin
+                kesişimi) — gövde sahnenin içinden çıkıyormuş gibi; arkadaki
+                vurgu ışığı portreyi koyu zeminden ayırıyor. `alt` boş: başlık
+                zaten ismi söylüyor, görsel bilgi değil süs.
+              */
+              <>
+                <div
+                  aria-hidden="true"
+                  className="bg-accent/35 absolute inset-x-[10%] top-[18%] bottom-0 -z-10 rounded-full blur-[90px]"
+                />
+                {/* eslint-disable-next-line @next/next/no-img-element -- `public/`ten statik, ölçüsü sabit; next/image optimizasyonu standalone imaja `sharp` ister */}
+                <img
+                  src={avatar}
+                  alt=""
+                  width={900}
+                  height={1120}
+                  fetchPriority="high"
+                  decoding="async"
+                  className="mx-auto h-[min(58dvh,40rem)] w-auto [mask-image:linear-gradient(to_bottom,black_70%,transparent),linear-gradient(to_right,transparent,black_14%,black_86%,transparent)] [mask-composite:intersect]"
+                />
+              </>
             ) : (
               <div className="relative mx-auto aspect-square w-[80%]">
                 <ParlakKure className="w-full" renk="var(--accent)" />
