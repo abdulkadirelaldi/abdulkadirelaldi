@@ -108,69 +108,78 @@ export default async function YaziSayfasi({ params }: SayfaProps) {
   const yazi = sonuc.data;
 
   return (
-    <article className="mx-auto flex max-w-3xl flex-col gap-8 px-4 py-16 md:py-24">
-      <header className="flex flex-col gap-4">
-        <Link
-          href="/blog"
-          className="focus-ring text-muted hover:text-primary rounded-btn inline-flex w-fit items-center gap-1.5 text-sm transition-colors"
-        >
-          <ArrowLeft className="size-4" aria-hidden="true" />
-          Blog
-        </Link>
+    <article>
+      <header className="pt-32 pb-12 md:pt-40 md:pb-16">
+        <div className="mx-auto flex max-w-5xl flex-col gap-8 px-4 md:px-8">
+          <Link
+            href="/blog"
+            className="focus-ring tabular text-muted hover:text-primary rounded-btn inline-flex w-fit items-center gap-2 text-xs transition-colors"
+          >
+            <ArrowLeft className="size-4" aria-hidden="true" />
+            cd ../blog
+          </Link>
 
-        {/* Sayfadaki TEK <h1>. MDX'teki `#` başlıklar `<h2>` olarak çizilir. */}
-        <h1 className="text-3xl md:text-5xl">{yazi.title}</h1>
+          {/* Sayfadaki TEK <h1>. MDX'teki `#` başlıklar `<h2>` olarak çizilir. Yazı
+              başlıkları uzun olabilir: dev başlık ölçeğinin bir altı, harf animasyonu yok. */}
+          <h1 className="font-display text-primary text-[clamp(2rem,5vw,4rem)] leading-[1.05] font-bold tracking-tight">
+            {yazi.title}
+          </h1>
 
-        <p className="text-body max-w-2xl text-lg">{yazi.excerpt}</p>
+          <p className="text-body max-w-3xl text-lg leading-relaxed md:text-xl">{yazi.excerpt}</p>
 
-        <div className="text-muted flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
-          {yazi.publishedAt && (
-            <time className="tabular" dateTime={yazi.publishedAt.slice(0, 10)}>
-              {tamGun(yazi.publishedAt)}
-            </time>
-          )}
+          <div className="tabular text-muted border-line flex flex-wrap items-center gap-x-6 gap-y-3 border-y py-4 text-xs">
+            {yazi.publishedAt && (
+              <time dateTime={yazi.publishedAt.slice(0, 10)}>{tamGun(yazi.publishedAt)}</time>
+            )}
 
-          <span className="flex items-center gap-1.5">
-            <Clock className="size-4" aria-hidden="true" />
-            <span className="tabular">{yazi.readingMinutes}</span> dk okuma
-          </span>
+            <span className="flex items-center gap-1.5">
+              <Clock className="size-4" aria-hidden="true" />
+              <span>{yazi.readingMinutes}</span> dk okuma
+            </span>
 
-          {yazi.tags.length > 0 && (
-            <ul className="flex flex-wrap gap-1.5">
-              {yazi.tags.map((etiket) => (
-                <li key={etiket}>
-                  {/* Etiket, listeye süzülmüş olarak döner — T-024'teki kalıp. */}
-                  <Link
-                    href={`/blog?etiket=${encodeURIComponent(etiket)}`}
-                    className="focus-ring rounded-pill"
-                  >
-                    <Badge variant="accent">{etiket}</Badge>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          )}
+            {yazi.tags.length > 0 && (
+              <ul className="flex flex-wrap gap-1.5">
+                {yazi.tags.map((etiket) => (
+                  <li key={etiket}>
+                    {/* Etiket, listeye süzülmüş olarak döner — T-024'teki kalıp. */}
+                    <Link
+                      href={`/blog?etiket=${encodeURIComponent(etiket)}`}
+                      className="focus-ring rounded-pill"
+                    >
+                      <Badge variant="accent">{etiket}</Badge>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       </header>
 
-      {/*
-        KAPAK — yalnızca VARSA (T-037f). Listede kapak yok (`yazi-karti.tsx`
-        gerekçesi); detayda okuyucu yazıya girmiş, görsel bağlam veriyor. Yoksa
-        yer tutucu ÇİZİLMİYOR: kapaksız bir yazıda boş 16/10'luk kutu bilgi
-        taşımaz.
-      */}
-      {yazi.cover && (
-        <KapakGorsel kapak={yazi.cover} baslik={yazi.title} className="rounded-card" />
-      )}
+      <div className="mx-auto flex max-w-5xl flex-col gap-10 px-4 pb-32 md:px-8">
+        {/*
+          KAPAK — yalnızca VARSA (T-037f). Listede kapak yok (`yazi-karti.tsx`
+          gerekçesi); detayda okuyucu yazıya girmiş, görsel bağlam veriyor. Yoksa
+          yer tutucu ÇİZİLMİYOR: kapaksız bir yazıda boş 16/10'luk kutu bilgi
+          taşımaz.
+        */}
+        {yazi.cover && (
+          <div className="overflow-hidden rounded-[2rem]">
+            <KapakGorsel kapak={yazi.cover} baslik={yazi.title} />
+          </div>
+        )}
 
-      {/*
-        İÇİNDEKİLER İÇERİKTEN ÖNCE ve `<nav>`: klavyeyle gelen okuyucu, yazının
-        tamamını geçmeden bölümlere atlayabilsin. İki başlıktan az varsa bileşen
-        kendini hiç render etmiyor.
-      */}
-      <Icindekiler kaynak={yazi.content} />
+        <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">
+          {/*
+            İÇİNDEKİLER İÇERİKTEN ÖNCE ve `<nav>`: klavyeyle gelen okuyucu, yazının
+            tamamını geçmeden bölümlere atlayabilsin. İki başlıktan az varsa bileşen
+            kendini hiç render etmiyor.
+          */}
+          <Icindekiler kaynak={yazi.content} />
 
-      <Mdx kaynak={yazi.content} className="max-w-none" kayitEtiketi={`post:${yazi.slug}`} />
+          <Mdx kaynak={yazi.content} className="max-w-none" kayitEtiketi={`post:${yazi.slug}`} />
+        </div>
+      </div>
     </article>
   );
 }

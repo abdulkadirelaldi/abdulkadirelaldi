@@ -1,29 +1,18 @@
 'use client';
 
-import { Menu, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { gradyanSiniflari } from '@/components/public/tasarim/gradyan-baglanti';
 import { cn } from '@/lib/utils/cn';
 
 /**
  * §4.1 — public rotalar.
  *
- * T-002b: bu sayfaların hiçbiri henüz YOK (F2/T-021'de açılacak). `next/link`
- * varsayılan olarak görünür bağlantıları önden çeker; olmayan rotayı çekince
- * 404 döner ve tarayıcı bunu konsola HATA olarak yazar — Lighthouse'un
- * `errors-in-console` denetimi bu yüzden sıfır almıştı.
- *
- * T-023c: kural artık BAĞLANTI BAŞINA. Toptan kaldırmak, henüz açılmamış
- * rotaların 404 ön çekmesini geri getirirdi; toptan bırakmak da açılmış
- * sayfaların gezinmesini yavaşlatırdı. `hazir` alanı sayfa açıldığı gün `true`
- * yapılır ve o bağlantı ön çekmeye başlar.
- *
- * T-026 itibarıyla menüdeki HER rota yayında, yani hepsi `true`. Alan yine de
- * duruyor: bir sonraki yeni sayfa `false` ile eklenip yayına girdiği turda
- * açılacak. İki kez işe yaradı, silinecek bir şey değil.
+ * `hazir`: sayfa AÇILDI mı. Açılmamış rotayı ön çekmek 404 üretir ve
+ * Lighthouse'un `errors-in-console` denetimini düşürür (T-002b, T-023c).
+ * Bugün hepsi yayında; alan bir sonraki yeni sayfa için duruyor.
  */
 const NAV_LINKS = [
   { href: '/hakkimda', label: 'Hakkımda', hazir: true },
@@ -33,56 +22,113 @@ const NAV_LINKS = [
   { href: '/iletisim', label: 'İletişim', hazir: true },
 ] as const;
 
+/** Bu kadar pikselden sonra başlık zemin alır ve aşağı kaydırmada gizlenir. */
+const ESIK = 24;
+
 /**
- * Public navigasyon — T-002 iskeleti.
+ * Public navigasyon — ADR-045.
  *
- * GooeyNav (§5.1) T-020'de bu bileşenin İÇİNE, masaüstü bağlantı listesinin
- * üstüne bir gösterge katmanı olarak eklenecek. Buradaki `<a>` listesi kalır:
- * JS yüklenmeden de gezinilebilir olması gerekiyor.
+ * DAVRANIŞ:
+ *   - Sayfanın tepesinde ŞEFFAF; hero ile bütünleşiyor (örnekteki gibi).
+ *   - Kaydırınca bulanık zemin alıyor; AŞAĞI kaydırırken gizleniyor, YUKARI
+ *     kaydırınca geri geliyor — okurken ekranı kaplamıyor, istenince orada.
+ *   - Klavyeyle içine odaklanılırsa (`focus-within`) gizliyken de görünüyor:
+ *     sekmeyle gelen kullanıcı görünmez bir menüde dolaşmasın.
+ *
+ * MOBİL: tam ekran katman, dev bağlantılar. Açıkken sayfa kaydırması kilitli
+ * ve Escape kapatıyor. Katman DOM'dan çıkarılıyor (kapalıyken odaklanılamaz).
+ *
+ * JS yüklenmeden de gezinilebilir: bağlantılar düz `<a>`.
  */
 export function Navbar() {
   const pathname = usePathname();
-  const [isOpen, setIsOpen] = useState(false);
+  const [acik, setAcik] = useState(false);
+  const [kaydirildi, setKaydirildi] = useState(false);
+  const [gizli, setGizli] = useState(false);
+  const sonY = useRef(0);
 
-  // Rota değişince mobil menü açık kalmasın
   useEffect(() => {
-    setIsOpen(false);
+    setAcik(false);
   }, [pathname]);
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
+  useEffect(() => {
+    const dinle = () => {
+      const y = window.scrollY;
+      setKaydirildi(y > ESIK);
+      setGizli(y > 160 && y > sonY.current);
+      sonY.current = y;
+    };
+    dinle();
+    window.addEventListener('scroll', dinle, { passive: true });
+    return () => window.removeEventListener('scroll', dinle);
+  }, []);
+
+  useEffect(() => {
+    if (!acik) return;
+    const onceki = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    const kapat = (olay: KeyboardEvent) => olay.key === 'Escape' && setAcik(false);
+    window.addEventListener('keydown', kapat);
+    return () => {
+      document.body.style.overflow = onceki;
+      window.removeEventListener('keydown', kapat);
+    };
+  }, [acik]);
+
+  const aktif = (href: string) => pathname === href || pathname.startsWith(`${href}/`);
 
   return (
     <header
       data-yazdirmada-gizle
-      className="border-line bg-canvas/80 sticky top-0 z-50 border-b backdrop-blur-md"
+      className={cn(
+        // `translate` YALNIZCA gizlenirken: dönüşüm taşıyan ata, mobil menünün
+        // `fixed inset-0` katmanını kendi kutusuna hapseder (tam ekran olmaz).
+        // Aynı sebeple açıkken bulanıklık da yok (`backdrop-filter` de öyle).
+        'ease-brand fixed inset-x-0 top-0 z-50 transition-[translate,background-color,border-color] duration-500 focus-within:translate-none',
+        gizli && !acik && '-translate-y-full',
+        kaydirildi && !acik
+          ? 'border-line/60 bg-canvas/70 border-b backdrop-blur-xl'
+          : 'border-b border-transparent',
+      )}
     >
-      <nav aria-label="Ana menü" className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-4">
+      <nav
+        aria-label="Ana menü"
+        className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-4 md:h-20 md:px-8"
+      >
         <Link
           href="/"
-          className="focus-ring rounded-btn font-display text-primary text-lg font-bold tracking-tight"
+          aria-label="Ana sayfa"
+          className="focus-ring rounded-btn font-dev text-primary relative z-10 text-xl font-black tracking-tight"
         >
-          Abdulkadir<span className="text-accent-soft">.</span>
+          AE<span className="text-gradient-vurgu">.</span>
         </Link>
 
-        {/* Masaüstü bağlantıları */}
-        <ul className="ml-auto hidden items-center gap-1 md:flex">
+        <ul className="mx-auto hidden items-center gap-10 md:flex">
           {NAV_LINKS.map((link) => (
             <li key={link.href}>
               <Link
                 href={link.href}
                 prefetch={link.hazir ? undefined : false}
-                aria-current={isActive(link.href) ? 'page' : undefined}
+                aria-current={aktif(link.href) ? 'page' : undefined}
                 className={cn(
-                  'focus-ring ease-brand duration-micro rounded-btn relative px-3 py-2 text-sm transition-colors',
-                  isActive(link.href) ? 'text-primary' : 'text-body hover:text-primary',
+                  'group focus-ring rounded-btn relative block overflow-hidden py-1 text-[0.7rem] font-semibold tracking-[0.18em] uppercase',
+                  aktif(link.href) ? 'text-primary' : 'text-body hover:text-primary',
                 )}
               >
-                {link.label}
-                {isActive(link.href) && (
-                  // §3.1 — gradient: aktif nav göstergesi
+                {/* Metin yukarı kayıp alttan kopyası geliyor — "yuvarlanan" hover. */}
+                <span className="ease-brand block transition-transform duration-300 group-hover:-translate-y-full">
+                  {link.label}
+                </span>
+                <span
+                  aria-hidden="true"
+                  className="ease-brand absolute inset-x-0 top-full block py-1 transition-transform duration-300 group-hover:-translate-y-full"
+                >
+                  {link.label}
+                </span>
+                {aktif(link.href) && (
                   <span
                     aria-hidden="true"
-                    className="bg-gradient-accent rounded-pill absolute inset-x-3 -bottom-px h-0.5"
+                    className="bg-gradient-vurgu rounded-pill absolute inset-x-0 bottom-0 h-px"
                   />
                 )}
               </Link>
@@ -90,44 +136,50 @@ export function Navbar() {
           ))}
         </ul>
 
-        <div className="ml-auto flex items-center gap-2 md:ml-0">
-          <ThemeToggle />
+        <Link href="/iletisim" className={gradyanSiniflari('sm', 'hidden md:inline-flex')}>
+          Birlikte çalışalım
+        </Link>
 
-          <button
-            type="button"
-            onClick={() => setIsOpen((open) => !open)}
-            aria-expanded={isOpen}
-            aria-controls="mobil-menu"
-            aria-label={isOpen ? 'Menüyü kapat' : 'Menüyü aç'}
-            className="focus-ring rounded-btn border-line bg-surface text-body inline-flex size-10 items-center justify-center border md:hidden"
-          >
-            {isOpen ? <X className="size-[18px]" /> : <Menu className="size-[18px]" />}
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => setAcik((a) => !a)}
+          aria-expanded={acik}
+          aria-controls="mobil-menu"
+          aria-label={acik ? 'Menüyü kapat' : 'Menüyü aç'}
+          className="focus-ring rounded-pill border-line-strong text-primary relative z-10 ml-auto inline-flex h-10 items-center gap-2 border px-4 text-[0.7rem] font-semibold tracking-[0.18em] uppercase md:hidden"
+        >
+          {acik ? 'Kapat' : 'Menü'}
+        </button>
       </nav>
 
-      {/* Mobil menü — açıkken DOM'dan çıkarılır, odak tuzağı gerekmez */}
-      {isOpen && (
-        <div id="mobil-menu" className="border-line bg-surface border-t md:hidden">
-          <ul className="mx-auto flex max-w-6xl flex-col p-2">
-            {NAV_LINKS.map((link) => (
-              <li key={link.href}>
+      {acik && (
+        <div
+          id="mobil-menu"
+          className="bg-canvas animate-sayfa-giris fixed inset-0 flex flex-col justify-between px-4 pt-24 pb-10 [animation-duration:0.4s] md:hidden"
+        >
+          <ul className="flex flex-col gap-2">
+            {NAV_LINKS.map((link, sira) => (
+              <li key={link.href} className="border-line border-b">
                 <Link
                   href={link.href}
                   prefetch={link.hazir ? undefined : false}
-                  aria-current={isActive(link.href) ? 'page' : undefined}
+                  aria-current={aktif(link.href) ? 'page' : undefined}
                   className={cn(
-                    'focus-ring rounded-btn block px-3 py-3 text-sm',
-                    isActive(link.href)
-                      ? 'bg-elevated text-primary'
-                      : 'text-body hover:bg-elevated hover:text-primary',
+                    'focus-ring dev-baslik flex items-baseline justify-between py-4 text-4xl',
+                    aktif(link.href) ? 'text-gradient-vurgu' : 'text-primary',
                   )}
                 >
                   {link.label}
+                  <span className="tabular text-muted text-xs font-normal tracking-normal">
+                    0{sira + 1}
+                  </span>
                 </Link>
               </li>
             ))}
           </ul>
+          <Link href="/iletisim" className={gradyanSiniflari('lg', 'w-full')}>
+            Birlikte çalışalım
+          </Link>
         </div>
       )}
     </header>
