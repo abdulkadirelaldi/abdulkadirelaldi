@@ -1,6 +1,13 @@
 import type { MetadataRoute } from 'next';
 
-import { absoluteUrl, getPostSitemapEntries, getProjectSitemapEntries } from '@/server/services';
+import { DILLER, VARSAYILAN_DIL, type Dil } from '@/i18n/diller';
+import { yol, type Sayfa } from '@/i18n/rotalar';
+import {
+  absoluteUrl,
+  getPostSitemapEntries,
+  getProjectSitemapEntries,
+  type SitemapEntryDto,
+} from '@/server/services';
 
 /**
  * sitemap.xml — §4.1.
@@ -68,39 +75,95 @@ import { absoluteUrl, getPostSitemapEntries, getProjectSitemapEntries } from '@/
  */
 export const dynamic = 'force-dynamic';
 
+type Siklik = NonNullable<MetadataRoute.Sitemap[number]['changeFrequency']>;
+
+/**
+ * Statik sayfalar — SAYFA ADIYLA, adres değil. Her dildeki adres `yol()`dan
+ * (ADR-046: adres tablosu tek). `seo.test.ts` bu listeyi `sayfa: '…'`
+ * satırlarından okuyup dosya sistemindeki rotalarla karşılaştırıyor.
+ */
+const STATIK: readonly { sayfa: Sayfa; siklik: Siklik; oncelik: number }[] = [
+  { sayfa: 'anasayfa', siklik: 'weekly', oncelik: 1 },
+  { sayfa: 'hakkimda', siklik: 'monthly', oncelik: 0.8 },
+  { sayfa: 'projeler', siklik: 'weekly', oncelik: 0.9 },
+  // Ticari niyetin girişi (§1.A/K4). İçeriği nadiren değişir ama önceliği
+  // yüksek: aranıp bulunması İSTENEN sayfa bu.
+  { sayfa: 'hizmetler', siklik: 'monthly', oncelik: 0.8 },
+  { sayfa: 'cv', siklik: 'monthly', oncelik: 0.6 },
+  { sayfa: 'blog', siklik: 'weekly', oncelik: 0.9 },
+  // Dönüşümün son adımı; içeriği neredeyse hiç değişmez, aranarak değil
+  // site içinden gelinir — bu yüzden düşük öncelik ve `yearly`.
+  { sayfa: 'iletisim', siklik: 'yearly', oncelik: 0.5 },
+];
+
+/**
+ * ADR-046 — hreflang kümesi: aynı içeriğin her dildeki mutlak adresi.
+ * Google'ın sitemap biçimi: kümedeki HER adres kendi girdisini alır ve
+ * kümenin tamamını (kendisi dahil) `alternates` olarak taşır.
+ */
+type Kume = Partial<Record<Dil, string>>;
+
+function girdiler(
+  kume: Kume,
+  ortak: Omit<MetadataRoute.Sitemap[number], 'url' | 'alternates'>,
+): MetadataRoute.Sitemap {
+  const languages: Record<string, string> = { ...kume };
+  if (kume[VARSAYILAN_DIL]) languages['x-default'] = kume[VARSAYILAN_DIL];
+  return DILLER.flatMap((d) => {
+    const url = kume[d];
+    return url ? [{ ...ortak, url, alternates: { languages } }] : [];
+  });
+}
+
+/**
+ * Detay sayfaları: her dilin yayındaki kayıtları `translationKey` ile
+ * kümelenir. Anahtarı olmayan kayıt tek dilli kendi kümesidir. Yalnızca
+ * YAYINDAKİ kayıtlar kümeye girer — taslak çeviriye hreflang verilmez.
+ */
+function detaylar(sayfa: Sayfa, dilBasina: Record<Dil, SitemapEntryDto[]>): MetadataRoute.Sitemap {
+  const kumeler = new Map<string, { kume: Kume; guncelleme: string }>();
+  for (const d of DILLER) {
+    for (const entry of dilBasina[d]) {
+      const anahtar = entry.translationKey ?? `${d}:${entry.slug}`;
+      const k = kumeler.get(anahtar) ?? { kume: {}, guncelleme: entry.updatedAt };
+      k.kume[d] = absoluteUrl(yol(d, sayfa, entry.slug));
+      if (entry.updatedAt > k.guncelleme) k.guncelleme = entry.updatedAt;
+      kumeler.set(anahtar, k);
+    }
+  }
+  return [...kumeler.values()].flatMap(({ kume, guncelleme }) =>
+    girdiler(kume, {
+      lastModified: new Date(guncelleme),
+      changeFrequency: 'monthly',
+      priority: 0.7,
+    }),
+  );
+}
+
+async function dilBasina(
+  oku: (locale: string) => Promise<SitemapEntryDto[]>,
+): Promise<Record<Dil, SitemapEntryDto[]>> {
+  const listeler = await Promise.all(DILLER.map((d) => oku(d)));
+  return Object.fromEntries(DILLER.map((d, i) => [d, listeler[i] ?? []])) as Record<
+    Dil,
+    SitemapEntryDto[]
+  >;
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [projects, posts] = await Promise.all([
-    getProjectSitemapEntries(),
-    getPostSitemapEntries(),
+    dilBasina(getProjectSitemapEntries),
+    dilBasina(getPostSitemapEntries),
   ]);
 
-  const staticRoutes: MetadataRoute.Sitemap = [
-    { url: absoluteUrl('/'), changeFrequency: 'weekly', priority: 1 },
-    { url: absoluteUrl('/hakkimda'), changeFrequency: 'monthly', priority: 0.8 },
-    { url: absoluteUrl('/projeler'), changeFrequency: 'weekly', priority: 0.9 },
-    // Ticari niyetin girişi (§1.A/K4). İçeriği nadiren değişir ama önceliği
-    // yüksek: aranıp bulunması İSTENEN sayfa bu.
-    { url: absoluteUrl('/hizmetler'), changeFrequency: 'monthly', priority: 0.8 },
-    { url: absoluteUrl('/cv'), changeFrequency: 'monthly', priority: 0.6 },
-    { url: absoluteUrl('/blog'), changeFrequency: 'weekly', priority: 0.9 },
-    // Dönüşümün son adımı; içeriği neredeyse hiç değişmez, aranarak değil
-    // site içinden gelinir — bu yüzden düşük öncelik ve `yearly`.
-    { url: absoluteUrl('/iletisim'), changeFrequency: 'yearly', priority: 0.5 },
-  ];
+  // Statik sayfalar her dilde VAR (arayüz sözlükten); içerik boşsa sayfa
+  // kendi boş durumunu gösterir ve yine 200 döner.
+  const statik = STATIK.flatMap(({ sayfa, siklik, oncelik }) =>
+    girdiler(Object.fromEntries(DILLER.map((d) => [d, absoluteUrl(yol(d, sayfa))])) as Kume, {
+      changeFrequency: siklik,
+      priority: oncelik,
+    }),
+  );
 
-  return [
-    ...staticRoutes,
-    ...projects.map((entry) => ({
-      url: absoluteUrl(`/projeler/${entry.slug}`),
-      lastModified: new Date(entry.updatedAt),
-      changeFrequency: 'monthly' as const,
-      priority: 0.7,
-    })),
-    ...posts.map((entry) => ({
-      url: absoluteUrl(`/blog/${entry.slug}`),
-      lastModified: new Date(entry.updatedAt),
-      changeFrequency: 'monthly' as const,
-      priority: 0.7,
-    })),
-  ];
+  return [...statik, ...detaylar('projeler', projects), ...detaylar('blog', posts)];
 }

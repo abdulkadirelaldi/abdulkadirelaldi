@@ -1,5 +1,7 @@
 import { NextResponse, type NextRequest } from 'next/server';
 
+import { DIL_BASLIGI, dilMi, VARSAYILAN_DIL } from '@/i18n/diller';
+import { cozumle } from '@/i18n/rotalar';
 import { analitikAyari } from '@/lib/analitik';
 import {
   buildContentSecurityPolicy,
@@ -114,7 +116,32 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
     return response;
   };
 
+  /*
+   * ADR-046 — DİL. `cozumle` adresi sayfa + dile çeviriyor:
+   *   - kanonik olmayan yazım (`/tr/…`, `/en/projeler`) → 308 kalıcı yönlendirme;
+   *   - önekli dil (`/en/projects/x`) → içeride `/en/projeler/x`e YENİDEN YAZILIR
+   *     (adres çubuğu değişmez; sayfa kodu tek kopya);
+   *   - her istekte `x-dil` başlığı: kök layout `<html lang>`ı, 404/hata
+   *     sayfaları dili buradan okuyor. İstemcinin gönderdiği aynı ad EZİLİR.
+   */
+  const cozum = cozumle(pathname);
+  if (cozum.tur === 'yonlendir') {
+    return withHeaders(NextResponse.redirect(new URL(`${cozum.hedef}${search}`, request.url), 308));
+  }
+  const ilkParca = pathname.split('/')[1];
+  istekBasliklari.set(
+    DIL_BASLIGI,
+    cozum.tur === 'sayfa' ? cozum.dil : dilMi(ilkParca) ? ilkParca : VARSAYILAN_DIL,
+  );
+
   if (!isProtectedPath(pathname)) {
+    if (cozum.tur === 'sayfa' && cozum.dil !== VARSAYILAN_DIL) {
+      return withHeaders(
+        NextResponse.rewrite(new URL(`${cozum.icYol}${search}`, request.url), {
+          request: { headers: istekBasliklari },
+        }),
+      );
+    }
     return withHeaders(devam());
   }
 

@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 import { SahnePaneli } from '@/components/public/tasarim/sahne-paneli';
 import { ParlakGlif, ParlakHalka } from '@/components/public/tasarim/sekiller';
 import { Yuzen } from '@/components/public/tasarim/yuzen';
+import type { Dil } from '@/i18n/diller';
+import { sozluk } from '@/i18n/sozluk';
 import type { ProfileDto } from '@/server/services/content-dto';
 
 const SOSYAL = [
@@ -20,11 +22,13 @@ const SOSYAL = [
  * Form `IletisimFormu` — aynı bileşen, aynı alan kimlikleri (E2E sözleşmesi).
  */
 export function IletisimBlogu({
+  dil,
   profil,
   baslikDuzeyi: Baslik = 'h2',
   katman = 30,
   form,
 }: {
+  dil: Dil;
   profil: ProfileDto;
   baslikDuzeyi?: 'h1' | 'h2';
   katman?: number;
@@ -38,6 +42,7 @@ export function IletisimBlogu({
    */
   form: ReactNode;
 }) {
+  const s = sozluk(dil).iletisimBolum;
   const sosyal = profil.socials ?? {};
   const eposta = sosyal.email;
   const sosyalListe = SOSYAL.map(([anahtar, etiket]) => ({
@@ -60,15 +65,12 @@ export function IletisimBlogu({
             id="iletisim-baslik"
             className="dev-baslik text-primary text-[clamp(2.1rem,8vw,6.5rem)]"
           >
-            Hadi
+            {s.baslikUst}
             <br />
-            konuşalım
+            {s.baslikAlt}
           </Baslik>
 
-          <p className="text-body max-w-md">
-            Bir fikrin, bir işin ya da bir sorun mu var? Kısaca yaz, birlikte netleştirelim. Genelde
-            bir gün içinde dönüyorum.
-          </p>
+          <p className="text-body max-w-md">{s.giris}</p>
 
           {eposta && (
             <a
@@ -83,13 +85,13 @@ export function IletisimBlogu({
             <dl className="tabular text-muted flex flex-wrap gap-x-8 gap-y-2 text-xs tracking-[0.12em] uppercase">
               {profil.location && (
                 <div className="flex gap-2">
-                  <dt>Konum:</dt>
+                  <dt>{s.konum}</dt>
                   <dd className="text-primary">{profil.location}</dd>
                 </div>
               )}
               {profil.availability && (
                 <div className="flex gap-2">
-                  <dt>Durum:</dt>
+                  <dt>{s.durum}</dt>
                   <dd className="text-primary">{profil.availability}</dd>
                 </div>
               )}
@@ -97,7 +99,7 @@ export function IletisimBlogu({
           )}
 
           {sosyalListe.length > 0 && (
-            <ul aria-label="Sosyal hesaplar" className="flex flex-wrap gap-2">
+            <ul aria-label={s.sosyalHesaplar} className="flex flex-wrap gap-2">
               {sosyalListe.map((g) => (
                 <li key={g.etiket}>
                   <a

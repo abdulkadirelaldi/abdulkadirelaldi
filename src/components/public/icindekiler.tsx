@@ -77,7 +77,16 @@ export function basliklariCikar(kaynak: string): BaslikGirdisi[] {
  * İki başlıktan azsa HİÇ render edilmez: tek maddelik bir içindekiler tablosu
  * gezinmeye yardım etmez, yalnızca yer kaplar.
  */
-export function Icindekiler({ kaynak, className }: { kaynak: string; className?: string }) {
+export function Icindekiler({
+  kaynak,
+  className,
+  baslik = 'İçindekiler',
+}: {
+  kaynak: string;
+  className?: string;
+  /** Dile göre (ADR-046). */
+  baslik?: string;
+}) {
   const basliklar = basliklariCikar(kaynak);
   if (basliklar.length < 2) return null;
 
@@ -87,7 +96,7 @@ export function Icindekiler({ kaynak, className }: { kaynak: string; className?:
       className={cn('border-line bg-surface/50 rounded-card border p-5', className)}
     >
       <h2 id="icindekiler-baslik" className="text-muted mb-3 text-xs tracking-wider uppercase">
-        İçindekiler
+        {baslik}
       </h2>
 
       <ol className="flex flex-col gap-2">

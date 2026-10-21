@@ -30,7 +30,7 @@ export const PROFIL = {
   },
 } as const;
 
-type Kategori =
+export type Kategori =
   'LANGUAGE' | 'EMBEDDED' | 'AI' | 'BACKEND' | 'DATABASE' | 'FRONTEND' | 'MOBILE' | 'TOOLING';
 
 const YETENEK_GRUPLARI: [Kategori, string[]][] = [
@@ -78,7 +78,7 @@ export const YETENEKLER = YETENEK_GRUPLARI.flatMap(([category, adlar]) =>
   adlar.map((name) => ({ name, category, level: VARSAYILAN_SEVIYE })),
 ).map((yetenek, i) => ({ ...yetenek, order: i + 1 }));
 
-type Deneyim = {
+export type Deneyim = {
   type: 'WORK' | 'EDUCATION' | 'AWARD';
   organization: string;
   role: string;
@@ -230,7 +230,7 @@ export const DENEYIMLER: Deneyim[] = [
   },
 ];
 
-type Proje = {
+export type Proje = {
   slug: string;
   title: string;
   summary: string;
@@ -240,6 +240,11 @@ type Proje = {
   liveUrl?: string;
   clientName?: string;
   featured: boolean;
+  /**
+   * ADR-046 — dil karşılığı anahtarı. Türkçede yazılmaz (slug kullanılır);
+   * çevirilerde Türkçe kaydın slug'ı — dil seçici ve hreflang bununla eşler.
+   */
+  translationKey?: string;
 };
 
 export const PROJELER: Proje[] = [

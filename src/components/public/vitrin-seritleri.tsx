@@ -20,14 +20,17 @@ export type MusteriLogosu = { id: string; name: string; logo: { id: string } };
  */
 export function LogoSeridi({
   logolar,
+  etiket,
   className,
 }: {
   logolar: MusteriLogosu[];
+  /** Ekran okuyucu bölge adı — dile göre (ADR-046). */
+  etiket: string;
   className?: string;
 }) {
   if (logolar.length < LOGO_ESIGI) return null;
   return (
-    <KayanSerit sure={35} durdur etiket="Birlikte çalıştığım ekipler" className={className}>
+    <KayanSerit sure={35} durdur etiket={etiket} className={className}>
       {logolar.map((m) => (
         <div key={m.id} className="flex h-16 w-44 shrink-0 items-center justify-center px-6">
           {/* eslint-disable-next-line @next/next/no-img-element -- aynı kökenli dosya ucu (ADR-044), kapak-gorsel.tsx ile aynı gerekçe */}
@@ -49,10 +52,10 @@ export function LogoSeridi({
  * Teknoloji şeridi — dev, dolu/kontur dönüşümlü kelimeler ve ✦ ayraçları.
  * Yazılımcı imzası: örnekteki görsel şeridin yerini KAPAK YOKKEN alıyor.
  */
-export function TeknolojiSeridi({ kelimeler }: { kelimeler: string[] }) {
+export function TeknolojiSeridi({ kelimeler, etiket }: { kelimeler: string[]; etiket: string }) {
   if (kelimeler.length === 0) return null;
   return (
-    <KayanSerit sure={Math.max(30, kelimeler.length * 5)} etiket="Kullandığım teknolojiler">
+    <KayanSerit sure={Math.max(30, kelimeler.length * 5)} etiket={etiket}>
       {kelimeler.map((kelime, i) => (
         <span key={kelime} className="flex shrink-0 items-center">
           <span

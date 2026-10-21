@@ -292,12 +292,13 @@ describe('kapı public render yolundan AYRIŞMIYOR', () => {
 
 describe('Project.content da aynı kapıdan geçiyor', () => {
   /**
-   * ÖLÇÜLDÜ: `/projeler/[slug]/page.tsx` AYNI `Mdx` bileşenini `proje.content`
+   * ÖLÇÜLDÜ: proje detay sayfası (ADR-046'dan beri `components/sayfalar/proje-detay.tsx`;
+   * `/projeler/[slug]` ve `/[dil]/projeler/[slug]` onu çağırıyor) AYNI `Mdx` bileşenini `proje.content`
    * ile çağırıyor (`<Mdx kaynak={proje.content} />`). Yani aynı 500 oradan da
    * gelir ve kapı oraya da gerekli.
    */
   it('proje detay sayfası aynı Mdx bileşenini kullanıyor', () => {
-    const sayfa = readFileSync(join(KOK, 'src/app/(public)/projeler/[slug]/page.tsx'), 'utf8');
+    const sayfa = readFileSync(join(KOK, 'src/components/sayfalar/proje-detay.tsx'), 'utf8');
     expect(sayfa).toContain("from '@/components/public/mdx'");
     expect(sayfa).toMatch(/<Mdx\s+kaynak=\{proje\.content\}/);
   });

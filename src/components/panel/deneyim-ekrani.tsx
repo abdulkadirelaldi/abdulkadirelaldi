@@ -5,12 +5,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
+import { icerikYolu } from '@/components/panel/icerik-gorunumleri';
 import { VeriTablosu, type Sutun } from '@/components/panel/veri-tablosu';
 import { aralik } from '@/components/public/gun-bicim';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonClasses } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FormAlert } from '@/components/ui/form-error';
+import type { Dil } from '@/i18n/diller';
 import { deleteExperienceAction } from '@/server/actions/experience';
 import type { ExperienceDto } from '@/server/services/content-dto';
 import { ExperienceType } from '@/types';
@@ -50,7 +52,16 @@ const TUR_ETIKET: Record<ExperienceType, string> = {
   [ExperienceType.AWARD]: 'Ödül',
 };
 
-export function DeneyimEkrani({ kayitlar, toplam }: { kayitlar: ExperienceDto[]; toplam: number }) {
+export function DeneyimEkrani({
+  kayitlar,
+  toplam,
+  dil,
+}: {
+  kayitlar: ExperienceDto[];
+  toplam: number;
+  /** Seçili liste dili — "Yeni" bağlantısı bu dilde kayıt açar (ADR-046). */
+  dil: Dil;
+}) {
   const router = useRouter();
   const [silinen, setSilinen] = useState<string | null>(null);
   const [silmeHatasi, setSilmeHatasi] = useState<string | null>(null);
@@ -160,7 +171,10 @@ export function DeneyimEkrani({ kayitlar, toplam }: { kayitlar: ExperienceDto[];
           <span className="tabular">{toplam}</span> kayıt · en yeni başlangıç üstte
         </p>
 
-        <Link href="/panel/icerik/deneyim/yeni" className={buttonClasses({ size: 'sm' })}>
+        <Link
+          href={icerikYolu('/panel/icerik/deneyim/yeni', { dil })}
+          className={buttonClasses({ size: 'sm' })}
+        >
           <Plus className="size-4" aria-hidden="true" />
           Yeni kayıt
         </Link>
@@ -177,7 +191,10 @@ export function DeneyimEkrani({ kayitlar, toplam }: { kayitlar: ExperienceDto[];
             title="Henüz deneyim kaydı yok"
             description="İlk kaydı eklediğinde hem burada hem /hakkimda zaman çizelgesinde görünür."
             action={
-              <Link href="/panel/icerik/deneyim/yeni" className={buttonClasses({ size: 'sm' })}>
+              <Link
+                href={icerikYolu('/panel/icerik/deneyim/yeni', { dil })}
+                className={buttonClasses({ size: 'sm' })}
+              >
                 <Plus className="size-4" aria-hidden="true" />
                 İlk kaydı ekle
               </Link>

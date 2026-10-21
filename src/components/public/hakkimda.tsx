@@ -3,21 +3,28 @@ import { GradyanBaglanti } from '@/components/public/tasarim/gradyan-baglanti';
 import { KonturBaslik } from '@/components/public/tasarim/kontur-baslik';
 import { ParlakGlif, ParlakHalka, ParlakKure } from '@/components/public/tasarim/sekiller';
 import { Yuzen } from '@/components/public/tasarim/yuzen';
+import type { Dil } from '@/i18n/diller';
+import { yol } from '@/i18n/rotalar';
+import { sozluk, type Sozluk } from '@/i18n/sozluk';
 import type { ProfileDto } from '@/server/services/content-dto';
 import type { SiteStatsDto } from '@/server/services/_shared/stats';
 
 type Kart = { deger: number; sonek?: string; etiket: string };
 
 export type HakkimdaProps = {
+  dil: Dil;
   profil: ProfileDto;
   istatistikler: SiteStatsDto;
 };
 
 /** Sıfır değerli istatistik ÇİZİLMEZ — "0 yıl deneyim" kendine zarar verir. */
-function kartlar({ experienceYears, publishedProjects }: SiteStatsDto): Kart[] {
+function kartlar(
+  { experienceYears, publishedProjects }: SiteStatsDto,
+  s: Sozluk['hakkimdaBolum'],
+): Kart[] {
   return [
-    experienceYears > 0 && { deger: experienceYears, sonek: '+', etiket: 'yıl deneyim' },
-    publishedProjects > 0 && { deger: publishedProjects, etiket: 'yayınlanan proje' },
+    experienceYears > 0 && { deger: experienceYears, sonek: '+', etiket: s.yilDeneyim },
+    publishedProjects > 0 && { deger: publishedProjects, etiket: s.yayinlananProje },
   ].filter((kart): kart is Kart => Boolean(kart));
 }
 
@@ -28,12 +35,13 @@ function kartlar({ experienceYears, publishedProjects }: SiteStatsDto): Kart[] {
  * süzülüyor (paralaks derinliği). Biyografinin İLK paragrafı ortada — tamamı
  * /hakkimda'da.
  */
-export function Hakkimda({ profil, istatistikler }: HakkimdaProps) {
+export function Hakkimda({ dil, profil, istatistikler }: HakkimdaProps) {
+  const s = sozluk(dil).hakkimdaBolum;
   const [ilkParagraf] = profil.bio
     .split(/\n\s*\n/)
     .map((p) => p.trim())
     .filter(Boolean);
-  const istatistikKartlari = kartlar(istatistikler);
+  const istatistikKartlari = kartlar(istatistikler, s);
 
   return (
     <section
@@ -57,7 +65,7 @@ export function Hakkimda({ profil, istatistikler }: HakkimdaProps) {
       <div className="mx-auto flex max-w-4xl flex-col items-center gap-10 px-4 text-center">
         <KonturBaslik
           id="hakkimda-baslik"
-          metin="Hakkımda"
+          metin={s.baslik}
           className="text-[clamp(2.5rem,11vw,9.5rem)]"
         />
 
@@ -90,7 +98,7 @@ export function Hakkimda({ profil, istatistikler }: HakkimdaProps) {
         )}
 
         <BolumGiris gecikme={0.16}>
-          <GradyanBaglanti href="/hakkimda">Hikâyemin devamı</GradyanBaglanti>
+          <GradyanBaglanti href={yol(dil, 'hakkimda')}>{s.devam}</GradyanBaglanti>
         </BolumGiris>
       </div>
     </section>

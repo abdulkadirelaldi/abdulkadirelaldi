@@ -4,6 +4,9 @@ import Link from 'next/link';
 import { BolumGiris } from '@/components/public/bolum-giris';
 import { KonturBaslik } from '@/components/public/tasarim/kontur-baslik';
 import { SahnePaneli } from '@/components/public/tasarim/sahne-paneli';
+import type { Dil } from '@/i18n/diller';
+import { yol } from '@/i18n/rotalar';
+import { sozluk } from '@/i18n/sozluk';
 import type { ServiceDto } from '@/server/services/content-dto';
 
 /**
@@ -50,7 +53,9 @@ export function HizmetListesi({
               <span className="dev-baslik group-hover:text-gradient-vurgu text-primary text-4xl md:text-6xl">
                 {String(sira + 1).padStart(2, '0')}
               </span>
-              <Baslik className="text-primary font-display self-center text-sm font-bold tracking-[0.14em] uppercase md:text-base">
+              {/* `min-w-0` + heceleme: ızgara sütunu en uzun sözcükten dar olamaz;
+                  Almanca tek sözcük ("Unternehmenswebsite") 360 px'te taşıyordu (ADR-046). */}
+              <Baslik className="text-primary font-display min-w-0 self-center text-sm font-bold tracking-[0.14em] break-words hyphens-auto uppercase md:text-base">
                 {hizmet.title}
               </Baslik>
               <p className="text-body col-span-3 text-sm leading-relaxed md:col-span-1">
@@ -71,6 +76,7 @@ export function HizmetListesi({
 }
 
 export type HizmetlerProps = {
+  dil: Dil;
   hizmetler: ServiceDto[];
   kiyiMedyaUrl: string;
 };
@@ -79,7 +85,8 @@ export type HizmetlerProps = {
  * Ana sayfa hizmet bölümü — AÇIK panel, koyu sahnenin üstüne kayıyor.
  * Hizmet yoksa bölüm HİÇ çizilmiyor: boş bir açık panel sahnede delik açar.
  */
-export function Hizmetler({ hizmetler, kiyiMedyaUrl }: HizmetlerProps) {
+export function Hizmetler({ dil, hizmetler, kiyiMedyaUrl }: HizmetlerProps) {
+  const s = sozluk(dil).hizmetlerBolum;
   if (hizmetler.length === 0) return null;
 
   return (
@@ -87,7 +94,7 @@ export function Hizmetler({ hizmetler, kiyiMedyaUrl }: HizmetlerProps) {
       <div className="mx-auto max-w-7xl px-4 pt-20 pb-28 md:px-8 md:pt-28 md:pb-36">
         <KonturBaslik
           id="hizmetler-baslik"
-          metin="Hizmetler"
+          metin={s.baslik}
           className="text-center text-[clamp(2.5rem,11vw,10rem)]"
         />
 
@@ -97,14 +104,14 @@ export function Hizmetler({ hizmetler, kiyiMedyaUrl }: HizmetlerProps) {
 
         <BolumGiris className="mt-12 flex flex-wrap items-center justify-between gap-4">
           <p className="text-body max-w-xl text-sm">
-            Ticari işler <span className="text-primary font-semibold">Kıyı Medya</span> üzerinden
-            yürüyor — teklif, sözleşme ve faturalandırma orada.
+            {s.kiyiOnce} <span className="text-primary font-semibold">Kıyı Medya</span>
+            {s.kiyiSonra}
           </p>
           <Link
-            href="/hizmetler"
+            href={yol(dil, 'hizmetler')}
             className="focus-ring rounded-btn text-primary text-xs font-semibold tracking-[0.16em] uppercase underline underline-offset-4"
           >
-            Tüm ayrıntılar →
+            {s.tumu}
           </Link>
         </BolumGiris>
       </div>

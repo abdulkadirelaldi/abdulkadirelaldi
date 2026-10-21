@@ -6,6 +6,8 @@ import {
   updateHabitSchema,
   updateHealthLogSchema,
   updateJournalEntrySchema,
+  updatePostSchema,
+  updateProjectSchema,
   updateServiceSchema,
   updateSkillSchema,
   updateWorkoutSchema,
@@ -63,6 +65,8 @@ describe('2 · şemalar — temizlenebilir sütunlar null kabul ediyor', () => {
     ['Skill.iconKey', updateSkillSchema, { iconKey: null }],
     ['Service.iconKey', updateServiceSchema, { iconKey: null }],
     ['Service.ctaUrl', updateServiceSchema, { ctaUrl: null }],
+    ['Project.translationKey', updateProjectSchema, { translationKey: null }],
+    ['Post.translationKey', updatePostSchema, { translationKey: null }],
   ] as const)('%s', (_ad, sema, alan) => {
     const sonuc = sema.safeParse({ id: ID, ...alan });
     expect(sonuc.success).toBe(true);

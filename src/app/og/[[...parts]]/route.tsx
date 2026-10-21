@@ -1,5 +1,6 @@
 import { ImageResponse } from 'next/og';
 
+import { dilMi, VARSAYILAN_DIL, type Dil } from '@/i18n/diller';
 import { getPostBySlug, getProfile, getProjectBySlug } from '@/server/services';
 
 import { OG_FONT_NAME, ogFontData } from '../font';
@@ -48,24 +49,24 @@ interface OgContent {
 }
 
 /** Yayınlanmamış içerik OG üretmez — varsayılana düşer (bilgi sızdırmaz). */
-async function resolveContent(parts: string[] | undefined): Promise<OgContent> {
+async function resolveContent(parts: string[] | undefined, dil: Dil): Promise<OgContent> {
   const [type, slug] = parts ?? [];
 
   if (type === 'proje' && slug !== undefined) {
-    const found = await getProjectBySlug(slug);
+    const found = await getProjectBySlug(slug, dil);
     if (found.state === 'FOUND') {
       return { title: found.data.title, subtitle: found.data.summary };
     }
   }
 
   if (type === 'yazi' && slug !== undefined) {
-    const found = await getPostBySlug(slug);
+    const found = await getPostBySlug(slug, dil);
     if (found.state === 'FOUND') {
       return { title: found.data.title, subtitle: found.data.excerpt };
     }
   }
 
-  const profile = await getProfile();
+  const profile = await getProfile(dil);
   return { title: profile.headline, subtitle: profile.subtitle };
 }
 
@@ -75,11 +76,14 @@ function truncate(value: string, max: number): string {
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   context: { params: Promise<{ parts?: string[] }> },
 ): Promise<ImageResponse> {
   const { parts } = await context.params;
-  const { title, subtitle } = await resolveContent(parts);
+  // ADR-046: `?dil=en` — yalnızca bilinen bir dil kabul edilir, gerisi Türkçe.
+  const istenen = new URL(request.url).searchParams.get('dil');
+  const dil = dilMi(istenen) ? istenen : VARSAYILAN_DIL;
+  const { title, subtitle } = await resolveContent(parts, dil);
 
   return new ImageResponse(
     <div

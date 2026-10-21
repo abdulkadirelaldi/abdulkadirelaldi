@@ -4,10 +4,13 @@ import { useRouter } from 'next/navigation';
 import type * as z from 'zod';
 
 import { Alan, BOS_ISE_YOK, SAYI_YA_DA_YOK } from '@/components/panel/alan';
+import { DilRozeti } from '@/components/panel/dil-sekmeleri';
+import { icerikYolu, panelDili } from '@/components/panel/icerik-gorunumleri';
 import { FormKabugu, usePanelForm } from '@/components/panel/panel-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Input, Textarea } from '@/components/ui/input';
+import { VARSAYILAN_DIL, type Dil } from '@/i18n/diller';
 import { createExperienceSchema, type CreateExperienceInput } from '@/lib/schemas/experience';
 import { createExperienceAction, updateExperienceAction } from '@/server/actions/experience';
 import type { ExperienceDto } from '@/server/services/content-dto';
@@ -48,8 +51,12 @@ const TUR_ETIKET: Record<ExperienceType, string> = {
   [ExperienceType.AWARD]: 'Ödül',
 };
 
-function baslangicDegerleri(kayit: ExperienceDto | undefined): DeneyimFormGirdi {
-  if (!kayit) return BOS_FORM;
+function baslangicDegerleri(
+  kayit: ExperienceDto | undefined,
+  dil: Dil = VARSAYILAN_DIL,
+): DeneyimFormGirdi {
+  /* Yeni kayıt listenin SEÇİLİ dilinde açılır (`?dil=`, ADR-046); düzenlemede kaydın kendi dili. */
+  if (!kayit) return { ...BOS_FORM, locale: dil };
 
   return {
     locale: kayit.locale,
@@ -64,9 +71,20 @@ function baslangicDegerleri(kayit: ExperienceDto | undefined): DeneyimFormGirdi 
   };
 }
 
-export function DeneyimFormu({ kayit }: { kayit?: ExperienceDto }) {
+export function DeneyimFormu({
+  kayit,
+  dil = VARSAYILAN_DIL,
+}: {
+  kayit?: ExperienceDto;
+  /** Yeni kayıtta dil — sayfa `?dil=`den okuyor. Düzenlemede yok sayılır. */
+  dil?: Dil;
+}) {
   const router = useRouter();
   const duzenleme = kayit !== undefined;
+  /* Liste aynı dilde açılsın — İngilizce kaydı kaydedip Türkçe listeye düşmek kaybolmuş hissi verir. */
+  const listeYolu = icerikYolu('/panel/icerik/deneyim', {
+    dil: kayit ? panelDili(kayit.locale) : dil,
+  });
 
   const kaydet = async (degerler: CreateExperienceInput) => {
     const sonuc = kayit
@@ -75,7 +93,7 @@ export function DeneyimFormu({ kayit }: { kayit?: ExperienceDto }) {
 
     if (sonuc.ok) {
       router.refresh();
-      if (!kayit) router.push('/panel/icerik/deneyim');
+      if (!kayit) router.push(listeYolu);
     }
 
     return sonuc;
@@ -84,7 +102,7 @@ export function DeneyimFormu({ kayit }: { kayit?: ExperienceDto }) {
   const { form, durum, formHatasi, gonder } = usePanelForm<DeneyimFormGirdi, CreateExperienceInput>(
     {
       sema: createExperienceSchema,
-      varsayilanDegerler: baslangicDegerleri(kayit),
+      varsayilanDegerler: baslangicDegerleri(kayit, dil),
       kaydet,
       temizle: false,
       /* Gizli input — mesajı yutmasın diye bildiriliyor (T-041f/T-043f dersi). */
@@ -104,7 +122,11 @@ export function DeneyimFormu({ kayit }: { kayit?: ExperienceDto }) {
   return (
     <Card>
       <CardContent className="flex flex-col gap-4">
-        <CardTitle seviye="h2">{duzenleme ? 'Kaydı düzenle' : 'Yeni deneyim kaydı'}</CardTitle>
+        <div className="flex flex-wrap items-center gap-2">
+          <CardTitle seviye="h2">{duzenleme ? 'Kaydı düzenle' : 'Yeni deneyim kaydı'}</CardTitle>
+          {/* Dil SALT OKUNUR: var olan satırın dilini değiştirmek desteklenen bir işlem değil. */}
+          <DilRozeti dil={kayit?.locale ?? dil} />
+        </div>
 
         <FormKabugu
           gonder={gonder}
@@ -217,7 +239,7 @@ export function DeneyimFormu({ kayit }: { kayit?: ExperienceDto }) {
           variant="ghost"
           size="sm"
           className="self-start"
-          onClick={() => router.push('/panel/icerik/deneyim')}
+          onClick={() => router.push(listeYolu)}
         >
           Listeye dön
         </Button>

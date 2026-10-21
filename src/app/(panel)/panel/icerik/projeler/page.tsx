@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 
+import { DilSekmeleri } from '@/components/panel/dil-sekmeleri';
 import { DurumSekmeleri } from '@/components/panel/durum-sekmeleri';
-import { durumGorunumuBul, icerikYolu } from '@/components/panel/icerik-gorunumleri';
+import { durumGorunumuBul, icerikYolu, panelDili } from '@/components/panel/icerik-gorunumleri';
 import { ProjelerEkrani } from '@/components/panel/projeler-ekrani';
 import { Sayfalama } from '@/components/panel/sayfalama';
 import { Topbar } from '@/components/panel/topbar';
@@ -45,15 +46,17 @@ export default async function ProjelerYonetimiPage({ searchParams }: SayfaProps)
   const parametreler = await searchParams;
   const gorunum = durumGorunumuBul(tekDeger(parametreler.durum) || 'hepsi');
   const sayfa = sayfaNumarasi(parametreler.sayfa);
+  const dil = panelDili(parametreler.dil);
 
   const cozum = projectFilterSchema.safeParse({
     page: sayfa,
     perPage: SAYFA_BOYUTU,
+    locale: dil,
     ...(gorunum.durum ? { status: gorunum.durum } : {}),
   });
 
   const liste = await fetchProjectsForPanel(
-    cozum.success ? cozum.data : { page: 1, perPage: SAYFA_BOYUTU },
+    cozum.success ? cozum.data : { page: 1, perPage: SAYFA_BOYUTU, locale: dil },
   );
 
   return (
@@ -62,15 +65,16 @@ export default async function ProjelerYonetimiPage({ searchParams }: SayfaProps)
 
       <main id="panel-icerik" className="flex-1 p-4 lg:p-6">
         <div className="flex max-w-5xl flex-col gap-6">
-          <DurumSekmeleri taban={TABAN} aktif={gorunum.anahtar} />
+          <DilSekmeleri taban={TABAN} aktif={dil} korunan={{ durum: gorunum.anahtar }} />
+          <DurumSekmeleri taban={TABAN} aktif={gorunum.anahtar} dil={dil} />
 
-          <ProjelerEkrani projeler={liste.items} toplam={liste.total} />
+          <ProjelerEkrani projeler={liste.items} toplam={liste.total} dil={dil} />
 
           <Sayfalama
             sayfa={liste.page}
             perPage={liste.perPage}
             toplam={liste.total}
-            yol={(s) => icerikYolu(TABAN, { durum: gorunum.anahtar, sayfa: s })}
+            yol={(s) => icerikYolu(TABAN, { durum: gorunum.anahtar, sayfa: s, dil })}
           />
         </div>
       </main>

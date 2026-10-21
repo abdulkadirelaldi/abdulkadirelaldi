@@ -6,10 +6,14 @@ import { HarfHarf } from '@/components/public/tasarim/harf-harf';
 import { ParlakGlif, ParlakHalka, ParlakKure } from '@/components/public/tasarim/sekiller';
 import { Yuzen } from '@/components/public/tasarim/yuzen';
 import { YerelSaat } from '@/components/public/yerel-saat';
+import type { Dil } from '@/i18n/diller';
+import { yol } from '@/i18n/rotalar';
+import { sozluk } from '@/i18n/sozluk';
 import { cn } from '@/lib/utils/cn';
 import type { ProfileDto } from '@/server/services/content-dto';
 
 export type HeroProps = {
+  dil: Dil;
   /** ADR-026 sözleşmesi. `headline` ünvan, `subtitle` kısa tanıtım. */
   profil: ProfileDto;
   /** Görünen isim — `ProfileDto`'da ad alanı yok, `SITE_NAME`'den gelir. */
@@ -43,7 +47,8 @@ export type HeroProps = {
  */
 const AVATAR_SIZES = '(max-width: 767px) 340px, min(47vh, 515px)';
 
-export function Hero({ profil, ad, avatar }: HeroProps) {
+export function Hero({ dil, profil, ad, avatar }: HeroProps) {
+  const s = sozluk(dil);
   // LCP öğesi: <head>'de, en yüksek öncelikle — gövdedeki <img>'i beklemeden
   // ve fontlarla yarışmadan inmeye başlasın.
   if (avatar) {
@@ -71,10 +76,10 @@ export function Hero({ profil, ad, avatar }: HeroProps) {
       <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-4 md:px-8">
         <h1 id="hero-baslik" className="dev-baslik text-primary text-center">
           <span className="sr-only">
-            Merhaba, ben {ad} — {profil.headline}
+            {s.hero.selam} {ad} — {profil.headline}
           </span>
           <HarfHarf
-            metin="Merhaba, ben"
+            metin={s.hero.selam}
             className="block text-[clamp(1.75rem,6.6vw,6.25rem)]"
             baslangic={0.1}
           />
@@ -174,15 +179,16 @@ export function Hero({ profil, ad, avatar }: HeroProps) {
               </span>
             )}
             <span className="hidden sm:inline">
-              {(profil.location ?? 'İstanbul').split(',')[0]} · <YerelSaat />
+              {profil.location && <>{profil.location.split(',')[0]} · </>}
+              <YerelSaat />
             </span>
           </p>
 
           <div className="flex flex-wrap items-center gap-3 md:justify-end">
-            <Link href="/projeler" className={hapSiniflari()}>
-              Projeler
+            <Link href={yol(dil, 'projeler')} className={hapSiniflari()}>
+              {s.hero.projeler}
             </Link>
-            <GradyanBaglanti href="/iletisim">Benimle çalış</GradyanBaglanti>
+            <GradyanBaglanti href={yol(dil, 'iletisim')}>{s.hero.cta}</GradyanBaglanti>
           </div>
         </div>
       </div>

@@ -1,10 +1,11 @@
 import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
 import type { ReactNode } from 'react';
 
 import { parseTheme, THEME_COOKIE, themeClassName } from '@/components/theme';
 import { ThemeProvider } from '@/components/theme-provider';
+import { DIL_BASLIGI, dilMi, VARSAYILAN_DIL } from '@/i18n/diller';
 import { SITE_NAME } from '@/lib/constants';
 import { cn } from '@/lib/utils/cn';
 
@@ -122,10 +123,14 @@ export const viewport: Viewport = {
 export default async function RootLayout({ children }: { children: ReactNode }) {
   const cookieStore = await cookies();
   const theme = parseTheme(cookieStore.get(THEME_COOKIE)?.value);
+  // ADR-046 — `<html lang>` middleware'in çözdüğü dilden. Ekran okuyucu telaffuzu
+  // ve CSS `text-transform` buna bağlı (Türkçede "i" → "İ", İngilizcede "I").
+  const dilBasligi = (await headers()).get(DIL_BASLIGI);
+  const dil = dilMi(dilBasligi) ? dilBasligi : VARSAYILAN_DIL;
 
   return (
     <html
-      lang="tr"
+      lang={dil}
       className={cn(
         spaceGrotesk.variable,
         inter.variable,

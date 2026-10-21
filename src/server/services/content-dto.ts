@@ -210,6 +210,8 @@ export interface SitemapEntryDto {
   slug: string;
   /** `Project.updatedAt` / `Post.updatedAt` — ISO 8601. */
   updatedAt: string;
+  /** ADR-046 — dil karşılıklarını (hreflang) eşleştirmek için. */
+  translationKey: string | null;
 }
 
 /* ===========================================================================

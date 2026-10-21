@@ -3,6 +3,9 @@ import Link from 'next/link';
 import { GradyanBaglanti, hapSiniflari } from '@/components/public/tasarim/gradyan-baglanti';
 import { ParlakGlif, ParlakHalka } from '@/components/public/tasarim/sekiller';
 import { Yuzen } from '@/components/public/tasarim/yuzen';
+import type { Dil } from '@/i18n/diller';
+import { yol } from '@/i18n/rotalar';
+import { sozluk } from '@/i18n/sozluk';
 
 /**
  * 404 — ADR-045 dilinde. Hem `(public)/not-found.tsx` (sayfa içinden
@@ -12,7 +15,9 @@ import { Yuzen } from '@/components/public/tasarim/yuzen';
  * Terminal satırı yazılımcı imzası: aranan yolun "dosya sistemi"nde olmadığını
  * söylüyor. Sayfanın tek `<h1>`i görünür başlık; dev "404" süs.
  */
-export function Bulunamadi() {
+export function Bulunamadi({ dil }: { dil: Dil }) {
+  const s = sozluk(dil);
+  const b = s.bulunamadi;
   return (
     <section className="relative isolate flex min-h-[80dvh] items-center overflow-hidden pt-28 pb-20">
       <Yuzen hiz={-100} className="top-[38%] right-[8%] hidden w-24 md:block">
@@ -30,29 +35,25 @@ export function Bulunamadi() {
           404
         </p>
 
-        <h1 className="dev-baslik text-primary text-[clamp(2rem,6vw,4.5rem)]">
-          Bu yol bir yere çıkmıyor
-        </h1>
+        <h1 className="dev-baslik text-primary text-[clamp(2rem,6vw,4.5rem)]">{b.baslik}</h1>
 
         <pre className="tabular bg-surface border-line text-muted w-fit max-w-full overflow-x-auto rounded-[1rem] border px-5 py-4 text-xs leading-relaxed">
           <code>
-            <span className="text-accent-soft">abdulkadir@site</span>:~$ cd aradığın-sayfa{'\n'}
-            <span className="text-danger">bash: cd: böyle bir dosya ya da dizin yok</span>
+            <span className="text-accent-soft">{s.site.terminalKullanici}</span>:~$ {b.komut}
+            {'\n'}
+            <span className="text-danger">{b.cikti}</span>
           </code>
         </pre>
 
-        <p className="text-body max-w-xl">
-          Adres yanlış yazılmış ya da sayfa taşınmış olabilir. Aşağıdakilerden biriyle devam
-          edebilirsin.
-        </p>
+        <p className="text-body max-w-xl">{b.aciklama}</p>
 
         <div className="flex flex-wrap gap-3">
-          <GradyanBaglanti href="/">Ana sayfa</GradyanBaglanti>
-          <Link href="/projeler" className={hapSiniflari('h-11 px-5')}>
-            Projeler
+          <GradyanBaglanti href={yol(dil, 'anasayfa')}>{s.sayfaAdi.anasayfa}</GradyanBaglanti>
+          <Link href={yol(dil, 'projeler')} className={hapSiniflari('h-11 px-5')}>
+            {s.sayfaAdi.projeler}
           </Link>
-          <Link href="/blog" className={hapSiniflari('h-11 px-5')}>
-            Blog
+          <Link href={yol(dil, 'blog')} className={hapSiniflari('h-11 px-5')}>
+            {s.sayfaAdi.blog}
           </Link>
         </div>
       </div>

@@ -170,10 +170,14 @@ export async function fetchPostSitemapEntries(
 ): Promise<SitemapEntryDto[]> {
   const rows = await client.post.findMany({
     where: { locale: params.locale ?? DEFAULT_LOCALE, ...publishedWhere(params.now ?? new Date()) },
-    select: { slug: true, updatedAt: true },
+    select: { slug: true, updatedAt: true, translationKey: true },
     orderBy: [{ updatedAt: 'desc' }],
   });
-  return rows.map((row) => ({ slug: row.slug, updatedAt: row.updatedAt.toISOString() }));
+  return rows.map((row) => ({
+    slug: row.slug,
+    updatedAt: row.updatedAt.toISOString(),
+    translationKey: row.translationKey,
+  }));
 }
 
 /* ===========================================================================

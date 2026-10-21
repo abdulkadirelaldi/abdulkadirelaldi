@@ -1,22 +1,24 @@
-import { KATEGORI_BASLIK } from '@/components/public/yetenek-kategori';
 import { KayanSerit } from '@/components/public/tasarim/kayan-serit';
 import { KonturBaslik } from '@/components/public/tasarim/kontur-baslik';
 import { ParlakGlif, ParlakKup } from '@/components/public/tasarim/sekiller';
 import { Yuzen } from '@/components/public/tasarim/yuzen';
+import type { Dil } from '@/i18n/diller';
+import { sozluk } from '@/i18n/sozluk';
 import type { SkillDto } from '@/server/services/content-dto';
 
 export type YeteneklerProps = {
+  dil: Dil;
   yetenekler: SkillDto[];
 };
 
 /** Bundan azında kayan şerit seyrek görünüyor; düz ızgaraya düşülüyor. */
 const SERIT_ESIGI = 6;
 
-function YetenekKarti({ yetenek }: { yetenek: SkillDto }) {
+function YetenekKarti({ yetenek, kategori }: { yetenek: SkillDto; kategori: string }) {
   return (
     <article className="border-line-hover bg-surface mx-2 flex w-64 shrink-0 flex-col gap-3 rounded-[1.5rem] border p-5 md:w-72">
       <span className="tabular text-muted text-[0.68rem] tracking-[0.14em] uppercase">
-        {KATEGORI_BASLIK[yetenek.category]}
+        {kategori}
       </span>
       {/* Seviye (0–100) BİLEREK gösterilmiyor: kendine verilen yüzde bir ölçüm
           değil, ziyaretçiye kesinlik iddiası gibi okunur. Panelde sıralama için duruyor. */}
@@ -35,7 +37,9 @@ function YetenekKarti({ yetenek }: { yetenek: SkillDto }) {
  * Kayan şeridin ikinci kopyası `aria-hidden` + `inert` (KayanSerit); her kart
  * ekran okuyucuya bir kez okunuyor.
  */
-export function Yetenekler({ yetenekler }: YeteneklerProps) {
+export function Yetenekler({ dil, yetenekler }: YeteneklerProps) {
+  const sz = sozluk(dil);
+  const s = sz.yeteneklerBolum;
   if (yetenekler.length === 0) return null;
 
   const sirali = [...yetenekler].sort((a, b) => a.order - b.order);
@@ -58,7 +62,7 @@ export function Yetenekler({ yetenekler }: YeteneklerProps) {
       <div className="mx-auto max-w-7xl px-4 md:px-8">
         <KonturBaslik
           id="yetenekler-baslik"
-          metin="Neyle çalışıyorum"
+          metin={s.baslik}
           className="mx-auto max-w-5xl text-center text-[clamp(2.1rem,7vw,6.5rem)]"
         />
       </div>
@@ -67,20 +71,20 @@ export function Yetenekler({ yetenekler }: YeteneklerProps) {
         <ul className="mx-auto mt-16 flex max-w-7xl flex-wrap justify-center gap-y-4 px-4 md:px-8">
           {sirali.map((y) => (
             <li key={y.id}>
-              <YetenekKarti yetenek={y} />
+              <YetenekKarti yetenek={y} kategori={sz.kategori[y.category]} />
             </li>
           ))}
         </ul>
       ) : (
         <div className="mt-16 flex flex-col gap-4 md:mt-20">
-          <KayanSerit sure={55} durdur etiket="Yetenekler — birinci sıra">
+          <KayanSerit sure={55} durdur etiket={s.sira1}>
             {ust.map((y) => (
-              <YetenekKarti key={y.id} yetenek={y} />
+              <YetenekKarti key={y.id} yetenek={y} kategori={sz.kategori[y.category]} />
             ))}
           </KayanSerit>
-          <KayanSerit sure={60} ters durdur etiket="Yetenekler — ikinci sıra">
+          <KayanSerit sure={60} ters durdur etiket={s.sira2}>
             {alt.map((y) => (
-              <YetenekKarti key={y.id} yetenek={y} />
+              <YetenekKarti key={y.id} yetenek={y} kategori={sz.kategori[y.category]} />
             ))}
           </KayanSerit>
         </div>

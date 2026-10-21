@@ -19,7 +19,7 @@ import { Button } from '@/components/ui/button';
  * düğme görünmesi anlamsız olurdu. Düğme kaybolsa bile sayfa yazdırılabilir —
  * tarayıcının kendi yazdırma komutu her zaman çalışır; bu yalnızca kısayol.
  */
-export function YazdirDugmesi() {
+export function YazdirDugmesi({ etiket = 'Yazdır' }: { etiket?: string }) {
   return (
     <Button
       type="button"
@@ -29,7 +29,7 @@ export function YazdirDugmesi() {
       onClick={() => window.print()}
     >
       <Printer className="size-4" aria-hidden="true" />
-      Yazdır
+      {etiket}
     </Button>
   );
 }

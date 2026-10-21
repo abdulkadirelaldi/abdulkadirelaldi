@@ -201,6 +201,34 @@ async function seedProfile(): Promise<void> {
     update: input,
     create: { id: 'singleton', ...input },
   });
+
+  /*
+   * ADR-046 — önekli dillerin profili. `/en` ve `/de` sayfaları kendi dilinin
+   * profilini okur ve yoksa FIRLATIR (ADR-017); seed'li her ortamda (CI, e2e)
+   * üç dil de açılabilsin. Kimlik `cuid` — sabit id yalnızca Türkçede.
+   */
+  const ceviriler = [
+    {
+      locale: 'en',
+      headline: 'Full Stack Developer',
+      subtitle: 'Web applications and digital products',
+      bio: 'I build web applications end to end. I ship scalable products with Next.js, TypeScript and PostgreSQL, and I run the whole process myself — from design to deployment.',
+      location: 'Istanbul, Türkiye',
+      availability: 'Open to new projects',
+    },
+    {
+      locale: 'de',
+      headline: 'Full-Stack-Entwickler',
+      subtitle: 'Webanwendungen und digitale Produkte',
+      bio: 'Ich entwickle Webanwendungen von Anfang bis Ende. Mit Next.js, TypeScript und PostgreSQL baue ich skalierbare Produkte und verantworte den gesamten Prozess selbst – vom Design bis zum Deployment.',
+      location: 'Istanbul, Türkei',
+      availability: 'Offen für neue Projekte',
+    },
+  ];
+  for (const ceviri of ceviriler) {
+    const girdi = createProfileSchema.parse({ ...ceviri, socials: input.socials });
+    await db.profile.upsert({ where: { locale: girdi.locale }, update: girdi, create: girdi });
+  }
 }
 
 async function seedSkills(): Promise<number> {
@@ -326,6 +354,31 @@ async function seedProjects(): Promise<number> {
       order: 1,
       status: 'PUBLISHED',
       publishedAt: '2026-03-15T09:00:00.000Z',
+      translationKey: 'kiyi-medya-kurumsal-site',
+    },
+    /*
+     * ADR-046 — aynı projenin İngilizcesi: farklı slug, aynı `translationKey`.
+     * Dil seçicinin detay sayfasında karşılığı bulması ve hreflang kümesi
+     * bununla ölçülüyor (`cok-dil.spec.ts`); slug üretim içeriğiyle aynı.
+     * İkinci proje BİLEREK yalnızca Türkçe — tek dilli kayıt da sitemap'te.
+     */
+    {
+      locale: 'en',
+      slug: 'kiyi-medya-corporate-website',
+      translationKey: 'kiyi-medya-kurumsal-site',
+      title: 'Kıyı Medya Corporate Website',
+      summary:
+        'A corporate website and content management panel designed and built from scratch for Kıyı Medya.',
+      content:
+        '## Problem\n\nThe old site was slow, and updating content required a developer.\n\n## Solution\n\nRebuilt with the Next.js App Router; all content became editable from the panel.\n\n## Outcome\n\nLCP 4.2s → 1.3s, content updates in minutes.',
+      tags: ['corporate', 'cms'],
+      stack: ['Next.js', 'TypeScript', 'PostgreSQL', 'Tailwind CSS'],
+      liveUrl: 'https://kiyimedya.com',
+      clientName: 'Kıyı Medya',
+      featured: true,
+      order: 1,
+      status: 'PUBLISHED',
+      publishedAt: '2026-03-15T09:00:00.000Z',
     },
     {
       slug: 'rezervasyon-yonetim-paneli',
@@ -343,7 +396,7 @@ async function seedProjects(): Promise<number> {
   ];
 
   for (const raw of projects) {
-    const input = createProjectSchema.parse({ ...raw, locale: 'tr' });
+    const input = createProjectSchema.parse({ locale: 'tr', ...raw });
     const data = {
       ...input,
       publishedAt: input.publishedAt ? new Date(input.publishedAt) : null,
