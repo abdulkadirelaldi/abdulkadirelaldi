@@ -2478,3 +2478,35 @@ Sunum tarafı da açıktı: ADR-018 imzalı adresi "istek anında" istiyor ama p
 - **İmzalı adresi sayfaya basmak** — reddedildi: önbellekli sayfada 15 dakikada bayatlar (ADR-018'in öngördüğü çatışma) ve `img-src`e R2 kökeni ister.
 - **R2'yi public bucket yapmak** — reddedildi: §8.11 ile doğrudan çelişir; makbuzlar herkese açılırdı.
 
+
+---
+
+## ADR-045 — Public Sitenin Görsel Dili Yenilendi: Koyu Sahne, Dev Başlıklar, Kayan Paneller
+
+**Durum:** Kabul edildi · 2026-10-21 · **Kapsar:** public site (`src/app/(public)`, `src/components/public`) · **Değiştirir:** §3.1 (public'te tema seçimi), §3.2 (display fontu), §5.1 (bileşen haritası) — panel ETKİLENMEZ
+
+### Bağlam
+
+Kullanıcı mevcut ön yüzü beğenmedi ve bir referans verdi (Pinterest, newform.community videosu): tamamen koyu zemin; ekranı kaplayan, geniş ve çok kalın büyük harf başlıklar; kaydırdıkça içi dolan kontur başlıklar; koyu sahnenin üstüne kayan açık renkli paneller; üst üste yığılan proje kartları; kayan logo/görsel şeritleri ve renkli geometrik şekillerle biten bir alt bilgi. İstek: "neredeyse aynısı, ama benim profilime uygun, yazılım mühendisi dokunuşuyla".
+
+Kullanıcının üç kararı (2026-10-21): hero'nun ortasındaki **3B avatarı kendisi verecek** (o zamana kadar süs); public site **yalnızca koyu**; örnekteki müşteri yorumlarının yerine **yetenek kartları** (veritabanında yorum yok, uydurma yorum yazılmaz).
+
+### Karar
+
+1. **Public site her zaman koyu.** `(public)/layout.tsx` kabı `.site-koyu`; globals.css'te bu sınıf koyu token'ları yeniden basar. Tema çerezi ve düğmesi **panelde** yaşamaya devam ediyor. Açık paneller (Hizmetler, İletişim, CTA kutuları) `.panel-acik` ile T-002b'de **ölçülmüş** aydınlık token'ları kapsamlı basar — yeni renk değeri icat edilmedi, içerideki form ve rozetler kendiliğinden aydınlığa geçer.
+2. **Display fontu: Archivo, geniş (wdth 125), 800–900.** OFL, repoda (`fonts/archivo-genis.woff2`, 38 kB, `uret.py` ile — ADR-031 kalıbı). Yalnızca public layout'ta tanımlı, panel onu ön yüklemez. Gövde Inter, mono JetBrains Mono — değişmedi.
+3. **Vurgu gradyanı `--gradient-vurgu` (#d1127f → #7756ff).** Beyaz metin her durakta ≥ 4.6:1 (ölçüldü). Dekoratif şekil renkleri `--sekil-*` yalnızca `aria-hidden` süslerde.
+4. **Hareket: önce CSS, gerektiğinde framer-motion.** Harf harf giriş, kayan şeritler, süzülme ve sayfa geçişi **saf CSS** (sunucuda çizilir, hidrasyonu beklemez; hero LCP adayı). Kaydırmaya bağlı olanlar (kontur başlığın dolması, panelin büyüyerek oturması, paralaks) framer-motion `useScroll` — zaten bağımlılıktı, yeni paket yok. Proje yığını `position: sticky` ile, JS'siz.
+5. **Aurora (WebGL) public'ten kalktı.** Referansta yok; sayfa başına WebGL hakkı (§5.2.2) kullanılmıyor.
+6. **Yazılımcı imzası:** terminal istemi gibi sayfa yolları (`abdulkadir@site:~/projeler $`), proje kartlarında `const proje = {…}` künye bloğu, `--etiket` süzgeç etiketleri, `cd ../projeler` geri bağlantısı, canlı yerel saat, parlak `{ }` / `</>` süsleri.
+
+### Korunanlar (pazarlık dışı)
+
+- **Erişilebilirlik:** dev başlıkların görsel harfleri `aria-hidden`, `<h1>` adını `sr-only` metinden alır; kontur başlıkta okunan katman DOLU olandır; kayan şeritlerin kopyası `aria-hidden` + `inert`; sayfa başına tek `<h1>`.
+- **`prefers-reduced-motion`:** CSS animasyonları globals.css'teki blokla tek kareye iner; framer bileşenleri `useReducedMotion` ile kaydırma etkisini hiç uygulamaz.
+- **LCP:** giriş animasyonu opaklığı 0'dan değil 0.01'den başlatır (Chrome opaklığı 0 olan öğeyi LCP adayı saymıyor).
+- **E2E sözleşmeleri:** `data-cta`/`data-hizmet`/`data-kaynak`/`data-proje` öznitelikleri, iletişim formu alan kimlikleri, `/projeler/…` ve `/blog/…` bağlantıları.
+
+### 3B avatar
+
+`public/avatar-3d.webp` (ya da `.png`) konduğu an hero'da görünür; yoksa parlak küre + `</>` süsü. Dosya modül yüklenirken bir kez aranır — yeni dosya yeni dağıtımla gelir. Önerilen: şeffaf zeminli, kare, ≥ 832 px.

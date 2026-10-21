@@ -1,132 +1,110 @@
-'use client';
-
-/*
- * İSTEMCİ BİLEŞENİ OLARAK KALDI — T-023'te sunucuya alındı, ÖLÇÜLDÜ, geri alındı.
- *
- * Beklenti: `'use client'` kalkarsa bölümün işaretlemesi istemci paketinden
- * çıkar. Derleme çıktısı bunu doğruladı bile: ana sayfa parçası 11.5 kB →
- * 3.39 kB, ilk yük 127 kB → 118 kB.
- *
- * GERÇEK ÖLÇÜM TERSİNİ SÖYLEDİ (Lighthouse mobil, her kol için 3 koşu, medyan;
- * her koşudan önce `.next` silinip sunucu yeniden ayağa kaldırıldı):
- *
- *   | Bölümler | belge | FCP    | LCP     | performans |
- *   | -------- | ----- | ------ | ------- | ---------- |
- *   | istemci  | 11 kB | 758 ms | 3312 ms | 92/91/92   |
- *   | sunucu   | 19 kB | 909 ms | 3556 ms | 91/91/89   |
- *
- * SEBEP: bölüm sunucuda render edilince RSC yükü BELGEYE SATIR İÇİ giriyor —
- * aynı içerik hem HTML hem flight verisi olarak iki kez. Belge 8 kB büyüyor ve
- * Slow 4G'de bu, ilk boyamayı doğrudan geciktiriyor. "First Load JS" sayısı
- * düşerken kullanıcının gördüğü an gecikiyor; derleme çıktısındaki sayı burada
- * yanıltıcı bir vekil.
- *
- * §7'nin "varsayılan Sunucu Bileşeni" kuralı hâlâ doğru; bu altı bölüm, uçtan
- * uca istemci bileşenlerinden (React Bits sarmalayıcıları, `BolumGiris`) oluşan
- * bir ağacın kökü oldukları için ölçüme dayalı istisna. Yeniden denenecekse
- * yukarıdaki tablo yeniden üretilmeli — sayısız değil, sayıyla tartışılsın.
- */
-
-import { ArrowUpRight, Briefcase } from 'lucide-react';
+import { ArrowUpRight } from 'lucide-react';
 import Link from 'next/link';
 
 import { BolumGiris } from '@/components/public/bolum-giris';
-import { SpotlightCard } from '@/components/reactbits/lazy';
-import { buttonClasses } from '@/components/ui/button';
-import { EmptyState } from '@/components/ui/empty-state';
+import { KonturBaslik } from '@/components/public/tasarim/kontur-baslik';
+import { SahnePaneli } from '@/components/public/tasarim/sahne-paneli';
 import type { ServiceDto } from '@/server/services/content-dto';
+
+/**
+ * ADR-045 — numaralı hizmet satırları (örnekteki "01 3D MODELING").
+ *
+ * Satırın tamamı Kıyı Medya'ya giden bağlantı; üzerine gelince satır sağa
+ * kayıyor, numara gradyana dönüyor ve ok beliriyor. `data-cta` +
+ * `data-hizmet` analitik sözleşmesi (T-022) korunuyor.
+ *
+ * Başlık düzeyi çağırandan: ana sayfada bölüm `h2` → satır `h3`; /hizmetler'de
+ * sayfa `h1` → satır `h2` (T-024 dersi: düzey atlanmaz).
+ */
+export function HizmetListesi({
+  hizmetler,
+  kiyiMedyaUrl,
+  baslikDuzeyi: Baslik = 'h3',
+  kaynak,
+}: {
+  hizmetler: ServiceDto[];
+  kiyiMedyaUrl: string;
+  baslikDuzeyi?: 'h2' | 'h3';
+  /** `data-kaynak` — hangi sayfadan tıklandığı (analitik). */
+  kaynak?: string;
+}) {
+  const sirali = [...hizmetler].sort((a, b) => a.order - b.order);
+
+  return (
+    <ol className="border-line border-t">
+      {sirali.map((hizmet, sira) => (
+        <li key={hizmet.id} className="border-line border-b">
+          <BolumGiris gecikme={sira * 0.05}>
+            <a
+              href={hizmet.ctaUrl ?? kiyiMedyaUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-cta="kiyi-medya"
+              data-hizmet={hizmet.id}
+              data-kaynak={kaynak}
+              className="group focus-ring ease-brand grid grid-cols-[auto_1fr_auto] items-start gap-x-6 gap-y-2 py-8 transition-[padding] duration-500 hover:pl-4 md:grid-cols-[8rem_1fr_1.2fr_auto] md:items-center md:py-10"
+            >
+              <span className="dev-baslik group-hover:text-gradient-vurgu text-primary text-4xl md:text-6xl">
+                {String(sira + 1).padStart(2, '0')}
+              </span>
+              <Baslik className="text-primary font-display self-center text-sm font-bold tracking-[0.14em] uppercase md:text-base">
+                {hizmet.title}
+              </Baslik>
+              <p className="text-body col-span-3 text-sm leading-relaxed md:col-span-1">
+                {hizmet.description}
+              </p>
+              <span
+                aria-hidden="true"
+                className="border-line-strong text-primary ease-brand col-start-3 row-start-1 flex size-11 items-center justify-center rounded-full border transition-all duration-500 group-hover:rotate-45 group-hover:border-transparent group-hover:bg-[var(--text-primary)] group-hover:text-[var(--bg-base)] md:col-start-auto md:row-start-auto"
+              >
+                <ArrowUpRight className="size-5" />
+              </span>
+            </a>
+          </BolumGiris>
+        </li>
+      ))}
+    </ol>
+  );
+}
 
 export type HizmetlerProps = {
   hizmetler: ServiceDto[];
-  /** §12 — `NEXT_PUBLIC_KIYI_MEDYA_URL`. Hizmetin kendi `ctaUrl`'i yoksa yedek. */
   kiyiMedyaUrl: string;
 };
 
 /**
- * "Hizmetler" bölümü — §4.1, kartlar `SpotlightCard` (§5.1).
- *
- * K4 SÖZLEŞMESİ: her kart ÖLÇÜLEBİLİR bir CTA taşır. `data-cta="kiyi-medya"`
- * ve `data-hizmet` nitelikleri analitik bağlandığında (F6) hangi hizmetin
- * dönüştürdüğünü ayırt etmeyi sağlar — sonradan eklenmesi zor, şimdi ücretsiz.
- *
- * `ctaUrl` DTO'da `null` olabilir; o zaman Kıyı Medya ana adresine gidilir.
- * §1.A: ticari niyeti olan ziyaretçi Kıyı Medya'ya yönlendirilir.
+ * Ana sayfa hizmet bölümü — AÇIK panel, koyu sahnenin üstüne kayıyor.
+ * Hizmet yoksa bölüm HİÇ çizilmiyor: boş bir açık panel sahnede delik açar.
  */
 export function Hizmetler({ hizmetler, kiyiMedyaUrl }: HizmetlerProps) {
-  const sirali = [...hizmetler].sort((a, b) => a.order - b.order);
+  if (hizmetler.length === 0) return null;
 
   return (
-    <section id="hizmetler" aria-labelledby="hizmetler-baslik" className="scroll-mt-20">
-      <div className="mx-auto max-w-6xl px-4 py-16 md:py-24">
-        <BolumGiris className="flex flex-col gap-3">
-          <p className="tabular text-accent-soft text-xs tracking-wider uppercase">
-            05 — Hizmetler
+    <SahnePaneli ton="acik" katman={10} id="hizmetler" aria-labelledby="hizmetler-baslik">
+      <div className="mx-auto max-w-7xl px-4 pt-20 pb-28 md:px-8 md:pt-28 md:pb-36">
+        <KonturBaslik
+          id="hizmetler-baslik"
+          metin="Hizmetler"
+          className="text-center text-[clamp(2.5rem,11vw,10rem)]"
+        />
+
+        <div className="mt-14 md:mt-20">
+          <HizmetListesi hizmetler={hizmetler} kiyiMedyaUrl={kiyiMedyaUrl} />
+        </div>
+
+        <BolumGiris className="mt-12 flex flex-wrap items-center justify-between gap-4">
+          <p className="text-body max-w-xl text-sm">
+            Ticari işler <span className="text-primary font-semibold">Kıyı Medya</span> üzerinden
+            yürüyor — teklif, sözleşme ve faturalandırma orada.
           </p>
-          <h2 id="hizmetler-baslik" className="text-3xl md:text-4xl">
-            Nasıl yardımcı olabilirim
-          </h2>
-        </BolumGiris>
-
-        {sirali.length === 0 ? (
-          <EmptyState
-            className="mt-8"
-            icon={Briefcase}
-            title="Hizmet listesi hazırlanıyor"
-            description="Ne yaptığımı buradan anlatacağım. Aklındaki işi şimdiden konuşabiliriz."
-            action={
-              <Link href="/iletisim" className={buttonClasses({ size: 'sm' })}>
-                Bana yaz
-              </Link>
-            }
-          />
-        ) : (
-          <ul className="mt-8 grid gap-4 sm:grid-cols-2">
-            {sirali.map((hizmet, sira) => (
-              <li key={hizmet.id}>
-                <BolumGiris gecikme={sira * 0.06}>
-                  <SpotlightCard className="flex h-full flex-col gap-3">
-                    <h3 className="text-primary text-base font-semibold">{hizmet.title}</h3>
-                    <p className="text-muted text-sm">{hizmet.description}</p>
-
-                    <a
-                      href={hizmet.ctaUrl ?? kiyiMedyaUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      data-cta="kiyi-medya"
-                      data-hizmet={hizmet.id}
-                      className="focus-ring text-accent-soft ease-brand duration-micro rounded-btn mt-auto inline-flex items-center gap-1 self-start pt-2 text-sm font-medium transition-colors"
-                    >
-                      Kıyı Medya ile ilerle
-                      <ArrowUpRight className="size-4" aria-hidden="true" />
-                    </a>
-                  </SpotlightCard>
-                </BolumGiris>
-              </li>
-            ))}
-          </ul>
-        )}
-
-        <BolumGiris gecikme={0.1} className="mt-8">
-          <div className="border-line bg-surface/60 rounded-card flex flex-wrap items-center justify-between gap-4 border p-6">
-            <p className="text-body max-w-xl text-sm">
-              Ticari işler <span className="text-primary font-medium">Kıyı Medya</span> üzerinden
-              yürüyor. Teklif, sözleşme ve faturalandırma orada.
-            </p>
-
-            <a
-              href={kiyiMedyaUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              data-cta="kiyi-medya"
-              data-hizmet="genel"
-              className={buttonClasses({ className: 'shrink-0' })}
-            >
-              Kıyı Medya&apos;ya git
-              <ArrowUpRight className="size-4" aria-hidden="true" />
-            </a>
-          </div>
+          <Link
+            href="/hizmetler"
+            className="focus-ring rounded-btn text-primary text-xs font-semibold tracking-[0.16em] uppercase underline underline-offset-4"
+          >
+            Tüm ayrıntılar →
+          </Link>
         </BolumGiris>
       </div>
-    </section>
+    </SahnePaneli>
   );
 }

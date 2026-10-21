@@ -1,12 +1,13 @@
-import { ArrowLeft, ArrowUpRight, Code2, Globe, Trash2 } from 'lucide-react';
+import { ArrowLeft, Code2, Trash2 } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { KapakGorsel } from '@/components/public/kapak-gorsel';
 import { Mdx } from '@/components/public/mdx';
-import { filtreAdresi } from '@/components/public/proje-filtre';
-import { Badge } from '@/components/ui/badge';
+import { cipSiniflari, filtreAdresi } from '@/components/public/proje-filtre';
+import { GradyanDisBaglanti, hapSiniflari } from '@/components/public/tasarim/gradyan-baglanti';
+import { HarfHarf } from '@/components/public/tasarim/harf-harf';
 import { buttonClasses } from '@/components/ui/button';
 import { getProjectBySlug } from '@/server/services';
 
@@ -91,153 +92,142 @@ export default async function ProjeDetaySayfasi({ params }: SayfaProps) {
 
   const proje = sonuc.data;
 
+  // Künye — "spec sheet": yalnızca DOLU alanlar satır üretir (T-022 kalıbı).
+  const kunye = [
+    proje.clientName && { ad: 'Müşteri', deger: proje.clientName },
+    // ISO dizesinden yıl-ay — `Date` aritmetiği yok (ADR-016 mantığı).
+    proje.publishedAt && { ad: 'Yayın', deger: proje.publishedAt.slice(0, 7) },
+    proje.stack.length > 0 && { ad: 'Yığın', deger: proje.stack.join(' · ') },
+  ].filter((k): k is { ad: string; deger: string } => Boolean(k));
+
   return (
-    <article className="mx-auto flex max-w-4xl flex-col gap-10 px-4 py-16 md:py-24">
-      <header className="flex flex-col gap-4">
-        <Link
-          href="/projeler"
-          className="focus-ring text-muted hover:text-primary rounded-btn inline-flex w-fit items-center gap-1.5 text-sm transition-colors"
-        >
-          <ArrowLeft className="size-4" aria-hidden="true" />
-          Projeler
-        </Link>
+    <article>
+      <header className="relative isolate overflow-hidden pt-32 pb-12 md:pt-40 md:pb-16">
+        <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 md:px-8">
+          <Link
+            href="/projeler"
+            className="focus-ring tabular text-muted hover:text-primary rounded-btn inline-flex w-fit items-center gap-2 text-xs transition-colors"
+          >
+            <ArrowLeft className="size-4" aria-hidden="true" />
+            cd ../projeler
+          </Link>
 
-        {/* Sayfadaki TEK <h1>. MDX içindeki `#` başlıkları `<h2>` olarak çizilir. */}
-        <h1 className="text-3xl md:text-5xl">{proje.title}</h1>
+          {/* Sayfadaki TEK <h1>. MDX içindeki `#` başlıkları `<h2>` olarak çizilir. */}
+          <h1 className="dev-baslik text-primary text-[clamp(2.25rem,7.5vw,7rem)]">
+            <span className="sr-only">{proje.title}</span>
+            <HarfHarf metin={proje.title} aralik={0.02} />
+          </h1>
 
-        <p className="text-body max-w-2xl text-lg">{proje.summary}</p>
+          <div className="animate-sayfa-giris grid gap-10 [animation-delay:0.3s] md:grid-cols-[1.3fr_1fr]">
+            <p className="text-body text-lg leading-relaxed md:text-xl">{proje.summary}</p>
 
-        <dl className="text-muted flex flex-wrap items-center gap-x-6 gap-y-2 text-sm">
-          {proje.clientName && (
-            <div className="flex gap-2">
-              <dt>Müşteri:</dt>
-              <dd className="text-body">{proje.clientName}</dd>
+            <div className="flex flex-col gap-6">
+              {kunye.length > 0 && (
+                <dl className="border-line border-t">
+                  {kunye.map((k) => (
+                    <div
+                      key={k.ad}
+                      className="border-line grid grid-cols-[6rem_1fr] gap-4 border-b py-3 text-sm"
+                    >
+                      <dt className="tabular text-muted text-xs tracking-[0.14em] uppercase">
+                        {k.ad}
+                      </dt>
+                      <dd className="text-primary">{k.deger}</dd>
+                    </div>
+                  ))}
+                </dl>
+              )}
+
+              {proje.tags.length > 0 && (
+                <ul className="flex flex-wrap gap-1.5">
+                  {proje.tags.map((etiket) => (
+                    <li key={etiket}>
+                      {/* Etiket, listeye SÜZÜLMÜŞ olarak döner — katalogda gezinme yolu. */}
+                      <Link href={filtreAdresi({ etiket })} className={cipSiniflari(false)}>
+                        {etiket}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {(proje.liveUrl || proje.repoUrl) && (
+                <div className="flex flex-wrap gap-3">
+                  {proje.liveUrl && (
+                    <GradyanDisBaglanti href={proje.liveUrl}>Canlı site</GradyanDisBaglanti>
+                  )}
+                  {proje.repoUrl && (
+                    <a
+                      href={proje.repoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={hapSiniflari('h-11 px-5')}
+                    >
+                      <Code2 className="size-4" aria-hidden="true" />
+                      Kaynak kodu
+                    </a>
+                  )}
+                </div>
+              )}
             </div>
-          )}
-          {proje.publishedAt && (
-            <div className="flex gap-2">
-              <dt>Yayın:</dt>
-              <dd className="tabular text-body">
-                {/* ISO dizesinden yıl-ay — `Date` aritmetiği yok (ADR-016 mantığı). */}
-                {proje.publishedAt.slice(0, 7)}
-              </dd>
-            </div>
-          )}
-        </dl>
-
-        {(proje.tags.length > 0 || proje.stack.length > 0) && (
-          <div className="flex flex-col gap-3">
-            {proje.tags.length > 0 && (
-              <ul className="flex flex-wrap gap-1.5">
-                {proje.tags.map((etiket) => (
-                  <li key={etiket}>
-                    {/* Etiket, listeye SÜZÜLMÜŞ olarak döner — katalogda gezinme yolu. */}
-                    <Link href={filtreAdresi({ etiket })} className="focus-ring rounded-pill">
-                      <Badge variant="accent">{etiket}</Badge>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-
-            {proje.stack.length > 0 && (
-              <ul className="flex flex-wrap gap-1.5">
-                {proje.stack.map((teknoloji) => (
-                  <li key={teknoloji}>
-                    <Link href={filtreAdresi({ teknoloji })} className="focus-ring rounded-pill">
-                      <Badge variant="outline">{teknoloji}</Badge>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
           </div>
-        )}
-
-        {(proje.liveUrl || proje.repoUrl) && (
-          <div className="flex flex-wrap gap-3">
-            {proje.liveUrl && (
-              <a
-                href={proje.liveUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={buttonClasses({ variant: 'secondary', size: 'sm' })}
-              >
-                <Globe className="size-4" aria-hidden="true" />
-                Canlı site
-              </a>
-            )}
-            {proje.repoUrl && (
-              <a
-                href={proje.repoUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className={buttonClasses({ variant: 'secondary', size: 'sm' })}
-              >
-                <Code2 className="size-4" aria-hidden="true" />
-                Kaynak kodu
-              </a>
-            )}
-          </div>
-        )}
+        </div>
       </header>
 
-      {/* Kapak: liste kartıyla AYNI bileşen (ADR-018 yer tutucusu dahil). */}
-      <KapakGorsel kapak={proje.cover} baslik={proje.title} className="rounded-card" />
+      <div className="mx-auto flex max-w-7xl flex-col gap-16 px-4 pb-32 md:px-8">
+        {/* Kapak: liste kartıyla AYNI bileşen (ADR-018 yer tutucusu dahil). */}
+        <div className="overflow-hidden rounded-[2rem]">
+          <KapakGorsel kapak={proje.cover} baslik={proje.title} />
+        </div>
 
-      {/* İçerik — problem / çözüm / sonuç anlatısı MDX'ten gelir (§8.9). */}
-      <Mdx kaynak={proje.content} kayitEtiketi={`project:${proje.slug}`} />
+        {/* İçerik — problem / çözüm / sonuç anlatısı MDX'ten gelir (§8.9). */}
+        <div className="mx-auto w-full max-w-3xl">
+          <Mdx kaynak={proje.content} kayitEtiketi={`project:${proje.slug}`} />
+        </div>
 
-      {proje.gallery.length > 0 && (
-        <section aria-labelledby="galeri-baslik" className="flex flex-col gap-4">
-          <h2 id="galeri-baslik" className="text-2xl">
-            Görseller
-          </h2>
+        {proje.gallery.length > 0 && (
+          <section aria-labelledby="galeri-baslik" className="flex flex-col gap-8">
+            <h2
+              id="galeri-baslik"
+              className="dev-baslik text-primary text-[clamp(2rem,6vw,4.5rem)]"
+            >
+              Görseller
+            </h2>
 
-          {/*
-            Sıra servisten geliyor (`order` ile sıralı, ADR-018) — burada
-            yeniden sıralanmıyor. Kapaklarla AYNI bileşen kullanılıyor:
-            ikinci bir görsel yolu açmak, görsel kaynağı değiştiğinde iki yerde
-            birden düzeltme gerektirirdi — T-037f'te tek yerde bağlandı.
-          */}
-          <ul className="grid gap-4 sm:grid-cols-2">
-            {proje.gallery.map((gorsel, sira) => (
-              <li key={gorsel.id}>
-                <KapakGorsel
-                  kapak={gorsel}
-                  baslik={`${proje.title} — görsel ${sira + 1}`}
-                  className="rounded-card"
-                />
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+            {/*
+              Sıra servisten geliyor (`order` ile sıralı, ADR-018) — burada
+              yeniden sıralanmıyor. Kapaklarla AYNI bileşen: ikinci bir görsel
+              yolu açmak, görsel kaynağı değiştiğinde iki yerde birden düzeltme
+              gerektirirdi — T-037f'te tek yerde bağlandı.
+            */}
+            <ul className="grid gap-4 sm:grid-cols-2">
+              {proje.gallery.map((gorsel, sira) => (
+                <li key={gorsel.id} className="overflow-hidden rounded-[1.5rem]">
+                  <KapakGorsel kapak={gorsel} baslik={`${proje.title} — görsel ${sira + 1}`} />
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
-      {/*
-        KIYI MEDYA CTA — §1.1 K4, T-022'deki ölçülebilir kalıbın aynısı.
-        `data-cta` + `data-proje`: analitik bağlandığında (F6) HANGİ projenin
-        dönüştürdüğü ayırt edilebilsin. Sonradan eklemek zor, şimdi ücretsiz.
-      */}
-      <aside className="border-line bg-surface/60 rounded-card flex flex-wrap items-center justify-between gap-4 border p-6">
-        <p className="text-body max-w-xl text-sm">
-          Benzer bir iş mi düşünüyorsun? Ticari işler{' '}
-          <span className="text-primary font-medium">Kıyı Medya</span> üzerinden yürüyor; teklif ve
-          sözleşme orada.
-        </p>
-
-        <a
-          href={KIYI_MEDYA_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          data-cta="proje-detay"
-          data-proje={proje.slug}
-          className={buttonClasses({ className: 'shrink-0' })}
-        >
-          Kıyı Medya ile ilerle
-          <ArrowUpRight className="size-4" aria-hidden="true" />
-        </a>
-      </aside>
+        {/*
+          KIYI MEDYA CTA — §1.1 K4, T-022'deki ölçülebilir kalıbın aynısı.
+          `data-cta` + `data-proje`: analitik bağlandığında (F6) HANGİ projenin
+          dönüştürdüğü ayırt edilebilsin. Sonradan eklemek zor, şimdi ücretsiz.
+        */}
+        <aside className="panel-acik bg-canvas grid gap-8 rounded-[2rem] p-8 md:grid-cols-[1fr_auto] md:items-end md:p-12">
+          <div className="flex flex-col gap-3">
+            <p className="dev-baslik text-primary text-3xl md:text-5xl">Benzer bir iş mi?</p>
+            <p className="text-body max-w-xl text-sm">
+              Ticari işler <span className="text-primary font-semibold">Kıyı Medya</span> üzerinden
+              yürüyor; teklif ve sözleşme orada.
+            </p>
+          </div>
+          <GradyanDisBaglanti href={KIYI_MEDYA_URL} data-cta="proje-detay" data-proje={proje.slug}>
+            Kıyı Medya ile ilerle
+          </GradyanDisBaglanti>
+        </aside>
+      </div>
     </article>
   );
 }

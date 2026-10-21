@@ -1,177 +1,142 @@
-'use client';
-
-/*
- * İSTEMCİ BİLEŞENİ OLARAK KALDI — T-023'te sunucuya alındı, ÖLÇÜLDÜ, geri alındı.
- *
- * Beklenti: `'use client'` kalkarsa bölümün işaretlemesi istemci paketinden
- * çıkar. Derleme çıktısı bunu doğruladı bile: ana sayfa parçası 11.5 kB →
- * 3.39 kB, ilk yük 127 kB → 118 kB.
- *
- * GERÇEK ÖLÇÜM TERSİNİ SÖYLEDİ (Lighthouse mobil, her kol için 3 koşu, medyan;
- * her koşudan önce `.next` silinip sunucu yeniden ayağa kaldırıldı):
- *
- *   | Bölümler | belge | FCP    | LCP     | performans |
- *   | -------- | ----- | ------ | ------- | ---------- |
- *   | istemci  | 11 kB | 758 ms | 3312 ms | 92/91/92   |
- *   | sunucu   | 19 kB | 909 ms | 3556 ms | 91/91/89   |
- *
- * SEBEP: bölüm sunucuda render edilince RSC yükü BELGEYE SATIR İÇİ giriyor —
- * aynı içerik hem HTML hem flight verisi olarak iki kez. Belge 8 kB büyüyor ve
- * Slow 4G'de bu, ilk boyamayı doğrudan geciktiriyor. "First Load JS" sayısı
- * düşerken kullanıcının gördüğü an gecikiyor; derleme çıktısındaki sayı burada
- * yanıltıcı bir vekil.
- *
- * §7'nin "varsayılan Sunucu Bileşeni" kuralı hâlâ doğru; bu altı bölüm, uçtan
- * uca istemci bileşenlerinden (React Bits sarmalayıcıları, `BolumGiris`) oluşan
- * bir ağacın kökü oldukları için ölçüme dayalı istisna. Yeniden denenecekse
- * yukarıdaki tablo yeniden üretilmeli — sayısız değil, sayıyla tartışılsın.
- */
-
 import Link from 'next/link';
 
-import { GithubIcon, InstagramIcon, LinkedinIcon, XIcon } from '@/components/icons/social';
-import {
-  Aurora,
-  BlurText,
-  GlassIcons,
-  RotatingText,
-  ShinyText,
-  StarBorder,
-} from '@/components/reactbits/lazy';
-import { buttonClasses } from '@/components/ui/button';
+import { GradyanBaglanti, hapSiniflari } from '@/components/public/tasarim/gradyan-baglanti';
+import { HarfHarf } from '@/components/public/tasarim/harf-harf';
+import { ParlakGlif, ParlakHalka, ParlakKure } from '@/components/public/tasarim/sekiller';
+import { Yuzen } from '@/components/public/tasarim/yuzen';
+import { YerelSaat } from '@/components/public/yerel-saat';
 import type { ProfileDto } from '@/server/services/content-dto';
 
-/** Marka ikonu bulunan ağlar. `ProfileDto.socials` daha fazlasını taşıyabilir. */
-export type SosyalAg = 'github' | 'linkedin' | 'x' | 'instagram';
-
 export type HeroProps = {
-  /** ADR-026 sözleşmesi. `headline` rozet, `subtitle` özet olarak kullanılır. */
+  /** ADR-026 sözleşmesi. `headline` ünvan, `subtitle` kısa tanıtım. */
   profil: ProfileDto;
   /** Görünen isim — `ProfileDto`'da ad alanı yok, `SITE_NAME`'den gelir. */
   ad: string;
-  /** RotatingText'in döndüreceği ünvanlar. İlki `<h1>`'de de geçer. */
-  unvanlar: string[];
-};
-
-const SOSYAL_TANIM: Record<SosyalAg, { etiket: string; Ikon: typeof GithubIcon }> = {
-  github: { etiket: 'GitHub', Ikon: GithubIcon },
-  linkedin: { etiket: 'LinkedIn', Ikon: LinkedinIcon },
-  x: { etiket: 'X', Ikon: XIcon },
-  instagram: { etiket: 'Instagram', Ikon: InstagramIcon },
+  /**
+   * 3B avatarın `public/` altındaki adresi; dosya yoksa `null` ve yerine
+   * parlak küre çiziliyor (bkz. `app/(public)/page.tsx` → `avatarAdresi`).
+   */
+  avatar: string | null;
 };
 
 /**
- * Ana sayfa hero'su — §5.1'in bileşen haritası (ADR-025 ile güncel).
+ * Ana sayfa hero'su — ADR-045 (örnekteki "HI, I'M ALEX").
  *
- * WEBGL: Aurora sayfanın TEK WebGL bileşenidir (§5.2.2) ve yalnızca
- * masaüstü + koyu tema + hareket açıkken yüklenir; diğer üç durumda `lazy.tsx`
- * statik gradienti koyar (T-020b ölçümü). Bu bileşen o kararı TEKRARLAMAZ,
- * sarmalayıcıya bırakır — kural tek yerde yaşasın.
+ * SUNUCU BİLEŞENİ: giriş animasyonu saf CSS (`HarfHarf`), yani başlık JS'i
+ * beklemeden ilk boyamada çiziliyor — LCP adayı bu blok. İstemciye inen tek
+ * parçalar yüzen süsler ve yerel saat.
  *
- * Metin katmanı `relative z-10` ile arka planın ÜSTÜNDE; hero kabı `isolate`
- * olduğu için z-index'ler sayfanın geri kalanına sızmaz.
+ * BAŞLIK: görsel harfler `aria-hidden`; `<h1>` erişilebilir adını `sr-only`
+ * metinden alıyor — ekran okuyucu "M-E-R-H-A-B-A" değil, tam cümleyi duyar.
+ *
+ * AVATAR: başlığın ÖNÜNDE, alt ortada; ismin üstüne biniyor (örnekteki gibi).
+ * Dosya yoksa parlak küre + kod imi — "eksik görsel" değil, kasıtlı bir süs.
  */
-export function Hero({ profil, ad, unvanlar }: HeroProps) {
-  const sosyal = profil.socials ?? {};
-
-  const sosyalListe = (Object.keys(SOSYAL_TANIM) as SosyalAg[])
-    .map((anahtar) => ({ anahtar, adres: sosyal[anahtar], ...SOSYAL_TANIM[anahtar] }))
-    .filter((girdi): girdi is typeof girdi & { adres: string } => Boolean(girdi.adres));
+export function Hero({ profil, ad, avatar }: HeroProps) {
+  const [ilkAd] = ad.split(' ');
 
   return (
     <section
       aria-labelledby="hero-baslik"
-      className="relative isolate flex min-h-[calc(100dvh-4rem)] items-center overflow-hidden"
+      className="relative isolate flex min-h-dvh flex-col overflow-hidden pt-24 md:pt-28"
     >
-      <Aurora opacity={0.45} />
+      {/* Zemin: ince nokta ızgarası + iki yumuşak ışık. Süs, metin yok. */}
+      <div aria-hidden="true" className="absolute inset-0 -z-10">
+        <div className="absolute inset-0 [background-image:radial-gradient(var(--border)_1px,transparent_1px)] [mask-image:radial-gradient(ellipse_at_center,black_20%,transparent_75%)] [background-size:28px_28px]" />
+        <div className="bg-accent/25 absolute -top-40 left-1/2 size-[42rem] -translate-x-1/2 rounded-full blur-[140px]" />
+        <div className="absolute right-0 bottom-0 size-[28rem] rounded-full bg-[color-mix(in_oklab,var(--sekil-pembe)_18%,transparent)] blur-[120px]" />
+      </div>
 
-      <div className="relative z-10 mx-auto flex w-full max-w-6xl flex-col items-start gap-6 px-4 py-16">
-        {/*
-          CLS = 0 için her tembel yuvaya SON YÜKSEKLİĞİ kadar yer ayrılıyor.
-          `lazy.tsx`'in iskeletleri genel ölçülü; buradaki gerçek ölçüler
-          tarayıcıda ölçülüp yazıldı (rozet 30px, isim 45/75px, ünvan 28px,
-          sosyal 120px). İskelet → bileşen geçişinde kutu büyümüyor.
-        */}
-        <div className="min-h-8">
-          <ShinyText
-            text={profil.headline}
-            className="border-line bg-surface/70 rounded-pill border px-3 py-1 text-sm font-medium backdrop-blur-sm"
-            speed={3}
+      <div className="mx-auto flex w-full max-w-7xl flex-1 flex-col px-4 md:px-8">
+        <h1 id="hero-baslik" className="dev-baslik text-primary text-center">
+          <span className="sr-only">
+            Merhaba, ben {ad} — {profil.headline}
+          </span>
+          <HarfHarf
+            metin="Merhaba, ben"
+            className="block text-[clamp(1.75rem,6.6vw,6.25rem)]"
+            baslangic={0.1}
           />
-        </div>
-
-        <h1 id="hero-baslik" className="sr-only">
-          {ad} — {unvanlar[0]}
+          <HarfHarf
+            metin={ilkAd ?? ad}
+            className="block text-[clamp(2.25rem,9.4vw,8.5rem)]"
+            baslangic={0.45}
+            aralik={0.045}
+          />
         </h1>
 
-        {/*
-          BlurText bir <p> üretiyor; başlık semantiği yukarıdaki görünmez <h1>'de.
-          Böylece ekran okuyucu tek ve tam bir başlık duyar, görsel katman ise
-          animasyonlu kalır (§5.1 "tek seferlik, sayfa yüklemede").
-        */}
-        <div className="min-h-12 md:min-h-20">
-          <BlurText
-            text={ad}
-            animateBy="words"
-            delay={90}
-            className="font-display text-primary text-4xl leading-tight font-bold md:text-6xl"
-          />
-        </div>
+        <div className="relative flex flex-1 flex-col items-center justify-end">
+          {/* Avatar — başlığın ÜSTÜNE biniyor (negatif kenar boşluğu). */}
+          <div className="animate-sayfa-giris relative z-10 -mt-[4vw] w-[min(72vw,26rem)] [animation-delay:0.9s] md:-mt-[6vw]">
+            {avatar ? (
+              // eslint-disable-next-line @next/next/no-img-element -- `public/`ten statik, ölçüsü sabit; next/image optimizasyonu standalone imaja `sharp` ister
+              <img
+                src={avatar}
+                alt=""
+                width={832}
+                height={832}
+                fetchPriority="high"
+                className="h-auto w-full drop-shadow-[0_40px_60px_rgba(0,0,0,0.6)]"
+              />
+            ) : (
+              <div className="relative mx-auto aspect-square w-[80%]">
+                <ParlakKure className="w-full" renk="var(--accent)" />
+                <ParlakGlif
+                  glif="</>"
+                  className="absolute inset-0 flex items-center justify-center text-[clamp(3rem,9vw,7rem)]"
+                />
+              </div>
+            )}
+          </div>
 
-        <p className="text-body flex min-h-8 flex-wrap items-center gap-2 text-lg md:text-xl">
-          <span>Ben bir</span>
-          <RotatingText
-            texts={unvanlar}
-            mainClassName="text-accent-soft font-medium"
-            rotationInterval={2800}
-          />
-        </p>
-
-        {profil.subtitle && <p className="text-body max-w-2xl text-balance">{profil.subtitle}</p>}
-
-        {/*
-          Mobilde ALT ALTA: iskelet gerçek butondan geniş olduğu için satır
-          kırılıyor, bileşen gelince tek satıra düşüyordu — ölçülen CLS 0.19.
-          Dikey dizilim yüksekliği iki durumda da aynı tutuyor; yan kazanç
-          olarak dokunma hedefi tam genişlik oluyor.
-        */}
-        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
-          <StarBorder as="div" speed="6s" className="w-full cursor-default sm:w-auto">
-            <Link
-              href="/projeler"
-
-              className="focus-ring rounded-btn block w-full text-center"
-            >
-              Projelerimi gör
-            </Link>
-          </StarBorder>
-
-          <Link
-            href="/iletisim"
-
-            className={buttonClasses({
-              variant: 'secondary',
-              size: 'lg',
-              className: 'w-full sm:w-auto',
-            })}
+          <Yuzen
+            hiz={-160}
+            className="bottom-[12%] left-[4%] w-14 md:top-[8%] md:bottom-auto md:left-[6%] md:w-24"
           >
-            Benimle çalış
-          </Link>
+            <ParlakHalka className="w-full" />
+          </Yuzen>
+          <Yuzen
+            hiz={-90}
+            gecikme={1.2}
+            className="top-[30%] right-[3%] w-14 md:right-[8%] md:w-20"
+          >
+            <ParlakKure className="w-full" renk="var(--sekil-turuncu)" />
+          </Yuzen>
         </div>
 
-        {sosyalListe.length > 0 && (
-          <nav aria-label="Sosyal hesaplar" className="mt-2 min-h-30">
-            <GlassIcons
-              className="!mx-0 grid-cols-4 !gap-8 !py-6 md:grid-cols-4"
-              items={sosyalListe.map(({ etiket, adres, Ikon }) => ({
-                icon: <Ikon title="" aria-hidden />,
-                color: 'accent',
-                label: etiket,
-                href: adres,
-              }))}
-            />
-          </nav>
-        )}
+        {/* Alt şerit: solda tanıtım, sağda eylemler — örnekteki yerleşim. */}
+        <div className="animate-sayfa-giris relative z-20 grid gap-6 pt-6 pb-8 [animation-delay:1.1s] md:grid-cols-[1fr_auto_1fr] md:items-end md:pb-10">
+          <div className="flex max-w-xs flex-col gap-2">
+            <p className="text-primary text-[0.7rem] leading-relaxed font-semibold tracking-[0.16em] uppercase">
+              {profil.headline}
+            </p>
+            {profil.subtitle && (
+              <p className="text-muted text-xs leading-relaxed">{profil.subtitle}</p>
+            )}
+          </div>
+
+          <p className="tabular text-muted order-last flex items-center justify-center gap-3 text-[0.7rem] tracking-[0.14em] uppercase md:order-none">
+            {profil.availability && (
+              <span className="flex items-center gap-2">
+                <span aria-hidden="true" className="relative flex size-2">
+                  <span className="bg-success absolute inline-flex size-full animate-ping rounded-full opacity-60" />
+                  <span className="bg-success relative inline-flex size-2 rounded-full" />
+                </span>
+                {profil.availability}
+              </span>
+            )}
+            <span className="hidden sm:inline">
+              {(profil.location ?? 'İstanbul').split(',')[0]} · <YerelSaat />
+            </span>
+          </p>
+
+          <div className="flex flex-wrap items-center gap-3 md:justify-end">
+            <Link href="/projeler" className={hapSiniflari()}>
+              Projeler
+            </Link>
+            <GradyanBaglanti href="/iletisim">Benimle çalış</GradyanBaglanti>
+          </div>
+        </div>
       </div>
     </section>
   );

@@ -16,34 +16,27 @@ import type { ExperienceDto } from '@/server/services/content-dto';
  */
 export function ZamanCizelgesi({ kayitlar }: { kayitlar: ExperienceDto[] }) {
   return (
-    <ol className="flex flex-col">
+    <ol className="border-line border-t">
       {kayitlar.map((kayit) => (
         <li
           key={kayit.id}
-          className="border-line relative flex flex-col gap-1.5 border-l py-5 pl-6 last:border-l-transparent last:pb-0"
+          className="border-line group grid gap-x-8 gap-y-2 border-b py-8 md:grid-cols-[14rem_1fr_1.2fr]"
         >
-          {/*
-            Nokta çizginin ÜSTÜNE biniyor (-left ile yarım kaydırma). `aria-hidden`
-            değil, hiç metin taşımıyor — dekoratif olduğu için ekran okuyucuya
-            zaten görünmez.
-          */}
-          <span
-            className="bg-accent-soft ring-canvas absolute top-6.5 -left-[5px] size-2.5 rounded-full ring-4"
-            aria-hidden="true"
-          />
-
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          {/* ADR-045 — hizmet satırlarıyla aynı dil: tarih | rol + kurum | açıklama. */}
+          <div className="flex flex-wrap items-center gap-2">
             <p className="tabular text-muted text-xs tracking-wider uppercase">
               {aralik(kayit.startDate, kayit.endDate, kayit.current)}
             </p>
             {kayit.current && <Badge variant="success">Devam ediyor</Badge>}
           </div>
-
-          <h3 className="text-primary text-base font-semibold">{kayit.role}</h3>
-          <p className="text-accent-soft text-sm">{kayit.organization}</p>
-
+          <div className="flex flex-col gap-1">
+            <h3 className="font-display text-primary text-base font-bold tracking-[0.08em] uppercase">
+              {kayit.role}
+            </h3>
+            <p className="text-accent-soft text-sm">{kayit.organization}</p>
+          </div>
           {kayit.description && (
-            <p className="text-body mt-1 max-w-2xl text-sm">{kayit.description}</p>
+            <p className="text-body text-sm leading-relaxed">{kayit.description}</p>
           )}
         </li>
       ))}

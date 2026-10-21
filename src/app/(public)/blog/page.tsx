@@ -2,10 +2,13 @@ import { FilterX, PenLine } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+import { cipSiniflari } from '@/components/public/proje-filtre';
+import { SayfaBasligi } from '@/components/public/tasarim/sayfa-basligi';
+import { ParlakGlif } from '@/components/public/tasarim/sekiller';
+import { Yuzen } from '@/components/public/tasarim/yuzen';
 import { YaziKarti } from '@/components/public/yazi-karti';
 import { buttonClasses } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
-import { cn } from '@/lib/utils/cn';
 import { getFilteredPosts, getPublishedPosts } from '@/server/services';
 
 export const metadata: Metadata = {
@@ -62,86 +65,88 @@ export default async function BlogSayfasi({
   );
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-10 px-4 py-16 md:py-24">
-      <header className="flex flex-col gap-4">
-        <p className="tabular text-accent-soft text-xs tracking-wider uppercase">Blog</p>
-        <h1 className="text-3xl md:text-5xl">Notlar</h1>
-        <p className="text-body max-w-2xl text-lg">
-          Yazılım, web performansı ve ürün geliştirme üzerine yazdıklarım. Çoğu, bir işi yaparken
-          not aldığım şeyler.
-        </p>
-      </header>
+    <>
+      <SayfaBasligi
+        baslik="Blog"
+        yol="~/blog"
+        aciklama="Yazılım, web performansı ve ürün geliştirme üzerine yazdıklarım. Çoğu, bir işi yaparken not aldığım şeyler."
+        ek={
+          yazilar.length > 0 && (
+            <p className="tabular text-muted text-xs">
+              <span className="text-primary">{yazilar.length}</span> yazı
+              {etiket && ' (süzülmüş)'}
+            </p>
+          )
+        }
+        susler={
+          <Yuzen hiz={-120} className="top-28 right-[8%] w-20 md:w-32">
+            <ParlakGlif glif="/*" className="text-[5rem] md:text-[8rem]" />
+          </Yuzen>
+        }
+      />
 
-      {etiketler.length > 0 && (
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-muted w-20 shrink-0 text-xs tracking-wider uppercase">Etiket</span>
+      <div className="mx-auto flex max-w-7xl flex-col gap-10 px-4 pb-32 md:px-8">
+        {etiketler.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="tabular text-muted w-24 shrink-0 text-xs">
+              <span aria-hidden="true">--</span>etiket
+            </span>
 
-          {[undefined, ...etiketler].map((secenek) => {
-            const secili = etiket === secenek;
-            return (
-              <Link
-                key={secenek ?? 'tumu'}
-                href={etiketAdresi(secenek)}
-                aria-current={secili ? 'true' : undefined}
-                className={cn(
-                  'focus-ring rounded-pill ease-brand duration-micro border px-3 py-1.5 text-sm transition-colors',
-                  secili
-                    ? 'bg-accent/15 text-accent-soft border-accent/40 font-medium'
-                    : 'border-line text-body hover:border-line-hover hover:text-primary',
-                )}
-              >
-                {secenek ?? 'Tümü'}
-              </Link>
-            );
-          })}
-        </div>
-      )}
+            {[undefined, ...etiketler].map((secenek) => {
+              const secili = etiket === secenek;
+              return (
+                <Link
+                  key={secenek ?? 'tumu'}
+                  href={etiketAdresi(secenek)}
+                  aria-current={secili ? 'true' : undefined}
+                  className={cipSiniflari(secili)}
+                >
+                  {secenek ?? 'Tümü'}
+                </Link>
+              );
+            })}
+          </div>
+        )}
 
-      {yazilar.length === 0 ? (
-        /*
+        {yazilar.length === 0 ? (
+          /*
           İki boş durum, iki sebep (T-024 ile aynı ayrım). Bilinmeyen etiket
           BİRİNCİYE düşer ve 404 DÖNDÜRMEZ — boş filtre sonucu "yok olmuş
           içerik" değildir.
         */
-        etiket ? (
-          <EmptyState
-            icon={FilterX}
-            title="Bu etikette yazı yok"
-            description="Seçtiğin etiketle eşleşen bir yazı bulunmuyor. Etiketi kaldırıp tümüne bakabilirsin."
-            action={
-              <Link href={etiketAdresi()} className={buttonClasses({ size: 'sm' })}>
-                Tüm yazılar
-              </Link>
-            }
-          />
+          etiket ? (
+            <EmptyState
+              icon={FilterX}
+              title="Bu etikette yazı yok"
+              description="Seçtiğin etiketle eşleşen bir yazı bulunmuyor. Etiketi kaldırıp tümüne bakabilirsin."
+              action={
+                <Link href={etiketAdresi()} className={buttonClasses({ size: 'sm' })}>
+                  Tüm yazılar
+                </Link>
+              }
+            />
+          ) : (
+            <EmptyState
+              icon={PenLine}
+              title="İlk yazı yolda"
+              description="Buraya yazılım ve ürün geliştirme notlarımı yazacağım. Bu arada projelere göz atabilirsin."
+              action={
+                <Link href="/projeler" className={buttonClasses({ size: 'sm' })}>
+                  Projelere bak
+                </Link>
+              }
+            />
+          )
         ) : (
-          <EmptyState
-            icon={PenLine}
-            title="İlk yazı yolda"
-            description="Buraya yazılım ve ürün geliştirme notlarımı yazacağım. Bu arada projelere göz atabilirsin."
-            action={
-              <Link href="/projeler" className={buttonClasses({ size: 'sm' })}>
-                Projelere bak
-              </Link>
-            }
-          />
-        )
-      ) : (
-        <div className="flex flex-col gap-2">
-          <p className="text-muted text-sm">
-            <span className="tabular">{yazilar.length}</span> yazı
-            {etiket && ' (süzülmüş)'}
-          </p>
-
-          <ul>
+          <ul className="border-line border-t">
             {yazilar.map((yazi) => (
               <li key={yazi.id}>
                 <YaziKarti yazi={yazi} />
               </li>
             ))}
           </ul>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 }
