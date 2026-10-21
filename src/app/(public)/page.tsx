@@ -3,6 +3,7 @@ import { join } from 'node:path';
 
 import type { Metadata } from 'next';
 
+import { Basarilar } from '@/components/public/basarilar';
 import { Hakkimda } from '@/components/public/hakkimda';
 import { Hero } from '@/components/public/hero';
 import { Hizmetler } from '@/components/public/hizmetler';
@@ -11,7 +12,9 @@ import { Projeler } from '@/components/public/projeler';
 import { KapakSeridi, LogoSeridi, TeknolojiSeridi } from '@/components/public/vitrin-seritleri';
 import { Yetenekler } from '@/components/public/yetenekler';
 import { SITE_NAME } from '@/lib/constants';
+import { ExperienceType } from '@/types';
 import {
+  getExperience,
   getFeaturedProjects,
   getProfile,
   getServices,
@@ -69,14 +72,17 @@ export const metadata: Metadata = {
  * hatasıdır. Bu bilinçli davranışın kullanıcıya dönük yüzü `error.tsx`.
  */
 export default async function AnaSayfa() {
-  const [profil, yetenekler, projeler, hizmetler, istatistikler, logolar] = await Promise.all([
-    getProfile(),
-    getSkills(),
-    getFeaturedProjects(),
-    getServices(),
-    getSiteStats(),
-    getSiteClientLogos(),
-  ]);
+  const [profil, yetenekler, projeler, hizmetler, istatistikler, logolar, deneyimler] =
+    await Promise.all([
+      getProfile(),
+      getSkills(),
+      getFeaturedProjects(),
+      getServices(),
+      getSiteStats(),
+      getSiteClientLogos(),
+      getExperience(),
+    ]);
+  const oduller = deneyimler.filter((d) => d.type === ExperienceType.AWARD);
 
   // Teknoloji şeridi: projelerde gerçekten KULLANILAN yığın önce, sonra yetenekler.
   const teknolojiler = [
@@ -94,6 +100,8 @@ export default async function AnaSayfa() {
       </div>
 
       <Hakkimda profil={profil} istatistikler={istatistikler} />
+
+      <Basarilar oduller={oduller} />
 
       <Hizmetler hizmetler={hizmetler} kiyiMedyaUrl={KIYI_MEDYA_URL} />
 

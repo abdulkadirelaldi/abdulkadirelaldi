@@ -44,6 +44,8 @@ const BOS_FORM: DeneyimFormGirdi = {
 const TUR_ETIKET: Record<ExperienceType, string> = {
   [ExperienceType.WORK]: 'İş',
   [ExperienceType.EDUCATION]: 'Eğitim',
+  // Ödülde alanlar: ünvan = derece, kurum = yarışma ve kategori (schema.prisma notu).
+  [ExperienceType.AWARD]: 'Ödül',
 };
 
 function baslangicDegerleri(kayit: ExperienceDto | undefined): DeneyimFormGirdi {
@@ -134,6 +136,7 @@ export function DeneyimFormu({ kayit }: { kayit?: ExperienceDto }) {
                   <option value={ExperienceType.EDUCATION}>
                     {TUR_ETIKET[ExperienceType.EDUCATION]}
                   </option>
+                  <option value={ExperienceType.AWARD}>{TUR_ETIKET[ExperienceType.AWARD]}</option>
                 </select>
               )}
             </Alan>

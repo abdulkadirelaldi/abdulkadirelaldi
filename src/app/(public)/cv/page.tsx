@@ -63,6 +63,7 @@ export default async function CvSayfasi() {
 
   const isler = deneyimler.filter((d) => d.type === ExperienceType.WORK);
   const egitim = deneyimler.filter((d) => d.type === ExperienceType.EDUCATION);
+  const oduller = deneyimler.filter((d) => d.type === ExperienceType.AWARD);
 
   /** Özet: biyografinin İLK paragrafı. Tamamı bir sayfaya sığmaz, /hakkimda'da duruyor. */
   const ozet = profil.bio.split(/\n\s*\n/)[0]?.trim();
@@ -79,10 +80,16 @@ export default async function CvSayfasi() {
   const eposta = profil.socials?.email;
 
   /** Başlık dışında gösterilecek hiçbir şey kalmadı mı. */
-  const bosSayfa = !ozet && isler.length === 0 && egitim.length === 0 && gruplar.length === 0;
+  const bosSayfa =
+    !ozet &&
+    isler.length === 0 &&
+    egitim.length === 0 &&
+    oduller.length === 0 &&
+    gruplar.length === 0;
 
+  // Üst boşluk: sabit (fixed) gezinme çubuğunun altından başlasın diye — ADR-045.
   return (
-    <div className="yazdirma-sayfa mx-auto flex max-w-3xl flex-col gap-6 px-4 py-16 md:py-24">
+    <div className="yazdirma-sayfa mx-auto flex max-w-3xl flex-col gap-6 px-4 pt-32 pb-16 md:pt-36 md:pb-24">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <header className="flex flex-col gap-1">
           <h1 className="text-3xl md:text-4xl">{SITE_NAME}</h1>
@@ -125,6 +132,23 @@ export default async function CvSayfasi() {
             Özet
           </h2>
           <p className="text-body text-xs">{ozet}</p>
+        </section>
+      )}
+
+      {oduller.length > 0 && (
+        <section aria-labelledby="cv-odul-baslik" className="flex flex-col gap-2">
+          <h2 id="cv-odul-baslik" className="border-line border-b pb-1 text-base">
+            Ödüller ve başarılar
+          </h2>
+          <ul className="flex flex-col gap-1 text-xs">
+            {oduller.map((odul) => (
+              <li key={odul.id} className="text-body">
+                <span className="text-primary font-semibold">{odul.role}</span> —{' '}
+                {odul.organization}
+                {odul.description && <> ({odul.description})</>}
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 

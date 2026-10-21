@@ -85,22 +85,34 @@ export function ProjeYigini({
                     <span className="text-accent-soft">const</span>{' '}
                     <span className="text-primary">proje</span> = {'{'}
                     {'\n'}
-                    {'  '}yığın: [
-                    {proje.stack.slice(0, 4).map((t, i) => (
-                      <span key={t}>
-                        {i > 0 && ', '}
-                        <span className="text-success">&apos;{t}&apos;</span>
-                      </span>
-                    ))}
-                    ],{'\n'}
+                    {/* Boş dizi satırı YAZILMIYOR: `yığın: []` "yığın yok" diye okunur. */}
+                    {(
+                      [
+                        ['yığın', proje.stack],
+                        ['etiketler', proje.tags],
+                      ] as const
+                    ).map(
+                      ([anahtar, liste]) =>
+                        liste.length > 0 && (
+                          <span key={anahtar}>
+                            {'  '}
+                            {anahtar}: [
+                            {liste.slice(0, 4).map((t, i) => (
+                              <span key={t}>
+                                {i > 0 && ', '}
+                                <span className="text-success">&apos;{t}&apos;</span>
+                              </span>
+                            ))}
+                            ],{'\n'}
+                          </span>
+                        ),
+                    )}
                     {proje.publishedAt && (
                       <>
                         {'  '}yıl:{' '}
                         <span className="text-warning">{proje.publishedAt.slice(0, 4)}</span>,{'\n'}
                       </>
                     )}
-                    {'  '}öne_çıkan: <span className="text-info">{String(proje.featured)}</span>,
-                    {'\n'}
                     {'}'};
                   </code>
                 </pre>
