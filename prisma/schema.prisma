@@ -41,10 +41,20 @@ enum ContentStatus {
 enum ExperienceType {
   WORK
   EDUCATION
+  /// Ödül / derece (TEKNOFEST 1.liği gibi). `role` = derece, `organization` = yarışma
+  /// ve kategori, `startDate` = ödül tarihi, `description` = takım/rol. Ayrı bir
+  /// tablo yerine burada: alan şekli aynı, panel ekranı ve önbellek zinciri hazır.
+  AWARD
 }
 
 /// Yetenek kategorisi — Backend önerisi (ADR-020, T-010 sözleşmesi).
 enum SkillCategory {
+  /// Programlama dilleri (C, C++, Python…).
+  LANGUAGE
+  /// Gömülü sistemler ve haberleşme (STM32, CAN Bus, Modbus…).
+  EMBEDDED
+  /// Yapay zeka ve görüntü işleme (OCR, YOLO, TinyML…).
+  AI
   FRONTEND
   BACKEND
   DATABASE

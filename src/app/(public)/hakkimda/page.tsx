@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { dosyaAdresi } from '@/lib/dosya-adresi';
 import Link from 'next/link';
 
+import { OdulIzgarasi } from '@/components/public/basarilar';
 import { CvIndir } from '@/components/public/cv-indir';
 import { SayfaBasligi } from '@/components/public/tasarim/sayfa-basligi';
 import { ParlakGlif, ParlakKure } from '@/components/public/tasarim/sekiller';
@@ -44,6 +45,7 @@ export default async function HakkimdaSayfasi() {
 
   const isler = deneyimler.filter((d) => d.type === ExperienceType.WORK);
   const egitim = deneyimler.filter((d) => d.type === ExperienceType.EDUCATION);
+  const oduller = deneyimler.filter((d) => d.type === ExperienceType.AWARD);
 
   const [ilk, ...diger] = paragraflar;
 
@@ -97,6 +99,18 @@ export default async function HakkimdaSayfasi() {
                 </p>
               ))}
             </div>
+          </section>
+        )}
+
+        {oduller.length > 0 && (
+          <section aria-labelledby="oduller-baslik" className="flex flex-col gap-10">
+            <h2
+              id="oduller-baslik"
+              className="dev-baslik text-gradient-vurgu text-[clamp(2.25rem,7vw,5.5rem)]"
+            >
+              Ödüller
+            </h2>
+            <OdulIzgarasi oduller={oduller} />
           </section>
         )}
 

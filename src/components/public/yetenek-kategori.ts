@@ -10,6 +10,10 @@ import { SkillCategory } from '@/types';
  * her iki sayfa birden düzelir.
  */
 export const KATEGORI_BASLIK: Record<SkillCategory, string> = {
+  // Sıra = sayfadaki grup sırası. İlk üçü 2026-10-21'de eklendi (CV'nin ağırlık merkezi).
+  [SkillCategory.LANGUAGE]: 'Diller',
+  [SkillCategory.EMBEDDED]: 'Gömülü sistemler',
+  [SkillCategory.AI]: 'Yapay zeka / görü',
   [SkillCategory.FRONTEND]: 'Frontend',
   [SkillCategory.BACKEND]: 'Backend',
   [SkillCategory.DATABASE]: 'Veritabanı',

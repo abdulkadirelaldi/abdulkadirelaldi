@@ -14,21 +14,13 @@ const SERIT_ESIGI = 6;
 
 function YetenekKarti({ yetenek }: { yetenek: SkillDto }) {
   return (
-    <article className="border-line-hover bg-surface mx-2 flex w-72 shrink-0 flex-col gap-5 rounded-[1.5rem] border p-5 md:w-80">
-      <div className="flex items-center justify-between gap-3">
-        <span className="tabular text-muted text-[0.68rem] tracking-[0.14em] uppercase">
-          {KATEGORI_BASLIK[yetenek.category]}
-        </span>
-        <span className="tabular text-primary text-xs">{yetenek.level}%</span>
-      </div>
+    <article className="border-line-hover bg-surface mx-2 flex w-64 shrink-0 flex-col gap-3 rounded-[1.5rem] border p-5 md:w-72">
+      <span className="tabular text-muted text-[0.68rem] tracking-[0.14em] uppercase">
+        {KATEGORI_BASLIK[yetenek.category]}
+      </span>
+      {/* Seviye (0–100) BİLEREK gösterilmiyor: kendine verilen yüzde bir ölçüm
+          değil, ziyaretçiye kesinlik iddiası gibi okunur. Panelde sıralama için duruyor. */}
       <h3 className="text-primary font-display text-xl font-bold">{yetenek.name}</h3>
-      {/* Seviye çubuğu SÜS: sayı hemen yukarıda metin olarak var. */}
-      <div aria-hidden="true" className="bg-elevated h-1.5 overflow-hidden rounded-full">
-        <div
-          className="bg-gradient-vurgu h-full rounded-full"
-          style={{ width: `${yetenek.level}%` }}
-        />
-      </div>
     </article>
   );
 }

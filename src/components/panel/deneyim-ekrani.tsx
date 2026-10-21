@@ -46,6 +46,8 @@ import { ExperienceType } from '@/types';
 const TUR_ETIKET: Record<ExperienceType, string> = {
   [ExperienceType.WORK]: 'İş',
   [ExperienceType.EDUCATION]: 'Eğitim',
+  // Ödülde alanlar: ünvan = derece, kurum = yarışma ve kategori (schema.prisma notu).
+  [ExperienceType.AWARD]: 'Ödül',
 };
 
 export function DeneyimEkrani({ kayitlar, toplam }: { kayitlar: ExperienceDto[]; toplam: number }) {
@@ -92,7 +94,15 @@ export function DeneyimEkrani({ kayitlar, toplam }: { kayitlar: ExperienceDto[];
       baslik: 'Tür',
       ikincil: true,
       deger: (k) => (
-        <Badge variant={k.type === ExperienceType.WORK ? 'accent' : 'neutral'}>
+        <Badge
+          variant={
+            k.type === ExperienceType.WORK
+              ? 'accent'
+              : k.type === ExperienceType.AWARD
+                ? 'success'
+                : 'neutral'
+          }
+        >
           {TUR_ETIKET[k.type]}
         </Badge>
       ),
