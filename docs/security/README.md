@@ -5149,6 +5149,16 @@ silinmemesi** · `schema` ayıklanması ve `sslmode` korunması.
 
 **Düzeltme:** üç yazma `currentActorId()`; okuma (`getTotpStatus`) bilerek `currentUserId` — ADR-035 okumaları F6/C'ye bıraktı. Kapı istisnayı GEREKÇESİYLE bildiriyor ve ölü istisnayı sildiriyor. Regresyon: `totp.test.ts`te üç eylem iptal edilmiş oturumda `UNAUTHORIZED` ve veritabanına YAZMIYOR (eski kodda 3/3 kırmızı); kapı eski kodda tam bu üç eylemi listeliyor.
 
+## ADVISORY-007 — `vite` <8.2.4 (GHSA-587h-7wmj-h5pm Yüksek + iki Orta) — KAPANDI, aynı gün
+
+**Tetikleyen:** §8.24 kapısı 2026-10-21'de PR #29'da kırmızıya döndü — kod değişmeden, danışma yayımlandığı için (kapının tasarlandığı durum).
+
+**Maruziyet:** yalnızca GELİŞTİRME/TEST. `vite` doğrudan bağımlılık değildi; `vitest`, `@vitejs/plugin-react` ve `vite-tsconfig-paths`in eş bağımlılığı (peer) olarak 8.2.0'a çözülüyordu. Üretim derlemesi (Next.js) vite kullanmıyor.
+
+**Katman (oyunkitabı):** yama AYNI MAJÖRDE (`8.2.4`) → override DEĞİL. Vite eş bağımlılık olduğu için çözüm onu AÇIK bir geliştirme bağımlılığı yapmak: `"vite": "8.2.4"` (tam sürüm, `-E`). Eşler ona çözülüyor (`pnpm why vite` → yalnızca 8.2.4). Override olsaydı kaldırma koşulu yazmak gerekirdi; açık bağımlılık kendini açıklıyor — vitest'in gerçekten ihtiyaç duyduğu bir eş.
+
+**Doğrulama:** `pnpm audit --audit-level high` → yalnızca ADVISORY-006 (`braces`, süreli istisna) kaldı. 2306 birim + `next build` yeni vite ile yeşil.
+
 ## §8 Güvenlik Gereksinimleri — Durum Tablosu
 
 **Ölçüm tarihi:** 2026-10-16 · **Faz:** F5 öncesi · **Son görev:** T-066
