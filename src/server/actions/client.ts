@@ -2,14 +2,19 @@
 
 import { archiveClientSchema, createClientSchema, updateClientSchema } from '@/lib/schemas';
 import { db } from '@/server/db';
+import { revalidateTag } from 'next/cache';
+
 import {
+  clientLogoBelongsTo,
   createClient,
   setClientArchived,
   updateClient,
   type ClientPanelDto,
 } from '@/server/services/client';
+import { entityTag } from '@/server/services/_shared/content-cache';
 import {
   buildDiff,
+  fail,
   ok,
   parseOrFail,
   writeAuditLog,
@@ -26,11 +31,17 @@ import { currentActorId, toFailure, unauthorized } from './_shared';
  *   2. Zod parse — §8.8
  *   3. servis — §7.4
  *   4. `AuditLog` — §8.19, ADR-022 (bunların hepsi SONUÇ)
- *   5. (revalidate YOK — aşağıya bakınız)
+ *   5. `revalidateTag(entityTag('client'))` — T-117'den beri (aşağıya bakınız)
  *
  * ═══════════════════════════════════════════════════════════════════════════
- * `revalidateTag` YOK — T-038'in KARARI, T-100'DE YENİDEN TARANDI
+ * `revalidateTag` — T-117'DE GELDİ; ÖNCESİNDEKİ "YOK" KARARI DOĞRUYDU
  * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * T-117 müşteri LOGO ŞERİDİNİ getirdi (`getSiteClientLogos`, önbellekli) ve
+ * `ContentEntity`ye `client` girdi. Ad, `showOnSite`, logo ya da arşiv durumu
+ * şeridi değiştiriyor; her müşteri mutasyonu `content:client`ı düşürüyor.
+ * Aşağıdaki T-100 taraması YAZILDIĞI GÜN doğruydu ve bağlam değişince karar
+ * değişti (T-019'un "bağlam değişince kararı gözden geçir" dersi):
  *
  * Kart "varsayma, tara ve doğrula" dedi. Tarandı (T-100):
  *   - `ContentEntity` birleşimi: `'profile' | 'project' | 'post' | 'experience'
@@ -62,6 +73,16 @@ export async function createClientAction(raw: unknown): Promise<ApiResponse<Clie
 
   const parsed = parseOrFail(createClientSchema, raw);
   if (!parsed.ok) return parsed.failure;
+
+  /*
+   * YENİ KAYITTA LOGO OLAMAZ: logo bu müşterinin KENDİ eklentisi olmalı
+   * (`clientLogoBelongsTo`) ve kaydedilmemiş müşterinin eklentisi yok.
+   */
+  if (parsed.data.logoAttachmentId) {
+    return fail('VALIDATION_ERROR', 'Logo, müşteri kaydedildikten sonra eklenebilir.', {
+      logoAttachmentId: 'Önce müşteriyi kaydedin.',
+    });
+  }
 
   try {
     const dto = await createClient(parsed.data);
@@ -100,6 +121,7 @@ export async function createClientAction(raw: unknown): Promise<ApiResponse<Clie
       db,
     );
 
+    revalidateTag(entityTag('client'));
     return ok(dto);
   } catch (error) {
     return toFailure('client:create', error, {
@@ -123,6 +145,19 @@ export async function updateClientAction(raw: unknown): Promise<ApiResponse<Clie
 
   const parsed = parseOrFail(updateClientSchema, raw);
   if (!parsed.ok) return parsed.failure;
+
+  /*
+   * ⚠️ LOGO SAHİPLİĞİ — T-117. Logo bu müşterinin KENDİ `CLIENT` eklentisi
+   * olmalı. Kontrol olmasa logo alanına bir MAKBUZUN kimliği yazılabilir ve
+   * `showOnSite` açıkken o makbuz herkese açılırdı. Sunum ucu bunu ayrıca
+   * kontrol ediyor (`isPublicClientLogo` sahip kimliğiyle) — iki kat.
+   */
+  const logoId = parsed.data.logoAttachmentId;
+  if (typeof logoId === 'string' && !(await clientLogoBelongsTo(parsed.data.id, logoId))) {
+    return fail('VALIDATION_ERROR', 'Seçilen logo bu müşteriye ait değil — yeniden yükleyin.', {
+      logoAttachmentId: 'Logo bu müşteriye ait değil.',
+    });
+  }
 
   try {
     const dto = await updateClient(parsed.data);
@@ -158,6 +193,7 @@ export async function updateClientAction(raw: unknown): Promise<ApiResponse<Clie
       db,
     );
 
+    revalidateTag(entityTag('client'));
     return ok(dto);
   } catch (error) {
     return toFailure('client:update', error, {
@@ -202,6 +238,7 @@ export async function archiveClientAction(raw: unknown): Promise<ApiResponse<Cli
       db,
     );
 
+    revalidateTag(entityTag('client'));
     return ok(dto);
   } catch (error) {
     return toFailure('client:archive', error);

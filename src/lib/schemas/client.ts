@@ -32,10 +32,21 @@ const clientBase = z.object({
     .optional(),
   notes: mediumTextSchema.optional(),
   isKiyiMedya: z.boolean().default(false),
+  /**
+   * T-117 — logo şeridinde göster. VARSAYILAN KAPALI: bir müşteriyi herkese
+   * açmak bilinçli bir işaret olmalı. Açıksa public'e YALNIZCA ad + logo çıkar.
+   */
+  showOnSite: z.boolean().default(false),
+  /** T-117 — logo eklentisi (entity CLIENT). Varlığı `attachment-refs`te doğrulanıyor. */
+  logoAttachmentId: cuidSchema.optional(),
 });
 
 export const createClientSchema = clientBase;
-export const updateClientSchema = partialWithoutDefaults(clientBase).extend({ id: cuidSchema });
+export const updateClientSchema = partialWithoutDefaults(clientBase).extend({
+  id: cuidSchema,
+  // Logo KALDIRILABİLİR: `null` = temizle (güncellemede "boşalt" kuralı).
+  logoAttachmentId: clientBase.shape.logoAttachmentId.nullable(),
+});
 
 /** Referans veri arşivleme (ADR-017) — hard delete yerine bu kullanılır. */
 export const archiveClientSchema = z.object({

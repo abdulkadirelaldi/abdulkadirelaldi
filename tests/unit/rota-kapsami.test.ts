@@ -211,7 +211,7 @@ const KAPSAM: Record<string, KapsamBeyani> = {
   '/api/v1/dosya/[id]': {
     kapilar: ['kapsanmiyor'],
     kanit: [],
-    not: "T-037f ile eklendi (ADR-044). Eklentiyi R2'den okuyup AYNI KÖKENDEN sunuyor — HTML'de imzalı adres yok, CSP `img-src 'self'` kalıyor, ADR-018'in önbellek çatışması doğmuyor. VARSAYILAN REDDET: yalnızca `PROJECT`/`POST`/`PROFILE` herkese açık (`public, immutable` — içerik değişmez); makbuz/iş/müşteri yalnızca oturumla (`private, no-store`, noindex) ve oturumsuz istek 404 alıyor (401 varlığı söylerdi). ETag = sağlama; eşleşirse 304 ve R2 okunmuyor. Kimlik dar karakter kümesinden geçmeyen istek veritabanına gitmiyor. Birim: `eklenti-yukleme.test.ts`. ÖLÇÜLMEYEN: (1) Taslak bir projenin kapağı kimliği bilen birine açık — kimlik tahmin edilemez (cuid) VARSAYILDI; yayın durumuna bağlamak ek sorgu ister. (2) Büyük dosyada bellek: nesne tamamen okunup veriliyor (akış değil); 10 MB üst sınırla kabul.",
+    not: "T-037f ile eklendi (ADR-044). Eklentiyi R2'den okuyup AYNI KÖKENDEN sunuyor — HTML'de imzalı adres yok, CSP `img-src 'self'` kalıyor, ADR-018'in önbellek çatışması doğmuyor. VARSAYILAN REDDET: yalnızca `PROJECT`/`POST`/`PROFILE` herkese açık (`public, immutable` — içerik değişmez); TEK İSTİSNA (T-117) vitrindeki bir müşterinin KENDİ logosu — `isPublicClientLogo` sahip kimliğiyle, ve `public, max-age=3600` (immutable DEĞİL: vitrin izni geri alınabilir); diğer makbuz/iş/müşteri eklentileri yalnızca oturumla (`private, no-store`, noindex) ve oturumsuz istek 404 alıyor (401 varlığı söylerdi). ETag = sağlama; eşleşirse 304 ve R2 okunmuyor. Kimlik dar karakter kümesinden geçmeyen istek veritabanına gitmiyor. Birim: `eklenti-yukleme.test.ts`. ÖLÇÜLMEYEN: (1) Taslak bir projenin kapağı kimliği bilen birine açık — kimlik tahmin edilemez (cuid) VARSAYILDI; yayın durumuna bağlamak ek sorgu ister. (2) Büyük dosyada bellek: nesne tamamen okunup veriliyor (akış değil); 10 MB üst sınırla kabul.",
   },
   '/panel/saglik': {
     kapilar: ['e2e'],
@@ -495,7 +495,7 @@ const KAPSAM: Record<string, KapsamBeyani> = {
   '/hizmetler': {
     kapilar: ['sitemap-taramasi'],
     kanit: ["absoluteUrl('/hizmetler')"],
-    not: 'YALNIZCA 200.',
+    not: 'T-117: logo şeridi YALNIZCA `showOnSite` işaretli müşterilerin ad+logosuyla ve en az 3 logoyla çiziliyor; altında bölüm yok ve sayfa SIFIR istemci bileşenli kalıyor (LogoLoop tembel). Lighthouse/E2E tohum verisinde şerit çizilmiyor (vitrin müşterisi yok) — şeritli hâlin performansı ÖLÇÜLMEDİ. YALNIZCA 200.',
   },
   '/iletisim': {
     kapilar: ['sitemap-taramasi', 'e2e'],

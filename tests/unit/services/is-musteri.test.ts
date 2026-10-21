@@ -808,17 +808,19 @@ describe('KAPILAR', () => {
     expect(CLIENT_SERVIS).toMatch(/export\s+async\s+function\s+fetchClientsForPanel/);
   });
 
-  it('⚠️ `revalidateTag` ÇAĞRILMIYOR — Job/Client public`te yok', () => {
+  it('⚠️ Job `revalidateTag` ÇAĞIRMIYOR; Client YALNIZCA `content:client`ı düşürüyor (T-117)', () => {
     /*
-     * T-038'in kararı, T-100'de yeniden tarandı: `ContentEntity` birleşiminde
-     * yok, hiçbir `cachedRead` onları okumuyor, `getSiteStats` `Job` TOPLAMIYOR.
-     * Aşağıdaki iki assert o taramayı KALICI kılıyor.
+     * T-038'in kararı, T-100'de yeniden tarandı: Job ve Client public'te
+     * yoktu. T-117 müşteri LOGO ŞERİDİNİ getirdi — Client artık TEK bir
+     * önbellekli girdiye (`getSiteClientLogos`) dokunuyor ve yalnızca onu
+     * düşürüyor. Job için tarama aynen geçerli; o kısım KALICI.
      */
-    for (const kaynak of [JOB_EYLEM, CLIENT_EYLEM]) {
-      expect(kaynak).not.toContain('revalidateTag');
-      expect(kaynak).not.toContain('revalidateContent');
-      expect(kaynak).not.toContain('revalidatePath');
-    }
+    expect(JOB_EYLEM).not.toContain('revalidateTag');
+    expect(JOB_EYLEM).not.toContain('revalidateContent');
+    expect(JOB_EYLEM).not.toContain('revalidatePath');
+
+    expect(CLIENT_EYLEM).toContain("revalidateTag(entityTag('client'))");
+    expect(CLIENT_EYLEM).not.toContain('revalidatePath');
   });
 
   it('⚠️ `getSiteStats` `Job` TOPLAMIYOR — ADR-029 kararının önkoşulu', () => {
@@ -835,13 +837,13 @@ describe('KAPILAR', () => {
     }
   });
 
-  it('`ContentEntity` birleşiminde `job`/`client` YOK', () => {
+  it('`ContentEntity`: `job` YOK, `client` VAR (yalnızca logo şeridi, T-117)', () => {
     const cache = kod('src/server/services/_shared/content-cache.ts');
     const birlesim = cache.match(/export type ContentEntity =[^;]+;/)?.[0] ?? '';
 
     expect(birlesim).toContain('project');
     expect(birlesim).not.toContain("'job'");
-    expect(birlesim).not.toContain("'client'");
+    expect(birlesim).toContain("'client'");
   });
 
   it('her eylem `currentActorId` kapısından geçiyor (ADR-035/B)', () => {
