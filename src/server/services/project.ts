@@ -30,6 +30,7 @@ interface ProjectListRow {
   id: string;
   locale: string;
   slug: string;
+  translationKey: string | null;
   title: string;
   summary: string;
   cover: AttachmentRow | null;
@@ -47,6 +48,7 @@ const LIST_SELECT = {
   id: true,
   locale: true,
   slug: true,
+  translationKey: true,
   title: true,
   summary: true,
   tags: true,
@@ -71,6 +73,7 @@ function toListDto(row: ProjectListRow): ProjectListItemDto {
     id: row.id,
     locale: row.locale,
     slug: row.slug,
+    translationKey: row.translationKey,
     title: row.title,
     summary: row.summary,
     cover: toAttachmentRef(row.cover),
@@ -306,6 +309,7 @@ export async function createProject(
     data: {
       locale: input.locale,
       slug: input.slug,
+      translationKey: input.translationKey ?? null,
       title: input.title,
       summary: input.summary,
       content: input.content,
@@ -344,6 +348,7 @@ export async function updateProject(
     data: {
       ...(fields.locale !== undefined ? { locale: fields.locale } : {}),
       ...(fields.slug !== undefined ? { slug: fields.slug } : {}),
+      ...(fields.translationKey !== undefined ? { translationKey: fields.translationKey } : {}),
       ...(fields.title !== undefined ? { title: fields.title } : {}),
       ...(fields.summary !== undefined ? { summary: fields.summary } : {}),
       ...(fields.content !== undefined ? { content: fields.content } : {}),
@@ -413,6 +418,7 @@ const PANEL_LIST_SELECT = {
 /** Panel tek kayıt seçimi — düzenleme formunun TAM alan kümesi, MDX dahil. */
 const PANEL_DETAIL_SELECT = {
   ...PANEL_LIST_SELECT,
+  translationKey: true,
   summary: true,
   content: true,
   coverAttachmentId: true,
@@ -437,6 +443,7 @@ interface ProjectPanelListRow {
 }
 
 interface ProjectPanelDetailRow extends ProjectPanelListRow {
+  translationKey: string | null;
   summary: string;
   content: string;
   coverAttachmentId: string | null;
@@ -524,6 +531,7 @@ export async function fetchProjectForPanel(
 
   return {
     ...toPanelListDto(row),
+    translationKey: row.translationKey,
     summary: row.summary,
     content: row.content,
     coverAttachmentId: row.coverAttachmentId,

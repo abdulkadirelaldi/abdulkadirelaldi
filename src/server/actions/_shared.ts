@@ -75,6 +75,15 @@ function prismaErrorCode(error: unknown): string | null {
 }
 
 /**
+ * P2002'nin hangi alanlardan doğduğu (`meta.target`). Prisma sürüme göre dizi
+ * ya da kısıt adı (metin) veriyor; ikisi de ad içeriyor.
+ */
+function benzersizlikHedefi(error: unknown): string {
+  const hedef = (error as { meta?: { target?: unknown } }).meta?.target;
+  return Array.isArray(hedef) ? hedef.join(',') : typeof hedef === 'string' ? hedef : '';
+}
+
+/**
  * Servis hatasını §7.2 zarfına çevirir.
  *
  * İKİ PRISMA HATASI KULLANICI HATASIDIR, sunucu hatası değil:
@@ -124,13 +133,21 @@ export function toFailure(
 
   switch (prismaErrorCode(error)) {
     case 'P2002':
-      return conflict
-        ? fail('CONFLICT', conflict.message, conflict.fields)
-        : fail(
-            'CONFLICT',
-            'Bu adres (slug) aynı dilde zaten kullanılıyor. Farklı bir slug girin.',
-            { slug: 'Bu slug zaten kullanılıyor.' },
-          );
+      if (conflict) return fail('CONFLICT', conflict.message, conflict.fields);
+      // ADR-046: içerikte ikinci benzersizlik `@@unique([translationKey, locale])`.
+      // Slug metnini göstermek kullanıcıyı yanlış alana yönlendirirdi.
+      if (benzersizlikHedefi(error).includes('translationKey')) {
+        return fail(
+          'CONFLICT',
+          'Bu çeviri anahtarı aynı dilde başka bir kayıtta kullanılıyor. Her dilde bir kayıt olabilir.',
+          { translationKey: 'Bu dilde bu anahtarla bir kayıt zaten var.' },
+        );
+      }
+      return fail(
+        'CONFLICT',
+        'Bu adres (slug) aynı dilde zaten kullanılıyor. Farklı bir slug girin.',
+        { slug: 'Bu slug zaten kullanılıyor.' },
+      );
     case 'P2025':
       return fail('NOT_FOUND', 'Kayıt bulunamadı. Başka bir yerden silinmiş olabilir.');
 

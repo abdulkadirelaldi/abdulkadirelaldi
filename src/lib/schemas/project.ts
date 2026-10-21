@@ -29,6 +29,11 @@ import {
 const projectBase = z.object({
   locale: localeSchema,
   slug: slugSchema,
+  /**
+   * ADR-046 — aynı içeriğin dillerdeki kayıtlarını bağlar (dil değiştirici,
+   * hreflang). Slug biçiminde; dile göre DEĞİŞMEZ, slug değişebilir.
+   */
+  translationKey: slugSchema.optional(),
   title: shortTextSchema.min(1, { error: 'Başlık zorunludur.' }),
   summary: mediumTextSchema.min(1, { error: 'Özet zorunludur.' }),
   /** MDX. Çıktı `rehype-sanitize` ile temizlenir (§8.9) — sanitize RENDER anında. */
@@ -80,7 +85,8 @@ export const createProjectSchema = projectBase.refine(
 );
 
 export const updateProjectSchema = partialWithoutDefaults(projectBase)
-  .extend({ id: cuidSchema })
+  // `null` = çeviri bağını kaldır (T-031: undefined dokunma, null temizle).
+  .extend({ id: cuidSchema, translationKey: slugSchema.nullable().optional() })
   .refine(
     (value) => value.status !== 'SCHEDULED' || Boolean(value.publishedAt),
     scheduledNeedsDate,

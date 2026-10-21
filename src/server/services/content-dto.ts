@@ -147,6 +147,8 @@ export interface ProjectListItemDto {
   id: string;
   locale: string;
   slug: string;
+  /** ADR-046 — dillerdeki karşılıkları bağlayan anahtar; yoksa bağlı çeviri yok. */
+  translationKey: string | null;
   title: string;
   summary: string;
   cover: AttachmentRefDto | null;
@@ -176,6 +178,8 @@ export interface PostListItemDto {
   id: string;
   locale: string;
   slug: string;
+  /** ADR-046 — dillerdeki karşılıkları bağlayan anahtar; yoksa bağlı çeviri yok. */
+  translationKey: string | null;
   title: string;
   excerpt: string;
   cover: AttachmentRefDto | null;
@@ -310,6 +314,8 @@ export interface ProjectPanelListItemDto {
  * verilse form hangi kimliği göndereceğini bilemezdi.
  */
 export interface ProjectPanelDto extends ProjectPanelListItemDto {
+  /** ADR-046 — dillerdeki karşılıkları bağlayan anahtar; yoksa bağlı çeviri yok. */
+  translationKey: string | null;
   summary: string;
   content: string;
   coverAttachmentId: string | null;
@@ -335,6 +341,8 @@ export interface PostPanelListItemDto {
 
 /** Bkz. `ProjectPanelDto` — MDX ve ham FK aynı gerekçelerle burada. */
 export interface PostPanelDto extends PostPanelListItemDto {
+  /** ADR-046 — dillerdeki karşılıkları bağlayan anahtar; yoksa bağlı çeviri yok. */
+  translationKey: string | null;
   excerpt: string;
   content: string;
   coverAttachmentId: string | null;
