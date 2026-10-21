@@ -4,7 +4,7 @@ import { RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect } from 'react';
 
-import { Button, buttonClasses } from '@/components/ui/button';
+import { gradyanSiniflari, hapSiniflari } from '@/components/public/tasarim/gradyan-baglanti';
 
 /**
  * Public bölümün hata sınırı.
@@ -30,32 +30,48 @@ export default function PublicHata({
   }, [error]);
 
   return (
-    <div className="mx-auto flex max-w-2xl flex-col items-start gap-4 px-4 py-24">
-      <p className="tabular text-accent-soft text-xs tracking-wider uppercase">Hata</p>
-
-      <h1 className="text-3xl md:text-4xl">Sayfa yüklenemedi</h1>
-
-      <p className="text-muted">
-        Beklenmedik bir şey oldu ve içerik getirilemedi. Tekrar denemek çoğu zaman yetiyor; devam
-        ederse bana yazabilirsin.
-      </p>
-
-      {error.digest && (
-        <p className="text-muted text-sm">
-          Hata kodu: <span className="tabular text-body">{error.digest}</span>
+    <section className="relative isolate flex min-h-[80dvh] items-center overflow-hidden pt-28 pb-20">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 md:px-8">
+        <p
+          aria-hidden="true"
+          className="dev-baslik metin-kontur text-[clamp(5rem,20vw,16rem)] leading-[0.8]"
+        >
+          Hata
         </p>
-      )}
 
-      <div className="mt-2 flex flex-wrap gap-3">
-        <Button type="button" onClick={reset}>
-          <RefreshCw className="size-4" aria-hidden="true" />
-          Tekrar dene
-        </Button>
+        <h1 className="dev-baslik text-primary text-[clamp(2rem,6vw,4.5rem)]">Sayfa yüklenemedi</h1>
 
-        <Link href="/iletisim" className={buttonClasses({ variant: 'secondary' })}>
-          Bana yaz
-        </Link>
+        {/* Yığın izi gibi görünen satır SÜS + tek bilgi: opak `digest`. Hata
+            METNİ yazılmıyor (yukarıdaki §8 notu). */}
+        <pre className="tabular bg-surface border-line text-muted w-fit max-w-full overflow-x-auto rounded-[1rem] border px-5 py-4 text-xs leading-relaxed">
+          <code>
+            <span className="text-danger">Error</span>: içerik getirilemedi{'\n'}
+            {'    '}at sayfa (abdulkadir@site){'\n'}
+            {error.digest ? (
+              <>
+                {'    '}kod: <span className="text-primary">{error.digest}</span>
+              </>
+            ) : (
+              <>{'    '}kod: —</>
+            )}
+          </code>
+        </pre>
+
+        <p className="text-body max-w-xl">
+          Beklenmedik bir şey oldu. Tekrar denemek çoğu zaman yetiyor; devam ederse bana yaz ve
+          yukarıdaki kodu ekle — sunucu kaydında tam ayrıntıyı bulurum.
+        </p>
+
+        <div className="flex flex-wrap gap-3">
+          <button type="button" onClick={reset} className={gradyanSiniflari('md')}>
+            <RefreshCw className="size-4" aria-hidden="true" />
+            Tekrar dene
+          </button>
+          <Link href="/iletisim" className={hapSiniflari('h-11 px-5')}>
+            Bana yaz
+          </Link>
+        </div>
       </div>
-    </div>
+    </section>
   );
 }
