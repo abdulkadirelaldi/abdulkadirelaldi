@@ -2,6 +2,7 @@ import { PrismaPg } from '@prisma/adapter-pg';
 import { Pool } from 'pg';
 
 import { PrismaClient } from '@/server/generated/prisma/client';
+import { guvenliHata } from '@/lib/security/guvenli-log';
 
 /**
  * Tekil (singleton) Prisma istemcisi — PROGRAM.md §7.4.
@@ -67,10 +68,10 @@ function createPrismaClient(pool: Pool): PrismaClient {
      * havuz kendi kendini toparlar.
      */
     onPoolError: (error) => {
-      console.error('[db] pg havuz hatası:', error.message);
+      guvenliHata('[db] pg havuz hatası:', error.message);
     },
     onConnectionError: (error) => {
-      console.error('[db] pg bağlantı hatası:', error.message);
+      guvenliHata('[db] pg bağlantı hatası:', error.message);
     },
   });
 
@@ -237,7 +238,7 @@ export async function closeDatabase(): Promise<void> {
     try {
       await client.$disconnect();
     } catch (error) {
-      console.error(
+      guvenliHata(
         '[db] Prisma bağlantısı kapatılamadı:',
         error instanceof Error ? error.message : error,
       );
@@ -250,7 +251,7 @@ export async function closeDatabase(): Promise<void> {
     } catch (error) {
       // `pool.end()` ikinci kez çağrılırsa `pg` fırlatır; referans temizlendiği
       // için buraya normalde düşülmez ama kapanış yolu hata yutmalı.
-      console.error('[db] pg havuzu kapatılamadı:', error instanceof Error ? error.message : error);
+      guvenliHata('[db] pg havuzu kapatılamadı:', error instanceof Error ? error.message : error);
     }
   }
 }

@@ -1,3 +1,4 @@
+import { guvenliHata, guvenliUyari } from '@/lib/security/guvenli-log';
 /**
  * Bildirim ADAPTÖRÜ — §4.2, §12 (`RESEND_API_KEY`, `CONTACT_NOTIFY_EMAIL`).
  *
@@ -69,7 +70,7 @@ export const noopNotificationAdapter: NotificationAdapter = {
   send(notification) {
     // `warn`, `info` değil: ESLint yapılandırması yalnızca `warn`/`error`a izin
     // veriyor ve seviye zaten doğru — bu, üretimde fark edilmesi GEREKEN bir durum.
-    console.warn(
+    guvenliUyari(
       `[iletisim] bildirim sağlayıcısı kurulu değil, atlandı (mesaj=${notification.messageId})`,
     );
     return Promise.resolve();
@@ -116,7 +117,7 @@ export async function notifyContactMessage(
     return { delivered: true, adapter: adapter.name };
   } catch (error) {
     // §8.20 — ham e-posta YOK; yalnızca kayıt kimliği ve hata metni.
-    console.error(
+    guvenliHata(
       `[iletisim] bildirim gönderilemedi (adaptör=${adapter.name}, mesaj=${notification.messageId}):`,
       error instanceof Error ? error.message : error,
     );

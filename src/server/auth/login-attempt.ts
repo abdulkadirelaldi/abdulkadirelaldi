@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 
 import { db } from '@/server/db';
+import { guvenliHata } from '@/lib/security/guvenli-log';
 
 /**
  * `LoginAttempt` servisi — §8.4, ADR-013.
@@ -64,7 +65,7 @@ export async function recordLoginAttempt(
     await client.loginAttempt.create({ data: input });
   } catch (error) {
     // §8.20 — emailHash bile loglanmaz; yalnızca hatanın kendisi.
-    console.error(
+    guvenliHata(
       '[auth] giriş denemesi kaydedilemedi:',
       error instanceof Error ? error.message : error,
     );

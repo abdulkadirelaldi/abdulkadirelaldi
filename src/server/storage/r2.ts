@@ -1,4 +1,5 @@
 import { createHash, createHmac } from 'node:crypto';
+import { guvenliHata } from '@/lib/security/guvenli-log';
 
 /**
  * CLOUDFLARE R2 İSTEMCİSİ — §8.11, ADR-018, T-037.
@@ -230,7 +231,7 @@ export async function deleteObjectQuietly(key: string, deps: R2Deps = {}): Promi
 
     return yanit.ok || yanit.status === 404;
   } catch (error) {
-    console.error('[r2] nesne silinemedi:', error instanceof Error ? error.message : error);
+    guvenliHata('[r2] nesne silinemedi:', error instanceof Error ? error.message : error);
     return false;
   }
 }

@@ -15,6 +15,7 @@
  */
 
 import { AuditAction } from '@/types';
+import { guvenliHata } from '@/lib/security/guvenli-log';
 
 /**
  * §8.4 — "Giriş denemesi: IP başına 15 dakikada 5; aşımda 15 dk kilit + log".
@@ -168,7 +169,7 @@ export async function applyLockoutPolicy(
   try {
     failures = await deps.countRecentFailures({ ip: input.ip }, rateLimitWindowStart(now));
   } catch (error) {
-    console.error(
+    guvenliHata(
       '[security] başarısız deneme sayımı okunamadı:',
       error instanceof Error ? error.message : error,
     );
@@ -194,7 +195,7 @@ export async function applyLockoutPolicy(
       data: { lockedUntil },
     });
   } catch (error) {
-    console.error(
+    guvenliHata(
       '[security] hesap kilidi yazılamadı:',
       error instanceof Error ? error.message : error,
     );
@@ -250,7 +251,7 @@ async function writeLockAuditLog(
   } catch (error) {
     // Kilit YAZILDI ama denetim kaydı yazılamadı. Kilidi geri almıyoruz —
     // güvenlik kararı denetim kaydından daha önemli.
-    console.error(
+    guvenliHata(
       '[security] kilit denetim kaydı yazılamadı:',
       error instanceof Error ? error.message : error,
     );
