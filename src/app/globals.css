@@ -436,18 +436,87 @@
   }
 }
 
-/* Opaklık 0'dan DEĞİL 0.01'den başlıyor: Chrome opaklığı 0 olan öğeyi LCP
-   adayı saymıyor, sayfa girişi LCP'yi animasyon süresi kadar geciktirirdi. */
+/* YALNIZCA KAYMA, OPAKLIK YOK — ÖLÇÜLDÜ (PR #36, Lighthouse mobil): opaklık
+   0.01'den başlatılan gecikmeli giriş, hero alt şeridini LCP öğesi yaptı ve
+   LCP'yi 3.3–3.9 sn'ye itti (performans 0.84–0.88, eşik 0.90). Tarayıcı
+   neredeyse saydam öğeyi "boyanmış" saymıyor; görünür olduğu an animasyon
+   sonuna kayıyor. Kayan ama baştan opak içerik ilk boyamada sayılıyor. */
 @keyframes sayfa-giris {
   from {
-    opacity: 0.01;
     transform: translate3d(0, 24px, 0);
   }
   /* Bitişte `none`: kalıcı bir dönüşüm, içerideki `position: fixed` öğeleri
      sarmalayıcıya hapseder ve yeni bir yığın bağlamı açardı. */
   to {
-    opacity: 1;
     transform: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   ADR-045 — KAYDIRMAYA BAĞLI HAREKET: CSS scroll-driven animations, JS YOK
+   --------------------------------------------------------------------------
+   İlk sürüm framer-motion `useScroll` kullanıyordu; ölçüm (PR #36) mobilde
+   TBT ~250 ms ve ana iş parçacığında 1.2 sn betik değerlendirmesi gösterdi.
+   T-023 aynı dersi BolumGiris için almıştı — burada TEKRARLANMADI.
+
+   AŞAMALI GELİŞTİRME: taban stiller son kareyi gösterir (başlık dolu, panel
+   tam boy, süs yerinde). Hareket yalnızca tarayıcı `animation-timeline`ı
+   destekliyorsa VE kullanıcı hareketi azaltmamışsa eklenir. Desteklemeyen
+   tarayıcıda site eksiksiz ama durağan.
+
+   `animation` kısaltması `animation-timeline`ı SIFIRLAR — zaman çizgisi her
+   zaman kısaltmadan SONRA yazılmalı. */
+
+@keyframes kontur-dol {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes panel-otur {
+  from {
+    scale: 0.94;
+  }
+  to {
+    scale: 1;
+  }
+}
+
+@keyframes paralaks {
+  from {
+    translate: 0 0;
+  }
+  to {
+    translate: 0 var(--paralaks, -120px);
+  }
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    /* Başlık ekranın altından girerken boş, ortasına vardığında dolu. */
+    .kontur-dol {
+      animation: kontur-dol linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 50%;
+    }
+
+    /* Panel ekrana girerken %94'ten tam boya. */
+    .panel-otur {
+      transform-origin: top center;
+      animation: panel-otur linear both;
+      animation-timeline: view();
+      animation-range: entry 0% cover 30%;
+    }
+
+    /* Süs, ekranı boydan boya geçerken `--paralaks` kadar kayar. */
+    .paralaks {
+      animation: paralaks linear both;
+      animation-timeline: view();
+      animation-range: cover;
+    }
   }
 }
 

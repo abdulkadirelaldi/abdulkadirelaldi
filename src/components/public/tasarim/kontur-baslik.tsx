@@ -1,8 +1,3 @@
-'use client';
-
-import { motion, useReducedMotion, useScroll, useTransform } from 'framer-motion';
-import { useRef } from 'react';
-
 import { cn } from '@/lib/utils/cn';
 
 export type KonturBaslikProps = {
@@ -21,32 +16,19 @@ export type KonturBaslikProps = {
  *   - üstteki DOLU kopya başlığın kendisi; `clip-path` ile soldan sağa açılır.
  * Ekran okuyucu metni BİR kez duyar; erişilebilir ad dolu katmandan gelir.
  *
- * İLERLEME: başlık ekranın altından girdiği an 0, ekranın ortasına geldiğinde
- * 1 — yani okuyucu başlığa vardığında yazı DOLMUŞ oluyor, yarım kalmıyor.
- *
- * HAREKET AZALTILMIŞSA dolu katman baştan tam görünür; kırpma hiç uygulanmaz.
+ * HAREKET SAF CSS (`.kontur-dol`, globals.css): başlık ekranın altından girdiği
+ * an boş, ekranın ortasına geldiğinde dolu. Sunucu bileşeni — JS göndermez.
+ * Destek yoksa ya da hareket azaltılmışsa başlık baştan DOLU (taban stil).
  */
 export function KonturBaslik({ metin, as: Etiket = 'h2', id, className }: KonturBaslikProps) {
-  const kap = useRef<HTMLHeadingElement>(null);
-  const azHareket = useReducedMotion();
-  const { scrollYProgress } = useScroll({ target: kap, offset: ['start end', 'center center'] });
-  const kirpma = useTransform(scrollYProgress, [0, 1], ['inset(0 100% 0 0)', 'inset(0 0% 0 0)']);
-
-  const MotionEtiket = Etiket === 'h1' ? motion.h1 : motion.h2;
-
   return (
     <div className={cn('relative', className)}>
       <span aria-hidden="true" className="dev-baslik metin-kontur block">
         {metin}
       </span>
-      <MotionEtiket
-        ref={kap}
-        id={id}
-        className="dev-baslik text-primary absolute inset-0"
-        style={azHareket ? undefined : { clipPath: kirpma }}
-      >
+      <Etiket id={id} className="dev-baslik text-primary kontur-dol absolute inset-0">
         {metin}
-      </MotionEtiket>
+      </Etiket>
     </div>
   );
 }
