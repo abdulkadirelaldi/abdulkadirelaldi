@@ -5,6 +5,7 @@ import {
   FileText,
   LayoutDashboard,
   GraduationCap,
+  Handshake,
   LayoutTemplate,
   Mail,
   Newspaper,
@@ -13,6 +14,7 @@ import {
   Users,
   UserRound,
   Wallet,
+  Wrench,
 } from 'lucide-react';
 import type { ComponentType } from 'react';
 
@@ -79,6 +81,8 @@ export const PANEL_GRUPLARI: ReadonlyArray<{
       { href: '/panel/icerik/projeler', label: 'Projeler', icon: FileText, hazir: true },
       { href: '/panel/icerik/blog', label: 'Blog', icon: Newspaper, hazir: true },
       { href: '/panel/icerik/deneyim', label: 'Deneyim', icon: GraduationCap, hazir: true },
+      { href: '/panel/icerik/yetenekler', label: 'Yetenekler', icon: Wrench, hazir: true },
+      { href: '/panel/icerik/hizmetler', label: 'Hizmetler', icon: Handshake, hazir: true },
       { href: '/panel/ayarlar', label: 'Ayarlar', icon: Settings, hazir: true },
     ],
   },

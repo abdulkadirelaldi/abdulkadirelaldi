@@ -1,9 +1,9 @@
-import type { CreateServiceInput, UpdateServiceInput } from '@/lib/schemas';
+import type { CreateServiceInput, ServiceFilterInput, UpdateServiceInput } from '@/lib/schemas';
 import { db } from '@/server/db';
 import type { PrismaClient } from '@/server/generated/prisma/client';
 
-import { DEFAULT_LOCALE } from './_shared';
-import type { ServiceDto } from './content-dto';
+import { DEFAULT_LOCALE, panelSkipTake, toPagedResult } from './_shared';
+import type { PagedResult, ServiceDto } from './content-dto';
 
 /** `Service` servisi — §4.1 hizmetler, K4 CTA'ları. */
 
@@ -41,6 +41,42 @@ export async function fetchServices(
     orderBy: [{ order: 'asc' }, { title: 'asc' }],
   });
   return rows.map(toDto);
+}
+
+/* ===========================================================================
+ * PANEL OKUMA YOLU — gerekçe `skill.ts`'teki aynı bölümde (sayfalı liste +
+ * `id` ile tek kayıt, ayrı panel DTO'su yok, önbellek yok).
+ * ======================================================================== */
+
+/** TÜM hizmetler — panel listesi, sayfalı. Sıra public tarafla AYNI. */
+export async function fetchServicesForPanel(
+  filter: ServiceFilterInput,
+  client: ServiceClient = db,
+): Promise<PagedResult<ServiceDto>> {
+  const where: Record<string, unknown> = {};
+  if (filter.locale) where.locale = filter.locale;
+
+  const { skip, take } = panelSkipTake(filter);
+
+  const [rows, total] = await Promise.all([
+    client.service.findMany({
+      where,
+      orderBy: [{ order: 'asc' }, { title: 'asc' }],
+      skip,
+      take,
+    }),
+    client.service.count({ where }),
+  ]);
+
+  return toPagedResult(rows, total, filter, toDto);
+}
+
+/** Panel TEK KAYIT — `id` ile. Yoksa `null` (bkz. `fetchSkillForPanelById`). */
+export async function fetchServiceForPanelById(
+  id: string,
+  client: ServiceClient = db,
+): Promise<ServiceDto | null> {
+  return findServiceSnapshot(id, client);
 }
 
 /* ===========================================================================
