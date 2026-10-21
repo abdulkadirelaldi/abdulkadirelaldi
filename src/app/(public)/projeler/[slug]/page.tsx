@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation';
 import { KapakGorsel } from '@/components/public/kapak-gorsel';
 import { Mdx } from '@/components/public/mdx';
 import { cipSiniflari, filtreAdresi } from '@/components/public/proje-filtre';
+import { PROJE_SEMALARI } from '@/components/public/proje-semalari';
 import { GradyanDisBaglanti, hapSiniflari } from '@/components/public/tasarim/gradyan-baglanti';
 import { HarfHarf } from '@/components/public/tasarim/harf-harf';
 import { buttonClasses } from '@/components/ui/button';
@@ -91,6 +92,8 @@ export default async function ProjeDetaySayfasi({ params }: SayfaProps) {
   }
 
   const proje = sonuc.data;
+  // Mimari şema — kodda, slug'la eşleşiyor (proje-semalari.tsx gerekçesi).
+  const Sema = PROJE_SEMALARI[proje.slug];
 
   // Künye — "spec sheet": yalnızca DOLU alanlar satır üretir (T-022 kalıbı).
   const kunye = [
@@ -179,6 +182,18 @@ export default async function ProjeDetaySayfasi({ params }: SayfaProps) {
         <div className="overflow-hidden rounded-[2rem]">
           <KapakGorsel kapak={proje.cover} baslik={proje.title} />
         </div>
+
+        {Sema && (
+          <section aria-labelledby="mimari-baslik" className="flex flex-col gap-6">
+            <h2
+              id="mimari-baslik"
+              className="dev-baslik text-primary text-[clamp(2rem,6vw,4.5rem)]"
+            >
+              Mimari
+            </h2>
+            <Sema />
+          </section>
+        )}
 
         {/* İçerik — problem / çözüm / sonuç anlatısı MDX'ten gelir (§8.9). */}
         <div className="mx-auto w-full max-w-3xl">

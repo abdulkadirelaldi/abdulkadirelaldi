@@ -52,8 +52,11 @@ function toDto(row: ExperienceRow): ExperienceDto {
 /**
  * Deneyim/eğitim kayıtları — EN YENİ ÖNCE.
  *
- * Sıralama `startDate desc`: zaman çizelgesi en güncel deneyimi en üstte
- * gösterir. `order` ikincil anahtar, aynı tarihli kayıtları elle sıralamak için.
+ * Sıralama `order asc`, sonra `startDate desc` (2026-10-21'de tersine çevrildi):
+ * özgeçmişte sıra bir ANLATI kararı — en güçlü rol (CV'de Spectraloop) daha yeni
+ * ama kısa bir stajın altında kalmamalı. Elle sıra verilmemiş kayıtlar (order 0,
+ * panelin varsayılanı) en üstte ve kendi aralarında tarihe göre; yani yeni
+ * eklenen kayıt sıralanana kadar görünür bir yerde durur.
  *
  * Boş durumda BOŞ DİZİ.
  */
@@ -66,7 +69,7 @@ export async function fetchExperience(
       locale: params.locale ?? DEFAULT_LOCALE,
       ...(params.type ? { type: params.type } : {}),
     },
-    orderBy: [{ startDate: 'desc' }, { order: 'asc' }],
+    orderBy: [{ order: 'asc' }, { startDate: 'desc' }],
   });
   return rows.map(toDto);
 }
@@ -189,7 +192,7 @@ export async function fetchExperienceForPanel(
   const [rows, total] = await Promise.all([
     client.experience.findMany({
       where,
-      orderBy: [{ startDate: 'desc' }, { order: 'asc' }],
+      orderBy: [{ order: 'asc' }, { startDate: 'desc' }],
       skip,
       take,
     }),

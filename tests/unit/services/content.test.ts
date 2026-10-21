@@ -527,6 +527,6 @@ describe('fetchExperience', () => {
 
     const args = findMany.mock.calls[0]?.[0];
     expect(args.where.type).toBe('EDUCATION');
-    expect(args.orderBy).toEqual([{ startDate: 'desc' }, { order: 'asc' }]);
+    expect(args.orderBy).toEqual([{ order: 'asc' }, { startDate: 'desc' }]);
   });
 });
