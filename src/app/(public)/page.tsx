@@ -8,6 +8,7 @@ import { Hakkimda } from '@/components/public/hakkimda';
 import { Hero } from '@/components/public/hero';
 import { Hizmetler } from '@/components/public/hizmetler';
 import { IletisimBlogu } from '@/components/public/iletisim';
+import { TembelIletisimFormu } from '@/components/public/tembel-iletisim-formu';
 import { Projeler } from '@/components/public/projeler';
 import { KapakSeridi, LogoSeridi, TeknolojiSeridi } from '@/components/public/vitrin-seritleri';
 import { Yetenekler } from '@/components/public/yetenekler';
@@ -23,6 +24,9 @@ import {
   getSkills,
 } from '@/server/services';
 
+/** Ana sayfadaki yetenek şeridine giren kayıt sayısı (tam liste /cv'de). */
+const ANA_SAYFA_YETENEK = 24;
+
 /** §12 — adres koda gömülmez, ortam değişkeninden okunur. */
 const KIYI_MEDYA_URL = process.env.NEXT_PUBLIC_KIYI_MEDYA_URL ?? 'https://kiyimedya.com';
 
@@ -33,9 +37,17 @@ const KIYI_MEDYA_URL = process.env.NEXT_PUBLIC_KIYI_MEDYA_URL ?? 'https://kiyime
  * yalnızca yeni bir dağıtımla değişir. Standalone imaj `public/`u kopyalıyor.
  */
 const AVATAR_ADAYLARI = ['avatar-3d.webp', 'avatar-3d.png'] as const;
-const avatarAdresi = (() => {
-  const bulunan = AVATAR_ADAYLARI.find((ad) => existsSync(join(process.cwd(), 'public', ad)));
-  return bulunan ? `/${bulunan}` : null;
+const publicteVar = (ad: string) => existsSync(join(process.cwd(), 'public', ad));
+const avatar = (() => {
+  const bulunan = AVATAR_ADAYLARI.find(publicteVar);
+  if (!bulunan) return null;
+  // Küçük kopya (`avatar-3d-600.webp`) varsa mobil onu indirir — LCP öğesi bu
+  // görsel, mobilde bayt sayısı doğrudan LCP'ye yazılıyor (ADR-045 ölçümü).
+  const kucuk = bulunan === 'avatar-3d.webp' && publicteVar('avatar-3d-600.webp');
+  return {
+    src: `/${bulunan}`,
+    srcSet: kucuk ? '/avatar-3d-600.webp 600w, /avatar-3d.webp 900w' : undefined,
+  };
 })();
 
 export const metadata: Metadata = {
@@ -91,7 +103,7 @@ export default async function AnaSayfa() {
 
   return (
     <>
-      <Hero profil={profil} ad={SITE_NAME} avatar={avatarAdresi} />
+      <Hero profil={profil} ad={SITE_NAME} avatar={avatar} />
 
       <div className="flex flex-col gap-10 py-10 md:gap-14 md:py-14">
         <LogoSeridi logolar={logolar} />
@@ -107,9 +119,17 @@ export default async function AnaSayfa() {
 
       <Projeler projeler={projeler} />
 
-      <Yetenekler yetenekler={yetenekler} />
+      {/* Ana sayfada ilk 24 (sıraya göre — diller, gömülü, yapay zeka önde); tam liste
+          /cv'de. Kayan şerit içeriği HTML'de iki kez basıyor: 44 kart, mobil LCP
+          benzetimine yazılan belge baytını boşuna şişiriyordu (ADR-045). */}
+      <Yetenekler
+        yetenekler={[...yetenekler].sort((a, b) => a.order - b.order).slice(0, ANA_SAYFA_YETENEK)}
+      />
 
-      <IletisimBlogu profil={profil} />
+      <IletisimBlogu
+        profil={profil}
+        form={<TembelIletisimFormu eposta={profil.socials?.email ?? null} />}
+      />
     </>
   );
 }

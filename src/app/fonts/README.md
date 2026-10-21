@@ -9,7 +9,7 @@ derleme anında ağa gittiği ve CI'ı iki kez düşürdüğü için (koşu 3190
 | `space-grotesk.woff2`  | Space Grotesk                                         | 600–700        | 35.2 kB |
 | `inter.woff2`          | Inter (opsz 14'e sabit)                               | 400–600        | 94.4 kB |
 | `jetbrains-mono.woff2` | JetBrains Mono                                        | 400–500        | 33.8 kB |
-| `archivo-genis.woff2`  | Archivo (wdth 125'e sabit) — ADR-045, yalnızca public | 800–900        | 38.4 kB |
+| `archivo-genis.woff2`  | Archivo (wdth 125'e sabit) — ADR-045, yalnızca public | 800–900        | 29.6 kB |
 
 Üçü de **değişken** kaldı: tek dosya bütün ağırlıkları karşılıyor. Sabit
 ağırlıklara ayırmak yedi dosya ve 275 kB ederdi (ölçüldü); Google'ın altkümeli
@@ -17,13 +17,24 @@ sürümü altı dosya ve 218 kB idi.
 
 ## Kapsam
 
-`latin` + `latin-ext` **birleşimi**. Aralıklar elle yazılmadı: `next/font/google`'ın
-ürettiği eski CSS'teki `unicode-range` değerlerinden birebir alındı ve `uret.py`
-içinde duruyor.
+**ADR-045 ile daraltıldı (2026-10-21):** Latin-1 + Latin Genişletilmiş-A
+(ğ ş ı İ dahil tüm Türkçe ve Avrupa dillerinin çoğu) + noktalama, oklar, para
+birimi ve içerikte geçen birkaç teknik işaret (≈ Ω µ ↔). Önceki `latin-ext`
+birleşiminin büyük kısmı (Genişletilmiş-B, Vietnamca, IPA) sitede hiç geçmiyordu.
+OpenType özellikleri de yalnızca dizgi için gerekenlere indi (stil alternatifleri
+atıldı). Ölçüm — mobil Lighthouse, LCP benzetimi ilk yükte istenen her baytı
+sayıyor:
 
-`latin-ext` pazarlık konusu değil — ğ ü ş İ ı ö ç harfleri `latin` altkümesinde
-**yok**. Eksik olsaydı tarayıcı bu harfleri yedek fontla yamardı ve Türkçe metin
-harf harf bozuk görünürdü.
+| Dosya                  | Önce    | Sonra   |
+| ---------------------- | ------- | ------- |
+| `inter.woff2`          | 94.4 kB | 37.3 kB |
+| `archivo-genis.woff2`  | 29.6 kB | 29.6 kB |
+| `space-grotesk.woff2`  | 35.2 kB | 24.4 kB |
+| `jetbrains-mono.woff2` | 33.8 kB | 30.9 kB |
+
+Türkçe harflerin hiçbiri pazarlık konusu değil: `uret.py` üretimden sonra
+kapsamı **doğrular** — biri düşerse hata verir. (JetBrains Mono'da `₺` glifi
+fontun kendisinde yok; altkümeyle ilgisi yok.)
 
 ## Yeniden üretme
 
