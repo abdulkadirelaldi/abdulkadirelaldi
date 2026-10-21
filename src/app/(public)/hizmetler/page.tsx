@@ -109,6 +109,7 @@ export default async function HizmetlerSayfasi() {
               <GradyanDisBaglanti
                 href={KIYI_MEDYA_URL}
                 data-cta="kiyi-medya"
+                data-umami-event="kiyi-medya"
                 data-hizmet="genel"
                 data-kaynak="hizmetler"
               >
