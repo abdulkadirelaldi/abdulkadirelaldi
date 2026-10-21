@@ -830,7 +830,6 @@ jobs:
       # §5.2.2 ("sayfa başına en fazla 1 WebGL") artık yapısal olarak sağlanıyor.
       # WebGL geri gelirse ikisi git geçmişinden (T-029e) geri alınmalı.
 
-
       # `DATABASE_URL` BURADA DA BİLEREK TANIMSIZ — `kapi`'deki nöbetin ikizi
       # (BULGU-002). Ana sayfa veriye bağlandıktan SONRA da derlemenin
       # veritabanısız geçmesi gerekiyor; kök layout `cookies()` okuduğu için `/`
@@ -952,7 +951,6 @@ jobs:
             --collect.settings.preset=desktop \
             --collect.settings.extraHeaders='{"Cookie":"ae-theme=dark"}' \
             --upload.outputDir=lighthouse-raporu/masaustu-koyu
-
 
       # Üç profilin skorlarını tek yerde, okunabilir biçimde özetler.
       - name: Profil skorları
