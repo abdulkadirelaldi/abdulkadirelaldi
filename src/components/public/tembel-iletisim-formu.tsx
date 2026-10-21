@@ -20,7 +20,13 @@ const IletisimFormu = dynamic(
 );
 
 function FormIskeleti() {
-  return <div aria-busy="true" aria-label="Form yükleniyor" className="min-h-[34rem]" />;
+  // `role="status"`: rolsüz bir div'e `aria-label` verilemez (axe
+  // aria-prohibited-attr); durum bölgesi ekran okuyucuya metni okutur.
+  return (
+    <div role="status" aria-busy="true" className="min-h-[34rem]">
+      <span className="sr-only">Form yükleniyor</span>
+    </div>
+  );
 }
 
 export function TembelIletisimFormu({ eposta }: { eposta: string | null }) {

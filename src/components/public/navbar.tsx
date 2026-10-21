@@ -22,6 +22,16 @@ const NAV_LINKS = [
   { href: '/iletisim', label: 'İletişim', hazir: true },
 ] as const;
 
+/*
+ * ÖN ÇEKME `true` (tam sayfa) — ÖLÇÜLDÜ: public sayfalar istek başına render
+ * ediliyor (CSP nonce'u statik sayfaya izin vermiyor) ve Next varsayılan ön
+ * çekmede dinamik rotanın yalnızca yükleme sınırını alıyor; menü tıklaması
+ * sunucuyu bekliyordu. 4× CPU + Fast 4G'de Projeler/Hakkımda/İletişim geçişi
+ * ~0.8–1 sn idi. Tam ön çekmeyle sayfa tıklamadan önce hazır.
+ * Bedel: menüdeki beş sayfanın RSC yükü (sayfa başına ~20–35 kB) ilk yükten
+ * SONRA, boşta iken iniyor — LCP'ye yazılmıyor.
+ */
+
 /** Bu kadar pikselden sonra başlık zemin alır ve aşağı kaydırmada gizlenir. */
 const ESIK = 24;
 
@@ -108,7 +118,7 @@ export function Navbar() {
             <li key={link.href}>
               <Link
                 href={link.href}
-                prefetch={link.hazir ? undefined : false}
+                prefetch={link.hazir ? true : false}
                 aria-current={aktif(link.href) ? 'page' : undefined}
                 className={cn(
                   'group focus-ring rounded-btn relative block overflow-hidden py-1 text-[0.7rem] font-semibold tracking-[0.18em] uppercase',
@@ -162,7 +172,7 @@ export function Navbar() {
               <li key={link.href} className="border-line border-b">
                 <Link
                   href={link.href}
-                  prefetch={link.hazir ? undefined : false}
+                  prefetch={link.hazir ? true : false}
                   aria-current={aktif(link.href) ? 'page' : undefined}
                   className={cn(
                     'focus-ring dev-baslik flex items-baseline justify-between py-4 text-4xl',

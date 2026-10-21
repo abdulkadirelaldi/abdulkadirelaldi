@@ -42,14 +42,17 @@ export function KayanSerit({
       role={etiket ? 'region' : undefined}
       aria-label={etiket}
       className={cn(
-        'group/serit relative overflow-hidden motion-reduce:overflow-x-auto',
-        solgun && '[mask-image:linear-gradient(90deg,transparent,black_8%,black_92%,transparent)]',
+        // `kayan-serit-kap`: ekran dışındayken çizim ATLANIR (globals.css,
+        // content-visibility) — şerit görünmüyorken GPU'yu meşgul etmesin.
+        'kayan-serit-kap group/serit relative overflow-hidden motion-reduce:overflow-x-auto',
         className,
       )}
     >
       <div
         className={cn(
-          'animate-kayan-serit flex w-max',
+          // `will-change`: şerit kendi katmanında; kayma yalnızca bileşimci
+          // (compositor) işi, her karede yeniden çizim yok.
+          'animate-kayan-serit flex w-max will-change-transform',
           ters && '[animation-direction:reverse]',
           durdur && 'group-hover/serit:[animation-play-state:paused]',
         )}
@@ -62,6 +65,25 @@ export function KayanSerit({
           {children}
         </div>
       </div>
+      {/*
+        KENAR SOLMASI — `mask-image` DEĞİL, zemin renginde iki gradyan örtü.
+        ÖLÇÜLDÜ: hareketli içeriği maskelemek, tarayıcıyı tüm şeridi her karede
+        ayrı bir yüzeyde yeniden çizmeye zorluyordu — ana sayfada karelerin
+        %40'ı "kısmi" sunuldu (kaydırma takılması), raster 107 ms. Örtüyle
+        kısmi kare %0, raster 32 ms. Görsel sonuç aynı: kenarlar zemine eriyor.
+      */}
+      {solgun && (
+        <>
+          <div
+            aria-hidden="true"
+            className="from-canvas pointer-events-none absolute inset-y-0 left-0 w-[8%] bg-gradient-to-r to-transparent"
+          />
+          <div
+            aria-hidden="true"
+            className="from-canvas pointer-events-none absolute inset-y-0 right-0 w-[8%] bg-gradient-to-l to-transparent"
+          />
+        </>
+      )}
     </div>
   );
 }

@@ -37,8 +37,9 @@ export type HeroProps = {
 /**
  * Görüntülenen genişlik: yükseklik `min(58dvh, 40rem)` × en/boy (900/1120).
  * Mobilde BİLEREK küçük yazılıyor (340px): gerçek genişlik ~380px ve 1.75
- * DPR'de tarayıcı 900w'yi seçiyordu (86 kB). 600w (45 kB) %10 büyütmeyle
- * gözle ayırt edilmiyor; bu görsel mobil LCP öğesi, bayt LCP'ye yazılıyor.
+ * DPR'de tarayıcı 900w'yi seçiyordu (86 kB). Küçük kopya 720×896 — en/boy
+ * oranı 900×1120 ile BİREBİR (600w'de 747 piksele yuvarlanınca Lighthouse
+ * `image-aspect-ratio` uyarısı veriyordu); bu görsel mobil LCP öğesi.
  */
 const AVATAR_SIZES = '(max-width: 767px) 340px, min(47vh, 515px)';
 
@@ -100,7 +101,10 @@ export function Hero({ profil, ad, avatar }: HeroProps) {
                 DİK PORTRE (şeffaf PNG'den WebP, 900×1120): yükseklikle
                 ölçekleniyor ki alt şerit ekranın içinde kalsın. Alt kenar ve
                 omuzların DÜZ kesildiği yan kenarlar zemine eriyor (iki maskenin
-                kesişimi) — gövde sahnenin içinden çıkıyormuş gibi; arkadaki
+                kesişimi) — gövde sahnenin içinden çıkıyormuş gibi. Yüksekliğin
+                üçüncü sınırı ekran GENİŞLİĞİNDEN türüyor (×1120/900): dar ekranda
+                `max-width: 100%` genişliği kısıp yüksekliği sabit bırakınca portre
+                hafifçe ESNİYORDU (Lighthouse `image-aspect-ratio` ölçtü). Arkadaki
                 vurgu ışığı portreyi koyu zeminden ayırıyor. `alt` boş: başlık
                 zaten ismi söylüyor, görsel bilgi değil süs.
               */
@@ -119,7 +123,7 @@ export function Hero({ profil, ad, avatar }: HeroProps) {
                   height={1120}
                   fetchPriority="high"
                   decoding="async"
-                  className="mx-auto h-[min(58dvh,40rem)] w-auto [mask-image:linear-gradient(to_bottom,black_70%,transparent),linear-gradient(to_right,transparent,black_14%,black_86%,transparent)] [mask-composite:intersect]"
+                  className="mx-auto h-[min(58dvh,40rem,calc((100vw-2rem)*1.2444))] w-auto [mask-image:linear-gradient(to_bottom,black_70%,transparent),linear-gradient(to_right,transparent,black_14%,black_86%,transparent)] [mask-composite:intersect]"
                 />
               </>
             ) : (

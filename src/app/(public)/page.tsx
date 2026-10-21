@@ -41,12 +41,12 @@ const publicteVar = (ad: string) => existsSync(join(process.cwd(), 'public', ad)
 const avatar = (() => {
   const bulunan = AVATAR_ADAYLARI.find(publicteVar);
   if (!bulunan) return null;
-  // Küçük kopya (`avatar-3d-600.webp`) varsa mobil onu indirir — LCP öğesi bu
+  // Küçük kopya (`avatar-3d-720.webp`) varsa mobil onu indirir — LCP öğesi bu
   // görsel, mobilde bayt sayısı doğrudan LCP'ye yazılıyor (ADR-045 ölçümü).
-  const kucuk = bulunan === 'avatar-3d.webp' && publicteVar('avatar-3d-600.webp');
+  const kucuk = bulunan === 'avatar-3d.webp' && publicteVar('avatar-3d-720.webp');
   return {
     src: `/${bulunan}`,
-    srcSet: kucuk ? '/avatar-3d-600.webp 600w, /avatar-3d.webp 900w' : undefined,
+    srcSet: kucuk ? '/avatar-3d-720.webp 720w, /avatar-3d.webp 900w' : undefined,
   };
 })();
 
