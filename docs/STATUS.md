@@ -3,9 +3,9 @@
 > Orkestra Şefi tarafından tutulur. Her ajan raporundan sonra güncellenir.
 > Kaynak: `PROGRAM.md` §11 Yol Haritası.
 
-**Son güncelleme:** 2026-10-20
-**Aktif faz:** F5 — Sağlık, Spor, Hayat · **kabul kontrolü bekliyor** (dal `feat/T-110-T-111-saglik-spor-servisleri`)
-**Genel ilerleme:** 5 / 8 faz tamamlandı (F0–F4) · F5'in yedi görevi yazıldı
+**Son güncelleme:** 2026-10-21
+**Aktif faz:** F7 — Yayın · imaj ve kurulum belgesi hazır (PR #34), **alan adı bekleniyor**
+**Genel ilerleme:** 7 / 8 faz tamamlandı (F0–F6) · F7'nin alan adından bağımsız iki görevi yazıldı
 
 ---
 
@@ -18,9 +18,9 @@
 | F2  | Public İskelet                            | Frontend                      | 🟢 **Tamam** |
 | F3  | Panel Çekirdek                            | Backend + Frontend            | 🟢 **Tamam** |
 | F4  | İş & Muhasebe                             | Backend + Frontend            | 🟢 **Tamam** |
-| F5  | Sağlık, Spor, Hayat                       | Backend + Frontend            | 🟡 Yazıldı, kabul bekliyor |
-| F6  | Sertleştirme                              | Güvenlik & Test               | ⚪ Bekliyor |
-| F7  | Yayın                                     | Hepsi                         | ⚪ Bekliyor |
+| F5  | Sağlık, Spor, Hayat                       | Backend + Frontend            | 🟢 **Tamam** |
+| F6  | Sertleştirme                              | Güvenlik & Test               | 🟢 **Tamam** |
+| F7  | Yayın                                     | Hepsi                         | 🔵 Aktif — alan adı bekliyor |
 
 Durum kodları: ⚪ Bekliyor · 🔵 Aktif · 🟡 Kısmen · 🟢 Tamamlandı · 🔴 Engellendi
 
@@ -133,8 +133,8 @@ Kısmi: **7** (mobilde geçiyor, panel gezinme iddiaları yazılmadı — tek sp
 sayacı 6'ya çıkarır). Açık: **5** (finans, F4/F5).
 
 **Açık borçlar (F3 boyunca):**
-1. **T-037** — imzalı URL'ler gelmeden tüm kapaklar yer tutucu; `LogoLoop` bölümü kapalı.
-   **Beş şey bunu bekliyor:** proje kapakları, galeri, blog kapakları, CV indirme, müşteri logoları
+1. ~~**T-037**~~ — **kapandı (2026-10-21, ADR-044 + T-117):** proje kapakları, galeri, blog kapakları,
+   CV indirme ve müşteri logoları (`LogoLoop`, ≥ 3 logo) artık gerçek dosyalarla
 2. **Dolu silah → T-043f** — panel okuma yolu yazıldı ama bağlanmadı; sabit `status`
    hâlâ yerinde *(ayrıntı F3 tablosunda)*
 3. **Arşivlenen adres 410 değil 200 dönüyor** — Next 15.5 sınırı (T-024); panel metni
@@ -191,7 +191,7 @@ ederken karşılığında şart koştuğu koruma.
 
 ---
 
-### F3 — Panel Çekirdek 🟢 **KAPANDI** *(T-037 hariç — R2 hesabı bekliyor)*
+### F3 — Panel Çekirdek 🟢 **KAPANDI** *(T-037 de kapandı — ADR-044, PR #31)*
 
 | #      | Görev                                                                             | Ajan               | Bağımlılık   |
 | ------ | --------------------------------------------------------------------------------- | ------------------ | ------------ |
@@ -214,7 +214,7 @@ ederken karşılığında şart koştuğu koruma.
 | T-036b | `/panel/icerik/profil` — hero metni, bio, sosyaller, CV dosyası                   | Frontend           | T-031, T-032 |
 | T-033  | Panel dashboard — özet kartlar (`CountUp`), bugünün planı                         | Frontend           | T-040        |
 | T-042f | Şifre değiştirme ekranı                                                           | Frontend           | T-042s       |
-| T-037  | R2 yükleme ucu + imzalı URL + dosya doğrulayıcı (§8.11) — 🔴 **R2 hesabı bekliyor** | Backend + Güvenlik | T-015        |
+| T-037  | R2 yükleme + dosya doğrulayıcı (§8.11) — 🟢 **Tamam**: imzalı URL yerine aynı kökenden yükleme/sunum (ADR-044; R2 CORS ön-uçuşu 403) | Backend + Güvenlik | T-015        |
 | T-045  | Önbellek granülasyonu: detay girdilerinden `localeTag` çıkarma — **F3 sonrası**    | Backend            | T-040        |
 
 **Sıra:** T-030 ✅ → T-031 ✅ → T-032 ✅ → (T-034 ✅ ∥ T-038 ✅ ∥ T-039 ✅) →
@@ -258,7 +258,7 @@ ve bu turda Frontend'in ölçüm görevi var (ADR-023: iki ölçüm görevi para
 
 ---
 
-### F5 — Sağlık, Spor, Hayat 🟡 **YAZILDI — kabul kontrolü bekliyor**
+### F5 — Sağlık, Spor, Hayat 🟢 **KAPANDI** (PR #25–#27)
 
 | #     | Görev                                                                        | Ajan     | Bağımlılık  |
 | ----- | ---------------------------------------------------------------------------- | -------- | ----------- |
@@ -274,29 +274,29 @@ ve bu turda Frontend'in ölçüm görevi var (ADR-023: iki ölçüm görevi para
 
 ---
 
-### F6 — Sertleştirme ⚪
+### F6 — Sertleştirme 🟢 **KAPANDI** (PR #28, #29, #32)
 
 | #     | Görev                                                                            | Ajan                | Bağımlılık   |
 | ----- | -------------------------------------------------------------------------------- | ------------------- | ------------ |
 | T-060 | Nonce tabanlı CSP + tüm güvenlik başlıkları (§8.12–14) — 🟢 **Tamam** (§8.13 ✅, 133 E2E) | Güvenlik            | F2–F5        |
 | T-061 | Hız sınırlama katmanı tamamlanması (§8.15–16) — 🟢 **Tamam** (§8.16 ✅)           | Güvenlik            | T-060        |
 | T-062 | §8'in 25 maddesi tam denetimi — 🟢 **Tamam** (✅ 23 · ⚠️ 2, ikisi F7'ye bağlı; BULGU-027; 4 yapısal kapı) | Güvenlik            | T-060, T-061 |
-| T-063 | Bulgu düzeltmeleri (Backend/Frontend'e dağıtılır)                                | Backend + Frontend  | T-062        |
-| T-064 | E2E paketi tamamlanması (§9 — 7 senaryo) + kapsam ≥ %70                          | Güvenlik            | F5           |
-| T-065 | Lighthouse CI eşikleri sağlanana kadar optimizasyon                              | Frontend + Güvenlik | T-064        |
+| T-063 | Bulgu düzeltmeleri — 🟢 **Tamam** (BULGU-027: TOTP yazma eylemleri `currentActorId`; §8.20 merkezî log maskeleme; ADVISORY-007 vite) | Backend + Frontend  | T-062        |
+| T-064 | E2E paketi tamamlanması (§9 — 7 senaryo) — 🟢 **Tamam** (7/7, 133 E2E, 0 atlanan) | Güvenlik            | F5           |
+| T-065 | Lighthouse CI eşikleri — 🟢 **Tamam** (merge kapısı "error" eşikleriyle her PR'da yeşil) | Frontend + Güvenlik | T-064        |
 | T-066 | Yedekleme betiği + `docs/security/restore.md` + **geri yükleme provası** (§8.22) | Güvenlik            | T-060        |
 
 **Sıra:** T-060 → T-061 → T-062 → T-063 → T-064 → T-065 → T-066
 
 ---
 
-### F7 — Yayın ⚪
+### F7 — Yayın 🔵 **AKTİF — alan adı bekliyor**
 
 | #     | Görev                                                    | Ajan          | Bağımlılık   |
 | ----- | -------------------------------------------------------- | ------------- | ------------ |
-| T-070 | `Dockerfile` (çok aşamalı, standalone, non-root)         | Backend       | F6           |
-| T-071 | Coolify + Postgres container + volume + iç ağ            | Backend       | T-070        |
-| T-072 | Domain + SSL + reverse proxy                             | Backend       | T-071        |
+| T-070 | `Dockerfile` (çok aşamalı, standalone, non-root) — 🟡 **Yazıldı** (PR #34) | Backend       | F6           |
+| T-071 | Coolify + Postgres container + volume + iç ağ — 🟡 **Yazıldı** (`docker-compose.prod.yml`, `scripts/uretim-baslat.ts`, `docs/yayin.md`; yerelde boş DB'den uçtan uca ölçüldü) | Backend       | T-070        |
+| T-072 | Domain + SSL + reverse proxy — 🔴 **alan adı bekliyor**  | Backend       | T-071        |
 | T-073 | R2 bucket + gece yedek cron (03:00)                      | Güvenlik      | T-066, T-071 |
 | T-074 | Uptime Kuma + `/api/v1/health` izleme + kaynak uyarıları | Güvenlik      | T-072        |
 | T-075 | Yayın sonrası kabul kontrolü — K1…K6 (§1.1) ölçümü       | Orkestra Şefi | T-070…T-074  |
@@ -1562,3 +1562,51 @@ kalan E2E izi 0 · `lint`/`typecheck`/`format:check` temiz.
 ### Sırada
 
 F5 kabul kontrolü → **F6 Sertleştirme**: T-060 nonce CSP → T-061 hız sınırı → T-062 §8 tam denetim (⏳ 3) → T-063 → T-064 → T-065 (T-066 erken kapandı, PR #24).
+
+---
+
+## F5 + F6 KAPANDI, F7 başladı (Orkestra Şefi, 2026-10-21)
+
+### Birleşenler (`main`)
+
+| PR | İçerik |
+|----|--------|
+| #25–#27 | F5 — sağlık, spor, hayat (T-110…T-116) |
+| #28 | T-060/T-061 — nonce CSP (`'strict-dynamic'`, Zod `jitless`), yükleme hız sınırı |
+| #29 | T-062 — §8 tam denetim (✅ 23 · ⚠️ 2), BULGU-027, merkezî log maskeleme (§8.20) |
+| #32 | ADVISORY-007 — vite 8.2.4 |
+| #30 | Düzenlemede dolu alanı boşaltmak artık siliyor (`undefined` = dokunma, `null` = temizle) |
+| #31 | T-037f — aynı kökenden yükleme/sunum (ADR-044): kapak, galeri, avatar, CV |
+
+### İncelemede (açık PR'lar, sıralı yığın)
+
+| PR | İçerik |
+|----|--------|
+| #33 | T-117 — müşteri logoları: `Client.showOnSite` + `logoAttachmentId`; rıza geri alınabilir diye logo önbelleği 1 sa (immutable değil); başka varlığın dosyası logo yapılamıyor |
+| #34 | T-070/T-071 — üretim imajı, `docker-compose.prod.yml`, `scripts/uretim-baslat.ts`, `docs/yayin.md` |
+
+### §8 durumu
+
+✅ 23 · ⚠️ 2 · ⏳ 0. İki ⚠️ de F7'ye bağlı: **§8.12 HSTS `preload`** (alan adı kesinleşince) ve
+**§8.21 gece yedeği tetikleyicisi** (Coolify Scheduled Task, `docs/yayin.md` §5).
+
+### T-070/T-071'in ölçerek öğrendikleri (`docs/yayin.md`'de ⚠️ ile)
+
+1. `NEXT_PUBLIC_SITE_URL` **derleme anında** gerekli — alan adı olmadan imaj derlenmiyor.
+2. Docker `HOSTNAME`i konteyner kimliğine ayarlıyor → standalone sunucu `127.0.0.1`i reddediyor, sağlık kontrolü düşüyor (`HOSTNAME=0.0.0.0`).
+3. Prisma motoru ilk çağrıda `node_modules`a yazıyor → root olmayan kullanıcıda düşüyor (derlemede önceden indiriliyor).
+4. Compose tırnaksız argon2 hash'indeki `$`ları değişken sanıyor (92 → 17 karakter, sessizce) → başlatma betiği hash biçimini doğruluyor.
+5. Yedek anahtarı ortamı ayırt etmiyor → üretimin **ayrı** yedek bucket'ı olmalı.
+
+### Kullanıcı eylemi bekleyenler
+
+- **Alan adı** + Coolify erişimi → T-072…T-075.
+- ⚠️ **R2 token rotasyonu** — anahtarlar sohbet geçmişine girmişti.
+- Üretim için **ayrı** `BACKUP_R2_BUCKET`.
+- #33 ve #34'ün incelenip birleştirilmesi.
+- Q6 — `main` için `pull_request` kuralı · ADVISORY-002 hatırlatması **2026-11-22**.
+
+### Sırada
+
+Alan adı gelince: Coolify kaynağı (`docs/yayin.md` §2) → DNS → ilk kurulum betiği → Scheduled Task yedeği →
+Uptime Kuma → HSTS `preload` → T-075 K1…K6 ölçümü.
