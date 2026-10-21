@@ -4,7 +4,7 @@
 > Kaynak: `PROGRAM.md` §11 Yol Haritası.
 
 **Son güncelleme:** 2026-10-21
-**Aktif faz:** F7 — Yayın · imaj ve kurulum belgesi hazır (PR #34), **alan adı bekleniyor**
+**Aktif faz:** F7 — Yayın · imaj, kurulum belgesi ve sitenin içeriği hazır; **yalnızca kullanıcı eylemleri bekleniyor** (alan adı, R2, Coolify)
 **Genel ilerleme:** 7 / 8 faz tamamlandı (F0–F6) · F7'nin alan adından bağımsız iki görevi yazıldı
 
 ---
@@ -294,7 +294,7 @@ ve bu turda Frontend'in ölçüm görevi var (ADR-023: iki ölçüm görevi para
 
 | #     | Görev                                                    | Ajan          | Bağımlılık   |
 | ----- | -------------------------------------------------------- | ------------- | ------------ |
-| T-070 | `Dockerfile` (çok aşamalı, standalone, non-root) — 🟡 **Yazıldı** (PR #34) | Backend       | F6           |
+| T-070 | `Dockerfile` (çok aşamalı, standalone, non-root) — 🟢 **Tamam** (PR #34) | Backend       | F6           |
 | T-071 | Coolify + Postgres container + volume + iç ağ — 🟡 **Yazıldı** (`docker-compose.prod.yml`, `scripts/uretim-baslat.ts`, `docs/yayin.md`; yerelde boş DB'den uçtan uca ölçüldü) | Backend       | T-070        |
 | T-072 | Domain + SSL + reverse proxy — 🔴 **alan adı bekliyor**  | Backend       | T-071        |
 | T-073 | R2 bucket + gece yedek cron (03:00)                      | Güvenlik      | T-066, T-071 |
@@ -1610,3 +1610,48 @@ F5 kabul kontrolü → **F6 Sertleştirme**: T-060 nonce CSP → T-061 hız sın
 
 Alan adı gelince: Coolify kaynağı (`docs/yayin.md` §2) → DNS → ilk kurulum betiği → Scheduled Task yedeği →
 Uptime Kuma → HSTS `preload` → T-075 K1…K6 ölçümü.
+
+---
+
+## Site yenilendi ve içerik tamamlandı (Orkestra Şefi, 2026-10-21)
+
+### Birleşenler / incelemede
+
+| PR | İçerik | Durum |
+|----|--------|-------|
+| #33 | T-117 müşteri logoları | ✅ main |
+| #34 | T-070/T-071 Docker, üretim compose'u, başlatma, `docs/yayin.md` | ✅ main |
+| #35 | Durum belgesi | ✅ main |
+| #37 | **ADR-045 yeni tasarım** + CV/portfolyo içeriği + portre + mobil performans + React Bits/WebGL kaldırma (#36 buna dahil edildi) | CI |
+| #38 | Panel yetenek/hizmet ekranları, 404/hata, mimari şemalar, 3 blog yazısı, Resend (isteğe bağlı), Umami (isteğe bağlı) | #37'nin üstünde |
+| #6, #8 | Ağustos'tan kalan yığın tabanları — içerikleri zaten main'de | kapatıldı |
+
+### Ölçümler
+
+- **Mobil Lighthouse (yerel, CI ayarları):** performans 84–88 → **93–94**, LCP 4.2 → 3.1 sn,
+  TBT ~250 → ~25 ms, SEO 92 → 100. Kalemler: kaydırma efektleri CSS scroll-driven animations
+  (framer-motion public'ten çıktı), fontlar 198 → 122 kB (Türkçe-tam altküme), ana sayfa formu
+  tembel + yuva (Zod ilk yükten çıktı), `htmlLimitedBots` (metadata `<head>`'de), duyarlı portre.
+- Birim 2381 · E2E 133 · atlanan 0 (iki `skipIf(!derlemeVar)` derlemesiz ortamda beklenen).
+
+### Yeni kalıcı kurallar
+
+- **Sunucu modülünün import ettiği her istemci bileşeni, çizilmese bile rotanın paketine girer.**
+  Ağır istemci bileşeni koşullu kullanılacaksa yuva (prop) olarak geçir — `IletisimBlogu`.
+- **Lighthouse benzetimi ilk yükte istenen her baytı LCP'ye yazar** — gözlenen LCP 100 ms olsa bile.
+  Font altkümesi ve ilk yük paketi doğrudan mobil skordur.
+- **Opaklıkla başlayan giriş animasyonu LCP öğesini geciktirir**; giriş yalnızca kayma.
+
+### Kullanıcı eylemi bekleyenler (tek liste)
+
+1. **Alan adı** al → Coolify'da kaynak, DNS, ilk kurulum + `scripts/icerik-yukle.ts` (docs/yayin.md §2–§4).
+2. ⚠️ **R2 anahtarlarını yenile** (sohbet geçmişine girmişti) ve üretim için **ayrı yedek bucket'ı**.
+3. Panelden yükle: proje **kapakları** (portfolyodaki ekran görüntüleri), **CV PDF'i**.
+4. İsteğe bağlı: **Resend** (bildirim) ve **Umami** (analitik) — ortam değişkenleri, docs/yayin.md.
+5. Kararlar: Q6 (`main` için PR kuralı), Q1 (panel alt alan adı mı yol mu — HSTS preload buna bağlı).
+6. ADVISORY-002 hatırlatması **2026-11-22**.
+
+### Açık öneri — İngilizce sürüm (karar bekliyor)
+
+Kapsamı büyük: `Profile` tekil kayıt (`id = singleton`) olduğu için şema değişikliği, `/en` rotaları,
+arayüz metinlerinin sözlüğe taşınması, panelde dil seçimi, hreflang. Ayrı bir faz olarak önerildi.
