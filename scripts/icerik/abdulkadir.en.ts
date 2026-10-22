@@ -25,6 +25,7 @@ export const PROFIL = {
     'My goal is to ship end-to-end products by bringing together embedded systems, edge AI, and full-stack development.',
   ].join('\n\n'),
   location: 'Samsun, Türkiye',
+  availability: 'Open to internships, roles and projects · Graduating 2027',
   socials: PROFIL_TR.socials,
 } as const;
 
@@ -219,6 +220,7 @@ export const PROJELER: Proje[] = [
   {
     slug: 'spectraloop-hyperloop',
     translationKey: 'spectraloop-hyperloop',
+    period: '2023 – present',
     title: 'Spectraloop — Hyperloop Pod Control Software',
     summary:
       'STM32-based control software for a TEKNOFEST Hyperloop pod: CAN Bus, linear motor drive over Modbus RTU, and a fail-safe architecture. 1st place in Türkiye in the Technology Demonstration category in 2026.',
@@ -255,6 +257,7 @@ A pod propelled by a linear motor has to communicate reliably under heavy EMI, k
   {
     slug: 'jwc-line-monitoring',
     translationKey: 'jwc-hat-izleme',
+    period: '2026',
     title: 'JWC Line Monitoring System — Production Data from the Screen',
     summary:
       'A field-validated line monitoring system that uses OCR on a Raspberry Pi 5 to read the screens of production machines with no data output: 6/6 fields at 99%+ confidence, and a 90-second stoppage measured at 88 seconds.',
@@ -352,6 +355,7 @@ Development runs on a workflow built around orchestrating multiple AI agents.
   {
     slug: 'kiyi-medya-corporate-website',
     translationKey: 'kiyi-medya-kurumsal-site',
+    commercial: true,
     title: 'Kıyı Medya — Corporate Website',
     summary:
       'The corporate website of the 360° digital agency I co-founded — built end to end, from design to launch.',
@@ -370,6 +374,7 @@ I built the agency's corporate website end to end, from design to launch.
   {
     slug: 'iscev-aritma-corporate-website',
     translationKey: 'iscev-aritma-kurumsal-site',
+    commercial: true,
     title: 'İSÇEV Arıtma — Corporate Website',
     summary:
       'A corporate website for a water treatment and environmental technology company — delivered through Kıyı Medya.',
@@ -386,6 +391,7 @@ A corporate website for a company working in industrial wastewater treatment and
   {
     slug: 'askar-medikal-corporate-website',
     translationKey: 'askar-medikal-kurumsal-site',
+    commercial: true,
     title: 'Askar Medikal — Corporate Website',
     summary: 'A corporate website for a medical device supplier — delivered through Kıyı Medya.',
     tags: ['Corporate website', 'Kıyı Medya'],
@@ -401,6 +407,7 @@ A corporate website for a medical device supplier. Built end to end, from design
   {
     slug: 'tesisbul',
     translationKey: 'tesisbul',
+    period: '2024 – 2025',
     title: 'TesisBul.com — Online Booking Platform',
     summary:
       'An online booking platform for venues and facilities that I built from scratch, backed by field and marketing outreach to more than 100 businesses in about 20 cities.',

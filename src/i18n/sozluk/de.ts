@@ -78,7 +78,7 @@ export const de: Sozluk = {
     kodDegisken: 'projekt',
     kodYigin: 'stack',
     kodEtiketler: 'tags',
-    kodYil: 'jahr',
+    kodDonem: 'zeitraum',
   },
   yeteneklerBolum: {
     baslik: 'Womit ich arbeite',
@@ -199,7 +199,7 @@ export const de: Sozluk = {
   proje: {
     geri: 'cd ../projekte',
     musteri: 'Kunde',
-    yayin: 'Veröffentlicht',
+    donem: 'Zeitraum',
     yigin: 'Stack',
     canliSite: 'Live-Website',
     kaynakKodu: 'Quellcode',
@@ -210,6 +210,11 @@ export const de: Sozluk = {
     kiyiOnce: 'Kommerzielle Aufträge laufen über',
     kiyiSonra: ' – Angebot und Vertrag werden dort abgewickelt.',
     kiyiIlerle: 'Weiter mit Kıyı Medya',
+    konusalim: 'Sprechen wir über dieses Projekt',
+    konusalimAciklama:
+      'Sie möchten mehr über Details, den Code oder meine Rolle im Team erfahren? Schreiben Sie mir – mein Lebenslauf fasst meine gesamte Erfahrung auf einer Seite zusammen.',
+    banaYaz: 'Schreiben Sie mir',
+    cvGor: 'Lebenslauf ansehen',
     kaldirildi: 'Dieses Projekt wurde entfernt',
     kaldirildiAciklama:
       'Diese Seite gab es einmal, ihr Inhalt wurde jedoch dauerhaft entfernt. Die Adresse ist korrekt – es gibt nichts mehr anzuzeigen.',

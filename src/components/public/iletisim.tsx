@@ -56,7 +56,12 @@ export function IletisimBlogu({
         <Yuzen hiz={-120} className="top-10 right-[4%] w-16 md:w-24">
           <ParlakHalka className="w-full" renk="var(--sekil-mor)" />
         </Yuzen>
-        <Yuzen hiz={-200} gecikme={0.7} className="bottom-10 left-[2%] hidden md:block">
+        {/*
+          ALT BOŞLUKTA KALIR: önceki hâli (`bottom-10`, 200 px kayma) kaydırırken
+          "Konum/Durum" satırının üstüne biniyordu (inceleme, 2026-10-22). Kayma
+          40 px'e indi; süs metin sütununun altındaki boşluktan çıkmıyor.
+        */}
+        <Yuzen hiz={-40} gecikme={0.7} className="bottom-4 left-[2%] hidden md:block">
           <ParlakGlif glif="@" className="text-[7rem]" />
         </Yuzen>
 

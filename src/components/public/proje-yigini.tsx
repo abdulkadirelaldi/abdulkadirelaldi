@@ -113,11 +113,12 @@ export function ProjeYigini({
                           </span>
                         ),
                     )}
-                    {proje.publishedAt && (
+                    {/* Dönem — yayın tarihi değil (bkz. `Project.period`); boşsa satır yok. */}
+                    {proje.period && (
                       <>
                         {'  '}
-                        {s.kodYil}:{' '}
-                        <span className="text-warning">{proje.publishedAt.slice(0, 4)}</span>,{'\n'}
+                        {s.kodDonem}:{' '}
+                        <span className="text-success">&apos;{proje.period}&apos;</span>,{'\n'}
                       </>
                     )}
                     {'}'};

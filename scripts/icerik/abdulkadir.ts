@@ -23,6 +23,11 @@ export const PROFIL = {
     'Gömülü sistemler, uç cihazlarda yapay zeka ve full-stack geliştirmeyi bir araya getirerek uçtan uca ürün çıkarmayı hedefliyorum.',
   ].join('\n\n'),
   location: 'Samsun, Türkiye',
+  /**
+   * İKİ KİTLEYE: işveren (staj/iş, mezuniyet yılı) ve müşteri (projeler).
+   * Yalnızca "yeni projelere açığım" işverene hiçbir şey söylemiyordu.
+   */
+  availability: 'Staj, iş ve projelere açığım · Mezuniyet 2027',
   socials: {
     github: 'https://github.com/abdulkadirelaldi',
     linkedin: 'https://www.linkedin.com/in/abdulkadirelaldi',
@@ -240,6 +245,10 @@ export type Proje = {
   liveUrl?: string;
   clientName?: string;
   featured: boolean;
+  /** Projenin dönemi — YALNIZCA belgede tarihi olanlarda; boşsa sitede tarih yok. */
+  period?: string;
+  /** Müşteriye teslim edilen ticari iş (detayın çağrısı Kıyı Medya). */
+  commercial?: boolean;
   /**
    * ADR-046 — dil karşılığı anahtarı. Türkçede yazılmaz (slug kullanılır);
    * çevirilerde Türkçe kaydın slug'ı — dil seçici ve hreflang bununla eşler.
@@ -250,6 +259,7 @@ export type Proje = {
 export const PROJELER: Proje[] = [
   {
     slug: 'spectraloop-hyperloop',
+    period: '2023 – sürüyor',
     title: 'Spectraloop — Hyperloop Kapsül Kontrol Yazılımı',
     summary:
       "TEKNOFEST Hyperloop kapsülünün STM32 tabanlı kontrol yazılımı: CAN Bus, Modbus RTU ile lineer motor sürüşü ve fail-safe mimari. 2026'da Teknoloji Gösterim kategorisinde Türkiye 1.liği.",
@@ -285,6 +295,7 @@ Lineer motorla itilen kapsülün yüksek EMI altında güvenilir haberleşmesi, 
   },
   {
     slug: 'jwc-hat-izleme',
+    period: '2026',
     title: 'JWC Hat İzleme Sistemi — Ekrandan Üretim Verisi',
     summary:
       "Veri çıkışı olmayan üretim makinelerinin ekranını Raspberry Pi 5 üzerinde OCR ile okuyan, sahada doğrulanmış hat izleme sistemi: 6/6 alan %99+ güvenle, 90 sn'lik duruş 88 sn ölçüldü.",
@@ -379,6 +390,7 @@ Geliştirme, çoklu yapay zeka ajanlarının orkestrasyonuna dayalı bir iş ak�
   },
   {
     slug: 'kiyi-medya-kurumsal-site',
+    commercial: true,
     title: 'Kıyı Medya — Kurumsal Site',
     summary:
       'Kurucu ortağı olduğum 360° dijital ajansın kurumsal sitesi — tasarımdan yayına uçtan uca.',
@@ -396,6 +408,7 @@ Ajansın kurumsal sitesini tasarımdan yayına uçtan uca geliştirdim.
   },
   {
     slug: 'iscev-aritma-kurumsal-site',
+    commercial: true,
     title: 'İSÇEV Arıtma — Kurumsal Site',
     summary:
       'Arıtma ve çevre teknolojileri firması için kurumsal web sitesi — Kıyı Medya bünyesinde.',
@@ -411,6 +424,7 @@ Endüstriyel atıksu arıtma ve çevre teknolojileri alanında çalışan firma 
   },
   {
     slug: 'askar-medikal-kurumsal-site',
+    commercial: true,
     title: 'Askar Medikal — Kurumsal Site',
     summary: 'Tıbbi cihaz tedarikçisi için kurumsal web sitesi — Kıyı Medya bünyesinde.',
     tags: ['Kurumsal site', 'Kıyı Medya'],
@@ -425,6 +439,7 @@ Tıbbi cihaz tedarikçisi için kurumsal web sitesi. Kıyı Medya bünyesinde, t
   },
   {
     slug: 'tesisbul',
+    period: '2024 – 2025',
     title: 'TesisBul.com — Online Rezervasyon Platformu',
     summary:
       "Tesisler için sıfırdan geliştirdiğim online rezervasyon platformu; yaklaşık 20 şehirde 100'den fazla işletmeye yönelik saha ve pazarlama çalışması.",

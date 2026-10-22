@@ -111,6 +111,8 @@ const PROJE: ProjectPanelDto = {
   liveUrl: null,
   repoUrl: null,
   clientName: null,
+  period: null,
+  commercial: false,
 };
 
 const gizliDil = (kap: HTMLElement) =>

@@ -38,6 +38,7 @@ interface ProjectListRow {
   stack: string[];
   featured: boolean;
   order: number;
+  period: string | null;
   publishedAt: Date | null;
 }
 
@@ -55,6 +56,7 @@ const LIST_SELECT = {
   stack: true,
   featured: true,
   order: true,
+  period: true,
   publishedAt: true,
   cover: { select: ATTACHMENT_SELECT },
 } as const;
@@ -66,6 +68,7 @@ const DETAIL_SELECT = {
   liveUrl: true,
   repoUrl: true,
   clientName: true,
+  commercial: true,
 } as const;
 
 function toListDto(row: ProjectListRow): ProjectListItemDto {
@@ -81,6 +84,7 @@ function toListDto(row: ProjectListRow): ProjectListItemDto {
     stack: row.stack,
     featured: row.featured,
     order: row.order,
+    period: row.period,
     publishedAt: row.publishedAt?.toISOString() ?? null,
   };
 }
@@ -194,6 +198,7 @@ export async function fetchProjectBySlug(
       liveUrl: row.liveUrl,
       repoUrl: row.repoUrl,
       clientName: row.clientName,
+      commercial: row.commercial,
       gallery: await fetchProjectGallery(row.id, client, row.cover?.id ?? null),
     },
   };
@@ -323,6 +328,8 @@ export async function createProject(
       liveUrl: input.liveUrl ?? null,
       repoUrl: input.repoUrl ?? null,
       clientName: input.clientName ?? null,
+      period: input.period ?? null,
+      commercial: input.commercial,
       featured: input.featured,
       order: input.order,
       status: input.status,
@@ -364,6 +371,8 @@ export async function updateProject(
       ...(fields.liveUrl !== undefined ? { liveUrl: fields.liveUrl } : {}),
       ...(fields.repoUrl !== undefined ? { repoUrl: fields.repoUrl } : {}),
       ...(fields.clientName !== undefined ? { clientName: fields.clientName } : {}),
+      ...(fields.period !== undefined ? { period: fields.period } : {}),
+      ...(fields.commercial !== undefined ? { commercial: fields.commercial } : {}),
       ...(fields.featured !== undefined ? { featured: fields.featured } : {}),
       ...(fields.order !== undefined ? { order: fields.order } : {}),
       ...(fields.status !== undefined ? { status: fields.status } : {}),
@@ -431,6 +440,8 @@ const PANEL_DETAIL_SELECT = {
   liveUrl: true,
   repoUrl: true,
   clientName: true,
+  period: true,
+  commercial: true,
   cover: { select: ATTACHMENT_SELECT },
 } as const;
 
@@ -456,6 +467,8 @@ interface ProjectPanelDetailRow extends ProjectPanelListRow {
   liveUrl: string | null;
   repoUrl: string | null;
   clientName: string | null;
+  period: string | null;
+  commercial: boolean;
   cover: AttachmentRow | null;
 }
 
@@ -545,5 +558,7 @@ export async function fetchProjectForPanel(
     liveUrl: row.liveUrl,
     repoUrl: row.repoUrl,
     clientName: row.clientName,
+    period: row.period,
+    commercial: row.commercial,
   };
 }

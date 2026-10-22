@@ -1671,3 +1671,20 @@ adresler. Arayüz sözlükleri, tüm içeriğin çevirisi (`scripts/icerik/*.{en
 - Panelde proje kapakları dil başına ayrı kayıtlara bağlı: kapak yüklerken **her dil sekmesinde**
   projeyi açıp yükleyin (ya da yalnızca Türkçeye yükleyin; çeviriler kapaksız kalır).
 - Çevirileri gözden geçirmek isterseniz panel → İçerik → dil sekmesi; metinler oradan düzenlenir.
+
+## İnceleme bulguları giderildi (Orkestra Şefi, 2026-10-22)
+
+Site iki uzman (profesör, fullstack) ve beş ziyaretçi gözüyle incelendi; koddaki bulgular tek PR'da:
+
+- **"7+ yıl deneyim" → 5+:** sayı eğitim/ödül dahil en eski kayıttan (2019 atölye) hesaplanıyordu; artık yalnızca iş deneyimi.
+- **Proje tarihi:** sayfada içeriğin YÜKLENDİĞİ tarih ("2026-10") proje tarihi gibi görünüyordu. Yeni `period` alanı (serbest metin); yalnızca belgede tarihi olan projelerde dolu, boşsa tarih gösterilmiyor.
+- **Detay çağrısı türe göre:** yeni `commercial` alanı. Ticari işte Kıyı Medya, diğerlerinde "Bu proje hakkında konuşalım" + CV.
+- **Durum satırı iki kitleye:** "Staj, iş ve projelere açığım · Mezuniyet 2027" (EN/DE karşılıklarıyla).
+- **Deneyim sırası** yeniden eskiye; **"@" süsü** metnin üstüne binmiyor; **form düğmesi** marka gradyanında.
+- **Veritabanı kesintisi:** süreçte bir kez okunmuş içerik kesintide son iyi hâliyle sunuluyor (uyarı loglanıyor); site tümden düşmüyor.
+
+### Kullanıcı eylemi — bu PR'dan sonra
+
+- Panel → Projeler → **Dönem** alanını tarihi belgede olmayan projeler için doldurun
+  (Predictive-Edge, İSÇEV platformu, üç kurumsal site). Boş kalırsa tarih görünmez — yanlış tarih de görünmez.
+- Gerekirse **Ticari iş** kutusunu panelden değiştirin (şu an yalnızca üç kurumsal site işaretli).

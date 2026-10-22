@@ -1,5 +1,7 @@
 import { unstable_cache } from 'next/cache';
 
+import { guvenliUyari } from '@/lib/security/guvenli-log';
+
 /**
  * Public içerik önbellekleme — ADR-011'in karşılığı.
  *
@@ -115,11 +117,63 @@ export function cachedRead<Args extends unknown[], Result>(
   read: (...args: Args) => Promise<Result>,
   describe: (...args: Args) => CacheDescriptor,
 ): (...args: Args) => Promise<Result> {
-  return (...args: Args): Promise<Result> => {
+  return async (...args: Args): Promise<Result> => {
     const { keyParts, tags } = describe(...args);
-    return unstable_cache(read, keyParts, {
-      tags,
-      revalidate: CONTENT_REVALIDATE_SECONDS,
-    })(...args);
+    const anahtar = sonIyiAnahtari(keyParts, args);
+    try {
+      const sonuc = await unstable_cache(read, keyParts, {
+        tags,
+        revalidate: CONTENT_REVALIDATE_SECONDS,
+      })(...args);
+      sonIyiYaz(anahtar, sonuc);
+      return sonuc;
+    } catch (error) {
+      if (!SON_IYI.has(anahtar)) throw error;
+      guvenliUyari(
+        '[icerik] okuma başarısız, son iyi içerik sunuluyor:',
+        keyParts.join(':'),
+        error instanceof Error ? error.message : 'bilinmeyen hata',
+      );
+      return SON_IYI.get(anahtar) as Result;
+    }
   };
+}
+
+/* ===========================================================================
+ * SON İYİ İÇERİK — veritabanı kesintisinde site DÜŞMESİN
+ * ===========================================================================
+ *
+ * ÖLÇÜLDÜ (2026-10-22, yerel): veritabanı kapanınca önbelleği dolmamış ya da
+ * etiketi düşmüş her okuma fırlatıyor ve ziyaretçi "Sayfa yüklenemedi" görüyor
+ * — portfolyo sitesinde içeriğin TAMAMI. Okunan içerik nadiren değişiyor;
+ * birkaç dakikalık kesintide son başarılı okumayı sunmak, hata sayfasından
+ * her durumda daha doğru bir cevap.
+ *
+ * SINIRLAR (bilerek):
+ *   - Yalnızca BU SÜREÇTE daha önce başarıyla okunmuş anahtarlar. Soğuk
+ *     başlangıçta veritabanı yoksa yine hata — üretimde compose sırası
+ *     (`depends_on: service_healthy`) bunu önlüyor.
+ *   - Bellek sınırlı: en çok `SON_IYI_SINIRI` girdi; en eskisi düşer. Anahtarlar
+ *     yalnızca BAŞARILI okumalardan doluyor, yani uydurma slug'larla şişirilemez
+ *     (bulunamayan kayıt da başarılı okumadır ama küçük bir `NOT_FOUND` değeri).
+ *   - Kesinti sırasında yayından kaldırılan içerik, kesinti bitene kadar son
+ *     hâliyle görünebilir. Bilinçli takas: kesinti dakikalar, yanlışlık küçük.
+ *   - Hata loglanıyor (`guvenliUyari`) — sessiz değil; sağlık ucu (`/api/v1/
+ *     health`) zaten 503 dönüyor ve izleme oradan uyarıyor.
+ */
+const SON_IYI_SINIRI = 500;
+const SON_IYI = new Map<string, unknown>();
+
+function sonIyiAnahtari(keyParts: string[], args: unknown[]): string {
+  return `${keyParts.join('\u0000')}\u0001${JSON.stringify(args)}`;
+}
+
+function sonIyiYaz(anahtar: string, deger: unknown): void {
+  // Map ekleme sırasını korur: silip yeniden eklemek "en yeni" yapar.
+  SON_IYI.delete(anahtar);
+  SON_IYI.set(anahtar, deger);
+  if (SON_IYI.size > SON_IYI_SINIRI) {
+    const enEski = SON_IYI.keys().next().value;
+    if (enEski !== undefined) SON_IYI.delete(enEski);
+  }
 }

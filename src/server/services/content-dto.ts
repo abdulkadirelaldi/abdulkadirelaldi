@@ -156,6 +156,8 @@ export interface ProjectListItemDto {
   stack: string[];
   featured: boolean;
   order: number;
+  /** Projenin dönemi ("2023 – sürüyor"); yoksa `null` ve tarih gösterilmez. */
+  period: string | null;
   /** ISO 8601. `PUBLISHED` içerikte daima dolu. */
   publishedAt: string | null;
 }
@@ -166,6 +168,8 @@ export interface ProjectDto extends ProjectListItemDto {
   liveUrl: string | null;
   repoUrl: string | null;
   clientName: string | null;
+  /** Ticari iş → detayın çağrısı Kıyı Medya; değilse iletişim/CV. */
+  commercial: boolean;
   /** Polimorfik `Attachment` ilişkisi, `order` ile sıralı (ADR-018). */
   gallery: AttachmentRefDto[];
 }
@@ -327,6 +331,8 @@ export interface ProjectPanelDto extends ProjectPanelListItemDto {
   liveUrl: string | null;
   repoUrl: string | null;
   clientName: string | null;
+  period: string | null;
+  commercial: boolean;
 }
 
 export interface PostPanelListItemDto {

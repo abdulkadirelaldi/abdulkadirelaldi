@@ -7,7 +7,11 @@ import { KapakGorsel } from '@/components/public/kapak-gorsel';
 import { Mdx } from '@/components/public/mdx';
 import { cipSiniflari, filtreAdresi } from '@/components/public/proje-filtre';
 import { PROJE_SEMALARI } from '@/components/public/proje-semalari';
-import { GradyanDisBaglanti, hapSiniflari } from '@/components/public/tasarim/gradyan-baglanti';
+import {
+  GradyanBaglanti,
+  GradyanDisBaglanti,
+  hapSiniflari,
+} from '@/components/public/tasarim/gradyan-baglanti';
 import { HarfHarf } from '@/components/public/tasarim/harf-harf';
 import { buttonClasses } from '@/components/ui/button';
 import type { Dil } from '@/i18n/diller';
@@ -103,8 +107,10 @@ export async function ProjeDetaySayfasi({ dil, slug }: SayfaProps) {
   // Künye — "spec sheet": yalnızca DOLU alanlar satır üretir (T-022 kalıbı).
   const kunye = [
     proje.clientName && { ad: p.musteri, deger: proje.clientName },
-    // ISO dizesinden yıl-ay — `Date` aritmetiği yok (ADR-016 mantığı).
-    proje.publishedAt && { ad: p.yayin, deger: proje.publishedAt.slice(0, 7) },
+    // Projenin DÖNEMİ — yayın tarihi değil. `publishedAt` içeriğin siteye
+    // girdiği an; 2023'te başlayan proje "2026-10" görünüyordu. Dönem boşsa
+    // tarih satırı hiç yok: uydurma tarih yazılmaz.
+    proje.period && { ad: p.donem, deger: proje.period },
     proje.stack.length > 0 && { ad: p.yigin, deger: proje.stack.join(' · ') },
   ].filter((k): k is { ad: string; deger: string } => Boolean(k));
 
@@ -239,28 +245,54 @@ export async function ProjeDetaySayfasi({ dil, slug }: SayfaProps) {
         )}
 
         {/*
+          ÇAĞRI PROJENİN TÜRÜNE GÖRE. Ticari işte Kıyı Medya (§1.1 K4); gömülü,
+          akademik ya da ekip projesini okuyan genelde işveren ya da akademisyen
+          ve ona ajans teklifi sunmak yersiz — iletişim ve CV.
+        */}
+        {!proje.commercial ? (
+          <aside className="panel-acik bg-canvas grid gap-8 rounded-[2rem] p-8 md:grid-cols-[1fr_auto] md:items-end md:p-12">
+            <div className="flex flex-col gap-3">
+              <p className="dev-baslik text-primary text-3xl md:text-5xl">{p.konusalim}</p>
+              <p className="text-body max-w-xl text-sm">{p.konusalimAciklama}</p>
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <GradyanBaglanti
+                href={yol(dil, 'iletisim')}
+                data-cta="proje-iletisim"
+                data-proje={proje.slug}
+              >
+                {p.banaYaz}
+              </GradyanBaglanti>
+              <Link href={yol(dil, 'cv')} className={hapSiniflari('h-11')}>
+                {p.cvGor}
+              </Link>
+            </div>
+          </aside>
+        ) : (
+          /*
           KIYI MEDYA CTA — §1.1 K4, T-022'deki ölçülebilir kalıbın aynısı.
           `data-cta` + `data-proje`: analitik bağlandığında (F6) HANGİ projenin
           dönüştürdüğü ayırt edilebilsin. Sonradan eklemek zor, şimdi ücretsiz.
-        */}
-        <aside className="panel-acik bg-canvas grid gap-8 rounded-[2rem] p-8 md:grid-cols-[1fr_auto] md:items-end md:p-12">
-          <div className="flex flex-col gap-3">
-            <p className="dev-baslik text-primary text-3xl md:text-5xl">{p.benzer}</p>
-            <p className="text-body max-w-xl text-sm">
-              {p.kiyiOnce} <span className="text-primary font-semibold">Kıyı Medya</span>
-              {p.kiyiSonra}
-            </p>
-          </div>
-          <GradyanDisBaglanti
-            href={KIYI_MEDYA_URL}
-            data-cta="proje-detay"
-            data-proje={proje.slug}
-            data-umami-event="proje-detay"
-            data-umami-event-proje={proje.slug}
-          >
-            {p.kiyiIlerle}
-          </GradyanDisBaglanti>
-        </aside>
+        */
+          <aside className="panel-acik bg-canvas grid gap-8 rounded-[2rem] p-8 md:grid-cols-[1fr_auto] md:items-end md:p-12">
+            <div className="flex flex-col gap-3">
+              <p className="dev-baslik text-primary text-3xl md:text-5xl">{p.benzer}</p>
+              <p className="text-body max-w-xl text-sm">
+                {p.kiyiOnce} <span className="text-primary font-semibold">Kıyı Medya</span>
+                {p.kiyiSonra}
+              </p>
+            </div>
+            <GradyanDisBaglanti
+              href={KIYI_MEDYA_URL}
+              data-cta="proje-detay"
+              data-proje={proje.slug}
+              data-umami-event="proje-detay"
+              data-umami-event-proje={proje.slug}
+            >
+              {p.kiyiIlerle}
+            </GradyanDisBaglanti>
+          </aside>
+        )}
       </div>
     </article>
   );
