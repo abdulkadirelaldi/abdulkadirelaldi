@@ -398,7 +398,9 @@
 
 @theme {
   --animate-kayan-serit: kayan-serit var(--serit-sure, 40s) linear infinite;
-  --animate-harf-yuksel: harf-yuksel 0.9s var(--ease-brand) both;
+  /* 0.9 → 0.55 sn (2026-10-22): canlıda isim ancak ~1,75 sn'de tamamlanıyordu,
+     Speed Index 4,6 sn. Hareket aynı, bekleme yok — bkz. hero.tsx gecikmeleri. */
+  --animate-harf-yuksel: harf-yuksel 0.55s var(--ease-brand) both;
   --animate-yuzme: yuzme 6s ease-in-out infinite;
   --animate-sayfa-giris: sayfa-giris 0.6s var(--ease-brand) both;
 }

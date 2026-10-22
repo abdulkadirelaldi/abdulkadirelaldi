@@ -49,6 +49,31 @@ const nextConfig: NextConfig = {
    * statik ya da tek önbellekli okuma, ölçülebilir bir gecikme yok.
    */
   htmlLimitedBots: /.*/,
+
+  /*
+   * `public/` GÖRSELLERİ ÖNBELLEKTE — ÖLÇÜLDÜ (canlı, 2026-10-22): Next bu
+   * dosyaları `max-age=0` ile sunuyor, 3B portre (hero'nun LCP öğesi, 43–88 KB)
+   * HER ZİYARETTE yeniden iniyordu. 7 gün taze + 1 gün bayat-sunarken-yenile.
+   * Adlar içerik hash'i taşımadığı için `immutable` DEĞİL: görsel değişirse en
+   * geç bir hafta içinde yenisi görünür (hemen görünsün isteniyorsa ad değişir).
+   * Bu bir GÜVENLİK başlığı değil — o başlıklar yukarıdaki not gereği
+   * middleware'de; burada yalnızca önbellek.
+   */
+  async headers() {
+    return [
+      {
+        // Yalnızca KÖK düzeydeki dosyalar (`public/` düz); `_next/static` iç içe
+        // olduğu için eşleşmez ve Next'in kendi `immutable` başlığı korunur.
+        source: '/:dosya.:uzanti(webp|png|jpg|jpeg|avif|svg|ico)',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=604800, stale-while-revalidate=86400',
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

@@ -81,13 +81,14 @@ export function Hero({ dil, profil, ad, avatar }: HeroProps) {
           <HarfHarf
             metin={s.hero.selam}
             className="block text-[clamp(1.75rem,6.6vw,6.25rem)]"
-            baslangic={0.1}
+            baslangic={0}
+            aralik={0.02}
           />
           <HarfHarf
             metin={ilkAd ?? ad}
             className="block text-[clamp(2.25rem,9.4vw,8.5rem)]"
-            baslangic={0.45}
-            aralik={0.045}
+            baslangic={0.12}
+            aralik={0.025}
           />
         </h1>
 
@@ -97,7 +98,7 @@ export function Hero({ dil, profil, ad, avatar }: HeroProps) {
           {/* Avatar — başlığın ÜSTÜNE biniyor (negatif kenar boşluğu). */}
           <div
             className={cn(
-              'animate-sayfa-giris relative z-10 -mt-[4vw] [animation-delay:0.9s] md:-mt-[6vw]',
+              'animate-sayfa-giris relative z-10 -mt-[4vw] [animation-delay:0.1s] md:-mt-[6vw]',
               !avatar && 'w-[min(72vw,26rem)]',
             )}
           >
@@ -158,7 +159,7 @@ export function Hero({ dil, profil, ad, avatar }: HeroProps) {
         </div>
 
         {/* Alt şerit: solda tanıtım, sağda eylemler — örnekteki yerleşim. */}
-        <div className="animate-sayfa-giris relative z-20 grid gap-6 pt-6 pb-8 [animation-delay:1.1s] md:grid-cols-[1fr_auto_1fr] md:items-end md:pb-10">
+        <div className="animate-sayfa-giris relative z-20 grid gap-6 pt-6 pb-8 [animation-delay:0.25s] md:grid-cols-[1fr_auto_1fr] md:items-end md:pb-10">
           <div className="flex max-w-xs flex-col gap-2">
             <p className="text-primary text-[0.7rem] leading-relaxed font-semibold tracking-[0.16em] uppercase">
               {profil.headline}
