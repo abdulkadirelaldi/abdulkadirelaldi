@@ -64,18 +64,25 @@ const ICERIK = {
 
 async function profil(DIL: Dil): Promise<string> {
   const { PROFIL } = ICERIK[DIL];
-  // Türkçe profil uretim-baslat ile açılır; önekli diller onun sosyal
-  // bağlantılarını devralır.
+  /*
+   * Profil YOKSA AÇILIR — Türkçe dahil (kimliği `singleton`, ADR-017).
+   * Önceden Türkçe profil yalnızca `uretim-baslat` ile açılıyordu ve o betik
+   * yönetici şifresi istiyor; site, şifre girilene kadar profil yokluğundan
+   * 500 veriyordu. İçerik ve yönetici artık birbirini beklemiyor. Önekli
+   * diller Türkçenin sosyal bağlantılarını devralır (Türkçe önce yazılır).
+   */
   const turkce = await db.profile.findUnique({
     where: { locale: 'tr' },
     select: { socials: true },
   });
-  if (!turkce) throw new Error('Profil yok — önce scripts/uretim-baslat.ts çalıştırılmalı.');
-  const mevcut = await db.profile.findUnique({ where: { locale: DIL }, select: { socials: true } });
+  const mevcut =
+    DIL === 'tr'
+      ? turkce
+      : await db.profile.findUnique({ where: { locale: DIL }, select: { socials: true } });
 
   // Sitenin kendi adresi (`website`) gibi belgede olmayan alanlar korunur;
   // belgede olanlar belgedeki değerle yazılır.
-  const eskiSosyal = ((mevcut ?? turkce).socials ?? {}) as Record<string, unknown>;
+  const eskiSosyal = ((mevcut ?? turkce)?.socials ?? {}) as Record<string, unknown>;
   const girdi = updateProfileSchema.parse({
     headline: PROFIL.headline,
     subtitle: PROFIL.subtitle,
@@ -89,7 +96,13 @@ async function profil(DIL: Dil): Promise<string> {
     return 'güncellendi';
   }
   await db.profile.create({
-    data: { ...girdi, locale: DIL, headline: PROFIL.headline, bio: PROFIL.bio },
+    data: {
+      ...(DIL === 'tr' ? { id: 'singleton' } : {}),
+      ...girdi,
+      locale: DIL,
+      headline: PROFIL.headline,
+      bio: PROFIL.bio,
+    },
   });
   return 'oluşturuldu';
 }
