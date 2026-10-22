@@ -394,6 +394,14 @@ model Project {
   liveUrl    String?
   repoUrl    String?
   clientName String?
+  /// Projenin yapıldığı dönem, serbest metin ("2023 – sürüyor", "2026").
+  /// `publishedAt` sitedeki YAYIN anıdır, projenin tarihi değil; ikisi
+  /// karıştırılınca 2023'te başlayan proje "2026-10" görünüyordu. Boşsa
+  /// sayfada tarih GÖSTERİLMEZ — uydurma tarih yazılmaz.
+  period     String?
+  /// Ticari iş mi (müşteriye teslim edilen site/uygulama). Detay sayfasının
+  /// çağrısını belirler: ticari → Kıyı Medya; değilse → iletişim ve CV.
+  commercial Boolean @default(false)
   featured   Boolean @default(false)
   order      Int     @default(0)
 

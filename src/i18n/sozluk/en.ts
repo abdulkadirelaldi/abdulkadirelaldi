@@ -74,7 +74,7 @@ export const en: Sozluk = {
     kodDegisken: 'project',
     kodYigin: 'stack',
     kodEtiketler: 'tags',
-    kodYil: 'year',
+    kodDonem: 'period',
   },
   yeteneklerBolum: {
     baslik: 'What I work with',
@@ -189,7 +189,7 @@ export const en: Sozluk = {
   proje: {
     geri: 'cd ../projects',
     musteri: 'Client',
-    yayin: 'Published',
+    donem: 'Period',
     yigin: 'Stack',
     canliSite: 'Live site',
     kaynakKodu: 'Source code',
@@ -200,6 +200,11 @@ export const en: Sozluk = {
     kiyiOnce: 'Commercial work is handled through',
     kiyiSonra: ' — quotes and contracts happen there.',
     kiyiIlerle: 'Continue with Kıyı Medya',
+    konusalim: "Let's talk about this project",
+    konusalimAciklama:
+      'Curious about the details, the code or my role on the team? Write to me — my CV has my full experience on one page.',
+    banaYaz: 'Write to me',
+    cvGor: 'View CV',
     kaldirildi: 'This project has been removed',
     kaldirildiAciklama:
       'This page existed once, but its content has been permanently removed. The address is correct — there is nothing to come back to.',

@@ -75,6 +75,7 @@ const BOS_FORM: ProjeFormGirdi = {
   tags: [],
   stack: [],
   featured: false,
+  commercial: false,
   order: 0,
   status: ContentStatus.DRAFT,
 };
@@ -102,6 +103,7 @@ function baslangicDegerleri(
     tags: proje.tags,
     stack: proje.stack,
     featured: proje.featured,
+    commercial: proje.commercial,
     order: proje.order,
     /* KAYDIN GERÇEK DURUMU — sabit değer değil (yukarıdaki nota bakınız). */
     status: proje.status,
@@ -109,6 +111,7 @@ function baslangicDegerleri(
     liveUrl: proje.liveUrl ?? undefined,
     repoUrl: proje.repoUrl ?? undefined,
     clientName: proje.clientName ?? undefined,
+    period: proje.period ?? undefined,
     coverAttachmentId: proje.coverAttachmentId ?? undefined,
     translationKey: proje.translationKey ?? undefined,
   };
@@ -273,6 +276,15 @@ export function ProjeFormu({
               {(b) => <Input id="clientName" {...b} {...register('clientName', BOS_ISE_YOK)} />}
             </Alan>
 
+            <Alan
+              id="period"
+              etiket="Dönem"
+              yardim="Projenin yapıldığı dönem, ör. „2023 – sürüyor“. Boşsa sitede tarih gösterilmez."
+              hata={errors.period?.message}
+            >
+              {(b) => <Input id="period" {...b} {...register('period', BOS_ISE_YOK)} />}
+            </Alan>
+
             <Alan id="liveUrl" etiket="Canlı adres" hata={errors.liveUrl?.message}>
               {(b) => (
                 <Input id="liveUrl" type="url" {...b} {...register('liveUrl', BOS_ISE_YOK)} />
@@ -369,6 +381,15 @@ export function ProjeFormu({
               {...register('featured')}
             />
             Ana sayfada öne çıkar
+          </label>
+
+          <label className="flex w-fit items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="focus-ring accent-accent size-4"
+              {...register('commercial')}
+            />
+            Ticari iş (detay sayfasının çağrısı Kıyı Medya olur; değilse iletişim ve CV)
           </label>
 
           <KapakSecici

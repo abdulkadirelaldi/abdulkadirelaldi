@@ -166,6 +166,13 @@ describe('prismaStatsSource / fetchSiteStats', () => {
     expect(args.select).toEqual({ startDate: true });
   });
 
+  it('deneyim yılı YALNIZCA iş deneyiminden — eğitim ve ödül sayılmaz', async () => {
+    // 2019'daki bir atölye (EDUCATION) öğrencinin sayfasında "7+ yıl" yazdırıyordu.
+    const h = client(null, 0);
+    await fetchSiteStats({ now: NOW }, h.client);
+    expect(h.findFirst.mock.calls[0]?.[0].where.type).toBe('WORK');
+  });
+
   it('proje sayımı YAYIN PENCERESİNİ uygular — taslak/zamanlanmış sayılmaz', async () => {
     const h = client(null, 0);
     await fetchSiteStats({ now: NOW }, h.client);
@@ -179,7 +186,7 @@ describe('prismaStatsSource / fetchSiteStats', () => {
     const h = client(null, 0);
     await fetchSiteStats({ locale: 'en', now: NOW }, h.client);
 
-    expect(h.findFirst.mock.calls[0]?.[0].where).toEqual({ locale: 'en' });
+    expect(h.findFirst.mock.calls[0]?.[0].where).toEqual({ locale: 'en', type: 'WORK' });
     expect(h.countFn.mock.calls[0]?.[0].where.locale).toBe('en');
   });
 

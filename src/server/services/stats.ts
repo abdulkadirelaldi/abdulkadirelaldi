@@ -32,8 +32,12 @@ export function prismaStatsSource(
 ): StatsSource {
   return {
     async earliestExperienceStart(): Promise<Date | null> {
+      // YALNIZCA İŞ DENEYİMİ. Eğitim ve ödüller dahilken en erken kayıt 2019'daki
+      // bir atölyeydi ve 4. sınıf öğrencisinin sayfasında "7+ yıl deneyim"
+      // yazıyordu (inceleme, 2026-10-22). ADR-027'nin önlediği sessiz şişirmenin
+      // aynısı: sayı türetilmiş ama yanlış kümeden.
       const row = await client.experience.findFirst({
-        where: { locale },
+        where: { locale, type: 'WORK' },
         orderBy: { startDate: 'asc' },
         select: { startDate: true },
       });

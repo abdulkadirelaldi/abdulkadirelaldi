@@ -83,7 +83,7 @@ export const tr = {
     kodDegisken: 'proje',
     kodYigin: 'yığın',
     kodEtiketler: 'etiketler',
-    kodYil: 'yıl',
+    kodDonem: 'dönem',
   },
   yeteneklerBolum: {
     baslik: 'Neyle çalışıyorum',
@@ -202,7 +202,7 @@ export const tr = {
   proje: {
     geri: 'cd ../projeler',
     musteri: 'Müşteri',
-    yayin: 'Yayın',
+    donem: 'Dönem',
     yigin: 'Yığın',
     canliSite: 'Canlı site',
     kaynakKodu: 'Kaynak kodu',
@@ -213,6 +213,11 @@ export const tr = {
     kiyiOnce: 'Ticari işler',
     kiyiSonra: ' üzerinden yürüyor; teklif ve sözleşme orada.',
     kiyiIlerle: 'Kıyı Medya ile ilerle',
+    konusalim: 'Bu proje hakkında konuşalım',
+    konusalimAciklama:
+      "Ayrıntıları, kodu ya da ekipteki rolümü merak ediyorsan yaz. CV'mde tüm deneyimim tek sayfada.",
+    banaYaz: 'Bana yaz',
+    cvGor: "CV'yi gör",
     kaldirildi: 'Bu proje kaldırıldı',
     kaldirildiAciklama:
       'Bu sayfa bir zamanlar vardı ama içerik kalıcı olarak kaldırıldı. Adres doğru — dönecek bir şey yok.',

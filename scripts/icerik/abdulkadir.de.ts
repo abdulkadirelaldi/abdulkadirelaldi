@@ -20,6 +20,7 @@ export const PROFIL = {
     'Mein Ziel ist es, Embedded-Systeme, KI auf Edge-Geräten und Full-Stack-Entwicklung zu verbinden und so Produkte von Anfang bis Ende zu realisieren.',
   ].join('\n\n'),
   location: 'Samsun, Türkei',
+  availability: 'Offen für Praktika, Stellen und Projekte · Abschluss 2027',
   socials: PROFIL_TR.socials,
 } as const;
 
@@ -214,6 +215,7 @@ export const DENEYIMLER: Deneyim[] = [
 export const PROJELER: Proje[] = [
   {
     translationKey: 'spectraloop-hyperloop',
+    period: '2023 – heute',
     slug: 'spectraloop-hyperloop-steuerungssoftware',
     title: 'Spectraloop – Steuerungssoftware für die Hyperloop-Kapsel',
     summary:
@@ -250,6 +252,7 @@ Die von einem Linearmotor angetriebene Kapsel muss unter hoher EMI zuverlässig 
   },
   {
     translationKey: 'jwc-hat-izleme',
+    period: '2026',
     slug: 'jwc-linienueberwachung',
     title: 'JWC-Linienüberwachungssystem – Produktionsdaten vom Bildschirm',
     summary:
@@ -347,6 +350,7 @@ Die Entwicklung erfolgt in einem Workflow, der auf der Orchestrierung mehrerer K
   },
   {
     translationKey: 'kiyi-medya-kurumsal-site',
+    commercial: true,
     slug: 'kiyi-medya-unternehmenswebsite',
     title: 'Kıyı Medya – Unternehmenswebsite',
     summary:
@@ -365,6 +369,7 @@ Die Unternehmenswebsite der Agentur habe ich durchgängig vom Design bis zum Go-
   },
   {
     translationKey: 'iscev-aritma-kurumsal-site',
+    commercial: true,
     slug: 'iscev-aritma-unternehmenswebsite',
     title: 'İSÇEV Arıtma – Unternehmenswebsite',
     summary:
@@ -381,6 +386,7 @@ Unternehmenswebsite für ein Unternehmen, das in der industriellen Abwasserbehan
   },
   {
     translationKey: 'askar-medikal-kurumsal-site',
+    commercial: true,
     slug: 'askar-medikal-unternehmenswebsite',
     title: 'Askar Medikal – Unternehmenswebsite',
     summary:
@@ -397,6 +403,7 @@ Unternehmenswebsite für einen Lieferanten von Medizinprodukten. Bei Kıyı Medy
   },
   {
     translationKey: 'tesisbul',
+    period: '2024 – 2025',
     slug: 'tesisbul-buchungsplattform',
     title: 'TesisBul.com – Online-Buchungsplattform',
     summary:

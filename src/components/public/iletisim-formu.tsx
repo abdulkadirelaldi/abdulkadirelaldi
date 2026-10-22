@@ -5,7 +5,7 @@ import { CheckCircle2, Loader2, Send } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
-import { Button } from '@/components/ui/button';
+import { gradyanSiniflari } from '@/components/public/tasarim/gradyan-baglanti';
 import { FormAlert, FormError } from '@/components/ui/form-error';
 import { Input, Textarea } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -403,14 +403,22 @@ export function IletisimFormu({
       {/* `sourcePage`: mesajın hangi sayfadan geldiği. Kullanıcı verisi değil. */}
       <input type="hidden" {...register('sourcePage')} />
 
-      <Button type="submit" disabled={gonderiliyor} className="self-start">
+      {/* Sitenin TEK birincil düğme dili gradyan hap (ADR-045); düz mavi düğme kopuk duruyordu. */}
+      <button
+        type="submit"
+        disabled={gonderiliyor}
+        className={gradyanSiniflari(
+          'md',
+          'self-start disabled:pointer-events-none disabled:opacity-60',
+        )}
+      >
         {gonderiliyor ? (
           <Loader2 className="size-4 animate-spin" aria-hidden="true" />
         ) : (
           <Send className="size-4" aria-hidden="true" />
         )}
         {gonderiliyor ? metin.gonderiliyor : metin.gonder}
-      </Button>
+      </button>
     </form>
   );
 }

@@ -44,6 +44,9 @@ const projectBase = z.object({
   liveUrl: optionalUrlSchema.optional(),
   repoUrl: optionalUrlSchema.optional(),
   clientName: shortTextSchema.optional(),
+  /** Projenin dönemi, serbest metin — bkz. `Project.period`. */
+  period: shortTextSchema.max(40).optional(),
+  commercial: z.boolean().default(false),
   featured: z.boolean().default(false),
   order: orderSchema,
   status: z.enum(ContentStatus, { error: 'Geçersiz yayın durumu.' }).default('DRAFT'),

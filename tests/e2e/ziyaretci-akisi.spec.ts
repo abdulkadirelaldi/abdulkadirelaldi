@@ -29,7 +29,7 @@ import { expect, test } from '@playwright/test';
 /** §12 — CTA hedefi ortamdan geliyor; yedek değer sayfanın kendi yedeğiyle aynı. */
 const KIYI_MEDYA_URL = process.env.NEXT_PUBLIC_KIYI_MEDYA_URL ?? 'https://kiyimedya.com';
 
-test.describe('§9/1 · ana sayfa → proje kartı → detay → Kıyı Medya CTA', () => {
+test.describe('§9/1 · ana sayfa → proje kartı → detay → çağrı (ticari: Kıyı Medya)', () => {
   test('zincirin dört halkası da bağlı', async ({ page, context }) => {
     /* ---- 1) Ana sayfa --------------------------------------------------- */
     const anaSayfa = await page.goto('/');
@@ -55,12 +55,41 @@ test.describe('§9/1 · ana sayfa → proje kartı → detay → Kıyı Medya CT
 
     // Sayfa gerçekten O proje mi: detaydaki CTA, projenin slug'ını taşıyor.
     // Yalnızca "bir detay sayfası açıldı" demek, kartların hepsinin aynı yere
-    // gittiği bir gerilemeyi kaçırırdı.
-    const cta = page.locator('[data-cta="proje-detay"]');
-    await expect(cta, 'detay sayfasında Kıyı Medya CTA bulunmalı').toBeVisible();
-    await expect(cta, 'CTA tıklanan projeye ait olmalı').toHaveAttribute('data-proje', slug);
+    // gittiği bir gerilemeyi kaçırırdı. CTA projenin TÜRÜNE göre iki çeşit
+    // (ticari → Kıyı Medya, değilse → iletişim); ikisi de slug taşır.
+    const ilkCta = page.locator('[data-cta="proje-detay"], [data-cta="proje-iletisim"]');
+    await expect(ilkCta, 'detay sayfasında bir çağrı bulunmalı').toBeVisible();
+    await expect(ilkCta, 'CTA tıklanan projeye ait olmalı').toHaveAttribute('data-proje', slug);
 
     await expect(page.locator('h1')).toHaveCount(1);
+
+    /*
+     * ---- 2b) TİCARİ bir projede Kıyı Medya CTA'sı -----------------------
+     * Hangi projenin ticari olduğu veriye bağlı (seed'de Kıyı Medya sitesi,
+     * üretimde üç kurumsal site); slug yazılmıyor — kartlar sırayla açılıp
+     * Kıyı Medya çağrısını taşıyan İLK detay bulunuyor. Ticari projede bu
+     * çağrının OLMAMASI da, ticari olmayanda OLMASI da gerileme.
+     */
+    await page.goto('/projeler');
+    const adresler = await page
+      .locator('a[href^="/projeler/"]')
+      .evaluateAll((linkler) => [...new Set(linkler.map((a) => a.getAttribute('href') ?? ''))]);
+    let ticariSlug: string | null = null;
+    for (const adres of adresler) {
+      await page.goto(adres);
+      if ((await page.locator('[data-cta="proje-detay"]').count()) > 0) {
+        ticariSlug = adres.replace('/projeler/', '');
+        break;
+      }
+      await expect(
+        page.locator('[data-cta="proje-iletisim"]'),
+        `${adres}: ticari değilse iletişim çağrısı olmalı`,
+      ).toBeVisible();
+    }
+    expect(ticariSlug, 'en az bir ticari proje Kıyı Medya çağrısı taşımalı').toBeTruthy();
+
+    const cta = page.locator('[data-cta="proje-detay"]');
+    await expect(cta).toHaveAttribute('data-proje', ticariSlug!);
 
     /* ---- 3) CTA'nın sözleşmesi ----------------------------------------- */
     await expect(cta).toHaveAttribute('href', KIYI_MEDYA_URL);

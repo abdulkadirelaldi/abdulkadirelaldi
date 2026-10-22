@@ -27,9 +27,9 @@ import { YAZILAR as YAZILAR_EN } from './icerik/yazilar.en';
  *   node --import ./scripts/yedek-register.mjs scripts/icerik-yukle.ts [--esitle]
  *
  * İDEMPOTENT — doğal anahtarla UPSERT:
- *   profil            tekil kayıt; yalnızca başlık/alt başlık/biyografi/konum/
- *                     sosyal yazılır. Avatar, CV dosyası ve "durum" DOKUNULMAZ
- *                     (panelden yönetiliyorlar).
+ *   profil            dil başına tek kayıt; başlık/alt başlık/biyografi/konum/
+ *                     durum/sosyal yazılır. Avatar ve CV dosyası DOKUNULMAZ
+ *                     (panelden yükleniyorlar).
  *   yetenek           (ad, dil)
  *   deneyim/ödül      (tür, kurum, ünvan, dil) — tabloda doğal anahtar yok
  *   hizmet            (başlık, dil); `ctaUrl` DOKUNULMAZ
@@ -81,6 +81,7 @@ async function profil(DIL: Dil): Promise<string> {
     subtitle: PROFIL.subtitle,
     bio: PROFIL.bio,
     location: PROFIL.location,
+    availability: PROFIL.availability,
     socials: { ...eskiSosyal, ...PROFIL.socials },
   });
   if (mevcut) {
@@ -113,10 +114,25 @@ async function yetenekler(DIL: Dil): Promise<string> {
   return `${YETENEKLER.length} yazıldı${ESITLE ? `, ${silinen} silindi` : ''}`;
 }
 
+/**
+ * CV SIRASI — yeniden eskiye: süren kayıtlar önce (başlangıca göre), sonra
+ * bitenler bitiş tarihine göre. Belgedeki el sırası tarihe göre değildi ve
+ * sayfada "Kas 2023 → Tem 2026 → Eyl 2024" diye zıplıyordu (inceleme,
+ * 2026-10-22). Panelde elle sıralama yine mümkün; betik her çalıştığında bu
+ * sırayı yeniden yazar. ISO gün dizeleri sözlük sırasıyla karşılaştırılabilir.
+ */
+function yenidenEskiye<T extends { startDate: string; endDate?: string; current?: boolean }>(
+  liste: readonly T[],
+): T[] {
+  const anahtar = (k: T) =>
+    k.current ? `9999|${k.startDate}` : `${k.endDate ?? k.startDate}|${k.startDate}`;
+  return [...liste].sort((a, b) => anahtar(b).localeCompare(anahtar(a)));
+}
+
 async function deneyimler(DIL: Dil): Promise<string> {
   const { DENEYIMLER } = ICERIK[DIL];
   const tutulan: string[] = [];
-  for (const [sira, ham] of DENEYIMLER.entries()) {
+  for (const [sira, ham] of yenidenEskiye(DENEYIMLER).entries()) {
     const girdi = createExperienceSchema.parse({ ...ham, locale: DIL, order: sira + 1 });
     const veri = {
       ...girdi,
@@ -163,6 +179,7 @@ async function projeler(DIL: Dil): Promise<string> {
         liveUrl: veri.liveUrl ?? null,
         repoUrl: veri.repoUrl ?? null,
         clientName: veri.clientName ?? null,
+        period: veri.period ?? null,
       },
       create: { ...veri, publishedAt: simdi },
     });

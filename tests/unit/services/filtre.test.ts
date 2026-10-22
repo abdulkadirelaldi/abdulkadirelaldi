@@ -21,6 +21,7 @@ function project(over: Partial<ProjectListItemDto>): ProjectListItemDto {
     stack: [],
     featured: false,
     order: 0,
+    period: null,
     publishedAt: null,
     ...over,
   };
