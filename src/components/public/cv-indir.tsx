@@ -1,10 +1,15 @@
 import { Download, FileText } from 'lucide-react';
 import Link from 'next/link';
 
+import type { Dil } from '@/i18n/diller';
+import { yol } from '@/i18n/rotalar';
+import { sozluk } from '@/i18n/sozluk';
+
 import { buttonClasses } from '@/components/ui/button';
 import type { AttachmentRefDto } from '@/server/services/content-dto';
 
 export type CvIndirProps = {
+  dil: Dil;
   /** `ProfileDto.cv` — dosya YÜKLENMİŞSE dolu, URL taşımaz (ADR-018). */
   cv: AttachmentRefDto | null;
   /**
@@ -30,7 +35,8 @@ export type CvIndirProps = {
  * indirme, indirme olmamasından kötüdür — kullanıcı tıklar, bekler, hiçbir şey
  * olmaz ve sorunun kendisinde olduğunu düşünür.
  */
-export function CvIndir({ cv, indirmeUrl = null }: CvIndirProps) {
+export function CvIndir({ dil, cv, indirmeUrl = null }: CvIndirProps) {
+  const s = sozluk(dil).cvIndir;
   const hazir = Boolean(cv && indirmeUrl);
 
   return (
@@ -44,12 +50,8 @@ export function CvIndir({ cv, indirmeUrl = null }: CvIndirProps) {
         </span>
 
         <div className="flex flex-col gap-1">
-          <p className="text-primary text-base font-semibold">Özgeçmiş</p>
-          <p className="text-muted max-w-md text-sm">
-            {hazir
-              ? 'PDF olarak indir; aynı içeriğin yazdırılabilir sürümü de var.'
-              : 'PDF indirme henüz hazır değil. Aynı bilgilerin tamamı yazdırılabilir CV sayfasında duruyor.'}
-          </p>
+          <p className="text-primary text-base font-semibold">{s.baslik}</p>
+          <p className="text-muted max-w-md text-sm">{hazir ? s.hazir : s.hazirDegil}</p>
         </div>
       </div>
 
@@ -61,7 +63,7 @@ export function CvIndir({ cv, indirmeUrl = null }: CvIndirProps) {
             className={buttonClasses({ className: 'shrink-0' })}
           >
             <Download className="size-4" aria-hidden="true" />
-            PDF indir
+            {s.indir}
           </a>
         ) : (
           /*
@@ -71,12 +73,15 @@ export function CvIndir({ cv, indirmeUrl = null }: CvIndirProps) {
           */
           <span className="border-line text-muted rounded-btn inline-flex shrink-0 items-center gap-2 border border-dashed px-4 py-2 text-sm">
             <Download className="size-4" aria-hidden="true" />
-            PDF yakında
+            {s.yakinda}
           </span>
         )}
 
-        <Link href="/cv" className={buttonClasses({ variant: hazir ? 'secondary' : 'primary' })}>
-          CV sayfasını aç
+        <Link
+          href={yol(dil, 'cv')}
+          className={buttonClasses({ variant: hazir ? 'secondary' : 'primary' })}
+        >
+          {s.sayfayiAc}
         </Link>
       </div>
     </div>

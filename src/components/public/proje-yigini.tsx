@@ -2,6 +2,9 @@ import Link from 'next/link';
 
 import { KapakGorsel } from '@/components/public/kapak-gorsel';
 import { hapSiniflari } from '@/components/public/tasarim/gradyan-baglanti';
+import type { Dil } from '@/i18n/diller';
+import { yol } from '@/i18n/rotalar';
+import { sozluk } from '@/i18n/sozluk';
 import type { ProjectListItemDto } from '@/server/services/content-dto';
 
 /** Kartların yapışma noktası; her kart bir öncekinin bu kadar altında durur. */
@@ -24,12 +27,15 @@ const ADIM = 4.25; // rem — kart başlık şeridinin yüksekliği
  * çevirirdi (ekran okuyucu için okunmaz).
  */
 export function ProjeYigini({
+  dil,
   projeler,
   baslikDuzeyi: Baslik = 'h3',
 }: {
+  dil: Dil;
   projeler: ProjectListItemDto[];
   baslikDuzeyi?: 'h2' | 'h3';
 }) {
+  const s = sozluk(dil).projelerBolum;
   return (
     <ol className="flex flex-col gap-6 md:gap-10">
       {projeler.map((proje, sira) => (
@@ -44,7 +50,7 @@ export function ProjeYigini({
               <div className="min-w-0 flex-1 leading-tight">
                 <Baslik className="text-primary font-display text-sm font-bold tracking-[0.12em] uppercase md:truncate md:text-base">
                   <Link
-                    href={`/projeler/${proje.slug}`}
+                    href={yol(dil, 'projeler', proje.slug)}
                     className="focus-ring rounded-btn hover:text-accent-soft transition-colors"
                   >
                     {proje.title}
@@ -57,11 +63,11 @@ export function ProjeYigini({
                 )}
               </div>
               <Link
-                href={`/projeler/${proje.slug}`}
-                aria-label={`${proje.title} projesini incele`}
+                href={yol(dil, 'projeler', proje.slug)}
+                aria-label={s.inceleEtiket(proje.title)}
                 className={hapSiniflari('hidden sm:inline-flex')}
               >
-                İncele
+                {s.incele}
               </Link>
             </header>
 
@@ -78,18 +84,18 @@ export function ProjeYigini({
                 <p className="text-body text-sm leading-relaxed">{proje.summary}</p>
 
                 <pre
-                  aria-label={`${proje.title} künyesi`}
+                  aria-label={s.kunyeEtiket(proje.title)}
                   className="tabular text-muted overflow-x-auto text-[0.72rem] leading-relaxed"
                 >
                   <code>
                     <span className="text-accent-soft">const</span>{' '}
-                    <span className="text-primary">proje</span> = {'{'}
+                    <span className="text-primary">{s.kodDegisken}</span> = {'{'}
                     {'\n'}
                     {/* Boş dizi satırı YAZILMIYOR: `yığın: []` "yığın yok" diye okunur. */}
                     {(
                       [
-                        ['yığın', proje.stack],
-                        ['etiketler', proje.tags],
+                        [s.kodYigin, proje.stack],
+                        [s.kodEtiketler, proje.tags],
                       ] as const
                     ).map(
                       ([anahtar, liste]) =>
@@ -109,7 +115,8 @@ export function ProjeYigini({
                     )}
                     {proje.publishedAt && (
                       <>
-                        {'  '}yıl:{' '}
+                        {'  '}
+                        {s.kodYil}:{' '}
                         <span className="text-warning">{proje.publishedAt.slice(0, 4)}</span>,{'\n'}
                       </>
                     )}

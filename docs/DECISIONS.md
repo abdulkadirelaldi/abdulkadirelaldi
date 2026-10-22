@@ -2525,3 +2525,35 @@ Kullanıcının üç kararı (2026-10-21): hero'nun ortasındaki **3B avatarı k
 ### 3B avatar
 
 `public/avatar-3d.webp` (ya da `.png`) konduğu an hero'da görünür; yoksa parlak küre + `</>` süsü. Dosya modül yüklenirken bir kez aranır — yeni dosya yeni dağıtımla gelir. Önerilen: şeffaf zeminli, kare, ≥ 832 px.
+
+---
+
+## ADR-046 — Site Üç Dilde: Türkçe (Öneksiz), İngilizce ve Almanca (Önekli, Yerelleştirilmiş Adresler)
+
+**Durum:** Kabul edildi · 2026-10-22 · **Kapsar:** public site, panel içerik ekranları, sitemap, OG · **Değiştirir:** PROGRAM.md §1.2 "v1 sadece TR" (altyapı zaten hazırdı — `locale` alanları, `@@unique([slug, locale])`)
+
+### Bağlam
+
+Kullanıcı İngilizce ve Almanca seçeneği istedi: "doğru ve profesyonel olsun". Hedef okuyucu yurt dışındaki işverenler ve iş ortakları; çeviri makine kokmamalı, adresler o dilde okunmalı, arama motoru dilleri doğru eşlemeli.
+
+### Karar
+
+1. **Türkçe öneksiz kalır** (`/projeler`), diğerleri önekli ve **yerelleştirilmiş**: `/en/projects`, `/en/about`, `/en/services`, `/en/contact`, `/en/cv`; `/de/projekte`, `/de/ueber-mich`, `/de/leistungen`, `/de/kontakt`, `/de/lebenslauf`. Mevcut Türkçe adresler ve dizin bozulmaz. Adres tablosu TEK: `src/i18n/rotalar.ts` (`PARCA`, `yol()`, `cozumle()`).
+2. **Kanonik tek adres:** `/tr/...` → öneksiz, `/en/projeler` → `/en/projects` (308). Middleware önekli adresi içeride `/[dil]/<türkçe-parça>`ya **yeniden yazar**; dili `x-dil` başlığıyla kök düzene (`<html lang>`) ve 404 sayfalarına taşır.
+3. **Sayfalar tek yerde:** `src/components/sayfalar/*.tsx` `dil` alır; Türkçe rotalar ve `app/(public)/[dil]/…` yalnızca ince sarmalayıcı. `[dil]` bilinmeyen öneki 404'ler.
+4. **Arayüz metni sözlükte** (`src/i18n/sozluk/{tr,en,de}.ts`), şekli `Sozluk` tipiyle zorunlu. İstemci bileşenlerine sözlüğün tamamı değil, yalnızca ihtiyaç duyduğu dilim prop olarak iner (işlev istemciye geçemediği için form metinleri `{eposta}`/`{n}` yer tutucusu taşır). Hata sayfası küçük `hata-metni.ts`'i kullanır.
+5. **İçerik dil başına satır.** Profil dil başına tek satır (Türkçenin kimliği `singleton` kalır, diğerleri cuid). Proje ve yazıda `translationKey` (`@@unique([translationKey, locale])`): çeviriler Türkçe slug'ı anahtar taşır, kendi dilinde **kendi slug'ı** olur.
+6. **Dil seçici:** liste sayfalarında doğrudan karşılık (`yol()`); detayda `/api/v1/dil` çeviri anahtarıyla karşılığı bulur, yoksa hedef dilin listesine düşer (404 değil). Açık yönlendirme yok — hedef `yol()` ile yeniden kurulur.
+7. **SEO:** her sayfa `alternates.languages` (üç dil + `x-default` = Türkçe) ve kanonik taşır; karşılığı olmayan dil listeye girmez. Sitemap her dili hreflang kümesiyle bildirir. OG görseli `?dil=` alır (yalnızca bilinen dil).
+8. **Üslup:** İngilizce en-US, doğrudan ve birinci tekil. Almanca resmî **„Sie"**, aralıklı uzun tire „ – ", „…" tırnak, Duden ay kısaltmaları. Kalite kapısı `tests/unit/i18n-sozluk.test.ts`: boş metin, sızan yer tutucu, en/de'de Türkçe harf (özel adlar hariç), Türkçesiyle aynı kalmış metin ve Almancada „du" yasak.
+9. **Panel:** içerik ekranlarında dil sekmeleri; yeni kayıt sekmenin dilinde açılır, formlarda çeviri anahtarı alanı.
+
+### Bilinçli olarak yapılmayanlar
+
+- **Tarayıcı diline göre otomatik yönlendirme yok.** Arama motoru botlarını ve paylaşılan bağlantıları yanlış dile atar; seçim ziyaretçinin.
+- **RSS yalnızca Türkçe** — besleme okuyucusu kitlesi küçük; ihtiyaç doğarsa `/en/rss.xml`.
+- **Lighthouse yalnızca Türkçe ana sayfada** — bileşen ağacı aynı, metin farklı. Almanca uzun başlıkların mobilde taşması görsel kontrol, kapı değil.
+
+### Sonuç
+
+İçerik `scripts/icerik/*.{en,de}.ts` dosyalarında, `scripts/icerik-yukle.ts` üç dili sırayla yazar. Çeviriler kaynakta olmayan hiçbir iddia eklemez; sayı, sıralama ve adlar birebir korunur.

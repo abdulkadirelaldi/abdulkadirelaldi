@@ -257,6 +257,8 @@ export type MdxProps = {
    *     yanlış mesajı vermek olurdu.
    */
   hataPolitikasi?: 'yedek-goster' | 'firlat';
+  /** Yedek kutunun metni — dile göre (ADR-046); verilmezse Türkçe. */
+  yedekMetin?: { baslik: string; aciklama: string };
 };
 
 /**
@@ -289,6 +291,7 @@ export async function Mdx({
   className,
   kayitEtiketi,
   hataPolitikasi = 'yedek-goster',
+  yedekMetin,
 }: MdxProps) {
   let icerik: ReactNode;
 
@@ -359,10 +362,12 @@ export async function Mdx({
         role="status"
         className="border-warning/40 bg-warning/8 rounded-card flex flex-col gap-2 border p-4"
       >
-        <p className="text-warning text-sm font-medium">Bu içerik görüntülenemedi</p>
+        <p className="text-warning text-sm font-medium">
+          {yedekMetin?.baslik ?? 'Bu içerik görüntülenemedi'}
+        </p>
         <p className="text-body text-sm">
-          Adres doğru — metnin biçimlendirmesinde bir sorun var ve bu yüzden çizilemiyor. Sorun
-          kaydedildi; düzeltildiğinde sayfa kendiliğinden düzelecek.
+          {yedekMetin?.aciklama ??
+            'Adres doğru — metnin biçimlendirmesinde bir sorun var ve bu yüzden çizilemiyor. Sorun kaydedildi; düzeltildiğinde sayfa kendiliğinden düzelecek.'}
         </p>
       </div>
     );

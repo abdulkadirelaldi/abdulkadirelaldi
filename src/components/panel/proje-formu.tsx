@@ -9,14 +9,17 @@ import {
   Alan,
   BOS_ISE_YOK,
   SAYI_YA_DA_YOK,
+  bosaltilanlariNullYap,
   isodanYerelAna,
 } from '@/components/panel/alan';
-import { DURUM_ETIKET } from '@/components/panel/icerik-gorunumleri';
+import { CEVIRI_ANAHTARI_YARDIM, DilRozeti } from '@/components/panel/dil-sekmeleri';
+import { DURUM_ETIKET, icerikYolu, panelDili } from '@/components/panel/icerik-gorunumleri';
 import { KapakSecici } from '@/components/panel/kapak-secici';
 import { FormKabugu, usePanelForm } from '@/components/panel/panel-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Input, Textarea } from '@/components/ui/input';
+import { VARSAYILAN_DIL, type Dil } from '@/i18n/diller';
 import { createProjectSchema, type CreateProjectInput } from '@/lib/schemas/project';
 import { createProjectAction, updateProjectAction } from '@/server/actions/project';
 import type { ProjectPanelDto } from '@/server/services/content-dto';
@@ -83,8 +86,12 @@ const listeyeCevir = (metin: string): string[] =>
     .map((p) => p.trim())
     .filter(Boolean);
 
-function baslangicDegerleri(proje: ProjectPanelDto | undefined): ProjeFormGirdi {
-  if (!proje) return BOS_FORM;
+function baslangicDegerleri(
+  proje: ProjectPanelDto | undefined,
+  dil: Dil = VARSAYILAN_DIL,
+): ProjeFormGirdi {
+  /* Yeni kayıt listenin SEÇİLİ dilinde açılır (`?dil=`, ADR-046); düzenlemede kaydın kendi dili. */
+  if (!proje) return { ...BOS_FORM, locale: dil };
 
   return {
     locale: proje.locale,
@@ -103,12 +110,24 @@ function baslangicDegerleri(proje: ProjectPanelDto | undefined): ProjeFormGirdi 
     repoUrl: proje.repoUrl ?? undefined,
     clientName: proje.clientName ?? undefined,
     coverAttachmentId: proje.coverAttachmentId ?? undefined,
+    translationKey: proje.translationKey ?? undefined,
   };
 }
 
-export function ProjeFormu({ proje }: { proje?: ProjectPanelDto }) {
+export function ProjeFormu({
+  proje,
+  dil = VARSAYILAN_DIL,
+}: {
+  proje?: ProjectPanelDto;
+  /** Yeni kayıtta dil — sayfa `?dil=`den okuyor. Düzenlemede yok sayılır. */
+  dil?: Dil;
+}) {
   const router = useRouter();
   const duzenleme = proje !== undefined;
+  /* Liste aynı dilde açılsın — İngilizce kaydı kaydedip Türkçe listeye düşmek kaybolmuş hissi verir. */
+  const listeYolu = icerikYolu('/panel/icerik/projeler', {
+    dil: proje ? panelDili(proje.locale) : dil,
+  });
 
   const [etiketMetni, setEtiketMetni] = useState(proje?.tags.join(', ') ?? '');
   const [stackMetni, setStackMetni] = useState(proje?.stack.join(', ') ?? '');
@@ -121,13 +140,17 @@ export function ProjeFormu({ proje }: { proje?: ProjectPanelDto }) {
     };
 
     const sonuc = proje
-      ? await updateProjectAction({ ...govde, id: proje.id })
+      ? await updateProjectAction({
+          /* Boşaltılan çeviri anahtarı `null` — `undefined` "dokunma" demek (T-031). */
+          ...bosaltilanlariNullYap(govde, proje, ['translationKey']),
+          id: proje.id,
+        })
       : await createProjectAction(govde);
 
     if (sonuc.ok) {
       /* Sunucu bileşenini yeniden çalıştır — kaydedilen durum formda görünsün. */
       router.refresh();
-      if (!proje) router.push('/panel/icerik/projeler');
+      if (!proje) router.push(listeYolu);
     }
 
     return sonuc;
@@ -135,7 +158,7 @@ export function ProjeFormu({ proje }: { proje?: ProjectPanelDto }) {
 
   const { form, durum, formHatasi, gonder } = usePanelForm<ProjeFormGirdi, CreateProjectInput>({
     sema: createProjectSchema,
-    varsayilanDegerler: baslangicDegerleri(proje),
+    varsayilanDegerler: baslangicDegerleri(proje, dil),
     kaydet,
     /* Düzenlemede form boşaltılmaz; yeni kayıtta zaten listeye dönülüyor. */
     temizle: false,
@@ -151,7 +174,11 @@ export function ProjeFormu({ proje }: { proje?: ProjectPanelDto }) {
   return (
     <Card>
       <CardContent className="flex flex-col gap-4">
-        <CardTitle seviye="h2">{duzenleme ? 'Projeyi düzenle' : 'Yeni proje'}</CardTitle>
+        <div className="flex flex-wrap items-center gap-2">
+          <CardTitle seviye="h2">{duzenleme ? 'Projeyi düzenle' : 'Yeni proje'}</CardTitle>
+          {/* Dil SALT OKUNUR: var olan satırın dilini değiştirmek desteklenen bir işlem değil. */}
+          <DilRozeti dil={proje?.locale ?? dil} />
+        </div>
 
         <FormKabugu
           gonder={gonder}
@@ -259,6 +286,27 @@ export function ProjeFormu({ proje }: { proje?: ProjectPanelDto }) {
             </Alan>
           </div>
 
+          {/*
+            ÇEVİRİ ANAHTARI (ADR-046) — aynı içeriğin üç dildeki satırlarını bağlayan
+            TEK şey. Slug dile göre değişebiliyor ("hakkinda" / "about"), bu yüzden
+            bağ slug'dan kurulamıyor. Boşaltmak bağı KOPARIR (`bosaltilanlariNullYap`).
+          */}
+          <Alan
+            id="translationKey"
+            etiket="Çeviri anahtarı"
+            hata={errors.translationKey?.message}
+            yardim={CEVIRI_ANAHTARI_YARDIM}
+          >
+            {(b) => (
+              <Input
+                id="translationKey"
+                className="tabular"
+                {...b}
+                {...register('translationKey', BOS_ISE_YOK)}
+              />
+            )}
+          </Alan>
+
           <Alan id="summary" etiket="Özet" hata={errors.summary?.message}>
             {(b) => <Textarea id="summary" rows={2} {...b} {...register('summary')} />}
           </Alan>
@@ -336,7 +384,7 @@ export function ProjeFormu({ proje }: { proje?: ProjectPanelDto }) {
           variant="ghost"
           size="sm"
           className="self-start"
-          onClick={() => router.push('/panel/icerik/projeler')}
+          onClick={() => router.push(listeYolu)}
         >
           Listeye dön
         </Button>

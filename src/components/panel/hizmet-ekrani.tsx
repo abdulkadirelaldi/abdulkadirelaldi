@@ -5,11 +5,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import { icerikYolu } from '@/components/panel/icerik-gorunumleri';
 import { KaliciSilDugmesi } from '@/components/panel/kalici-sil-dugmesi';
 import { VeriTablosu, type Sutun } from '@/components/panel/veri-tablosu';
 import { Badge } from '@/components/ui/badge';
 import { buttonClasses } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
+import type { Dil } from '@/i18n/diller';
 import { deleteServiceAction } from '@/server/actions/service';
 import type { ServiceDto } from '@/server/services/content-dto';
 
@@ -24,7 +26,16 @@ import type { ServiceDto } from '@/server/services/content-dto';
  * yönlendiriyor" sorusunu her kaydı açmadan cevaplıyor.
  */
 
-export function HizmetEkrani({ kayitlar, toplam }: { kayitlar: ServiceDto[]; toplam: number }) {
+export function HizmetEkrani({
+  kayitlar,
+  toplam,
+  dil,
+}: {
+  kayitlar: ServiceDto[];
+  toplam: number;
+  /** Seçili liste dili — "Yeni" bağlantısı bu dilde kayıt açar (ADR-046). */
+  dil: Dil;
+}) {
   const router = useRouter();
   const [bildirim, setBildirim] = useState<string | null>(null);
 
@@ -109,7 +120,10 @@ export function HizmetEkrani({ kayitlar, toplam }: { kayitlar: ServiceDto[]; top
           <span className="tabular">{toplam}</span> hizmet · sitedeki sırayla
         </p>
 
-        <Link href="/panel/icerik/hizmetler/yeni" className={buttonClasses({ size: 'sm' })}>
+        <Link
+          href={icerikYolu('/panel/icerik/hizmetler/yeni', { dil })}
+          className={buttonClasses({ size: 'sm' })}
+        >
           <Plus className="size-4" aria-hidden="true" />
           Yeni hizmet
         </Link>
@@ -126,7 +140,10 @@ export function HizmetEkrani({ kayitlar, toplam }: { kayitlar: ServiceDto[]; top
             title="Henüz hizmet yok"
             description="İlk hizmeti eklediğinde ana sayfada ve /hizmetler'de görünür."
             action={
-              <Link href="/panel/icerik/hizmetler/yeni" className={buttonClasses({ size: 'sm' })}>
+              <Link
+                href={icerikYolu('/panel/icerik/hizmetler/yeni', { dil })}
+                className={buttonClasses({ size: 'sm' })}
+              >
                 <Plus className="size-4" aria-hidden="true" />
                 İlk hizmeti ekle
               </Link>

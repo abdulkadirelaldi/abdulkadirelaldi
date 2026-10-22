@@ -11,6 +11,7 @@ import {
   toRssDate,
   type RssItem,
 } from '@/server/services';
+import { yol, type Sayfa } from '@/i18n/rotalar';
 import { fetchPostSitemapEntries, type PostClient } from '@/server/services/post';
 import { fetchProjectSitemapEntries, type ProjectClient } from '@/server/services/project';
 
@@ -88,16 +89,26 @@ describe('sitemap girdileri — yayın penceresi (ADR-019)', () => {
     expect(where).toHaveProperty('publishedAt');
   });
 
-  it('yalnızca slug ve updatedAt seçilir — DTO şişirilmiyor', async () => {
+  it('yalnızca slug, updatedAt ve translationKey seçilir — DTO şişirilmiyor', async () => {
     const h = harness([]);
     await fetchProjectSitemapEntries({ now: NOW }, h.client as unknown as ProjectClient);
-    expect(h.findMany.mock.calls[0]?.[0].select).toEqual({ slug: true, updatedAt: true });
+    expect(h.findMany.mock.calls[0]?.[0].select).toEqual({
+      slug: true,
+      updatedAt: true,
+      translationKey: true,
+    });
   });
 
   it('lastModified GERÇEK updatedAt’ten, ISO 8601', async () => {
-    const h = harness([{ slug: 'a', updatedAt: new Date('2026-08-14T13:38:55.142Z') }]);
+    const h = harness([
+      { slug: 'a', updatedAt: new Date('2026-08-14T13:38:55.142Z'), translationKey: 'a' },
+    ]);
     const [entry] = await fetchProjectSitemapEntries({}, h.client as unknown as ProjectClient);
-    expect(entry).toEqual({ slug: 'a', updatedAt: '2026-08-14T13:38:55.142Z' });
+    expect(entry).toEqual({
+      slug: 'a',
+      updatedAt: '2026-08-14T13:38:55.142Z',
+      translationKey: 'a',
+    });
   });
 
   it('BOŞ VERİTABANI → boş dizi, patlamaz', async () => {
@@ -231,7 +242,15 @@ describe('sitemap yalnızca VAR OLAN rotaları bildirir — §4.1', () => {
     .filter((line) => !line.trimStart().startsWith('//') && !line.trimStart().startsWith('*'))
     .join('\n');
 
-  const bildirilen = [...etkin.matchAll(/absoluteUrl\('([^']*)'\)/g)].map((m) => m[1] as string);
+  /**
+   * ADR-046: sitemap statik sayfaları SAYFA ADIYLA listeliyor (`sayfa: 'cv'`),
+   * adres `yol()`dan. Beyan edilen küme Türkçe (iç) rota adlarına çevrilip
+   * dosya sistemiyle karşılaştırılıyor; önekli diller `[dil]` altında aynı
+   * sayfaları sarmalıyor.
+   */
+  const bildirilen = [...etkin.matchAll(/sayfa: '([a-z]+)', siklik/g)].map((m) =>
+    yol('tr', m[1] as Sayfa),
+  );
 
   /** `(public)` altındaki gerçek sayfa rotaları. */
   function mevcutRotalar(dir: string, prefix = ''): string[] {

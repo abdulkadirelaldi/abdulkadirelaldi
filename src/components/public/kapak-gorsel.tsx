@@ -17,6 +17,8 @@ export type KapakGorselProps = {
    */
   src?: string;
   className?: string;
+  /** Görsel yokken yer tutucunun erişilebilir adı — dile göre (ADR-046). */
+  yokEtiketi?: string;
 };
 
 /**
@@ -32,7 +34,7 @@ export type KapakGorselProps = {
  * Yer tutucu token'lıdır (hex yok) ve "eksik" gibi değil, kasıtlı bir yüzey
  * gibi görünür — kapağı olmayan proje kartı bozuk görünmemeli.
  */
-export function KapakGorsel({ kapak, baslik, src, className }: KapakGorselProps) {
+export function KapakGorsel({ kapak, baslik, src, className, yokEtiketi }: KapakGorselProps) {
   const oran = kapak?.width && kapak.height ? kapak.width / kapak.height : VARSAYILAN_ORAN;
   // PDF gibi görsel olmayan bir eklenti kapak olarak ÇİZİLMEZ — yer tutucu kalır.
   const adres = src ?? (kapak?.mime.startsWith('image/') ? dosyaAdresi(kapak.id) : undefined);
@@ -66,7 +68,7 @@ export function KapakGorsel({ kapak, baslik, src, className }: KapakGorselProps)
         <div
           className="from-accent/12 to-accent-blue/12 flex h-full w-full items-center justify-center bg-gradient-to-br"
           role="img"
-          aria-label={`${baslik} — kapak görseli henüz eklenmedi`}
+          aria-label={yokEtiketi ?? `${baslik} — kapak görseli henüz eklenmedi`}
         >
           <ImageIcon className="text-muted size-8" aria-hidden="true" />
         </div>

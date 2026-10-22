@@ -6,12 +6,13 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 import { ArsivleDugmesi } from '@/components/panel/arsivle-dugmesi';
-import { DURUM_ETIKET, DURUM_VARYANT } from '@/components/panel/icerik-gorunumleri';
+import { DURUM_ETIKET, DURUM_VARYANT, icerikYolu } from '@/components/panel/icerik-gorunumleri';
 import { VeriTablosu, type Sutun } from '@/components/panel/veri-tablosu';
 import { Badge } from '@/components/ui/badge';
 import { buttonClasses } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FormAlert } from '@/components/ui/form-error';
+import type { Dil } from '@/i18n/diller';
 import { archiveProjectAction } from '@/server/actions/project';
 import type { ProjectPanelListItemDto } from '@/server/services/content-dto';
 import { ContentStatus } from '@/types';
@@ -46,9 +47,12 @@ import { ContentStatus } from '@/types';
 export function ProjelerEkrani({
   projeler,
   toplam,
+  dil,
 }: {
   projeler: ProjectPanelListItemDto[];
   toplam: number;
+  /** Seçili liste dili — "Yeni" bağlantısı bu dilde kayıt açar (ADR-046). */
+  dil: Dil;
 }) {
   const router = useRouter();
   const [bildirim, setBildirim] = useState<string | null>(null);
@@ -167,7 +171,10 @@ export function ProjelerEkrani({
           <span className="tabular">{toplam}</span> proje · en son güncellenen üstte
         </p>
 
-        <Link href="/panel/icerik/projeler/yeni" className={buttonClasses({ size: 'sm' })}>
+        <Link
+          href={icerikYolu('/panel/icerik/projeler/yeni', { dil })}
+          className={buttonClasses({ size: 'sm' })}
+        >
           <Plus className="size-4" aria-hidden="true" />
           Yeni proje
         </Link>
@@ -184,7 +191,10 @@ export function ProjelerEkrani({
             title="Bu süzgeçte proje yok"
             description="Durum sekmesini değiştirebilir ya da yeni bir proje ekleyebilirsin."
             action={
-              <Link href="/panel/icerik/projeler/yeni" className={buttonClasses({ size: 'sm' })}>
+              <Link
+                href={icerikYolu('/panel/icerik/projeler/yeni', { dil })}
+                className={buttonClasses({ size: 'sm' })}
+              >
                 <Plus className="size-4" aria-hidden="true" />
                 İlk projeyi ekle
               </Link>

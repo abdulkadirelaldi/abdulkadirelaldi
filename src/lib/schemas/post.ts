@@ -26,6 +26,11 @@ import {
 const postBase = z.object({
   locale: localeSchema,
   slug: slugSchema,
+  /**
+   * ADR-046 — aynı içeriğin dillerdeki kayıtlarını bağlar (dil değiştirici,
+   * hreflang). Slug biçiminde; dile göre DEĞİŞMEZ, slug değişebilir.
+   */
+  translationKey: slugSchema.optional(),
   title: shortTextSchema.min(1, { error: 'Başlık zorunludur.' }),
   excerpt: mediumTextSchema.min(1, { error: 'Özet zorunludur.' }),
   content: longTextSchema.min(1, { error: 'İçerik zorunludur.' }),
@@ -66,7 +71,8 @@ export const createPostSchema = postBase.refine(
 );
 
 export const updatePostSchema = partialWithoutDefaults(postBase)
-  .extend({ id: cuidSchema })
+  // `null` = çeviri bağını kaldır (T-031: undefined dokunma, null temizle).
+  .extend({ id: cuidSchema, translationKey: slugSchema.nullable().optional() })
   .refine(
     (value) => value.status !== 'SCHEDULED' || Boolean(value.publishedAt),
     scheduledNeedsDate,

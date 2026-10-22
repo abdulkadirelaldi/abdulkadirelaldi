@@ -6,12 +6,15 @@ import { useState } from 'react';
 import type * as z from 'zod';
 
 import { Alan, BOS_ISE_YOK } from '@/components/panel/alan';
+import { DilRozeti } from '@/components/panel/dil-sekmeleri';
 import { DosyaYukleyici } from '@/components/panel/dosya-yukleyici';
 import { FormKabugu, usePanelForm } from '@/components/panel/panel-form';
 import { KapakGorsel } from '@/components/public/kapak-gorsel';
 import { buttonClasses } from '@/components/ui/button';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Input, Textarea } from '@/components/ui/input';
+import type { Dil } from '@/i18n/diller';
+import { yol } from '@/i18n/rotalar';
 import { dosyaAdresi } from '@/lib/dosya-adresi';
 import { updateProfileSchema } from '@/lib/schemas/profile';
 import { saveProfileAction } from '@/server/actions/profile';
@@ -45,6 +48,16 @@ import type { ProfileDto } from '@/server/services/content-dto';
  * olarak sunulmuyor: açılır liste koymak, Türkçe profili kaydederken dilini
  * değiştirmenin kaydı taşıdığı izlenimini verirdi — oysa başka bir satıra
  * yazardı.
+ *
+ * ═══════════════════════════════════════════════════════════════════════════
+ * DİL SEKMELERİ (ADR-046) — `profil` `null` OLABİLİR
+ * ═══════════════════════════════════════════════════════════════════════════
+ *
+ * İngilizce/Almanca satır henüz yazılmamışsa form BOŞ başlıyor ve `locale`
+ * sekmenin dili; ilk "Kaydet" satırı açıyor (`upsert`). Türkçe metni ön
+ * doldurmak bilinçli olarak YAPILMADI: kullanıcı yarısını çevirip kaydederse
+ * İngilizce profilde Türkçe cümleler kalırdı ve bunu fark ettirecek hiçbir şey
+ * olmazdı.
  */
 
 type ProfilFormGirdi = z.input<typeof updateProfileSchema>;
@@ -91,7 +104,10 @@ const SOSYAL_ALANLAR: ReadonlyArray<{
   { anahtar: 'email', etiket: 'E-posta', tur: 'email', ipucu: 'ad@ornek.com' },
 ];
 
-function baslangicDegerleri(profil: ProfileDto): ProfilFormGirdi {
+export function baslangicDegerleri(profil: ProfileDto | null, dil: Dil): ProfilFormGirdi {
+  /* Bu dilde henüz satır yok — boş form, ilk kayıt açar (yukarıdaki nota bakınız). */
+  if (!profil) return { locale: dil, headline: '', bio: '', socials: {} };
+
   return {
     locale: profil.locale,
     headline: profil.headline,
@@ -115,7 +131,7 @@ function baslangicDegerleri(profil: ProfileDto): ProfilFormGirdi {
   };
 }
 
-export function ProfilFormu({ profil }: { profil: ProfileDto }) {
+export function ProfilFormu({ profil, dil }: { profil: ProfileDto | null; dil: Dil }) {
   const router = useRouter();
 
   const kaydet = async (degerler: ProfilFormGirdi) => {
@@ -126,7 +142,7 @@ export function ProfilFormu({ profil }: { profil: ProfileDto }) {
 
   const { form, durum, formHatasi, gonder } = usePanelForm<ProfilFormGirdi>({
     sema: updateProfileSchema,
-    varsayilanDegerler: baslangicDegerleri(profil),
+    varsayilanDegerler: baslangicDegerleri(profil, dil),
     kaydet,
     temizle: false,
     /*
@@ -146,13 +162,22 @@ export function ProfilFormu({ profil }: { profil: ProfileDto }) {
     <div className="flex flex-col gap-6">
       <Card>
         <CardContent className="flex flex-col gap-4">
-          <CardTitle seviye="h2">Profil</CardTitle>
+          <div className="flex flex-wrap items-center gap-2">
+            <CardTitle seviye="h2">Profil</CardTitle>
+            <DilRozeti dil={profil?.locale ?? dil} />
+          </div>
+
+          {!profil && (
+            <p role="status" className="text-muted text-sm">
+              Bu dilde henüz profil yok. Doldurup kaydettiğinde oluşturulur.
+            </p>
+          )}
 
           <FormKabugu
             gonder={gonder}
             durum={durum}
             formHatasi={formHatasi}
-            basariMetni="Kaydedildi. Değişiklikler ana sayfa ve /hakkimda’da görünüyor."
+            basariMetni={`Kaydedildi. Değişiklikler bu dilin ana sayfasında ve ${yol(dil, 'hakkimda')} sayfasında görünüyor.`}
             gonderEtiketi="Kaydet"
           >
             <input type="hidden" {...register('locale')} />
@@ -237,11 +262,28 @@ export function ProfilFormu({ profil }: { profil: ProfileDto }) {
         </CardContent>
       </Card>
 
-      <DosyaDurumu
-        profil={profil}
-        onAvatar={(dosya) => form.setValue('avatarAttachmentId', dosya.id, { shouldDirty: true })}
-        onCv={(dosya) => form.setValue('cvAttachmentId', dosya.id, { shouldDirty: true })}
-      />
+      {profil ? (
+        <DosyaDurumu
+          profil={profil}
+          dil={dil}
+          onAvatar={(dosya) => form.setValue('avatarAttachmentId', dosya.id, { shouldDirty: true })}
+          onCv={(dosya) => form.setValue('cvAttachmentId', dosya.id, { shouldDirty: true })}
+        />
+      ) : (
+        /*
+          Yükleme dosyayı profil SATIRININ havuzuna koyuyor (`entityId`); satır
+          yokken bağlanacak bir kimlik de yok. Ölü bir düğme yerine sırayı söyle.
+        */
+        <Card>
+          <CardContent className="flex flex-col gap-2">
+            <CardTitle seviye="h2">Dosyalar</CardTitle>
+            <p className="text-muted text-sm">
+              Avatar ve CV bu dilin profil kaydına bağlanıyor. Önce profili kaydet, sonra
+              yükleyebilirsin.
+            </p>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
@@ -260,10 +302,12 @@ export function ProfilFormu({ profil }: { profil: ProfileDto }) {
  */
 function DosyaDurumu({
   profil,
+  dil,
   onAvatar,
   onCv,
 }: {
   profil: ProfileDto;
+  dil: Dil;
   onAvatar: (dosya: AttachmentDto) => void;
   onCv: (dosya: AttachmentDto) => void;
 }) {
@@ -343,7 +387,7 @@ function DosyaDurumu({
             }}
           />
           <Link
-            href="/cv"
+            href={yol(dil, 'cv')}
             target="_blank"
             rel="noopener noreferrer"
             className={buttonClasses({ variant: 'secondary', size: 'sm', className: 'self-start' })}

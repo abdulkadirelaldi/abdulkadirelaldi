@@ -6,12 +6,14 @@
  * başlıyor; panelden düzenlenebilir ya da taslağa çekilebilir.
  */
 
-type Yazi = {
+export type Yazi = {
   slug: string;
   title: string;
   excerpt: string;
   tags: string[];
   content: string;
+  /** ADR-046 — bkz. `Proje.translationKey`. */
+  translationKey?: string;
 };
 
 export const YAZILAR: Yazi[] = [

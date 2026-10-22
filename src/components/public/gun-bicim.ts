@@ -1,3 +1,5 @@
+import { VARSAYILAN_DIL, type Dil } from '@/i18n/diller';
+import { ARALIK_AYRACI, AYLAR_KISA, AYLAR_UZUN, DEVAM, tamGunMetni } from '@/i18n/tarih';
 import type { AppDay } from '@/server/services/_shared/app-date';
 
 /**
@@ -10,25 +12,10 @@ import type { AppDay } from '@/server/services/_shared/app-date';
  * deterministik. Ay adları da böylece çalışma zamanı yereline bağlı kalmıyor.
  */
 
-const AYLAR = [
-  'Oca',
-  'Şub',
-  'Mar',
-  'Nis',
-  'May',
-  'Haz',
-  'Tem',
-  'Ağu',
-  'Eyl',
-  'Eki',
-  'Kas',
-  'Ara',
-] as const;
-
 /** `2024-06-01` → `Haz 2024`. Biçim bozuksa dizeyi olduğu gibi döndürür. */
-export function ayYil(gun: AppDay): string {
+export function ayYil(gun: AppDay, dil: Dil = VARSAYILAN_DIL): string {
   const [yil, ay] = gun.split('-');
-  const ad = AYLAR[Number(ay) - 1];
+  const ad = AYLAR_KISA[dil][Number(ay) - 1];
   return yil && ad ? `${ad} ${yil}` : gun;
 }
 
@@ -43,28 +30,20 @@ export function yil(gun: AppDay): string {
  * Süregelen kayıtta bitiş "Devam" olur — boş bırakmak "bitmiş ama tarihi yok"
  * ile karışırdı. `endDate` yoksa ve `current` de değilse tek tarih yazılır.
  */
-export function aralik(baslangic: AppDay, bitis: AppDay | null, suregelen: boolean): string {
-  const bas = ayYil(baslangic);
-  if (suregelen) return `${bas} — Devam`;
+export function aralik(
+  baslangic: AppDay,
+  bitis: AppDay | null,
+  suregelen: boolean,
+  dil: Dil = VARSAYILAN_DIL,
+): string {
+  const bas = ayYil(baslangic, dil);
+  const ayrac = ARALIK_AYRACI[dil];
+  if (suregelen) return `${bas}${ayrac}${DEVAM[dil]}`;
   if (!bitis) return bas;
-  return `${bas} — ${ayYil(bitis)}`;
+  return `${bas}${ayrac}${ayYil(bitis, dil)}`;
 }
 
 /** Uzun ay adları — kısa liste kart/etiket için, bu liste tam tarih için. */
-const AYLAR_UZUN = [
-  'Ocak',
-  'Şubat',
-  'Mart',
-  'Nisan',
-  'Mayıs',
-  'Haziran',
-  'Temmuz',
-  'Ağustos',
-  'Eylül',
-  'Ekim',
-  'Kasım',
-  'Aralık',
-] as const;
 
 /**
  * `2026-06-01` → `1 Haziran 2026`. Blog yazılarının yayın tarihi.
@@ -74,10 +53,10 @@ const AYLAR_UZUN = [
  * yerel saate çevrilirse gece yarısına yakın kayıtlarda bir gün kayabilir —
  * `ayYil` ile aynı gerekçe.
  */
-export function tamGun(gunVeyaIso: string): string {
+export function tamGun(gunVeyaIso: string, dil: Dil = VARSAYILAN_DIL): string {
   const gun = gunVeyaIso.slice(0, 10);
   const [yil, ay, gunSayisi] = gun.split('-');
-  const ad = AYLAR_UZUN[Number(ay) - 1];
+  const ad = AYLAR_UZUN[dil][Number(ay) - 1];
   if (!yil || !ad || !gunSayisi) return gun;
-  return `${Number(gunSayisi)} ${ad} ${yil}`;
+  return tamGunMetni(dil, Number(gunSayisi), ad, yil);
 }

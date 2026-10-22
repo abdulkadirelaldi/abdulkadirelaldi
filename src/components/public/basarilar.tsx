@@ -2,6 +2,8 @@ import { BolumGiris } from '@/components/public/bolum-giris';
 import { KonturBaslik } from '@/components/public/tasarim/kontur-baslik';
 import { ParlakKup } from '@/components/public/tasarim/sekiller';
 import { Yuzen } from '@/components/public/tasarim/yuzen';
+import type { Dil } from '@/i18n/diller';
+import { sozluk } from '@/i18n/sozluk';
 import type { ExperienceDto } from '@/server/services/content-dto';
 
 /**
@@ -45,7 +47,7 @@ export function OdulIzgarasi({
 }
 
 /** Ana sayfa "Başarılar" bölümü — ödül yoksa hiç çizilmez. */
-export function Basarilar({ oduller }: { oduller: ExperienceDto[] }) {
+export function Basarilar({ dil, oduller }: { dil: Dil; oduller: ExperienceDto[] }) {
   if (oduller.length === 0) return null;
 
   return (
@@ -60,7 +62,7 @@ export function Basarilar({ oduller }: { oduller: ExperienceDto[] }) {
       <div className="mx-auto flex max-w-7xl flex-col gap-14 px-4 md:gap-20 md:px-8">
         <KonturBaslik
           id="basarilar-baslik"
-          metin="Başarılar"
+          metin={sozluk(dil).basarilar.baslik}
           className="text-center text-[clamp(2.5rem,11vw,9.5rem)]"
         />
         <OdulIzgarasi oduller={oduller} />

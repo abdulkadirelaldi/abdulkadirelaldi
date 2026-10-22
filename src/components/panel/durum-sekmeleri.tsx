@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { DURUM_GORUNUMLERI, icerikYolu } from '@/components/panel/icerik-gorunumleri';
+import type { Dil } from '@/i18n/diller';
 import { cn } from '@/lib/utils/cn';
 
 /**
@@ -13,8 +14,11 @@ import { cn } from '@/lib/utils/cn';
  *
  * SERVER COMPONENT: `'use client'` yok. Sekmeler yalnızca bağlantı olduğu için
  * istemci JS'i gerekmiyor.
+ *
+ * `dil` KORUNUYOR: İngilizce listede "Taslak"a geçmek Türkçe taslakları
+ * göstermemeli (ADR-046).
  */
-export function DurumSekmeleri({ taban, aktif }: { taban: string; aktif: string }) {
+export function DurumSekmeleri({ taban, aktif, dil }: { taban: string; aktif: string; dil?: Dil }) {
   return (
     <nav aria-label="Durum süzgeci" className="-mx-1 overflow-x-auto px-1 pb-1">
       <ul className="flex min-w-max gap-1.5">
@@ -23,7 +27,7 @@ export function DurumSekmeleri({ taban, aktif }: { taban: string; aktif: string 
           return (
             <li key={gorunum.anahtar}>
               <Link
-                href={icerikYolu(taban, { durum: gorunum.anahtar })}
+                href={icerikYolu(taban, { durum: gorunum.anahtar, dil })}
                 aria-current={secili ? 'page' : undefined}
                 className={cn(
                   'focus-ring ease-brand duration-micro rounded-btn inline-flex items-center border px-3 py-2 text-sm transition-colors',

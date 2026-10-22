@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 
+import { DilSekmeleri } from '@/components/panel/dil-sekmeleri';
+import { icerikYolu, panelDili } from '@/components/panel/icerik-gorunumleri';
 import { Sayfalama } from '@/components/panel/sayfalama';
 import { Topbar } from '@/components/panel/topbar';
 import { YetenekEkrani } from '@/components/panel/yetenek-ekrani';
@@ -30,11 +32,16 @@ function sayfaNumarasi(ham: string | string[] | undefined): number {
 export default async function YetenekYonetimiPage({ searchParams }: SayfaProps) {
   const parametreler = await searchParams;
   const sayfa = sayfaNumarasi(parametreler.sayfa);
+  const dil = panelDili(parametreler.dil);
 
-  const cozum = skillFilterSchema.safeParse({ page: sayfa, perPage: SAYFA_BOYUTU });
+  const cozum = skillFilterSchema.safeParse({
+    page: sayfa,
+    perPage: SAYFA_BOYUTU,
+    locale: dil,
+  });
 
   const liste = await fetchSkillsForPanel(
-    cozum.success ? cozum.data : { page: 1, perPage: SAYFA_BOYUTU },
+    cozum.success ? cozum.data : { page: 1, perPage: SAYFA_BOYUTU, locale: dil },
   );
 
   return (
@@ -43,13 +50,15 @@ export default async function YetenekYonetimiPage({ searchParams }: SayfaProps) 
 
       <main id="panel-icerik" className="flex-1 p-4 lg:p-6">
         <div className="flex max-w-5xl flex-col gap-6">
-          <YetenekEkrani kayitlar={liste.items} toplam={liste.total} />
+          <DilSekmeleri taban={TABAN} aktif={dil} />
+
+          <YetenekEkrani kayitlar={liste.items} toplam={liste.total} dil={dil} />
 
           <Sayfalama
             sayfa={liste.page}
             perPage={liste.perPage}
             toplam={liste.total}
-            yol={(s) => (s > 1 ? `${TABAN}?sayfa=${s}` : TABAN)}
+            yol={(s) => icerikYolu(TABAN, { sayfa: s, dil })}
           />
         </div>
       </main>

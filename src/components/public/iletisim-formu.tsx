@@ -14,6 +14,8 @@ import {
   createContactMessageSchema,
   type CreateContactMessageInput,
 } from '@/lib/schemas/contact-message';
+import type { Dil } from '@/i18n/diller';
+import type { Sozluk } from '@/i18n/sozluk';
 import type { ApiResponse } from '@/types';
 
 /**
@@ -54,6 +56,9 @@ import type { ApiResponse } from '@/types';
 /** Sözleşme: gönderim adresi. GET jeton verir, POST mesajı alır. */
 export const ILETISIM_UCU = '/api/v1/iletisim';
 
+/** Şemanın kuralları; iletiler `alanHatasi` ile dile göre yeniden yazılıyor. */
+const temelCozucu = zodResolver(contactMessageFormSchema);
+
 /*
  * İSTEMCİ ŞEMASI — `contactMessageFormSchema` (T-031 konvansiyonu).
  *
@@ -76,22 +81,58 @@ type Durum = 'bos' | 'gonderiliyor' | 'basarili';
  * Uç en kötü durumu (bir saat) bildiriyor; başlık okunamazsa cümle süresiz
  * kurulur — uydurma bir süre söylemek, hiç söylememekten kötü.
  */
-function beklemeMetni(retryAfter: string | null): string {
+/** `{n}` / `{eposta}` yer tutucularını doldurur (sözlük metinleri düz metin). */
+function doldur(sablon: string, degerler: Record<string, string | number>): string {
+  return sablon.replace(/\{(\w+)\}/g, (_, ad: string) => String(degerler[ad] ?? `{${ad}}`));
+}
+
+function beklemeMetni(retryAfter: string | null, m: FormMetni): string {
   const saniye = Number(retryAfter);
-  if (!Number.isFinite(saniye) || saniye <= 0) return 'Biraz sonra tekrar dener misin?';
+  if (!Number.isFinite(saniye) || saniye <= 0) return m.biraz;
   if (saniye >= 3600) {
     const saat = Math.round(saniye / 3600);
-    return `Yaklaşık ${saat} saat sonra tekrar deneyebilirsin.`;
+    return doldur(saat === 1 ? m.saat1 : m.saatN, { n: saat });
   }
   const dakika = Math.max(1, Math.round(saniye / 60));
-  return `Yaklaşık ${dakika} dakika sonra tekrar deneyebilirsin.`;
+  return doldur(dakika === 1 ? m.dakika1 : m.dakikaN, { n: dakika });
+}
+
+/** Formun metinleri — `Sozluk['form']`, hepsi düz metin (sunucudan prop olarak gelir). */
+export type FormMetni = Sozluk['form'];
+
+/**
+ * ADR-046 — DOĞRULAMA İLETİSİ DİLE GÖRE. Kural şemada kalıyor (§7.3), ileti
+ * şemanın Türkçe metni değil: alan + hata türünden sözlükten seçiliyor.
+ * Sunucudan gelen alan hataları da aynı eşlemeden geçiyor.
+ */
+export function alanHatasi(alan: string, tur: string | undefined, m: FormMetni): string {
+  const h = m.hata;
+  switch (alan) {
+    case 'name':
+      return h.ad;
+    case 'email':
+      return h.eposta;
+    case 'phone':
+      return h.telefon;
+    case 'subject':
+      return h.konu;
+    case 'message':
+      return tur === 'too_big' ? h.mesajUzun : h.mesajKisa;
+    default:
+      return h.alan;
+  }
 }
 
 export function IletisimFormu({
   kaynakSayfa = '/iletisim',
   eposta = null,
+  metin,
+  dil = 'tr',
 }: {
   kaynakSayfa?: string;
+  metin: FormMetni;
+  /** Sunucunun Türkçe iletisini yalnızca Türkçe sayfada göster; diğerlerinde sözlük. */
+  dil?: Dil;
   /**
    * Profilde e-posta VARSA adres; yoksa `null`.
    *
@@ -107,7 +148,13 @@ export function IletisimFormu({
     reset,
     formState: { errors },
   } = useForm<CreateContactMessageInput>({
-    resolver: zodResolver(contactMessageFormSchema),
+    resolver: async (degerler, baglam, secenekler) => {
+      const sonuc = await temelCozucu(degerler, baglam, secenekler);
+      for (const [alan, hata] of Object.entries(sonuc.errors)) {
+        if (hata) hata.message = alanHatasi(alan, hata.type as string | undefined, metin);
+      }
+      return sonuc;
+    },
     defaultValues: { website: '', sourcePage: kaynakSayfa },
   });
 
@@ -158,11 +205,7 @@ export function IletisimFormu({
        * duruyor ve kullanıcı "Tekrar gönder"e basabiliyor.
        */
       setDurum('bos');
-      setFormHatasi(
-        eposta
-          ? `Mesaj gönderilemedi — bağlantı kurulamadı. Yazdıkların duruyor, tekrar deneyebilirsin ya da doğrudan ${eposta} adresine yazabilirsin.`
-          : 'Mesaj gönderilemedi — bağlantı kurulamadı. Yazdıkların duruyor, tekrar deneyebilirsin.',
-      );
+      setFormHatasi(eposta ? doldur(metin.agHatasiEposta, { eposta }) : metin.agHatasi);
       return;
     }
 
@@ -202,9 +245,7 @@ export function IletisimFormu({
     setDurum('bos');
 
     if (yanit.status === 429) {
-      setFormHatasi(
-        `Kısa sürede çok fazla mesaj gönderildi. ${beklemeMetni(yanit.headers.get('Retry-After'))}`,
-      );
+      setFormHatasi(`${metin.cokFazla} ${beklemeMetni(yanit.headers.get('Retry-After'), metin)}`);
       return;
     }
 
@@ -226,21 +267,19 @@ export function IletisimFormu({
       if (alanlar) {
         for (const [ad, mesaj] of Object.entries(alanlar)) {
           if (ad in createContactMessageSchema.shape) {
-            setError(ad as keyof CreateContactMessageInput, { message: mesaj });
+            setError(ad as keyof CreateContactMessageInput, {
+              message: dil === 'tr' ? mesaj : alanHatasi(ad, undefined, metin),
+            });
             basildi = true;
           }
         }
       }
       /* Alana bağlanamayan mesaj varsa (ör. gövde okunamadı) form düzeyinde göster. */
-      if (!basildi) setFormHatasi(govde.error.message);
+      if (!basildi) setFormHatasi(dil === 'tr' ? govde.error.message : metin.genelHata);
       return;
     }
 
-    setFormHatasi(
-      govde && !govde.ok
-        ? govde.error.message
-        : 'Mesaj gönderilemedi. Yazdıkların duruyor, birazdan tekrar deneyebilirsin.',
-    );
+    setFormHatasi(govde && !govde.ok && dil === 'tr' ? govde.error.message : metin.genelHata);
   });
 
   const gonderiliyor = durum === 'gonderiliyor';
@@ -259,10 +298,7 @@ export function IletisimFormu({
           className="rounded-input border-success/40 bg-success/8 text-success flex items-start gap-2.5 border px-3 py-2.5 text-sm"
         >
           <CheckCircle2 className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-          <span>
-            Mesajın bana ulaştı. Genelde bir gün içinde dönüyorum — yanıtı yazdığın e-posta adresine
-            göndereceğim.
-          </span>
+          <span>{metin.basari}</span>
         </div>
       )}
 
@@ -270,7 +306,7 @@ export function IletisimFormu({
 
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="ad">Ad Soyad</Label>
+          <Label htmlFor="ad">{metin.ad}</Label>
           <Input
             id="ad"
             autoComplete="name"
@@ -282,7 +318,7 @@ export function IletisimFormu({
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="eposta">E-posta</Label>
+          <Label htmlFor="eposta">{metin.eposta}</Label>
           <Input
             id="eposta"
             type="email"
@@ -300,7 +336,7 @@ export function IletisimFormu({
               işaretlemek yerine tersini yazmak, yıldızın ne demek olduğunu
               açıklama ihtiyacını ortadan kaldırıyor. */}
           <Label htmlFor="telefon">
-            Telefon <span className="text-muted font-normal">(isteğe bağlı)</span>
+            {metin.telefon} <span className="text-muted font-normal">{metin.istegeBagli}</span>
           </Label>
           <Input
             id="telefon"
@@ -316,7 +352,7 @@ export function IletisimFormu({
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="konu">
-            Konu <span className="text-muted font-normal">(isteğe bağlı)</span>
+            {metin.konu} <span className="text-muted font-normal">{metin.istegeBagli}</span>
           </Label>
           <Input
             id="konu"
@@ -329,11 +365,11 @@ export function IletisimFormu({
       </div>
 
       <div className="flex flex-col gap-1.5">
-        <Label htmlFor="mesaj">Mesaj</Label>
+        <Label htmlFor="mesaj">{metin.mesaj}</Label>
         <Textarea
           id="mesaj"
           rows={6}
-          placeholder="Ne yapmak istediğini kısaca anlat — en iyisi birkaç cümle."
+          placeholder={metin.mesajYerTutucu}
           aria-invalid={errors.message ? true : undefined}
           aria-describedby={errors.message ? 'mesaj-hata' : undefined}
           {...register('message')}
@@ -360,7 +396,7 @@ export function IletisimFormu({
         `disabled` VERİLMİYOR: devre dışı alan gönderilmez ve tuzak kapanırdı.
       */}
       <div aria-hidden="true" className="pointer-events-none absolute left-[-9999px] h-0 w-0">
-        <label htmlFor="website">Web siteniz (doldurmayın)</label>
+        <label htmlFor="website">{metin.tuzak}</label>
         <input id="website" type="text" tabIndex={-1} autoComplete="off" {...register('website')} />
       </div>
 
@@ -373,7 +409,7 @@ export function IletisimFormu({
         ) : (
           <Send className="size-4" aria-hidden="true" />
         )}
-        {gonderiliyor ? 'Gönderiliyor…' : 'Mesajı gönder'}
+        {gonderiliyor ? metin.gonderiliyor : metin.gonder}
       </Button>
     </form>
   );

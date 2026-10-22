@@ -1,3 +1,4 @@
+import { VARSAYILAN_DIL, dilMi, type Dil } from '@/i18n/diller';
 import { ContentStatus } from '@/types';
 
 /**
@@ -53,9 +54,30 @@ export function durumGorunumuBul(anahtar: string | undefined): DurumGorunumu {
   );
 }
 
-/** Liste adresi — bağlantılar tek yerden kuruluyor. */
-export function icerikYolu(taban: string, { durum, sayfa }: { durum?: string; sayfa?: number }) {
+/**
+ * PANEL DİLİ — `?dil=tr|en|de` (ADR-046).
+ *
+ * Bilinmeyen, eksik ya da dizi hâlinde gelen değer VARSAYILAN dile düşer:
+ * `?dil=fr` bir hata sayfası değil, Türkçe liste göstermeli — adres elle
+ * yazıldığında kullanıcı boş bir ekranla karşılaşmasın.
+ */
+export function panelDili(ham: string | string[] | undefined): Dil {
+  const deger = Array.isArray(ham) ? ham[0] : ham;
+  return dilMi(deger) ? deger : VARSAYILAN_DIL;
+}
+
+/**
+ * Liste adresi — bağlantılar tek yerden kuruluyor.
+ *
+ * Varsayılan değerler adrese YAZILMIYOR (`hepsi`, sayfa 1, `tr`): Türkçe
+ * liste eski adresinde kalıyor, yer imleri ve testler kırılmıyor.
+ */
+export function icerikYolu(
+  taban: string,
+  { durum, sayfa, dil }: { durum?: string; sayfa?: number; dil?: Dil },
+) {
   const p = new URLSearchParams();
+  if (dil && dil !== VARSAYILAN_DIL) p.set('dil', dil);
   if (durum && durum !== 'hepsi') p.set('durum', durum);
   if (sayfa && sayfa > 1) p.set('sayfa', String(sayfa));
   const sorgu = p.toString();

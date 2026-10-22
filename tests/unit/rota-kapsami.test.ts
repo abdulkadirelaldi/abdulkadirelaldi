@@ -141,7 +141,7 @@ interface KapsamBeyani {
 const KAPSAM: Record<string, KapsamBeyani> = {
   '/': {
     kapilar: ['e2e', 'lighthouse', 'sitemap-taramasi'],
-    kanit: ["page.goto('/')", "absoluteUrl('/')"],
+    kanit: ["page.goto('/')", "sayfa: 'anasayfa', siklik"],
     not: 'En yoğun ölçülen yüzey: duman testi (tek h1, klavye odağı), güvenlik başlıkları, üç Lighthouse profili ve WebGL doğrulaması.',
   },
   '/giris': {
@@ -504,52 +504,109 @@ const KAPSAM: Record<string, KapsamBeyani> = {
   },
   '/blog': {
     kapilar: ['sitemap-taramasi'],
-    kanit: ["absoluteUrl('/blog')"],
+    kanit: ["sayfa: 'blog', siklik"],
     not: 'YALNIZCA "yaşıyor mu" (200). Liste içeriği, sıralama ve sayfalama ölçülmüyor.',
   },
   '/blog/[slug]': {
     kapilar: ['sitemap-taramasi'],
-    kanit: ['`/blog/${entry.slug}`'],
+    kanit: ["detaylar('blog', posts)"],
     not: "Yayınlanmış her yazı sitemap üzerinden çekiliyor; taslak/zamanlanmış yazılar sitemap'te olmadığı için kapsam dışı (ADR-019 gereği öyle olmalı).",
   },
   '/cv': {
     kapilar: ['sitemap-taramasi'],
-    kanit: ["absoluteUrl('/cv')"],
+    kanit: ["sayfa: 'cv', siklik"],
     not: 'YALNIZCA 200. PDF/yazdırma davranışı ölçülmüyor.',
   },
   '/hakkimda': {
     kapilar: ['sitemap-taramasi'],
-    kanit: ["absoluteUrl('/hakkimda')"],
+    kanit: ["sayfa: 'hakkimda', siklik"],
     not: 'YALNIZCA 200.',
   },
   '/hizmetler': {
     kapilar: ['sitemap-taramasi'],
-    kanit: ["absoluteUrl('/hizmetler')"],
+    kanit: ["sayfa: 'hizmetler', siklik"],
     not: 'T-117: logo şeridi YALNIZCA `showOnSite` işaretli müşterilerin ad+logosuyla ve en az 3 logoyla çiziliyor; altında bölüm yok ve sayfa SIFIR istemci bileşenli kalıyor (LogoLoop tembel). Lighthouse/E2E tohum verisinde şerit çizilmiyor (vitrin müşterisi yok) — şeritli hâlin performansı ÖLÇÜLMEDİ. YALNIZCA 200.',
   },
   '/iletisim': {
     kapilar: ['sitemap-taramasi', 'e2e'],
-    kanit: ["absoluteUrl('/iletisim')", "page.goto('/iletisim')"],
+    kanit: ["sayfa: 'iletisim', siklik", "page.goto('/iletisim')"],
     not: "§9/2 (T-039): gerçek tarayıcıdan form dolduruluyor, kayıt DB'de ve panelin okuma yolunda doğrulanıyor. Panel mesaj kutusu EKRANI henüz yok — zincirin son halkası açık bekleme (bkz. `iletisim-akisi.spec.ts` başlığı).",
   },
   '/projeler': {
     kapilar: ['sitemap-taramasi', 'e2e'],
-    kanit: ["absoluteUrl('/projeler')", "request.get('/projeler')"],
+    kanit: ["sayfa: 'projeler', siklik", "request.get('/projeler')"],
     not: '§9/6 (T-039): yayınlanan projenin listede ANINDA göründüğü, taslağın ise sızmadığı ölçülüyor. Kartların düzeni ve süzgeçler ölçülmüyor.',
   },
   '/projeler/[slug]': {
     kapilar: ['sitemap-taramasi', 'e2e'],
     kanit: [
-      '`/projeler/${entry.slug}`',
+      "detaylar('projeler', projects)",
       "yol.startsWith('/projeler/')",
       'request.get(`/projeler/${SLUG}`)',
     ],
     not: "§9/6 (T-039): yeni yayınlanan kaydın detayı 200 dönüyor ve başlığı gövdede; taslağın detayı 404. Ayrıca sitemap taraması yayındaki her slug'ı çekiyor ve bir temsilci slug OG görselinde kullanılıyor. Sayfa düzeni ölçülmüyor.",
   },
+  /*
+   * ADR-046 — önekli diller. Sayfalar `components/sayfalar/*`te TEK; `[dil]`
+   * rotaları yalnızca dili doğrulayıp aynı modülü çağıran ince sarmalayıcılar.
+   * Ziyaretçi bu adresleri HİÇ görmez: middleware `/en/projects`i içeride
+   * `/en/projeler`e yeniden yazar. Sitemap her dili `yol(d, sayfa)` ile
+   * bildirir, dolayısıyla tarama `/en/…` ve `/de/…` adreslerinin HEPSİNİ çeker.
+   */
+  '/[dil]': {
+    kapilar: ['sitemap-taramasi', 'e2e'],
+    kanit: ['absoluteUrl(yol(d, sayfa))', "['/en', 'en', 'Projects']"],
+    not: '`<html lang>`, menü dili ve tek h1 her dilde ölçülüyor. Lighthouse YALNIZCA Türkçe ana sayfada — aynı bileşen ağacı, farklı metin; Almanca uzun başlıkların taşması görsel kontrol (ölçülmüyor).',
+  },
+  '/[dil]/blog': {
+    kapilar: ['sitemap-taramasi', 'e2e'],
+    kanit: ['absoluteUrl(yol(d, sayfa))', "'/de/blog'"],
+    not: 'YALNIZCA 200. Yazı yoksa dilin boş durumu gösteriliyor.',
+  },
+  '/[dil]/blog/[slug]': {
+    kapilar: ['sitemap-taramasi'],
+    kanit: ["detaylar('blog', posts)"],
+    not: "Her dilin yayındaki yazıları sitemap üzerinden çekiliyor. Seed'de çevrilmiş yazı YOK — bu yüzden CI'da bu rota fiilen taranmıyor; üretim içeriğinde (scripts/icerik) taranıyor.",
+  },
+  '/[dil]/cv': {
+    kapilar: ['sitemap-taramasi', 'e2e'],
+    kanit: ['absoluteUrl(yol(d, sayfa))', "'/de/lebenslauf'"],
+    not: 'YALNIZCA 200. Yazdırma düzeni ölçülmüyor.',
+  },
+  '/[dil]/hakkimda': {
+    kapilar: ['sitemap-taramasi', 'e2e'],
+    kanit: ['absoluteUrl(yol(d, sayfa))', "'/de/ueber-mich'"],
+    not: 'YALNIZCA 200; `/de/hakkimda` → `/de/ueber-mich` 308 yönlendirmesi ayrıca ölçülüyor.',
+  },
+  '/[dil]/hizmetler': {
+    kapilar: ['sitemap-taramasi', 'e2e'],
+    kanit: ['absoluteUrl(yol(d, sayfa))', "'/de/leistungen'"],
+    not: 'YALNIZCA 200.',
+  },
+  '/[dil]/iletisim': {
+    kapilar: ['sitemap-taramasi', 'e2e'],
+    kanit: ['absoluteUrl(yol(d, sayfa))', "page.goto('/de/kontakt')"],
+    not: 'Form etiketleri ve gönder düğmesi sayfanın dilinde ölçülüyor. Gönderim akışı (DB kaydı) yalnızca Türkçe sayfada (`iletisim-akisi.spec.ts`) — aynı istemci bileşeni ve aynı uç nokta.',
+  },
+  '/[dil]/projeler': {
+    kapilar: ['sitemap-taramasi', 'e2e'],
+    kanit: ['absoluteUrl(yol(d, sayfa))', "page.goto('/de/projekte')"],
+    not: 'hreflang (üç dil + x-default) ve kanonik adres burada ölçülüyor. Süzgeçler ölçülmüyor.',
+  },
+  '/[dil]/projeler/[slug]': {
+    kapilar: ['sitemap-taramasi'],
+    kanit: ["detaylar('projeler', projects)"],
+    not: "Seed'deki İngilizce proje (`kiyi-medya-corporate-website`) sitemap'ten taranıyor. Detayın hreflang kümesi ölçülmüyor; karşılık eşlemesi `/api/v1/dil` testlerinde.",
+  },
   '/api/auth/[...nextauth]': {
     kapilar: ['e2e'],
     kanit: ["'/api/auth/csrf'"],
     not: 'Uç doğrudan bir kez (csrf) çağrılıyor; asıl kapsam dolaylı — bütün giriş/çıkış akışı bu işleyiciden geçiyor.',
+  },
+  '/api/v1/dil': {
+    kapilar: ['e2e'],
+    kanit: ["'/api/v1/dil?hedef=en&yol=%2Fprojeler%2Fkiyi-medya-kurumsal-site'"],
+    not: 'ADR-046 dil seçici: çeviri anahtarıyla karşılık bulma, karşılık yoksa listeye düşme ve AÇIK YÖNLENDİRME OLMADIĞI (`//evil.example`) ölçülüyor. Taslak bir çevirinin karşılık sayılmadığı ölçülmüyor (karsiliklar yalnızca yayındaki listeden okuyor).',
   },
   '/api/v1/health': {
     kapilar: ['e2e'],

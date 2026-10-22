@@ -1578,3 +1578,25 @@ describe('T-051/B — eksik eklenti KESİN alanı işaretliyor', () => {
     expect(sonuc.error.fields).toBeUndefined();
   });
 });
+
+describe('ADR-046 — P2002 hangi kısıttan doğduysa o alan gösteriliyor', () => {
+  it('translationKey kısıtı → çeviri anahtarı alanı, slug DEĞİL', async () => {
+    const { toFailure } = await import('@/server/actions/_shared');
+    const hata = Object.assign(new Error('unique'), {
+      code: 'P2002',
+      meta: { target: ['translationKey', 'locale'] },
+    });
+    const sonuc = toFailure('test', hata);
+    expect(sonuc.error.code).toBe('CONFLICT');
+    expect(sonuc.error.fields).toHaveProperty('translationKey');
+    expect(sonuc.error.fields).not.toHaveProperty('slug');
+  });
+
+  it('slug kısıtı (ya da hedef bilinmiyorsa) → slug alanı, varsayılan davranış', async () => {
+    const { toFailure } = await import('@/server/actions/_shared');
+    for (const meta of [{ target: ['slug', 'locale'] }, {}]) {
+      const hata = Object.assign(new Error('unique'), { code: 'P2002', meta });
+      expect(toFailure('test', hata).error.fields).toHaveProperty('slug');
+    }
+  });
+});

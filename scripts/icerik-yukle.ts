@@ -11,8 +11,14 @@ import {
 import { closeDatabase, db } from '@/server/db';
 import { calculateReadingMinutes } from '@/server/services/_shared/reading-time';
 
-import { DENEYIMLER, HIZMETLER, PROFIL, PROJELER, YETENEKLER } from './icerik/abdulkadir';
-import { YAZILAR } from './icerik/yazilar';
+import { DILLER, type Dil } from '@/i18n/diller';
+
+import * as TR from './icerik/abdulkadir';
+import * as DE from './icerik/abdulkadir.de';
+import * as EN from './icerik/abdulkadir.en';
+import { YAZILAR as YAZILAR_TR } from './icerik/yazilar';
+import { YAZILAR as YAZILAR_DE } from './icerik/yazilar.de';
+import { YAZILAR as YAZILAR_EN } from './icerik/yazilar.en';
 
 /**
  * İÇERİK YÜKLEME — sitenin gerçek içeriğini (`scripts/icerik/abdulkadir.ts`)
@@ -35,6 +41,11 @@ import { YAZILAR } from './icerik/yazilar';
  * Seed'in demo içeriğini temizlemek için bir kez; panelden eklenmiş kayıtları
  * da götüreceği için üretimde DİKKATLE.
  *
+ * ÇOK DİL (ADR-046): üç dil sırayla yazılır (tr → en → de). Türkçe kayıtlar
+ * `translationKey` = kendi slug'ı; çeviriler Türkçe slug'ı anahtar taşır —
+ * dil seçici ve hreflang bu eşlemeyle çalışır. Önekli dillerin profili yoksa
+ * AÇILIR (sosyal bağlantılar Türkçe profilden), varsa Türkçedeki gibi güncellenir.
+ *
  * Her kayıt panelin kullandığı AYNI Zod şemasından geçer (seed ilkesi) — betik
  * panelin kabul etmeyeceği bir şey yazamaz.
  *
@@ -44,18 +55,27 @@ import { YAZILAR } from './icerik/yazilar';
  */
 
 const ESITLE = process.argv.includes('--esitle');
-const DIL = 'tr';
 
-async function profil(): Promise<string> {
-  const mevcut = await db.profile.findUnique({
-    where: { id: 'singleton' },
+const ICERIK = {
+  tr: { ...TR, YAZILAR: YAZILAR_TR },
+  en: { ...EN, YAZILAR: YAZILAR_EN },
+  de: { ...DE, YAZILAR: YAZILAR_DE },
+} satisfies Record<Dil, unknown>;
+
+async function profil(DIL: Dil): Promise<string> {
+  const { PROFIL } = ICERIK[DIL];
+  // Türkçe profil uretim-baslat ile açılır; önekli diller onun sosyal
+  // bağlantılarını devralır.
+  const turkce = await db.profile.findUnique({
+    where: { locale: 'tr' },
     select: { socials: true },
   });
-  if (!mevcut) throw new Error('Profil yok — önce scripts/uretim-baslat.ts çalıştırılmalı.');
+  if (!turkce) throw new Error('Profil yok — önce scripts/uretim-baslat.ts çalıştırılmalı.');
+  const mevcut = await db.profile.findUnique({ where: { locale: DIL }, select: { socials: true } });
 
   // Sitenin kendi adresi (`website`) gibi belgede olmayan alanlar korunur;
   // belgede olanlar belgedeki değerle yazılır.
-  const eskiSosyal = (mevcut.socials ?? {}) as Record<string, unknown>;
+  const eskiSosyal = ((mevcut ?? turkce).socials ?? {}) as Record<string, unknown>;
   const girdi = updateProfileSchema.parse({
     headline: PROFIL.headline,
     subtitle: PROFIL.subtitle,
@@ -63,11 +83,18 @@ async function profil(): Promise<string> {
     location: PROFIL.location,
     socials: { ...eskiSosyal, ...PROFIL.socials },
   });
-  await db.profile.update({ where: { id: 'singleton' }, data: girdi });
-  return 'güncellendi';
+  if (mevcut) {
+    await db.profile.update({ where: { locale: DIL }, data: girdi });
+    return 'güncellendi';
+  }
+  await db.profile.create({
+    data: { ...girdi, locale: DIL, headline: PROFIL.headline, bio: PROFIL.bio },
+  });
+  return 'oluşturuldu';
 }
 
-async function yetenekler(): Promise<string> {
+async function yetenekler(DIL: Dil): Promise<string> {
+  const { YETENEKLER } = ICERIK[DIL];
   for (const ham of YETENEKLER) {
     const girdi = createSkillSchema.parse({ ...ham, locale: DIL });
     await db.skill.upsert({
@@ -86,7 +113,8 @@ async function yetenekler(): Promise<string> {
   return `${YETENEKLER.length} yazıldı${ESITLE ? `, ${silinen} silindi` : ''}`;
 }
 
-async function deneyimler(): Promise<string> {
+async function deneyimler(DIL: Dil): Promise<string> {
+  const { DENEYIMLER } = ICERIK[DIL];
   const tutulan: string[] = [];
   for (const [sira, ham] of DENEYIMLER.entries()) {
     const girdi = createExperienceSchema.parse({ ...ham, locale: DIL, order: sira + 1 });
@@ -115,11 +143,13 @@ async function deneyimler(): Promise<string> {
   return `${DENEYIMLER.length} yazıldı${ESITLE ? `, ${silinen} silindi` : ''}`;
 }
 
-async function projeler(): Promise<string> {
+async function projeler(DIL: Dil): Promise<string> {
+  const { PROJELER } = ICERIK[DIL];
   const simdi = new Date();
   for (const [sira, ham] of PROJELER.entries()) {
     const girdi = createProjectSchema.parse({
       ...ham,
+      translationKey: ham.translationKey ?? ham.slug,
       locale: DIL,
       order: sira + 1,
       status: 'PUBLISHED',
@@ -152,7 +182,8 @@ async function projeler(): Promise<string> {
   return `${PROJELER.length} yazıldı${ESITLE ? `, ${arsivlenen} arşivlendi` : ''}`;
 }
 
-async function hizmetler(): Promise<string> {
+async function hizmetler(DIL: Dil): Promise<string> {
+  const { HIZMETLER } = ICERIK[DIL];
   // Hizmette doğal anahtar yok (slug yok) — (başlık, dil) ile eşleniyor.
   // `ctaUrl` YAZILMIYOR: panelden özel bağlantı verilmişse yeniden çalıştırma ezmesin.
   const tutulan: string[] = [];
@@ -176,10 +207,16 @@ async function hizmetler(): Promise<string> {
   return `${HIZMETLER.length} yazıldı${ESITLE ? `, ${silinen} silindi` : ''}`;
 }
 
-async function yazilar(): Promise<string> {
+async function yazilar(DIL: Dil): Promise<string> {
+  const { YAZILAR } = ICERIK[DIL];
   const simdi = new Date();
   for (const ham of YAZILAR) {
-    const girdi = createPostSchema.parse({ ...ham, locale: DIL, status: 'PUBLISHED' });
+    const girdi = createPostSchema.parse({
+      ...ham,
+      translationKey: ham.translationKey ?? ham.slug,
+      locale: DIL,
+      status: 'PUBLISHED',
+    });
     // Okuma süresi panelle AYNI kaynaktan: türetilmiş alan yalnızca sunucuda (T-011).
     const { coverAttachmentId: _kapak, publishedAt: _tarih, ...veri } = girdi;
     const okuma = calculateReadingMinutes(veri.content);
@@ -205,16 +242,18 @@ async function yazilar(): Promise<string> {
 }
 
 try {
-  const sonuclar = {
-    profil: await profil(),
-    yetenek: await yetenekler(),
-    deneyim: await deneyimler(),
-    proje: await projeler(),
-    yazi: await yazilar(),
-    hizmet: await hizmetler(),
-  };
-  for (const [ad, sonuc] of Object.entries(sonuclar)) {
-    process.stdout.write(`[icerik] ${ad}: ${sonuc}\n`);
+  for (const DIL of DILLER) {
+    const sonuclar = {
+      profil: await profil(DIL),
+      yetenek: await yetenekler(DIL),
+      deneyim: await deneyimler(DIL),
+      proje: await projeler(DIL),
+      yazi: await yazilar(DIL),
+      hizmet: await hizmetler(DIL),
+    };
+    for (const [ad, sonuc] of Object.entries(sonuclar)) {
+      process.stdout.write(`[icerik] ${DIL} · ${ad}: ${sonuc}\n`);
+    }
   }
 } catch (error) {
   process.stderr.write(

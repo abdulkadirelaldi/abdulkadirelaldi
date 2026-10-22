@@ -5,22 +5,29 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
 import { gradyanSiniflari } from '@/components/public/tasarim/gradyan-baglanti';
+import { DIL_ADI, DILLER, type Dil } from '@/i18n/diller';
+import { cozumle, yol, type Sayfa } from '@/i18n/rotalar';
+import type { Sozluk } from '@/i18n/sozluk';
 import { cn } from '@/lib/utils/cn';
 
+/** §4.1 — menüdeki public sayfalar; adresler dile göre `yol()`dan (ADR-046). */
+const MENU: readonly Sayfa[] = ['hakkimda', 'projeler', 'blog', 'hizmetler', 'iletisim'];
+
 /**
- * §4.1 — public rotalar.
- *
- * `hazir`: sayfa AÇILDI mı. Açılmamış rotayı ön çekmek 404 üretir ve
- * Lighthouse'un `errors-in-console` denetimini düşürür (T-002b, T-023c).
- * Bugün hepsi yayında; alan bir sonraki yeni sayfa için duruyor.
+ * Dil seçicinin hedefi. Liste sayfalarında karşılık adres doğrudan hesaplanır.
+ * Proje/yazı DETAYINDA slug dile göre değişebildiği için karşılığı sunucu
+ * bulur (`/api/v1/dil` — çeviri anahtarıyla; yoksa liste sayfasına düşer).
  */
-const NAV_LINKS = [
-  { href: '/hakkimda', label: 'Hakkımda', hazir: true },
-  { href: '/projeler', label: 'Projeler', hazir: true },
-  { href: '/blog', label: 'Blog', hazir: true },
-  { href: '/hizmetler', label: 'Hizmetler', hazir: true },
-  { href: '/iletisim', label: 'İletişim', hazir: true },
-] as const;
+export function dilHedefi(pathname: string, hedef: Dil): string {
+  const c = cozumle(pathname);
+  if (c.tur !== 'sayfa') return yol(hedef, 'anasayfa');
+  if (!c.slug) return yol(hedef, c.sayfa);
+  const p = new URLSearchParams({ hedef, yol: pathname });
+  return `/api/v1/dil?${p.toString()}`;
+}
+
+/** Navbar'ın ihtiyaç duyduğu metinler — sözlüğün tamamı istemciye inmesin. */
+export type NavbarMetni = Pick<Sozluk, 'nav' | 'sayfaAdi'>;
 
 /*
  * ÖN ÇEKME `true` (tam sayfa) — ÖLÇÜLDÜ: public sayfalar istek başına render
@@ -50,8 +57,10 @@ const ESIK = 24;
  *
  * JS yüklenmeden de gezinilebilir: bağlantılar düz `<a>`.
  */
-export function Navbar() {
+export function Navbar({ dil, metin }: { dil: Dil; metin: NavbarMetni }) {
   const pathname = usePathname();
+  const { nav, sayfaAdi } = metin;
+  const baglantilar = MENU.map((sayfa) => ({ href: yol(dil, sayfa), label: sayfaAdi[sayfa] }));
   const [acik, setAcik] = useState(false);
   const [kaydirildi, setKaydirildi] = useState(false);
   const [gizli, setGizli] = useState(false);
@@ -102,23 +111,23 @@ export function Navbar() {
       )}
     >
       <nav
-        aria-label="Ana menü"
+        aria-label={nav.anaMenu}
         className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-4 md:h-20 md:px-8"
       >
         <Link
-          href="/"
-          aria-label="Ana sayfa"
+          href={yol(dil, 'anasayfa')}
+          aria-label={nav.anaSayfa}
           className="focus-ring rounded-btn font-dev text-primary relative z-10 text-xl font-black tracking-tight"
         >
           AE<span className="text-gradient-vurgu">.</span>
         </Link>
 
         <ul className="mx-auto hidden items-center gap-10 md:flex">
-          {NAV_LINKS.map((link) => (
+          {baglantilar.map((link) => (
             <li key={link.href}>
               <Link
                 href={link.href}
-                prefetch={link.hazir ? true : false}
+                prefetch
                 aria-current={aktif(link.href) ? 'page' : undefined}
                 className={cn(
                   'group focus-ring rounded-btn relative block overflow-hidden py-1 text-[0.7rem] font-semibold tracking-[0.18em] uppercase',
@@ -146,8 +155,18 @@ export function Navbar() {
           ))}
         </ul>
 
-        <Link href="/iletisim" className={gradyanSiniflari('sm', 'hidden md:inline-flex')}>
-          Birlikte çalışalım
+        <DilSecici
+          dil={dil}
+          pathname={pathname}
+          etiket={nav.dilSecici}
+          className="hidden md:flex"
+        />
+
+        <Link
+          href={yol(dil, 'iletisim')}
+          className={gradyanSiniflari('sm', 'hidden md:inline-flex')}
+        >
+          {nav.cta}
         </Link>
 
         <button
@@ -155,10 +174,10 @@ export function Navbar() {
           onClick={() => setAcik((a) => !a)}
           aria-expanded={acik}
           aria-controls="mobil-menu"
-          aria-label={acik ? 'Menüyü kapat' : 'Menüyü aç'}
+          aria-label={acik ? nav.menuyuKapat : nav.menuyuAc}
           className="focus-ring rounded-pill border-line-strong text-primary relative z-10 ml-auto inline-flex h-10 items-center gap-2 border px-4 text-[0.7rem] font-semibold tracking-[0.18em] uppercase md:hidden"
         >
-          {acik ? 'Kapat' : 'Menü'}
+          {acik ? nav.kapat : nav.menu}
         </button>
       </nav>
 
@@ -168,11 +187,11 @@ export function Navbar() {
           className="bg-canvas animate-sayfa-giris fixed inset-0 flex flex-col justify-between px-4 pt-24 pb-10 [animation-duration:0.4s] md:hidden"
         >
           <ul className="flex flex-col gap-2">
-            {NAV_LINKS.map((link, sira) => (
+            {baglantilar.map((link, sira) => (
               <li key={link.href} className="border-line border-b">
                 <Link
                   href={link.href}
-                  prefetch={link.hazir ? true : false}
+                  prefetch
                   aria-current={aktif(link.href) ? 'page' : undefined}
                   className={cn(
                     'focus-ring dev-baslik flex items-baseline justify-between py-4 text-4xl',
@@ -187,11 +206,55 @@ export function Navbar() {
               </li>
             ))}
           </ul>
-          <Link href="/iletisim" className={gradyanSiniflari('lg', 'w-full')}>
-            Birlikte çalışalım
-          </Link>
+          <div className="flex flex-col gap-6">
+            <DilSecici dil={dil} pathname={pathname} etiket={nav.dilSecici} />
+            <Link href={yol(dil, 'iletisim')} className={gradyanSiniflari('lg', 'w-full')}>
+              {nav.cta}
+            </Link>
+          </div>
         </div>
       )}
     </header>
+  );
+}
+
+/**
+ * Dil seçici — TR · EN · DE. Her dil KENDİ adıyla `title`/`lang` taşıyor
+ * (ziyaretçi kendi dilini arar; ekran okuyucu doğru telaffuz eder). Düz `<a>`:
+ * dil değişimi tam sayfa yüklemesi — yeni dilin `<html lang>`ı ve metadata'sı
+ * sunucudan baştan gelsin.
+ */
+function DilSecici({
+  dil,
+  pathname,
+  etiket,
+  className,
+}: {
+  dil: Dil;
+  pathname: string;
+  etiket: string;
+  className?: string;
+}) {
+  return (
+    <ul aria-label={etiket} className={cn('flex items-center gap-1', className)}>
+      {DILLER.map((d) => (
+        <li key={d}>
+          <a
+            href={dilHedefi(pathname, d)}
+            hrefLang={d}
+            lang={d}
+            title={DIL_ADI[d]}
+            aria-current={d === dil ? 'true' : undefined}
+            className={cn(
+              'focus-ring rounded-pill inline-flex h-8 items-center px-2.5 text-[0.7rem] font-semibold tracking-[0.14em] uppercase transition-colors',
+              d === dil ? 'bg-primary text-canvas' : 'text-body hover:text-primary',
+            )}
+          >
+            {d}
+            <span className="sr-only"> — {DIL_ADI[d]}</span>
+          </a>
+        </li>
+      ))}
+    </ul>
   );
 }

@@ -5,12 +5,14 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import { icerikYolu } from '@/components/panel/icerik-gorunumleri';
 import { KaliciSilDugmesi } from '@/components/panel/kalici-sil-dugmesi';
 import { VeriTablosu, type Sutun } from '@/components/panel/veri-tablosu';
 import { KATEGORI_BASLIK } from '@/components/public/yetenek-kategori';
 import { Badge } from '@/components/ui/badge';
 import { buttonClasses } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
+import type { Dil } from '@/i18n/diller';
 import { deleteSkillAction } from '@/server/actions/skill';
 import type { SkillDto } from '@/server/services/content-dto';
 
@@ -31,7 +33,16 @@ import type { SkillDto } from '@/server/services/content-dto';
  * "Altyapı" yazıp sitede "DevOps" görünmesin.
  */
 
-export function YetenekEkrani({ kayitlar, toplam }: { kayitlar: SkillDto[]; toplam: number }) {
+export function YetenekEkrani({
+  kayitlar,
+  toplam,
+  dil,
+}: {
+  kayitlar: SkillDto[];
+  toplam: number;
+  /** Seçili liste dili — "Yeni" bağlantısı bu dilde kayıt açar (ADR-046). */
+  dil: Dil;
+}) {
   const router = useRouter();
   const [bildirim, setBildirim] = useState<string | null>(null);
 
@@ -118,7 +129,10 @@ export function YetenekEkrani({ kayitlar, toplam }: { kayitlar: SkillDto[]; topl
           <span className="tabular">{toplam}</span> yetenek · sitedeki sırayla
         </p>
 
-        <Link href="/panel/icerik/yetenekler/yeni" className={buttonClasses({ size: 'sm' })}>
+        <Link
+          href={icerikYolu('/panel/icerik/yetenekler/yeni', { dil })}
+          className={buttonClasses({ size: 'sm' })}
+        >
           <Plus className="size-4" aria-hidden="true" />
           Yeni yetenek
         </Link>
@@ -135,7 +149,10 @@ export function YetenekEkrani({ kayitlar, toplam }: { kayitlar: SkillDto[]; topl
             title="Henüz yetenek yok"
             description="İlk yeteneği eklediğinde ana sayfadaki yetenekler bölümünde ve /cv'de görünür."
             action={
-              <Link href="/panel/icerik/yetenekler/yeni" className={buttonClasses({ size: 'sm' })}>
+              <Link
+                href={icerikYolu('/panel/icerik/yetenekler/yeni', { dil })}
+                className={buttonClasses({ size: 'sm' })}
+              >
                 <Plus className="size-4" aria-hidden="true" />
                 İlk yeteneği ekle
               </Link>

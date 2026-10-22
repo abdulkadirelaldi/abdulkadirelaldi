@@ -4,11 +4,14 @@ import { useRouter } from 'next/navigation';
 import type * as z from 'zod';
 
 import { Alan, BOS_ISE_YOK, SAYI_YA_DA_YOK, bosaltilanlariNullYap } from '@/components/panel/alan';
+import { DilRozeti } from '@/components/panel/dil-sekmeleri';
+import { icerikYolu, panelDili } from '@/components/panel/icerik-gorunumleri';
 import { FormKabugu, usePanelForm } from '@/components/panel/panel-form';
 import { KATEGORI_BASLIK } from '@/components/public/yetenek-kategori';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { VARSAYILAN_DIL, type Dil } from '@/i18n/diller';
 import { createSkillSchema, type CreateSkillInput } from '@/lib/schemas/skill';
 import { createSkillAction, updateSkillAction } from '@/server/actions/skill';
 import type { SkillDto } from '@/server/services/content-dto';
@@ -44,8 +47,12 @@ const BOS_FORM: YetenekFormGirdi = {
   order: 0,
 };
 
-function baslangicDegerleri(kayit: SkillDto | undefined): YetenekFormGirdi {
-  if (!kayit) return BOS_FORM;
+function baslangicDegerleri(
+  kayit: SkillDto | undefined,
+  dil: Dil = VARSAYILAN_DIL,
+): YetenekFormGirdi {
+  /* Yeni kayıt listenin SEÇİLİ dilinde açılır (`?dil=`, ADR-046); düzenlemede kaydın kendi dili. */
+  if (!kayit) return { ...BOS_FORM, locale: dil };
 
   return {
     locale: kayit.locale,
@@ -57,9 +64,20 @@ function baslangicDegerleri(kayit: SkillDto | undefined): YetenekFormGirdi {
   };
 }
 
-export function YetenekFormu({ kayit }: { kayit?: SkillDto }) {
+export function YetenekFormu({
+  kayit,
+  dil = VARSAYILAN_DIL,
+}: {
+  kayit?: SkillDto;
+  /** Yeni kayıtta dil — sayfa `?dil=`den okuyor. Düzenlemede yok sayılır. */
+  dil?: Dil;
+}) {
   const router = useRouter();
   const duzenleme = kayit !== undefined;
+  /* Liste aynı dilde açılsın — İngilizce kaydı kaydedip Türkçe listeye düşmek kaybolmuş hissi verir. */
+  const listeYolu = icerikYolu('/panel/icerik/yetenekler', {
+    dil: kayit ? panelDili(kayit.locale) : dil,
+  });
 
   const kaydet = async (degerler: CreateSkillInput) => {
     const sonuc = kayit
@@ -71,7 +89,7 @@ export function YetenekFormu({ kayit }: { kayit?: SkillDto }) {
 
     if (sonuc.ok) {
       router.refresh();
-      if (!kayit) router.push('/panel/icerik/yetenekler');
+      if (!kayit) router.push(listeYolu);
     }
 
     return sonuc;
@@ -79,7 +97,7 @@ export function YetenekFormu({ kayit }: { kayit?: SkillDto }) {
 
   const { form, durum, formHatasi, gonder } = usePanelForm<YetenekFormGirdi, CreateSkillInput>({
     sema: createSkillSchema,
-    varsayilanDegerler: baslangicDegerleri(kayit),
+    varsayilanDegerler: baslangicDegerleri(kayit, dil),
     kaydet,
     temizle: false,
     /* Gizli input — mesajı yutmasın diye bildiriliyor (T-041f/T-043f dersi). */
@@ -94,7 +112,11 @@ export function YetenekFormu({ kayit }: { kayit?: SkillDto }) {
   return (
     <Card>
       <CardContent className="flex flex-col gap-4">
-        <CardTitle seviye="h2">{duzenleme ? 'Yeteneği düzenle' : 'Yeni yetenek'}</CardTitle>
+        <div className="flex flex-wrap items-center gap-2">
+          <CardTitle seviye="h2">{duzenleme ? 'Yeteneği düzenle' : 'Yeni yetenek'}</CardTitle>
+          {/* Dil SALT OKUNUR: var olan satırın dilini değiştirmek desteklenen bir işlem değil. */}
+          <DilRozeti dil={kayit?.locale ?? dil} />
+        </div>
 
         <FormKabugu
           gonder={gonder}
@@ -181,7 +203,7 @@ export function YetenekFormu({ kayit }: { kayit?: SkillDto }) {
           variant="ghost"
           size="sm"
           className="self-start"
-          onClick={() => router.push('/panel/icerik/yetenekler')}
+          onClick={() => router.push(listeYolu)}
         >
           Listeye dön
         </Button>

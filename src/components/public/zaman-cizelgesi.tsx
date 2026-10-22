@@ -1,5 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { aralik } from '@/components/public/gun-bicim';
+import { VARSAYILAN_DIL, type Dil } from '@/i18n/diller';
 import type { ExperienceDto } from '@/server/services/content-dto';
 
 /**
@@ -14,7 +15,16 @@ import type { ExperienceDto } from '@/server/services/content-dto';
  *
  * `<ol>` KULLANILIYOR: kronolojik sıra bilginin parçası, `<ul>` bunu söylemez.
  */
-export function ZamanCizelgesi({ kayitlar }: { kayitlar: ExperienceDto[] }) {
+export function ZamanCizelgesi({
+  kayitlar,
+  dil = VARSAYILAN_DIL,
+  devamEdiyor = 'Devam ediyor',
+}: {
+  kayitlar: ExperienceDto[];
+  dil?: Dil;
+  /** "Devam ediyor" rozeti — dile göre (ADR-046). */
+  devamEdiyor?: string;
+}) {
   return (
     <ol className="border-line border-t">
       {kayitlar.map((kayit) => (
@@ -25,9 +35,9 @@ export function ZamanCizelgesi({ kayitlar }: { kayitlar: ExperienceDto[] }) {
           {/* ADR-045 — hizmet satırlarıyla aynı dil: tarih | rol + kurum | açıklama. */}
           <div className="flex flex-wrap items-center gap-2">
             <p className="tabular text-muted text-xs tracking-wider uppercase">
-              {aralik(kayit.startDate, kayit.endDate, kayit.current)}
+              {aralik(kayit.startDate, kayit.endDate, kayit.current, dil)}
             </p>
-            {kayit.current && <Badge variant="success">Devam ediyor</Badge>}
+            {kayit.current && <Badge variant="success">{devamEdiyor}</Badge>}
           </div>
           <div className="flex flex-col gap-1">
             <h3 className="font-display text-primary text-base font-bold tracking-[0.08em] uppercase">

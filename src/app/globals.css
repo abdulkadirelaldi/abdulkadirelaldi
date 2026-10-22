@@ -372,6 +372,11 @@
   line-height: 0.88;
   letter-spacing: -0.035em;
   text-wrap: balance;
+  /* ADR-046: Almancanın tek sözcüklük uzun başlıkları ("Berufserfahrung")
+     375 px'te satıra sığmıyordu ve sayfa yatay kayıyordu (ÖLÇÜLDÜ). Önce dilin
+     heceleme kuralıyla böl (`lang` kökte doğru), olmazsa sözcüğü kır. */
+  hyphens: auto;
+  overflow-wrap: break-word;
 }
 
 /* İçi boş yazı. Okunabilirliği DOLU kopyası taşır (kontur-baslik.tsx); bu

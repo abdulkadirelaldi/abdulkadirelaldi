@@ -3,6 +3,9 @@
 import dynamic from 'next/dynamic';
 import { useEffect, useRef, useState } from 'react';
 
+import type { FormMetni } from '@/components/public/iletisim-formu';
+import type { Dil } from '@/i18n/diller';
+
 /**
  * Ana sayfadaki iletişim formu — EKRANA YAKLAŞINCA yüklenir.
  *
@@ -16,20 +19,32 @@ import { useEffect, useRef, useState } from 'react';
  */
 const IletisimFormu = dynamic(
   () => import('@/components/public/iletisim-formu').then((m) => m.IletisimFormu),
-  { ssr: false, loading: () => <FormIskeleti /> },
+  // Dinamik içe aktarma sürerken (kısa an) sözlük henüz elde değil; iskelet
+  // görsel olarak aynı, ekran okuyucu metni burada dile bağlı değil.
+  { ssr: false, loading: () => <FormIskeleti etiket="…" /> },
 );
 
-function FormIskeleti() {
+function FormIskeleti({ etiket }: { etiket: string }) {
   // `role="status"`: rolsüz bir div'e `aria-label` verilemez (axe
   // aria-prohibited-attr); durum bölgesi ekran okuyucuya metni okutur.
   return (
     <div role="status" aria-busy="true" className="min-h-[34rem]">
-      <span className="sr-only">Form yükleniyor</span>
+      <span className="sr-only">{etiket}</span>
     </div>
   );
 }
 
-export function TembelIletisimFormu({ eposta }: { eposta: string | null }) {
+export function TembelIletisimFormu({
+  eposta,
+  metin,
+  dil,
+  kaynakSayfa,
+}: {
+  eposta: string | null;
+  metin: FormMetni;
+  dil: Dil;
+  kaynakSayfa: string;
+}) {
   const kap = useRef<HTMLDivElement>(null);
   const [yukle, setYukle] = useState(false);
 
@@ -49,5 +64,13 @@ export function TembelIletisimFormu({ eposta }: { eposta: string | null }) {
     return () => gozlemci.disconnect();
   }, []);
 
-  return <div ref={kap}>{yukle ? <IletisimFormu eposta={eposta} /> : <FormIskeleti />}</div>;
+  return (
+    <div ref={kap}>
+      {yukle ? (
+        <IletisimFormu eposta={eposta} metin={metin} dil={dil} kaynakSayfa={kaynakSayfa} />
+      ) : (
+        <FormIskeleti etiket={metin.yukleniyor} />
+      )}
+    </div>
+  );
 }

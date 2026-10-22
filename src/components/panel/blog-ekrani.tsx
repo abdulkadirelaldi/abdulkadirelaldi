@@ -6,12 +6,13 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 import { ArsivleDugmesi } from '@/components/panel/arsivle-dugmesi';
-import { DURUM_ETIKET, DURUM_VARYANT } from '@/components/panel/icerik-gorunumleri';
+import { DURUM_ETIKET, DURUM_VARYANT, icerikYolu } from '@/components/panel/icerik-gorunumleri';
 import { VeriTablosu, type Sutun } from '@/components/panel/veri-tablosu';
 import { Badge } from '@/components/ui/badge';
 import { buttonClasses } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FormAlert } from '@/components/ui/form-error';
+import type { Dil } from '@/i18n/diller';
 import { archivePostAction } from '@/server/actions/post';
 import type { PostPanelListItemDto } from '@/server/services/content-dto';
 import { ContentStatus } from '@/types';
@@ -35,9 +36,12 @@ import { ContentStatus } from '@/types';
 export function BlogEkrani({
   yazilar,
   toplam,
+  dil,
 }: {
   yazilar: PostPanelListItemDto[];
   toplam: number;
+  /** Seçili liste dili — "Yeni" bağlantısı bu dilde kayıt açar (ADR-046). */
+  dil: Dil;
 }) {
   const router = useRouter();
   const [bildirim, setBildirim] = useState<string | null>(null);
@@ -144,7 +148,10 @@ export function BlogEkrani({
           <span className="tabular">{toplam}</span> yazı · en son güncellenen üstte
         </p>
 
-        <Link href="/panel/icerik/blog/yeni" className={buttonClasses({ size: 'sm' })}>
+        <Link
+          href={icerikYolu('/panel/icerik/blog/yeni', { dil })}
+          className={buttonClasses({ size: 'sm' })}
+        >
           <Plus className="size-4" aria-hidden="true" />
           Yeni yazı
         </Link>
@@ -161,7 +168,10 @@ export function BlogEkrani({
             title="Bu süzgeçte yazı yok"
             description="Durum sekmesini değiştirebilir ya da yeni bir yazı yazabilirsin."
             action={
-              <Link href="/panel/icerik/blog/yeni" className={buttonClasses({ size: 'sm' })}>
+              <Link
+                href={icerikYolu('/panel/icerik/blog/yeni', { dil })}
+                className={buttonClasses({ size: 'sm' })}
+              >
                 <Plus className="size-4" aria-hidden="true" />
                 İlk yazıyı ekle
               </Link>

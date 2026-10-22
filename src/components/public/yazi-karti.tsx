@@ -3,6 +3,9 @@ import Link from 'next/link';
 
 import { tamGun } from '@/components/public/gun-bicim';
 import { Badge } from '@/components/ui/badge';
+import type { Dil } from '@/i18n/diller';
+import { yol } from '@/i18n/rotalar';
+import { sozluk } from '@/i18n/sozluk';
 import type { PostListItemDto } from '@/server/services/content-dto';
 
 /**
@@ -18,23 +21,26 @@ import type { PostListItemDto } from '@/server/services/content-dto';
  * KONUMUN işlevi. Listede kartların üstünde ara başlık yok, doğru seviye `h2`.
  */
 export function YaziKarti({
+  dil,
   yazi,
   baslikEtiketi: Baslik = 'h2',
 }: {
+  dil: Dil;
   yazi: PostListItemDto;
   baslikEtiketi?: 'h2' | 'h3';
 }) {
+  const s = sozluk(dil);
   return (
     <article className="border-line group relative grid gap-x-8 gap-y-3 border-b py-8 md:grid-cols-[11rem_1fr_auto] md:items-start">
       {/* ADR-045 — satır dili: solda tarih/süre (mono), ortada başlık + özet, sağda ok. */}
       <div className="tabular text-muted flex gap-4 text-xs md:flex-col md:gap-1">
         {yazi.publishedAt && (
-          <time dateTime={yazi.publishedAt.slice(0, 10)}>{tamGun(yazi.publishedAt)}</time>
+          <time dateTime={yazi.publishedAt.slice(0, 10)}>{tamGun(yazi.publishedAt, dil)}</time>
         )}
         <span className="flex items-center gap-1.5">
           <Clock className="size-3.5" aria-hidden="true" />
           {/* Sayı `tabular`: yan yana satırlarda rakam genişliği oynamasın (§3.2). */}
-          <span>{yazi.readingMinutes}</span> dk okuma
+          <span>{s.liste.dkOkuma(yazi.readingMinutes)}</span>
         </span>
       </div>
 
@@ -43,7 +49,7 @@ export function YaziKarti({
           {/* Bağlantının `::after`'ı satırın tamamını tıklanabilir yapıyor; erişilebilir
               ad yalnızca başlık (kartı saran bir <a> tüm metni ada katardı). */}
           <Link
-            href={`/blog/${yazi.slug}`}
+            href={yol(dil, 'blog', yazi.slug)}
             className="focus-ring rounded-btn group-hover:text-accent-soft ease-brand transition-colors duration-300 after:absolute after:inset-0"
           >
             {yazi.title}

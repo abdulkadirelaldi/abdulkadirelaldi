@@ -1,5 +1,8 @@
 import Link from 'next/link';
 
+import { VARSAYILAN_DIL, type Dil } from '@/i18n/diller';
+import { yolSorgulu } from '@/i18n/rotalar';
+
 import { cn } from '@/lib/utils/cn';
 
 /**
@@ -32,15 +35,17 @@ export type FiltreProps = {
   teknolojiler: string[];
   seciliEtiket?: string;
   seciliTeknoloji?: string;
+  dil: Dil;
+  metin: { tumu: string; etiket: string; teknoloji: string };
 };
 
 /** Seçili değerlere göre adres üretir; `undefined` verilen parametre URL'e yazılmaz. */
-export function filtreAdresi(secim: { etiket?: string; teknoloji?: string }): string {
-  const parametreler = new URLSearchParams();
-  if (secim.etiket) parametreler.set('etiket', secim.etiket);
-  if (secim.teknoloji) parametreler.set('teknoloji', secim.teknoloji);
-  const sorgu = parametreler.toString();
-  return sorgu ? `/projeler?${sorgu}` : '/projeler';
+export function filtreAdresi(
+  secim: { etiket?: string; teknoloji?: string },
+  dil: Dil = VARSAYILAN_DIL,
+): string {
+  // ADR-046: adres dile göre (`/en/projects?etiket=…`); sorgu anahtarları tek.
+  return yolSorgulu(dil, 'projeler', { etiket: secim.etiket, teknoloji: secim.teknoloji });
 }
 
 /**
@@ -87,6 +92,8 @@ export function ProjeFiltre({
   teknolojiler,
   seciliEtiket,
   seciliTeknoloji,
+  dil,
+  metin,
 }: FiltreProps) {
   if (etiketler.length === 0 && teknolojiler.length === 0) return null;
 
@@ -95,17 +102,18 @@ export function ProjeFiltre({
       {etiketler.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="tabular text-muted w-24 shrink-0 text-xs">
-            <span aria-hidden="true">--</span>etiket
+            <span aria-hidden="true">--</span>
+            {metin.etiket}
           </span>
 
-          <Cip adres={filtreAdresi({ teknoloji: seciliTeknoloji })} secili={!seciliEtiket}>
-            Tümü
+          <Cip adres={filtreAdresi({ teknoloji: seciliTeknoloji }, dil)} secili={!seciliEtiket}>
+            {metin.tumu}
           </Cip>
 
           {etiketler.map((etiket) => (
             <Cip
               key={etiket}
-              adres={filtreAdresi({ etiket, teknoloji: seciliTeknoloji })}
+              adres={filtreAdresi({ etiket, teknoloji: seciliTeknoloji }, dil)}
               secili={seciliEtiket === etiket}
             >
               {etiket}
@@ -117,17 +125,18 @@ export function ProjeFiltre({
       {teknolojiler.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
           <span className="tabular text-muted w-24 shrink-0 text-xs">
-            <span aria-hidden="true">--</span>teknoloji
+            <span aria-hidden="true">--</span>
+            {metin.teknoloji}
           </span>
 
-          <Cip adres={filtreAdresi({ etiket: seciliEtiket })} secili={!seciliTeknoloji}>
-            Tümü
+          <Cip adres={filtreAdresi({ etiket: seciliEtiket }, dil)} secili={!seciliTeknoloji}>
+            {metin.tumu}
           </Cip>
 
           {teknolojiler.map((teknoloji) => (
             <Cip
               key={teknoloji}
-              adres={filtreAdresi({ etiket: seciliEtiket, teknoloji })}
+              adres={filtreAdresi({ etiket: seciliEtiket, teknoloji }, dil)}
               secili={seciliTeknoloji === teknoloji}
             >
               {teknoloji}

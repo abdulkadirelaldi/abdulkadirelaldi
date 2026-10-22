@@ -1,18 +1,21 @@
 import Link from 'next/link';
 
 import { SekilSeridi } from '@/components/public/tasarim/sekiller';
+import type { Dil } from '@/i18n/diller';
+import { yol, type Sayfa } from '@/i18n/rotalar';
+import { sozluk } from '@/i18n/sozluk';
 import { SITE_NAME } from '@/lib/constants';
 import type { ProfileDto } from '@/server/services/content-dto';
 
-/** `hazir`: sayfa AÇILDI mı. Açılmamış rotayı ön çekmek 404 üretir (T-002b). */
-const FOOTER_LINKS = [
-  { href: '/hakkimda', label: 'Hakkımda', hazir: true },
-  { href: '/projeler', label: 'Projeler', hazir: true },
-  { href: '/blog', label: 'Blog', hazir: true },
-  { href: '/hizmetler', label: 'Hizmetler', hazir: true },
-  { href: '/iletisim', label: 'İletişim', hazir: true },
-  { href: '/cv', label: 'CV', hazir: true },
-] as const;
+/** Alt bilgideki sayfalar; adresler dile göre (ADR-046). */
+const ALT_SAYFALAR: readonly Sayfa[] = [
+  'hakkimda',
+  'projeler',
+  'blog',
+  'hizmetler',
+  'iletisim',
+  'cv',
+];
 
 const SOSYAL_ETIKET = {
   github: 'GitHub',
@@ -35,7 +38,8 @@ const BAGLANTI =
  * Kıyı Medya adresi ortam değişkeninden (§12). Telif yılı sunucuda üretilir —
  * istemcide üretilseydi hidrasyon uyuşmazlığı riski olurdu.
  */
-export function Footer({ profil }: { profil: ProfileDto | null }) {
+export function Footer({ profil, dil }: { profil: ProfileDto | null; dil: Dil }) {
+  const s = sozluk(dil);
   const year = new Date().getFullYear();
   const kiyiMedyaUrl = process.env.NEXT_PUBLIC_KIYI_MEDYA_URL ?? 'https://kiyimedya.com';
   const sosyal = profil?.socials ?? {};
@@ -58,17 +62,13 @@ export function Footer({ profil }: { profil: ProfileDto | null }) {
             {soyad.join(' ')}
           </p>
 
-          <nav aria-label="Alt bilgi menüsü" className="flex flex-col gap-4">
-            <p className={BASLIK}>Sayfalar</p>
+          <nav aria-label={s.altBilgi.menu} className="flex flex-col gap-4">
+            <p className={BASLIK}>{s.altBilgi.sayfalar}</p>
             <ul className="flex flex-col gap-2">
-              {FOOTER_LINKS.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    prefetch={link.hazir ? undefined : false}
-                    className={BAGLANTI}
-                  >
-                    {link.label}
+              {ALT_SAYFALAR.map((sayfa) => (
+                <li key={sayfa}>
+                  <Link href={yol(dil, sayfa)} className={BAGLANTI}>
+                    {s.sayfaAdi[sayfa]}
                   </Link>
                 </li>
               ))}
@@ -77,7 +77,7 @@ export function Footer({ profil }: { profil: ProfileDto | null }) {
 
           {sosyalListe.length > 0 && (
             <div className="flex flex-col gap-4">
-              <p className={BASLIK}>Sosyal</p>
+              <p className={BASLIK}>{s.altBilgi.sosyal}</p>
               <ul className="flex flex-col gap-2">
                 {sosyalListe.map((g) => (
                   <li key={g.etiket}>
@@ -96,7 +96,7 @@ export function Footer({ profil }: { profil: ProfileDto | null }) {
           )}
 
           <div className="flex flex-col gap-4">
-            <p className={BASLIK}>İletişim</p>
+            <p className={BASLIK}>{s.altBilgi.iletisim}</p>
             <ul className="flex flex-col gap-2">
               {sosyal.email && (
                 <li>
@@ -124,7 +124,7 @@ export function Footer({ profil }: { profil: ProfileDto | null }) {
 
         <div className="border-line text-muted flex flex-col gap-2 border-t pt-6 text-xs sm:flex-row sm:items-center sm:justify-between">
           <p>
-            © <span className="tabular">{year}</span> {SITE_NAME} · Ticari işler{' '}
+            © <span className="tabular">{year}</span> {SITE_NAME} · {s.altBilgi.kiyiOnce}{' '}
             <a
               href={kiyiMedyaUrl}
               target="_blank"
@@ -132,10 +132,10 @@ export function Footer({ profil }: { profil: ProfileDto | null }) {
               className="focus-ring rounded-btn text-accent-soft"
             >
               Kıyı Medya
-            </a>{' '}
-            üzerinden yürür.
+            </a>
+            {s.altBilgi.kiyiSonra}
           </p>
-          <p className="tabular">Next.js · TypeScript · PostgreSQL ile elle yazıldı.</p>
+          <p className="tabular">{s.altBilgi.yigin}</p>
         </div>
       </div>
     </footer>

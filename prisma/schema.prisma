@@ -325,7 +325,9 @@ model Attachment {
 /// `@@unique([locale])` çoklu satırı VERİTABANI DÜZEYİNDE imkânsız kılar —
 /// i18n açıldığında dil başına tek profil olur.
 model Profile {
-  id     String @id @default("singleton")
+  /// Türkçe kayıt tarihsel olarak "singleton" kimliğini taşır; diğer diller
+  /// (ADR-046) cuid alır. Tekillik `locale` üzerinden: dil başına bir profil.
+  id     String @id @default(cuid())
   locale String @default("tr")
 
   headline     String
@@ -401,7 +403,12 @@ model Project {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  /// ADR-046 — aynı içeriğin dillerdeki karşılıklarını bağlar (dil değiştirici,
+  /// hreflang). Slug dile göre değişebilir; bu anahtar değişmez.
+  translationKey String?
+
   @@unique([slug, locale])
+  @@unique([translationKey, locale])
   @@index([status, publishedAt])
   @@index([featured, order])
   @@map("project")
@@ -432,7 +439,12 @@ model Post {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  /// ADR-046 — aynı içeriğin dillerdeki karşılıklarını bağlar (dil değiştirici,
+  /// hreflang). Slug dile göre değişebilir; bu anahtar değişmez.
+  translationKey String?
+
   @@unique([slug, locale])
+  @@unique([translationKey, locale])
   @@index([status, publishedAt])
   @@map("post")
 }

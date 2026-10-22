@@ -4,14 +4,22 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import type * as z from 'zod';
 
-import { ANI_ISOYA, Alan, BOS_ISE_YOK, isodanYerelAna } from '@/components/panel/alan';
-import { DURUM_ETIKET } from '@/components/panel/icerik-gorunumleri';
+import {
+  ANI_ISOYA,
+  Alan,
+  BOS_ISE_YOK,
+  bosaltilanlariNullYap,
+  isodanYerelAna,
+} from '@/components/panel/alan';
+import { CEVIRI_ANAHTARI_YARDIM, DilRozeti } from '@/components/panel/dil-sekmeleri';
+import { DURUM_ETIKET, icerikYolu, panelDili } from '@/components/panel/icerik-gorunumleri';
 import { MdxEditor } from '@/components/panel/mdx-editor';
 import { KapakSecici } from '@/components/panel/kapak-secici';
 import { FormKabugu, usePanelForm } from '@/components/panel/panel-form';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { Input, Textarea } from '@/components/ui/input';
+import { VARSAYILAN_DIL, type Dil } from '@/i18n/diller';
 import { createPostSchema, type CreatePostInput } from '@/lib/schemas/post';
 import { createPostAction, updatePostAction } from '@/server/actions/post';
 import type { PostPanelDto } from '@/server/services/content-dto';
@@ -55,8 +63,12 @@ const listeyeCevir = (metin: string): string[] =>
     .map((p) => p.trim())
     .filter(Boolean);
 
-function baslangicDegerleri(yazi: PostPanelDto | undefined): YaziFormGirdi {
-  if (!yazi) return BOS_FORM;
+function baslangicDegerleri(
+  yazi: PostPanelDto | undefined,
+  dil: Dil = VARSAYILAN_DIL,
+): YaziFormGirdi {
+  /* Yeni kayıt listenin SEÇİLİ dilinde açılır (`?dil=`, ADR-046); düzenlemede kaydın kendi dili. */
+  if (!yazi) return { ...BOS_FORM, locale: dil };
 
   return {
     locale: yazi.locale,
@@ -68,12 +80,22 @@ function baslangicDegerleri(yazi: PostPanelDto | undefined): YaziFormGirdi {
     status: yazi.status,
     publishedAt: isodanYerelAna(yazi.publishedAt),
     coverAttachmentId: yazi.coverAttachmentId ?? undefined,
+    translationKey: yazi.translationKey ?? undefined,
   };
 }
 
-export function YaziFormu({ yazi }: { yazi?: PostPanelDto }) {
+export function YaziFormu({
+  yazi,
+  dil = VARSAYILAN_DIL,
+}: {
+  yazi?: PostPanelDto;
+  /** Yeni kayıtta dil — sayfa `?dil=`den okuyor. Düzenlemede yok sayılır. */
+  dil?: Dil;
+}) {
   const router = useRouter();
   const duzenleme = yazi !== undefined;
+  /* Liste aynı dilde açılsın — İngilizce kaydı kaydedip Türkçe listeye düşmek kaybolmuş hissi verir. */
+  const listeYolu = icerikYolu('/panel/icerik/blog', { dil: yazi ? panelDili(yazi.locale) : dil });
 
   const [etiketMetni, setEtiketMetni] = useState(yazi?.tags.join(', ') ?? '');
 
@@ -81,12 +103,16 @@ export function YaziFormu({ yazi }: { yazi?: PostPanelDto }) {
     const govde = { ...degerler, tags: listeyeCevir(etiketMetni) };
 
     const sonuc = yazi
-      ? await updatePostAction({ ...govde, id: yazi.id })
+      ? await updatePostAction({
+          /* Boşaltılan çeviri anahtarı `null` — `undefined` "dokunma" demek (T-031). */
+          ...bosaltilanlariNullYap(govde, yazi, ['translationKey']),
+          id: yazi.id,
+        })
       : await createPostAction(govde);
 
     if (sonuc.ok) {
       router.refresh();
-      if (!yazi) router.push('/panel/icerik/blog');
+      if (!yazi) router.push(listeYolu);
     }
 
     return sonuc;
@@ -94,7 +120,7 @@ export function YaziFormu({ yazi }: { yazi?: PostPanelDto }) {
 
   const { form, durum, formHatasi, gonder } = usePanelForm<YaziFormGirdi, CreatePostInput>({
     sema: createPostSchema,
-    varsayilanDegerler: baslangicDegerleri(yazi),
+    varsayilanDegerler: baslangicDegerleri(yazi, dil),
     kaydet,
     temizle: false,
     /* Gizli inputlar — mesajları form düzeyine yükseltilsin (T-041f/T-043f). */
@@ -114,7 +140,11 @@ export function YaziFormu({ yazi }: { yazi?: PostPanelDto }) {
     <Card>
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-wrap items-baseline justify-between gap-3">
-          <CardTitle seviye="h2">{duzenleme ? 'Yazıyı düzenle' : 'Yeni yazı'}</CardTitle>
+          <div className="flex flex-wrap items-center gap-2">
+            <CardTitle seviye="h2">{duzenleme ? 'Yazıyı düzenle' : 'Yeni yazı'}</CardTitle>
+            {/* Dil SALT OKUNUR: var olan satırın dilini değiştirmek desteklenen bir işlem değil. */}
+            <DilRozeti dil={yazi?.locale ?? dil} />
+          </div>
 
           {duzenleme && (
             /*
@@ -200,6 +230,27 @@ export function YaziFormu({ yazi }: { yazi?: PostPanelDto }) {
             </Alan>
           </div>
 
+          {/*
+            ÇEVİRİ ANAHTARI (ADR-046) — aynı içeriğin üç dildeki satırlarını bağlayan
+            TEK şey. Slug dile göre değişebiliyor ("hakkinda" / "about"), bu yüzden
+            bağ slug'dan kurulamıyor. Boşaltmak bağı KOPARIR (`bosaltilanlariNullYap`).
+          */}
+          <Alan
+            id="translationKey"
+            etiket="Çeviri anahtarı"
+            hata={errors.translationKey?.message}
+            yardim={CEVIRI_ANAHTARI_YARDIM}
+          >
+            {(b) => (
+              <Input
+                id="translationKey"
+                className="tabular"
+                {...b}
+                {...register('translationKey', BOS_ISE_YOK)}
+              />
+            )}
+          </Alan>
+
           <Alan id="excerpt" etiket="Özet" hata={errors.excerpt?.message}>
             {(b) => <Textarea id="excerpt" rows={2} {...b} {...register('excerpt')} />}
           </Alan>
@@ -235,7 +286,7 @@ export function YaziFormu({ yazi }: { yazi?: PostPanelDto }) {
           variant="ghost"
           size="sm"
           className="self-start"
-          onClick={() => router.push('/panel/icerik/blog')}
+          onClick={() => router.push(listeYolu)}
         >
           Listeye dön
         </Button>

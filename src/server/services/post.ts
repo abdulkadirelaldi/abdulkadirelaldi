@@ -33,6 +33,7 @@ interface PostListRow {
   id: string;
   locale: string;
   slug: string;
+  translationKey: string | null;
   title: string;
   excerpt: string;
   cover: AttachmentRow | null;
@@ -46,6 +47,7 @@ const LIST_SELECT = {
   id: true,
   locale: true,
   slug: true,
+  translationKey: true,
   title: true,
   excerpt: true,
   tags: true,
@@ -61,6 +63,7 @@ function toListDto(row: PostListRow): PostListItemDto {
     id: row.id,
     locale: row.locale,
     slug: row.slug,
+    translationKey: row.translationKey,
     title: row.title,
     excerpt: row.excerpt,
     cover: toAttachmentRef(row.cover),
@@ -167,10 +170,14 @@ export async function fetchPostSitemapEntries(
 ): Promise<SitemapEntryDto[]> {
   const rows = await client.post.findMany({
     where: { locale: params.locale ?? DEFAULT_LOCALE, ...publishedWhere(params.now ?? new Date()) },
-    select: { slug: true, updatedAt: true },
+    select: { slug: true, updatedAt: true, translationKey: true },
     orderBy: [{ updatedAt: 'desc' }],
   });
-  return rows.map((row) => ({ slug: row.slug, updatedAt: row.updatedAt.toISOString() }));
+  return rows.map((row) => ({
+    slug: row.slug,
+    updatedAt: row.updatedAt.toISOString(),
+    translationKey: row.translationKey,
+  }));
 }
 
 /* ===========================================================================
@@ -241,6 +248,7 @@ export async function createPost(
     data: {
       locale: input.locale,
       slug: input.slug,
+      translationKey: input.translationKey ?? null,
       title: input.title,
       excerpt: input.excerpt,
       content: input.content,
@@ -275,6 +283,7 @@ export async function updatePost(
     data: {
       ...(fields.locale !== undefined ? { locale: fields.locale } : {}),
       ...(fields.slug !== undefined ? { slug: fields.slug } : {}),
+      ...(fields.translationKey !== undefined ? { translationKey: fields.translationKey } : {}),
       ...(fields.title !== undefined ? { title: fields.title } : {}),
       ...(fields.excerpt !== undefined ? { excerpt: fields.excerpt } : {}),
       ...(fields.coverAttachmentId !== undefined
@@ -325,6 +334,7 @@ const PANEL_LIST_SELECT = {
 
 const PANEL_DETAIL_SELECT = {
   ...PANEL_LIST_SELECT,
+  translationKey: true,
   excerpt: true,
   content: true,
   coverAttachmentId: true,
@@ -344,6 +354,7 @@ interface PostPanelListRow {
 }
 
 interface PostPanelDetailRow extends PostPanelListRow {
+  translationKey: string | null;
   excerpt: string;
   content: string;
   coverAttachmentId: string | null;
@@ -410,6 +421,7 @@ export async function fetchPostForPanel(
 
   return {
     ...toPanelListDto(row),
+    translationKey: row.translationKey,
     excerpt: row.excerpt,
     content: row.content,
     coverAttachmentId: row.coverAttachmentId,

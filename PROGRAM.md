@@ -37,7 +37,8 @@ muhasebe, işler, sağlık, spor, hayat (alışkanlık/hedef/günlük) ve site i
 ### 1.2 Kapsam Dışı (v1'de YAPILMAYACAK)
 
 Çok kullanıcılı sistem, rol yönetimi, e-ticaret/ödeme alma, e-posta pazarlama,
-mobil uygulama, çoklu dil (v1 sadece TR — ama i18n altyapısı hazır bırakılır),
+mobil uygulama, çoklu dil (v1 sadece TR — ama i18n altyapısı hazır bırakılır;
+**2026-10-22 güncellemesi: EN ve DE eklendi, bkz. ADR-046**),
 gerçek zamanlı işbirliği, üçüncü taraf muhasebe entegrasyonu (e-fatura vb.).
 
 ---
