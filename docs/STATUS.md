@@ -1651,7 +1651,23 @@ Uptime Kuma → HSTS `preload` → T-075 K1…K6 ölçümü.
 5. Kararlar: Q6 (`main` için PR kuralı), Q1 (panel alt alan adı mı yol mu — HSTS preload buna bağlı).
 6. ADVISORY-002 hatırlatması **2026-11-22**.
 
-### Açık öneri — İngilizce sürüm (karar bekliyor)
+### ~~Açık öneri — İngilizce sürüm~~ → yapıldı, bkz. aşağıdaki bölüm
 
-Kapsamı büyük: `Profile` tekil kayıt (`id = singleton`) olduğu için şema değişikliği, `/en` rotaları,
-arayüz metinlerinin sözlüğe taşınması, panelde dil seçimi, hreflang. Ayrı bir faz olarak önerildi.
+## Site üç dilde: TR · EN · DE (Orkestra Şefi, 2026-10-22)
+
+PR #40 (ADR-046) main'de. Türkçe öneksiz; `/en/projects`, `/de/projekte` vb. yerelleştirilmiş
+adresler. Arayüz sözlükleri, tüm içeriğin çevirisi (`scripts/icerik/*.{en,de}.ts`), dil seçici
+(`/api/v1/dil`), hreflang + sitemap alternatifleri, panelde dil sekmeleri.
+
+- **Ölçüm:** birim 2415 · CI kapıları (e2e + Lighthouse) yeşil · yerel mobil Lighthouse `/` ve `/de`
+  94/100/100/100 · sitemap'teki 54 sayfa 360 px'te taşmıyor.
+- **Yeni kalıcı kural:** başlık/ızgara metinleri Almancanın uzun tek sözcüklerine göre
+  test edilmeli — `dev-baslik` heceleme yapıyor, ızgara hücreleri `min-w-0` istiyor.
+
+### Kullanıcı eylemi — çok dil
+
+- Üretimde ilk kurulumdan sonra `scripts/icerik-yukle.ts` artık **üç dili** yazar (EN/DE profili
+  yoksa açar) — ek adım yok, yukarıdaki 1. maddeyle aynı komut.
+- Panelde proje kapakları dil başına ayrı kayıtlara bağlı: kapak yüklerken **her dil sekmesinde**
+  projeyi açıp yükleyin (ya da yalnızca Türkçeye yükleyin; çeviriler kapaksız kalır).
+- Çevirileri gözden geçirmek isterseniz panel → İçerik → dil sekmesi; metinler oradan düzenlenir.
