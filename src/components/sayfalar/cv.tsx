@@ -70,6 +70,10 @@ export async function CvSayfasi({ dil }: { dil: Dil }) {
   const egitim = deneyimler.filter((d) => d.type === ExperienceType.EDUCATION);
   const oduller = deneyimler.filter((d) => d.type === ExperienceType.AWARD);
   const sertifikalar = deneyimler.filter((d) => d.type === ExperienceType.CERTIFICATE);
+  // Spor: CV'de yalnızca DERECELER (tek tarihli kayıtlar), kronolojik ve tek satır.
+  const sporDereceleri = deneyimler
+    .filter((d) => d.type === ExperienceType.SPORT && !d.endDate)
+    .sort((a, b) => a.startDate.localeCompare(b.startDate));
 
   /** Özet: biyografinin İLK paragrafı. Tamamı bir sayfaya sığmaz, /hakkimda'da duruyor. */
   const ozet = profil.bio.split(/\n\s*\n/)[0]?.trim();
@@ -92,6 +96,7 @@ export async function CvSayfasi({ dil }: { dil: Dil }) {
     egitim.length === 0 &&
     oduller.length === 0 &&
     sertifikalar.length === 0 &&
+    sporDereceleri.length === 0 &&
     gruplar.length === 0;
 
   // Üst boşluk: sabit (fixed) gezinme çubuğunun altından başlasın diye — ADR-045.
@@ -199,6 +204,22 @@ export async function CvSayfasi({ dil }: { dil: Dil }) {
               <li key={b.id} className="text-body">
                 <span className="text-primary">{b.role}</span> — {b.organization}{' '}
                 <span className="tabular text-muted">({ayYil(b.startDate, dil)})</span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {sporDereceleri.length > 0 && (
+        <section aria-labelledby="cv-spor-baslik" className="flex flex-col gap-2">
+          <h2 id="cv-spor-baslik" className="border-line border-b pb-1 text-base">
+            {c.spor}
+          </h2>
+          <ul className="grid gap-x-6 gap-y-1 text-xs sm:grid-cols-2">
+            {sporDereceleri.map((k) => (
+              <li key={k.id} className="text-body">
+                <span className="tabular text-muted">{k.startDate.slice(0, 4)}</span>{' '}
+                <span className="text-primary">{k.role}</span> — {k.organization}
               </li>
             ))}
           </ul>
