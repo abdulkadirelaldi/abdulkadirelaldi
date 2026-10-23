@@ -1688,3 +1688,26 @@ Site iki uzman (profesör, fullstack) ve beş ziyaretçi gözüyle incelendi; ko
 - Panel → Projeler → **Dönem** alanını tarihi belgede olmayan projeler için doldurun
   (Predictive-Edge, İSÇEV platformu, üç kurumsal site). Boş kalırsa tarih görünmez — yanlış tarih de görünmez.
 - Gerekirse **Ticari iş** kutusunu panelden değiştirin (şu an yalnızca üç kurumsal site işaretli).
+
+## 🚀 SİTE YAYINDA — https://abdulkadirelaldi.com (Orkestra Şefi, 2026-10-22)
+
+Sunucu (187.77.66.202) boş değildi: müşteri siteleri (nginx, 80/443) ve mailcow çalışıyor,
+1 CPU / 3,8 GB RAM. Coolify bu yüzden KURULMADI (80/443 çakışması, bellek). Kurulum
+askarmedikal.com ile aynı düzende: Docker (yalnızca 127.0.0.1:3400) + mevcut nginx +
+certbot. Ayrıntı ve güncelleme: **docs/yayin-nginx.md**, betik `deploy/sunucu/gonder.sh`.
+
+- Üç dil, tüm sayfalar 200 (~0,4 sn); HTTP→HTTPS ve www→çıplak alan adı 301;
+  güvenlik başlıkları (CSP, HSTS, X-Frame-Options) yerinde; sertifika Let's Encrypt, otomatik yenileme.
+- Bellek sınırları: uygulama 512 MB, veritabanı 256 MB (ölçülen: 131 MB / 41 MB).
+- Diğer siteler öncesi ve sonrası kontrol edildi, etkilenmedi.
+- Yerel gece yedeği 03:15 (UTC), 14 gün, geri yüklenebilirliği doğrulandı.
+- Bulgu: imaj yalnızca derleme argümanıyla 500 veriyordu — `NEXT_PUBLIC_SITE_URL` çalışma
+  anında da gerekli; her iki compose dosyasına eklendi.
+
+### Kullanıcı eylemi — yayından sonra
+
+1. ⚠️ **SSH şifreyle girişi kapat** (sunucuda müşteri siteleri ve e-postalar var, şifre sohbete girdi):
+   `echo "PasswordAuthentication no" > /etc/ssh/sshd_config.d/00-yalnizca-anahtar.conf && sshd -t && systemctl reload ssh`
+2. **Panel yöneticisini aç** — docs/yayin-nginx.md §Panel yöneticisi (şifreyi sen girersin).
+3. **`/opt/aelaldi/.env`teki TOTP ve BACKUP anahtarlarını parola yöneticisine kopyala.**
+4. **R2:** yeni API anahtarı + iki bucket → `.env` → `docker compose up -d` (dosya yükleme ve uzak yedek).

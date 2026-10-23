@@ -34,7 +34,13 @@ export function HarfHarf({ metin, baslangic = 0, aralik = 0.035, className }: Ha
             {Array.from(kelime).map((harf, h) => {
               const gecikme = baslangic + sira++ * aralik;
               return (
-                <span key={h} className="inline-block overflow-hidden pb-[0.06em] align-bottom">
+                // Üstte de pay: `overflow-hidden` İ'nin noktasını ve Ü/Ö'nün iki
+                // noktasını kesiyordu (dar satır aralığında büyük harfin üstü).
+                // Negatif kenar boşluğu payı geri alır, satır yüksekliği değişmez.
+                <span
+                  key={h}
+                  className="-mt-[0.18em] inline-block overflow-hidden pt-[0.18em] pb-[0.06em] align-bottom"
+                >
                   <span
                     className="animate-harf-yuksel inline-block"
                     style={{ animationDelay: `${gecikme.toFixed(3)}s` }}
