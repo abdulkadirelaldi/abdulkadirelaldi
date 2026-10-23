@@ -64,20 +64,26 @@ export function Spor({
           >
             {metin.takimlar}
           </h3>
-          <ul className="flex flex-col gap-3">
+          {/* Satır satır, kart değil: on iki takım kart olarak derece listesinin iki katı uzuyordu. */}
+          <ol className="border-line border-t">
             {takimlar.map((k) => (
-              <li key={k.id} className="bg-surface border-line rounded-[1.25rem] border p-5">
-                <p className="tabular text-muted text-xs">
-                  {yil(k.startDate)}–{k.endDate ? yil(k.endDate) : ''}
-                </p>
-                <p className="text-primary mt-1 text-sm font-semibold">{k.organization}</p>
-                <p className="text-body text-sm">
-                  {k.role}
-                  {k.description && <span className="text-muted"> · {k.description}</span>}
-                </p>
+              <li
+                key={k.id}
+                className="border-line grid grid-cols-[5.5rem_1fr] items-baseline gap-x-4 border-b py-3"
+              >
+                {/* Tek sezonluk takım "2012–2012" değil "2012". */}
+                <span className="tabular text-muted text-xs">
+                  {k.endDate && yil(k.endDate) !== yil(k.startDate)
+                    ? `${yil(k.startDate)}–${yil(k.endDate)}`
+                    : yil(k.startDate)}
+                </span>
+                <span className="text-sm leading-snug">
+                  <span className="text-primary">{k.organization}</span>
+                  <span className="text-muted"> · {k.role}</span>
+                </span>
               </li>
             ))}
-          </ul>
+          </ol>
         </section>
       )}
     </div>
