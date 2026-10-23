@@ -9,7 +9,8 @@
  * yazdırma motoru üretiyor, ikinci bir şablon yok. İçerik değişince yeniden
  * çalıştırılır; çıktı `public/cv/` altında, depoya girer, imajla yayına çıkar.
  *
- * Panelden YÜKLENMİŞ bir CV varsa indirme düğmesi önce onu kullanır (cv-indir.tsx).
+ * Öncelik: panelden YÜKLENEN CV > `public/cv/ozel/` altındaki sahibin kendi PDF'i >
+ * bu betiğin çıktısı (bkz. src/components/public/uretilmis-cv.ts).
  */
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
