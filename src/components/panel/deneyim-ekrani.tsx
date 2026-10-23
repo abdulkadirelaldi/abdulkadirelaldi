@@ -51,6 +51,7 @@ const TUR_ETIKET: Record<ExperienceType, string> = {
   // Ödülde alanlar: ünvan = derece, kurum = yarışma ve kategori (schema.prisma notu).
   [ExperienceType.AWARD]: 'Ödül',
   [ExperienceType.CERTIFICATE]: 'Sertifika',
+  [ExperienceType.SPORT]: 'Spor',
 };
 
 export function DeneyimEkrani({

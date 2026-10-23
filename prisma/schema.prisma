@@ -49,6 +49,11 @@ enum ExperienceType {
   /// `organization` = veren kurum, `startDate` = veriliş tarihi. AWARD ile aynı
   /// gerekçe: alan şekli aynı, ayrı tablo gereksiz (2026-10-23, LinkedIn içeriği).
   CERTIFICATE
+  /// Spor — derece ya da takım. Tek tarih (`endDate` yok) = DERECE: `role` =
+  /// derece ("1.lik", "Şampiyon"), `organization` = turnuva. Tarih ARALIĞI =
+  /// TAKIM: `role` = görev ("Kaptan"), `organization` = takım. `description` =
+  /// branş. Ayrı alan yerine aralık: takım üyeliği doğası gereği bir dönemdir.
+  SPORT
 }
 
 /// Yetenek kategorisi — Backend önerisi (ADR-020, T-010 sözleşmesi).

@@ -18,6 +18,12 @@ export type CvIndirProps = {
    * oldu, bu bileşenin dallarının hiçbiri yeniden yazılmadı.
    */
   indirmeUrl?: string | null;
+  /**
+   * Yüklenmiş CV yoksa `/cv` sayfasından ÜRETİLMİŞ PDF (`scripts/cv-pdf.mjs`,
+   * `public/cv/`). R2 olmadan da indirme çalışsın diye; yüklenen dosya her
+   * zaman önceliklidir — sahibinin elle hazırladığı CV, otomatiğinden iyidir.
+   */
+  uretilmisPdf?: string | null;
 };
 
 /**
@@ -35,9 +41,10 @@ export type CvIndirProps = {
  * indirme, indirme olmamasından kötüdür — kullanıcı tıklar, bekler, hiçbir şey
  * olmaz ve sorunun kendisinde olduğunu düşünür.
  */
-export function CvIndir({ dil, cv, indirmeUrl = null }: CvIndirProps) {
+export function CvIndir({ dil, cv, indirmeUrl = null, uretilmisPdf = null }: CvIndirProps) {
   const s = sozluk(dil).cvIndir;
-  const hazir = Boolean(cv && indirmeUrl);
+  const adres = cv && indirmeUrl ? indirmeUrl : uretilmisPdf;
+  const hazir = Boolean(adres);
 
   return (
     <div className="border-line bg-surface/60 rounded-card flex flex-wrap items-center justify-between gap-4 border p-6">
@@ -58,7 +65,7 @@ export function CvIndir({ dil, cv, indirmeUrl = null }: CvIndirProps) {
       <div className="flex flex-wrap gap-3">
         {hazir ? (
           <a
-            href={indirmeUrl ?? undefined}
+            href={adres ?? undefined}
             download
             className={buttonClasses({ className: 'shrink-0' })}
           >

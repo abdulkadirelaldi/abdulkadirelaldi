@@ -50,6 +50,7 @@ const TUR_ETIKET: Record<ExperienceType, string> = {
   // Ödülde alanlar: ünvan = derece, kurum = yarışma ve kategori (schema.prisma notu).
   [ExperienceType.AWARD]: 'Ödül',
   [ExperienceType.CERTIFICATE]: 'Sertifika',
+  [ExperienceType.SPORT]: 'Spor',
 };
 
 function baslangicDegerleri(
@@ -163,6 +164,7 @@ export function DeneyimFormu({
                   <option value={ExperienceType.CERTIFICATE}>
                     {TUR_ETIKET[ExperienceType.CERTIFICATE]}
                   </option>
+                  <option value={ExperienceType.SPORT}>{TUR_ETIKET[ExperienceType.SPORT]}</option>
                 </select>
               )}
             </Alan>

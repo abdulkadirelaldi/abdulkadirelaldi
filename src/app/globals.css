@@ -579,9 +579,14 @@
      arka planları zaten atıyor ama METİN rengini atmıyor, açık gri metin
      kâğıtta okunmaz hâle geliyordu. Vurgu rengi KORUNUYOR: başlıkları
      ayırıyor ve tek renkli lazerde de gri tona düşerek okunur kalıyor. */
+  /* `.site-koyu` ve `.panel-acik` token'ları KENDİ kaplarında yeniden basıyor
+     (ADR-045); yalnızca :root'u değiştirmek public sayfaları kâğıtta KOYU
+     bırakıyordu — ÖLÇÜLDÜ, CV PDF'i (2026-10-23). */
   :root,
   :root.dark,
-  :root.light {
+  :root.light,
+  .site-koyu,
+  .panel-acik {
     --bg-base: #ffffff;
     --bg-surface: #ffffff;
     --bg-elevated: #ffffff;
@@ -590,11 +595,15 @@
     --text-muted: #4a4a4a;
     --border-line: #b4b4b4;
     --border-line-hover: #b4b4b4;
+    /* Vurgu METNİ aydınlık temadaki koyu tonuna: koyu temanın açık moru
+       beyaz kâğıtta okunmuyor (unvan satırı). */
+    --accent-soft: #6b3bf7;
     color-scheme: light;
   }
 
   html,
-  body {
+  body,
+  .site-koyu {
     background: #ffffff;
   }
 
@@ -602,9 +611,10 @@
     display: none !important;
   }
 
-  /* Kayıtlar sayfa sınırında ORTADAN İKİYE bölünmesin. */
+  /* Kayıtlar sayfa sınırında ORTADAN İKİYE bölünmesin. `section` BİLEREK
+     yok: bölünmeyen bir bölüm sayfaya sığmayınca BÜTÜNÜYLE sonraki sayfaya
+     atlıyordu ve CV'nin ilk sayfasının yarısı boş kalıyordu (ölçüldü). */
   li,
-  section,
   h1,
   h2,
   h3 {

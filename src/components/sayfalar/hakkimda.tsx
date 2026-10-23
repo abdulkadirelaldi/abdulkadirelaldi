@@ -5,7 +5,9 @@ import Link from 'next/link';
 
 import { OdulIzgarasi } from '@/components/public/basarilar';
 import { SertifikaListesi } from '@/components/public/sertifikalar';
+import { Spor } from '@/components/public/spor';
 import { CvIndir } from '@/components/public/cv-indir';
+import { URETILMIS_CV } from '@/components/public/uretilmis-cv';
 import type { Dil } from '@/i18n/diller';
 import { dilAlternatifleri } from '@/i18n/meta';
 import { yol } from '@/i18n/rotalar';
@@ -57,6 +59,7 @@ export async function HakkimdaSayfasi({ dil }: { dil: Dil }) {
   const egitim = deneyimler.filter((d) => d.type === ExperienceType.EDUCATION);
   const oduller = deneyimler.filter((d) => d.type === ExperienceType.AWARD);
   const sertifikalar = deneyimler.filter((d) => d.type === ExperienceType.CERTIFICATE);
+  const spor = deneyimler.filter((d) => d.type === ExperienceType.SPORT);
 
   const [ilk, ...diger] = paragraflar;
 
@@ -179,6 +182,22 @@ export async function HakkimdaSayfasi({ dil }: { dil: Dil }) {
           </section>
         )}
 
+        {/* Spor — kayıt yoksa bölüm yok. Dereceler kronolojik (spor.tsx notu). */}
+        {spor.length > 0 && (
+          <section aria-labelledby="spor-baslik" className="flex flex-col gap-10">
+            <h2
+              id="spor-baslik"
+              className="dev-baslik metin-kontur text-[clamp(2.25rem,7vw,5.5rem)]"
+            >
+              {h.spor}
+            </h2>
+            <Spor
+              kayitlar={spor}
+              metin={{ dereceler: h.sporDereceler, takimlar: h.sporTakimlar }}
+            />
+          </section>
+        )}
+
         <section aria-labelledby="cv-baslik" className="flex flex-col gap-10">
           <h2 id="cv-baslik" className="dev-baslik text-primary text-[clamp(2.25rem,7vw,5.5rem)]">
             {h.ozgecmis}
@@ -188,6 +207,7 @@ export async function HakkimdaSayfasi({ dil }: { dil: Dil }) {
             dil={dil}
             cv={profil.cv}
             indirmeUrl={profil.cv ? dosyaAdresi(profil.cv.id) : null}
+            uretilmisPdf={URETILMIS_CV[dil]}
           />
         </section>
       </div>

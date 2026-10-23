@@ -99,7 +99,7 @@ export const YETENEKLER = YETENEK_GRUPLARI.flatMap(([category, adlar]) =>
 ).map((yetenek, i) => ({ ...yetenek, order: i + 1 }));
 
 export type Deneyim = {
-  type: 'WORK' | 'EDUCATION' | 'AWARD' | 'CERTIFICATE';
+  type: 'WORK' | 'EDUCATION' | 'AWARD' | 'CERTIFICATE' | 'SPORT';
   organization: string;
   role: string;
   startDate: string;
@@ -328,6 +328,178 @@ export const DENEYIMLER: Deneyim[] = [
     role: 'Tasarım ve Üretim Eğitimi',
     organization: 'Deneyap Türkiye',
     startDate: '2019-09-01',
+  },
+  // ---------------------------------------------------------------- SPOR ---
+  // Kaynak: site sahibi (2026-10-23). Tek tarih = DERECE, aralık = TAKIM
+  // (schema.prisma). Turnuva dönemi adın içinde; tarih yalnızca sıralama için.
+  {
+    type: 'SPORT',
+    role: 'Şampiyon',
+    organization: 'Erzurum İlkokullar Arası Spor Şenlikleri',
+    startDate: '2013-01-01',
+    description: 'Voleybol',
+  },
+  {
+    type: 'SPORT',
+    role: 'Madalya',
+    organization: 'Erzurum',
+    startDate: '2014-01-01',
+    description: 'Artistik buz pateni',
+  },
+  {
+    type: 'SPORT',
+    role: 'Şampiyon',
+    organization: 'Yıldızkent Minikler',
+    startDate: '2015-01-01',
+    description: 'Futbol',
+  },
+  {
+    type: 'SPORT',
+    role: '3.lük',
+    organization: 'Ortaokullar Arası Turnuva',
+    startDate: '2016-01-01',
+    description: 'Masa tenisi',
+  },
+  {
+    type: 'SPORT',
+    role: 'Şampiyon',
+    organization: 'Türkiye Tenis Federasyonu · Batman Doğu Ligi',
+    startDate: '2018-01-01',
+    description: 'Tenis',
+  },
+  {
+    type: 'SPORT',
+    role: '2.lik',
+    organization: 'Liseler Arası Turnuva',
+    startDate: '2019-01-01',
+    description: 'Tenis',
+  },
+  {
+    type: 'SPORT',
+    role: '1.lik',
+    organization: 'Samsun Üniversitesi · 2023–2024 Bahar Dönemi Turnuvası',
+    startDate: '2024-03-01',
+    description: 'Voleybol',
+  },
+  {
+    type: 'SPORT',
+    role: '1.lik',
+    organization: 'Samsun Üniversitesi · 2024–2025 Güz Dönemi Turnuvası',
+    startDate: '2024-10-01',
+    description: 'Voleybol',
+  },
+  {
+    type: 'SPORT',
+    role: '3.lük (Kaptan)',
+    organization: 'Samsun Üniversitesi · 2024–2025 Bahar Dönemi Turnuvası',
+    startDate: '2025-03-01',
+    description: 'Futbol',
+  },
+  {
+    type: 'SPORT',
+    role: '2.lik',
+    organization: 'Samsun Üniversitesi · 2024–2025 Bahar Dönemi Turnuvası',
+    startDate: '2025-03-02',
+    description: 'Plaj voleybolu',
+  },
+  {
+    type: 'SPORT',
+    role: '1.lik',
+    organization: 'Samsun Üniversitesi · 2025–2026 Güz Dönemi Turnuvası',
+    startDate: '2025-10-01',
+    description: 'Voleybol',
+  },
+  {
+    type: 'SPORT',
+    role: '1.lik',
+    organization: 'Samsun Üniversitesi · 2025–2026 Bahar Dönemi Turnuvası',
+    startDate: '2026-03-01',
+    description: 'Voleybol',
+  },
+  {
+    type: 'SPORT',
+    role: 'Kaptan',
+    organization: 'Erzurum Nevzat Karabağ Anadolu Lisesi Voleybol Takımı',
+    startDate: '2019-09-01',
+    endDate: '2020-06-30',
+  },
+  {
+    type: 'SPORT',
+    role: 'Oyuncu',
+    organization: 'Atatürk Üniversitesi Hukuk Fakültesi Futbol Takımı',
+    startDate: '2022-09-01',
+    endDate: '2023-06-30',
+  },
+  {
+    type: 'SPORT',
+    role: 'Oyuncu',
+    organization: 'Atatürk Üniversitesi Hukuk Fakültesi Voleybol Takımı',
+    startDate: '2022-09-01',
+    endDate: '2023-06-30',
+  },
+  {
+    type: 'SPORT',
+    role: 'Sporcu',
+    organization: 'Erzurum Altın Patenler Kulübü',
+    startDate: '2011-01-01',
+    endDate: '2014-12-31',
+  },
+  {
+    type: 'SPORT',
+    role: 'Sporcu',
+    organization: 'Erzurum Harb-İş Futbol Kulübü',
+    startDate: '2012-01-01',
+    endDate: '2012-12-31',
+  },
+  {
+    type: 'SPORT',
+    role: 'Sporcu',
+    organization: 'Erzurum Olimpik Adımlar Futbol Kulübü',
+    startDate: '2013-01-01',
+    endDate: '2013-12-31',
+  },
+  {
+    type: 'SPORT',
+    role: 'Sporcu',
+    organization: 'Erzurum TRT Spor Kulübü',
+    startDate: '2014-01-01',
+    endDate: '2017-12-31',
+    description: 'Futbol',
+  },
+  {
+    type: 'SPORT',
+    role: 'Sporcu',
+    organization: 'Erzurum Gençlik ve Spor Tenis Kulübü',
+    startDate: '2016-01-01',
+    endDate: '2019-12-31',
+  },
+  {
+    type: 'SPORT',
+    role: 'Oyuncu',
+    organization: 'Erzurum Saltukbey Ortaokulu Futsal Takımı',
+    startDate: '2016-01-01',
+    endDate: '2016-12-31',
+  },
+  {
+    type: 'SPORT',
+    role: 'Sporcu',
+    organization: 'Erzurum Gençlik ve Spor Voleybol Kulübü',
+    startDate: '2018-01-01',
+    endDate: '2020-12-31',
+  },
+  {
+    type: 'SPORT',
+    role: 'Oyuncu',
+    organization: 'Samsun Üniversitesi Mühendislik Fakültesi Voleybol Takımı',
+    startDate: '2024-01-01',
+    endDate: '2026-12-31',
+  },
+  {
+    type: 'SPORT',
+    role: 'Oyuncu',
+    organization: 'Samsun Üniversitesi Yazılım Mühendisliği Futbol Takımı',
+    startDate: '2024-01-01',
+    endDate: '2026-12-31',
   },
 ];
 
