@@ -12,12 +12,11 @@ import { PROFIL as PROFIL_TR, type Deneyim, type Kategori, type Proje } from './
 export const PROFIL = {
   headline: 'Embedded-Systeme · Künstliche Intelligenz · Full-Stack',
   subtitle:
-    'Software Engineering an der Universität Samsun, 4. Studienjahr · Leiter des Softwareteams von Spectraloop Hyperloop',
+    'Software Engineering an der Universität Samsun · Leiter des Softwareteams von Spectraloop Hyperloop · Mitgründer von Kıyı Medya',
   bio: [
     'Ich entwickle End-to-End-Systeme an der Schnittstelle von Hardware und Software: von STM32-basierter Steuerungssoftware über OCR-Systeme im Praxiseinsatz bis hin zu KI-Modellen, die auf Mikrocontrollern laufen.',
-    'Seit drei Saisons leite ich beim TEKNOFEST Hyperloop das 11-köpfige Softwareteam von Spectraloop. Ich arbeite an STM32-basierter Steuerungssoftware, CAN-Bus- und Modbus-RTU-Kommunikation sowie an Fail-safe-Architekturen. Mit meinem Team habe ich beim TEKNOFEST 2026 Hyperloop-Entwicklungswettbewerb in der Kategorie Technologiedemonstration den 1. Platz in der Türkei sowie in den Kategorien Performance und Lösung definierter Problemstellungen jeweils den 3. Platz belegt.',
+    'Seit drei Saisons leite ich beim TEKNOFEST Hyperloop das Softwareteam von Spectraloop. Ich arbeite an STM32-basierter Steuerungssoftware, CAN-Bus- und Modbus-RTU-Kommunikation sowie an Fail-safe-Architekturen. Mit meinem Team habe ich beim TEKNOFEST 2026 Hyperloop-Entwicklungswettbewerb in der Kategorie Technologiedemonstration den 1. Platz in der Türkei sowie in den Kategorien Performance und Lösung definierter Problemstellungen jeweils den 3. Platz belegt.',
     'Während meines Praktikums im Samsun Teknopark habe ich ein im Feld validiertes Linienüberwachungssystem entwickelt, das die Bildschirme von Produktionsmaschinen ohne Datenschnittstelle per OCR ausliest. Als Mitgründer von Kıyı Medya leite ich die Softwareabteilung der Agentur und entwickle Unternehmenswebsites durchgängig – vom Design bis zum Go-live.',
-    'In letzter Zeit beschäftige ich mich mit der Zuverlässigkeit von KI: Ich habe ein LLM-System entwickelt, das riskante Klauseln in Verträgen ausschließlich mit wörtlichen Zitaten belegt (ToS Risk Guard), sowie einen Roboterarm, der auf türkische Befehle hin arbeitet und jeden seiner Schritte per Kamera überprüft (Çoban).',
     'Mein Ziel ist es, Embedded-Systeme, KI auf Edge-Geräten und Full-Stack-Entwicklung zu verbinden und so Produkte von Anfang bis Ende zu realisieren.',
   ].join('\n\n'),
   location: 'Samsun, Türkei',
@@ -63,17 +62,7 @@ const YETENEK_GRUPLARI: [Kategori, string[]][] = [
   ['MOBILE', ['Mobile-App-Entwicklung', 'React Native']],
   [
     'TOOLING',
-    [
-      'Git / GitHub',
-      'Linux',
-      'systemd',
-      'GStreamer',
-      'WebSocket',
-      'Playwright',
-      'Cypress',
-      'Chrome Extension (MV3)',
-      'Claude Code',
-    ],
+    ['Git / GitHub', 'Linux', 'systemd', 'GStreamer', 'WebSocket', 'Playwright', 'Claude Code'],
   ],
 ];
 
@@ -93,7 +82,7 @@ export const DENEYIMLER: Deneyim[] = [
     startDate: '2023-11-01',
     current: true,
     description:
-      'Seit 3 Saisons leite ich das 11-köpfige Softwareteam; ich koordiniere die Subsystemgruppen (Sensorik, CAN, Navigation, BMS, Echtzeitsteuerung, Telemetrie) und den Prozess rund um den technischen Designbericht; der Bericht belegte 2026 mit 468,5 von 500 Punkten den 1. Platz. Ich habe die STM32-Firmware entwickelt, die zwei Delta-MS300-Frequenzumrichter (VFD) über eine einzige RS-485-Leitung per Modbus RTU ansteuert; die Antriebs- und Bremssysteme wurden auf dem TÜBİTAK-Campus Gebze im Feld getestet.',
+      'Seit 3 Saisons leite ich das Softwareteam; ich koordiniere die Subsystemgruppen (Sensorik, CAN, Navigation, BMS, Echtzeitsteuerung, Telemetrie) und den Prozess rund um den technischen Designbericht; der Bericht belegte 2026 mit 468,5 von 500 Punkten den 1. Platz. Ich habe die STM32-Firmware entwickelt, die zwei Delta-MS300-Frequenzumrichter (VFD) über eine einzige RS-485-Leitung per Modbus RTU ansteuert; die Antriebs- und Bremssysteme wurden auf dem TÜBİTAK-Campus Gebze im Feld getestet.',
   },
   {
     type: 'WORK',
@@ -111,7 +100,7 @@ export const DENEYIMLER: Deneyim[] = [
     startDate: '2024-09-01',
     current: true,
     description:
-      'Ich bin an der Gründung der Agentur und an der Leitung ihrer Softwareabteilung beteiligt; für mehr als 50 Unternehmen wurden über 500 Projekte umgesetzt. Ich habe 5 Unternehmenswebsites durchgängig entwickelt und leite die Entwicklung einer mobilen App.',
+      'Ich bin an der Gründung der Agentur und an der Leitung ihrer Softwareabteilung beteiligt; für mehr als 50 Unternehmen wurden über 500 Projekte umgesetzt. Ich habe die Unternehmenswebsites der Agentur durchgängig entwickelt (İSÇEV Arıtma, Aşkar Medikal, Costman, İlkadım Hörgeräte, CRP Project und weitere) und leite die Entwicklung einer mobilen App.',
   },
   {
     type: 'WORK',
@@ -497,7 +486,7 @@ Die von einem Linearmotor angetriebene Kapsel muss unter hoher EMI zuverlässig 
 
 - **Linearmotorsteuerung:** Ich habe die STM32-Firmware entwickelt, die zwei Delta-MS300-Frequenzumrichter (VFD) über eine einzige RS-485-Leitung per **Modbus RTU** (9600 Baud, 8N1, Slave 1 und 2) ansteuert: Steuerwörter für Vorwärts/Rückwärts/Stopp und Frequenzen bis 150 Hz. Den Code habe ich vom STM32F407 auf das Nucleo-F401RE portiert.
 - **Validierung vor Ort:** Die VFD-Parameter (Frequenz- und Startquelle RS-485, obere Frequenzgrenze) habe ich vor Ort getestet und verifiziert. Außerdem habe ich eine Python-Brücke Seriell↔WebSocket und ein Live-Steuerungspanel ergänzt.
-- **Teamführung:** Ich habe das 11-köpfige Team in 6 Subsystemgruppen aufgeteilt (Sensorik, CAN, Navigation, BMS, RTOS, Telemetrie) und den Prozess rund um den technischen Designbericht koordiniert.
+- **Teamführung:** Ich habe das Softwareteam in 6 Subsystemgruppen aufgeteilt (Sensorik, CAN, Navigation, BMS, RTOS, Telemetrie) und den Prozess rund um den technischen Designbericht koordiniert.
 
 ## Was wir im Team entwickelt haben
 
@@ -557,95 +546,6 @@ Die Maschinen in der Fabrik zeigten ihre Produktionszähler nur auf dem Bediener
 `,
   },
   {
-    translationKey: 'coban-robot-kol',
-    period: '2026',
-    slug: 'coban-roboterarm',
-    title: 'Çoban – Roboterarm, gesteuert über türkische Befehle',
-    summary:
-      'Roboterarm mit geschlossenem Regelkreis, der auf türkische Befehle hin arbeitet und jeden Schritt per Kamera überprüft: Ich habe den Ansatz von Shepherd Robotics (YC F26) auf die türkische Industrie übertragen. 5 Szenarien mit der echten Gemini API, 43 automatisierte Tests.',
-    tags: ['Physische KI', 'Robotik', 'Embedded Systems'],
-    stack: ['Python', 'Gemini API', 'Digitaler Zwilling (Simulation)'],
-    featured: true,
-    content: `## Die Frage
-
-Kann ein KMU in der Türkei einem Roboter ohne Roboterprogrammierer sagen: „Wirf den gerissenen Steckverbinder in den Schrott“? Ausgangspunkt waren der Aufruf nach „neuen Betriebssystemen für die physische Welt“ in der *Request for Startups*-Liste von Y Combinator für Fall 2026 und Shepherd Robotics, das im selben Zeitraum bei YC aufgenommen wurde. Çoban ist ein Klon dieses Ansatzes, angepasst an die türkische Industrie.
-
-## Komponenten
-
-- **Aufgabenausführung im geschlossenen Regelkreis:** Gemini betrachtet bei jedem Schritt das neue Kamerabild, wählt die nächste Bewegung und prüft, ob der vorherige Schritt tatsächlich erfolgreich war.
-- **Fusion von Sehen und Tasten:** Verschiebungen von 1–2 cm, die im Bild nicht erkennbar sind, erfasst der Greifersensor; das System plant daraufhin neu.
-- **Abschlussprüfung:** Meldet das Modell „fertig“, zählt ein separater Qualitätskontrollschritt die Objekte im letzten Bild; fehlt etwas, wird die Aufgabe fortgesetzt.
-- **Digitaler Zwilling:** Eine Simulation, in der derselbe Code auch ohne Roboter läuft; Szenarien für Kabelbaum-Kitting und die Qualitätskontrolle gerissener Teile nach dem Vorbild von Automobilzulieferern in Bursa.
-- **KVKK-konforme Bildverarbeitung:** Bevor ein Bild in die Cloud gesendet wird, werden die Gesichter der Beschäftigten direkt auf dem Gerät unkenntlich gemacht.
-- **Daten-Flywheel:** Jede Aufgabe wird als Datensatz gespeichert, um künftig ein Open-Source-Robotermodell zu trainieren.
-
-## Ergebnisse mit der echten Gemini API
-
-| Aufgabe | Ergebnis | Zeigt |
-| --- | --- | --- |
-| Rote Würfel in die gelbe Kiste legen | Abgeschlossen (5 Schritte) | Mehrstufige Planung, bildbasierte Prüfung jedes Schritts |
-| Gerissenen Steckverbinder in die Schrottkiste werfen | Abgeschlossen (3 Schritte) | Visuelle Qualitätskontrolle |
-| Lila Würfel auf das weiße Tablett legen | Unmöglich | Roboter wird bei einem nicht vorhandenen Objekt gar nicht erst bewegt |
-| Dieselbe Aufgabe mit 40 % Greiffehlern | Abgeschlossen (8 Schritte) | Sensor erfasst 2 Verschiebungen; verfrühtes „fertig“ wird abgelehnt |
-
-Das System wurde in 5 Szenarien mit der echten Gemini API getestet und mit 43 automatisierten Tests verifiziert.
-
-## Am lehrreichsten: die Fehler
-
-Das Modell bemerkte ein verrutschendes Teil nicht, hielt einen weißen Steckverbinder für schwarz und meldete „fertig“, bevor die Aufgabe erledigt war. Jeden dieser Fehler habe ich mit einer technischen Lösung behoben. **Wenn das Modell „fertig“ sagt, heißt das nicht, dass die Arbeit erledigt ist.**
-
-## Ziel
-
-Ein kostengünstiger, zuverlässiger Automatisierungsansatz, der Türkisch versteht – für die türkische Fertigungsindustrie, deren Roboterdichte unter dem weltweiten Durchschnitt liegt.
-
-*Für die Betreuung und die wissenschaftlichen Beiträge danke ich Dr. Nurettin Şenyer.*
-`,
-  },
-  {
-    translationKey: 'tos-risk-guard',
-    period: '2026',
-    slug: 'tos-risk-guard',
-    title: 'ToS Risk Guard – Risikoanalyse von Verträgen mit Zitatbeleg',
-    summary:
-      'Chrome-Erweiterung, die riskante Klauseln in Nutzungsbedingungen und Datenschutzerklärungen ausschließlich mit wörtlichen Zitaten aufzeigt: „ein KI-System, das der KI nicht vertraut“. 95 % Präzision bei 6 realen Verträgen; 4 von 4 versteckten Prompt-Injection-Versuchen erkannt.',
-    tags: ['KI', 'LLM-Sicherheit', 'Chrome-Erweiterung'],
-    stack: ['Chrome Extension (MV3)', 'Gemini API', 'JSON Schema', 'Cypress'],
-    featured: true,
-    content: `## Problem
-
-Kaum jemand liest einen Vertrag, bevor er das Kästchen „Ich stimme zu“ anklickt. ToS Risk Guard erfasst den Text, sobald eine Seite mit Nutzungsbedingungen, einer Datenschutzerklärung oder Abonnementbedingungen geöffnet wird, und erklärt riskante Klauseln in einfachem Türkisch.
-
-## Designprinzip: ein LLM-System, das dem LLM nicht vertraut
-
-- **Jede Aussage mit Zitat:** Jede riskante Klausel wird mit einem wörtlichen Zitat aus dem Vertrag belegt. Aussagen, deren Zitat sich im Originaltext nicht findet, werden aussortiert, ohne dem Nutzer je angezeigt zu werden.
-- **Der Score kommt aus dem Code:** Der Risiko-Score (0–100) stammt nicht vom LLM, sondern wird ausschließlich aus verifizierten Klauseln mit festen Gewichten berechnet.
-- **Kein Freitext:** Die LLM-Ausgabe wird über ein JSON-Schema abgefragt und anschließend deterministisch erneut validiert.
-- **Prompt Injection wird herausgefiltert:** Auf der Seite versteckte „Anweisungen an die KI“ werden entfernt, bevor sie das LLM erreichen, und dem Nutzer als Warnung angezeigt.
-- **Unsicherheit wird benannt:** Ist sich das System nicht sicher, teilt es dies mit Begründung mit: „Geringe Konfidenz – das System ist sich nicht sicher“.
-
-## Evaluation
-
-Mini-Evaluation an 6 realen Verträgen (Netflix, Spotify, YouTube, Zoom, GitHub, Dropbox):
-
-| Kennzahl | Ergebnis |
-| --- | --- |
-| Präzision (Precision) | 95 % – 95 % der angezeigten Klauseln sind korrekt |
-| Trefferquote (Recall) | 51 % – etwa die Hälfte der Klauseln wird übersehen |
-| Trefferquote mit stärkerem Modell | 62 %, aber die Analyse ist 10- bis 60-mal langsamer |
-| Versteckte Prompt Injection | 4 von 4 Versuchen erkannt, der Score ließ sich nicht manipulieren |
-
-Jede übersehene Klausel und jeden Fehlalarm habe ich im Repository einzeln aufgeführt; auch die Schwächen des Systems sollten sichtbar sein.
-
-## Eingesetzte Technik
-
-Chrome Extension (Manifest V3), Gemini API, die Open-Source-Bibliothek page-agent von Alibaba (nur lesend, nach dem Prinzip der minimalen Rechte), Validierung per JSON-Schema, End-to-End-Tests und Demo-Aufzeichnung mit Cypress.
-
-> Die Anwendung bietet keine Rechtsberatung; sie ist lediglich ein Werkzeug zur ersten Durchsicht.
-
-*Für die Anregungen danke ich Dr. Nurettin Şenyer.*
-`,
-  },
-  {
     translationKey: 'predictive-edge',
     slug: 'predictive-edge-vorausschauende-wartung',
     title: 'Predictive-Edge – Vorausschauende Wartung auf dem Mikrocontroller',
@@ -676,31 +576,53 @@ Der Datensatz besteht aus synthetischen Daten auf Basis eines physikalischen Feh
 `,
   },
   {
-    translationKey: 'iscev-is-yonetim-platformu',
     slug: 'iscev-unternehmensplattform',
-    title: 'İSÇEV – Plattform für Geschäftsprozesse im Unternehmen',
+    translationKey: 'iscev-is-yonetim-platformu',
+    period: '2026',
+    title: 'İSÇEV – Plattform für Unternehmensmanagement',
     summary:
-      'Mit Next.js, tRPC und Prisma entwickelte Plattform für Geschäftsprozesse im Unternehmen: RBAC, unveränderlicher Audit-Trail, Feldverschlüsselung mit AES-256-GCM und BullMQ-Queues.',
-    tags: ['Full-Stack', 'Unternehmenssoftware'],
-    stack: ['Next.js', 'TypeScript', 'tRPC', 'Prisma', 'PostgreSQL', 'Redis', 'BullMQ'],
+      'Eine von Grund auf entwickelte Managementplattform, die Angebote, Projekte, Einkauf, Außendienst, Finanzen, Buchhaltung und Service eines Wasseraufbereitungsunternehmens in einem einzigen Panel zusammenführt. 43 Datenmodelle, 245 automatisierte Tests.',
+    tags: ['Full-Stack', 'Unternehmenssoftware', 'Sicherheit'],
+    stack: ['Next.js', 'TypeScript', 'tRPC', 'Prisma', 'PostgreSQL', 'Redis', 'BullMQ', 'Auth.js'],
     featured: true,
-    content: `## Umfang
+    content: `## Problem
 
-Webplattform, die betriebliche Geschäftsprozesse in einem zentralen Dashboard bündelt. Entwickelt mit Next.js, TypeScript, tRPC und Prisma (PostgreSQL, Redis).
+Ein Unternehmen, das Wasseraufbereitungsanlagen projektbezogen errichtet und Einkauf, Service und Wartung betreibt, verwaltete seine Prozesse in verstreuten Werkzeugen. Ziel war es, jeden Schritt – vom Angebot bis zur Projektübergabe – in einem einzigen, prüfbaren System abzubilden.
 
-## Sicherheit
+## Arbeitsablauf
 
-- Rollenbasierte Zugriffskontrolle (**RBAC**)
-- **Unveränderlicher Audit-Trail**
-- Feldverschlüsselung mit **AES-256-GCM**
+Kontakt (Kunde / Lieferant) → Angebot mit Revisionen → „In Projekt umwandeln“ → Arbeitsplan und Phasen → Bedarfsliste → Einkauf (Vergleich von Lieferantenangeboten) → Raten und Zahlungseingänge → Finanzen und Buchhaltung → Projektabschluss mit der Lieferrechnung.
 
-## Infrastruktur
+## Module
 
-- E-Mail-Benachrichtigungs-Queues auf Basis von BullMQ
+- **Kontakte:** Kunden- und Lieferantenkarten, Kontoauszüge, Massenimport aus Excel
+- **Angebote:** Revisionsverlauf, Mehrwertsteueroptionen, Mehrwährungspreise zum Kurs der türkischen Zentralbank, druckbare Ausgabe
+- **Projekte:** Arbeitsplan, Bedarfsliste, Einkauf, Raten und Gewinn / Verlust je Projekt
+- **Aufgaben:** Kanban-Ansicht, Zuweisung, Zeiterfassung und Aufgabenkalender
+- **Finanzen:** Kasse, Bankkonten, Kredite und Kreditkarten, Budgetplan im Vergleich zum Ist
+- **Buchhaltung:** Rechnungen, Quittungen, wiederkehrende Rechnungen und Buchungen
+- **Service und Wartung:** Serviceverträge, Besuche und Wartungspläne
+- **Kundenportal:** ein Link, über den Kunden ihr Projekt ohne Anmeldung verfolgen können
+- **Benachrichtigungen:** in der App, Web Push (PWA) und E-Mail; Live-Stream und tägliche Erinnerungen
 
-## Entwicklungsprozess
+## Sicherheit und Datenintegrität
 
-Die Entwicklung erfolgt in einem Workflow, der auf der Orchestrierung mehrerer KI-Agenten basiert.
+- Berechtigungsbasierte Rollenverwaltung (**RBAC**) und **Zwei-Faktor-Authentifizierung mit TOTP**
+- **AES-256-GCM**-Verschlüsselung sensibler Felder auf Anwendungsebene
+- **Unveränderliches Audit-Log**, durch Datenbank-Trigger erzwungen; jede Geldbuchung wird protokolliert
+- **Row Level Security**, Rate Limiting, CSRF-Schutz und Schemavalidierung jeder Eingabe
+- Verlustfreie Geldberechnung auf den Cent genau; Anonymisierung von Nutzern für den Datenschutz (KVKK)
+
+## Zahlen
+
+| Kennzahl | Wert |
+| --- | --- |
+| Datenmodelle | 43 |
+| Seiten | 46 |
+| Automatisierte Tests | 245 (Unit, Integration, Playwright End-to-End) |
+| Datenbankmigrationen | 55 |
+
+Bei jeder Änderung führt die CI-Pipeline Lint, Typprüfung, Unit- und Integrationstests, eine Prüfung auf Migrationsdrift und einen Produktions-Build aus.
 `,
   },
   {
@@ -711,7 +633,7 @@ Die Entwicklung erfolgt in einem Workflow, der auf der Orchestrierung mehrerer K
     summary:
       'Unternehmenswebsite der 360°-Digitalagentur, die ich mitgegründet habe – durchgängig vom Design bis zum Go-live.',
     tags: ['Unternehmenswebsite', 'Kıyı Medya'],
-    stack: [],
+    stack: ['React'],
     liveUrl: 'https://kiyimedya.com',
     clientName: 'Kıyı Medya',
     featured: false,
@@ -730,7 +652,7 @@ Die Unternehmenswebsite der Agentur habe ich durchgängig vom Design bis zum Go-
     summary:
       'Unternehmenswebsite für ein Unternehmen der Abwasserbehandlung und Umwelttechnik – umgesetzt bei Kıyı Medya.',
     tags: ['Unternehmenswebsite', 'Kıyı Medya'],
-    stack: [],
+    stack: ['Vite'],
     liveUrl: 'https://iscevaritma.com.tr',
     clientName: 'İSÇEV Arıtma',
     featured: false,
@@ -747,13 +669,127 @@ Unternehmenswebsite für ein Unternehmen, das in der industriellen Abwasserbehan
     summary:
       'Unternehmenswebsite für einen Lieferanten von Medizinprodukten – umgesetzt bei Kıyı Medya.',
     tags: ['Unternehmenswebsite', 'Kıyı Medya'],
-    stack: [],
+    stack: ['Next.js'],
     liveUrl: 'https://askarmedikal.com',
     clientName: 'Askar Medikal',
     featured: false,
     content: `## Projekt
 
 Unternehmenswebsite für einen Lieferanten von Medizinprodukten. Bei Kıyı Medya durchgängig vom Design bis zum Go-live entwickelt.
+`,
+  },
+  {
+    slug: 'costman-unternehmenswebsite',
+    translationKey: 'costman-kurumsal-site',
+    commercial: true,
+    title: 'Costman – Unternehmenswebsite',
+    summary:
+      'Unternehmenswebsite für eine Marke, die Restaurants, Cafés und Bars bei Kosten berät – bei Kıyı Medya umgesetzt.',
+    tags: ['Unternehmenswebsite', 'Kıyı Medya'],
+    stack: ['Vite'],
+    liveUrl: 'https://mrcostman.com',
+    clientName: 'Costman',
+    featured: false,
+    content: `## Projekt
+
+Unternehmenswebsite für eine Marke, die Restaurants, Cafés und Bars bei Kosten berät. Bei Kıyı Medya durchgängig vom Design bis zum Go-live umgesetzt.
+`,
+  },
+  {
+    slug: 'ilkadim-hoergeraete-website',
+    translationKey: 'ilkadim-isitme-cihazlari-site',
+    commercial: true,
+    title: 'İlkadım Hörgeräte – Unternehmenswebsite',
+    summary: 'Unternehmenswebsite für ein Hörgerätezentrum – bei Kıyı Medya umgesetzt.',
+    tags: ['Unternehmenswebsite', 'Kıyı Medya'],
+    stack: ['Vite'],
+    liveUrl: 'https://ilkadimisitmecihazlari.com',
+    clientName: 'İlkadım İşitme Cihazları',
+    featured: false,
+    content: `## Projekt
+
+Unternehmenswebsite für ein Hörgerätezentrum. Bei Kıyı Medya durchgängig vom Design bis zum Go-live umgesetzt.
+`,
+  },
+  {
+    slug: 'crp-project-unternehmenswebsite',
+    translationKey: 'crp-project-kurumsal-site',
+    commercial: true,
+    title: 'CRP Project – Unternehmenswebsite',
+    summary:
+      'Unternehmenswebsite für eine Beratungsmarke für Café- und Restaurantmanagement – bei Kıyı Medya umgesetzt.',
+    tags: ['Unternehmenswebsite', 'Kıyı Medya'],
+    stack: ['Vite'],
+    liveUrl: 'https://crpproject.com',
+    clientName: 'CRP Project',
+    featured: false,
+    content: `## Projekt
+
+Unternehmenswebsite für eine Beratungsmarke für Café- und Restaurantmanagement. Bei Kıyı Medya durchgängig vom Design bis zum Go-live umgesetzt.
+`,
+  },
+  {
+    slug: 'spectraloop-teamwebsite',
+    translationKey: 'spectraloop-tanitim-sitesi',
+    commercial: true,
+    title: 'Spectraloop – Teamwebsite',
+    summary: 'Website des studentischen Technologieteams Spectraloop – bei Kıyı Medya umgesetzt.',
+    tags: ['Unternehmenswebsite', 'Kıyı Medya'],
+    stack: ['Next.js'],
+    liveUrl: 'https://spectraloop.com.tr',
+    clientName: 'Spectraloop',
+    featured: false,
+    content: `## Projekt
+
+Website des studentischen Technologieteams Spectraloop. Bei Kıyı Medya durchgängig vom Design bis zum Go-live umgesetzt.
+`,
+  },
+  {
+    slug: 'dna-umwelt-aufbereitung-website',
+    translationKey: 'dna-cevre-aritma-site',
+    commercial: true,
+    title: 'DNA Çevre ve Arıtma – Unternehmenswebsite',
+    summary:
+      'Neu gestaltete Unternehmenswebsite für ein Wasseraufbereitungsunternehmen aus Ankara – bei Kıyı Medya umgesetzt.',
+    tags: ['Unternehmenswebsite', 'Kıyı Medya'],
+    stack: [],
+    clientName: 'DNA Çevre ve Arıtma',
+    featured: false,
+    content: `## Projekt
+
+Neu gestaltete Unternehmenswebsite für ein Wasseraufbereitungsunternehmen aus Ankara. Bei Kıyı Medya umgesetzt.
+`,
+  },
+  {
+    slug: 'yay-grup-wasseraufbereitung-website',
+    translationKey: 'yay-grup-su-aritma-site',
+    commercial: true,
+    title: 'Yay Grup Wasseraufbereitung – Unternehmenswebsite',
+    summary:
+      'Unternehmenswebsite für eine Marke für Wasser- und Abwasseraufbereitung – bei Kıyı Medya umgesetzt.',
+    tags: ['Unternehmenswebsite', 'Kıyı Medya'],
+    stack: [],
+    clientName: 'Yay Grup',
+    featured: false,
+    content: `## Projekt
+
+Unternehmenswebsite für eine Marke für Wasser- und Abwasseraufbereitung. Bei Kıyı Medya umgesetzt.
+`,
+  },
+  {
+    slug: 'yay-grup-metallbearbeitung-website',
+    translationKey: 'yay-grup-metal-isleme-site',
+    commercial: true,
+    title: 'Yay Grup Metallbearbeitung – Unternehmenswebsite',
+    summary:
+      'Unternehmenswebsite für eine Marke für Laserschneiden und Blechbearbeitung – bei Kıyı Medya umgesetzt.',
+    tags: ['Unternehmenswebsite', 'Kıyı Medya'],
+    stack: [],
+    clientName: 'Yay Grup',
+    featured: false,
+    content: `## Projekt
+
+Unternehmenswebsite für eine Marke für Laserschneiden und Blechbearbeitung. Bei Kıyı Medya umgesetzt.
 `,
   },
   {
@@ -782,12 +818,17 @@ export const HIZMETLER = [
   {
     title: 'Unternehmenswebsite',
     description:
-      'Vom Design bis zum Go-live aus einer Hand: schnelle, suchmaschinenfreundliche Unternehmenswebsites, deren Inhalte über ein Admin-Panel gepflegt werden. Mit Kıyı Medya wurden auf diese Weise 5 Unternehmenswebsites ausgeliefert.',
+      'Vom Design bis zum Go-live aus einer Hand: schnelle, suchmaschinenfreundliche Unternehmenswebsites, deren Inhalte über ein Admin-Panel gepflegt werden. Websites für Marken wie İSÇEV Arıtma, Aşkar Medikal, Costman und İlkadım Hörgeräte wurden mit Kıyı Medya auf diese Weise umgesetzt.',
   },
   {
     title: 'Webanwendung und Admin-Panel',
     description:
       'Unternehmensplattformen mit rollenbasierten Berechtigungen, Audit-Trail und Workflows; maßgeschneiderte Anwendungen etwa für Buchungen oder Geschäftsprozessmanagement. Mit Next.js, TypeScript und PostgreSQL.',
+  },
+  {
+    title: 'Embedded-Systeme und Firmware',
+    description:
+      'STM32-basierte Firmware, Sensorintegration und Kommunikation über CAN-Bus / Modbus RTU / RS-485; Feldgeräte für Bildverarbeitung und Datenerfassung auf Raspberry Pi und Jetson. Die Steuerungssoftware der Hyperloop-Kapsel und das Linienüberwachungssystem für die Produktion entstanden auf diese Weise.',
   },
   {
     title: 'Mobile App',

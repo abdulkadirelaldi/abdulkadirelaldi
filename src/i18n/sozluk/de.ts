@@ -55,6 +55,7 @@ export const de: Sozluk = {
     kodKonum: 'standort',
     kodSaat: 'ortszeit',
     pencereEtiket: 'Kurzprofil',
+    yeteneklerEtiket: 'Kernkompetenzen',
     projeler: 'Projekte',
     cta: 'Zusammenarbeiten',
   },

@@ -17,12 +17,11 @@ import { PROFIL as PROFIL_TR, type Deneyim, type Kategori, type Proje } from './
 export const PROFIL = {
   headline: 'Embedded Systems · AI · Full-Stack',
   subtitle:
-    '4th-year Software Engineering student at Samsun University · Software team lead at Spectraloop Hyperloop',
+    'Software Engineering at Samsun University · Software team lead at Spectraloop Hyperloop · Co-founder of Kıyı Medya',
   bio: [
     'I build end-to-end systems where hardware meets software: from STM32-based control software to OCR systems running in the field and AI models designed to run on microcontrollers.',
-    'For three seasons I have led the 11-person software team of Spectraloop at TEKNOFEST Hyperloop. I work on STM32-based control software, CAN Bus and Modbus RTU communication, and fail-safe architectures. At the TEKNOFEST 2026 Hyperloop Development Competition, my team and I took 1st place in Türkiye in the Technology Demonstration category and 3rd place in both the Performance and Defined Problem Solving categories.',
+    'For three seasons I have led the software team of Spectraloop at TEKNOFEST Hyperloop. I work on STM32-based control software, CAN Bus and Modbus RTU communication, and fail-safe architectures. At the TEKNOFEST 2026 Hyperloop Development Competition, my team and I took 1st place in Türkiye in the Technology Demonstration category and 3rd place in both the Performance and Defined Problem Solving categories.',
     "During my internship at Samsun Teknopark, I built a field-validated line monitoring system that uses OCR to read the screens of production machines with no data output. As a co-founder of Kıyı Medya, I run the agency's software unit and build corporate websites end to end, from design to launch.",
-    'Lately I have been working on AI reliability: I built an LLM system that flags risky clauses in contracts only with verbatim quotes (ToS Risk Guard), and a robot arm that takes commands in Turkish and verifies every step with a camera (Çoban).',
     'My goal is to ship end-to-end products by bringing together embedded systems, edge AI, and full-stack development.',
   ].join('\n\n'),
   location: 'Samsun, Türkiye',
@@ -68,17 +67,7 @@ const YETENEK_GRUPLARI: [Kategori, string[]][] = [
   ['MOBILE', ['Mobile app development', 'React Native']],
   [
     'TOOLING',
-    [
-      'Git / GitHub',
-      'Linux',
-      'systemd',
-      'GStreamer',
-      'WebSocket',
-      'Playwright',
-      'Cypress',
-      'Chrome Extension (MV3)',
-      'Claude Code',
-    ],
+    ['Git / GitHub', 'Linux', 'systemd', 'GStreamer', 'WebSocket', 'Playwright', 'Claude Code'],
   ],
 ];
 
@@ -98,7 +87,7 @@ export const DENEYIMLER: Deneyim[] = [
     startDate: '2023-11-01',
     current: true,
     description:
-      'I have led the 11-person software team for 3 seasons, coordinating the subsystem groups (sensors, CAN, navigation, BMS, real-time control, telemetry) and the Technical Design Report process; in 2026 the report placed 1st with a score of 468.5 out of 500. I developed the STM32 firmware that drives two Delta MS300 VFDs over Modbus RTU on a single RS-485 line; the propulsion and braking systems were field-tested at the TÜBİTAK Gebze campus.',
+      'I have led the software team for 3 seasons, coordinating the subsystem groups (sensors, CAN, navigation, BMS, real-time control, telemetry) and the Technical Design Report process; in 2026 the report placed 1st with a score of 468.5 out of 500. I developed the STM32 firmware that drives two Delta MS300 VFDs over Modbus RTU on a single RS-485 line; the propulsion and braking systems were field-tested at the TÜBİTAK Gebze campus.',
   },
   {
     type: 'WORK',
@@ -116,7 +105,7 @@ export const DENEYIMLER: Deneyim[] = [
     startDate: '2024-09-01',
     current: true,
     description:
-      'I was part of founding the agency and run its software unit; the agency has delivered more than 500 projects to more than 50 companies. I built 5 corporate websites end to end and am leading the development of a mobile app.',
+      "I was part of founding the agency and run its software unit; the agency has delivered more than 500 projects to more than 50 companies. I built the agency's corporate websites end to end (İSÇEV Arıtma, Aşkar Medikal, Costman, İlkadım Hearing Aids, CRP Project and others) and am leading the development of a mobile app.",
   },
   {
     type: 'WORK',
@@ -502,7 +491,7 @@ A pod propelled by a linear motor has to communicate reliably under heavy EMI, k
 
 - **Linear motor drive:** I developed the STM32 firmware that drives two Delta MS300 VFDs over **Modbus RTU** on a single RS-485 line (9600 baud, 8N1, slaves 1 and 2): forward/reverse/stop control words and frequencies up to 150 Hz. I ported the code from the STM32F407 to the Nucleo-F401RE.
 - **Field validation:** I verified the VFD parameters (frequency and run-command source set to RS-485, upper frequency limit) through on-site testing. I added a Python serial↔WebSocket bridge and a live control panel.
-- **Team management:** I split the 11-person team into 6 subsystem groups (sensors, CAN, navigation, BMS, RTOS, telemetry) and coordinated the Technical Design Report process.
+- **Team management:** I split the software team into 6 subsystem groups (sensors, CAN, navigation, BMS, RTOS, telemetry) and coordinated the Technical Design Report process.
 
 ## What we built as a team
 
@@ -562,95 +551,6 @@ The factory's machines showed their production counters only on the operator scr
 `,
   },
   {
-    slug: 'coban-robot-arm',
-    translationKey: 'coban-robot-kol',
-    period: '2026',
-    title: 'Çoban — A Robot Arm Driven by Turkish Commands',
-    summary:
-      'A closed-loop robot arm that takes commands in Turkish and verifies every step with a camera: I adapted the Shepherd Robotics (YC F26) approach to Turkish industry. 5 scenarios with the real Gemini API, 43 automated tests.',
-    tags: ['Physical AI', 'Robotics', 'Embedded'],
-    stack: ['Python', 'Gemini API', 'Digital twin (simulation)'],
-    featured: true,
-    content: `## The question
-
-Can a small manufacturer in Türkiye tell a robot to "scrap the cracked connector" without a robot programmer? The starting point was the "new operating systems for the physical world" call in Y Combinator's Fall 2026 *Request for Startups* list, along with Shepherd Robotics, which was accepted into YC in the same batch. Çoban is a clone of that approach adapted to Turkish industry.
-
-## Components
-
-- **Closed-loop task execution:** At every step, Gemini looks at the fresh camera image to choose the next move and checks whether the previous step actually succeeded.
-- **Vision + touch fusion:** The gripper sensor catches 1–2 cm slips that can't be seen in the image, and the system replans.
-- **Completion check:** When the model says "done," a separate quality control step counts what's in the final image; if anything is missing, the task continues.
-- **Digital twin:** A simulation that runs the same code without a robot, with wire harness kitting and cracked-part quality control scenarios modeled on automotive suppliers in Bursa.
-- **KVKK-compliant image processing:** Workers' faces are blurred on the device before any image is sent to the cloud.
-- **Data flywheel:** Every task is recorded as a dataset for training an open-source robot model in the future.
-
-## Results with the real Gemini API
-
-| Task | Result | What it shows |
-| --- | --- | --- |
-| Put the red cubes in the yellow box | Completed (5 steps) | Multi-step planning, with every step verified against the image |
-| Throw the cracked connector in the scrap bin | Completed (3 steps) | Visual quality control |
-| Put the purple cube on the white tray | Impossible | Not moving the robot at all for an object that isn't on the table |
-| Same task, with a 40% grip failure rate | Completed (8 steps) | The sensor catches 2 slips; a premature "done" is rejected |
-
-The system was tested in 5 scenarios with the real Gemini API and validated with 43 automated tests.
-
-## What taught me the most: the failures
-
-The model missed a slipping part, mistook a white connector for a black one, and said "done" before the task was finished. I closed each of these with an engineering fix. **The model saying "done" doesn't mean the job is done.**
-
-## The goal
-
-A low-cost, reliable automation approach that understands Turkish, for a Turkish manufacturing sector whose robot density is below the world average.
-
-*I would like to thank Asst. Prof. Dr. Nurettin Şenyer for the guidance and academic contributions.*
-`,
-  },
-  {
-    slug: 'tos-risk-guard',
-    translationKey: 'tos-risk-guard',
-    period: '2026',
-    title: 'ToS Risk Guard — Quote-Backed Contract Risk Analysis',
-    summary:
-      'A Chrome extension that flags risky clauses in terms of service and privacy policies only with verbatim quotes: "an AI system that doesn\'t trust AI." 95% precision on 6 real contracts; 4 out of 4 hidden prompt injection attempts caught.',
-    tags: ['AI', 'LLM safety', 'Chrome extension'],
-    stack: ['Chrome Extension (MV3)', 'Gemini API', 'JSON Schema', 'Cypress'],
-    featured: true,
-    content: `## Problem
-
-Very few people read the contract before checking the "I agree" box. When a terms of service, privacy policy, or subscription terms page is opened, ToS Risk Guard captures the text and explains the risky clauses in plain Turkish.
-
-## Design principle: an LLM system that doesn't trust the LLM
-
-- **Every claim backed by a quote:** Each risky clause is shown with a verbatim quote from the contract. Any claim whose quote can't be found in the original text is discarded before the user ever sees it.
-- **Code computes the score:** The risk score (0–100) doesn't come from the LLM; it is calculated with fixed weights from verified clauses only.
-- **No free text:** LLM output is obtained through a JSON schema and deterministically re-validated.
-- **Prompt injection filtered out:** "Instructions to the AI" hidden in the page are stripped out before they reach the LLM and shown to the user as a warning.
-- **Says so when unsure:** When the system isn't sure, it says so and explains why: "Low confidence — the system is not sure."
-
-## Evaluation
-
-A mini evaluation on 6 real contracts (Netflix, Spotify, YouTube, Zoom, GitHub, Dropbox):
-
-| Metric | Result |
-| --- | --- |
-| Precision | 95% — 95% of the clauses shown are correct |
-| Recall | 51% — roughly half of the clauses are missed |
-| Recall with a stronger model | 62%, but analysis is 10–60× slower |
-| Hidden prompt injection | 4 out of 4 attempts caught; the score could not be manipulated |
-
-I listed every missed clause and every false alarm one by one in the repository; I wanted the system's weaknesses to be visible too.
-
-## Built with
-
-Chrome Extension (Manifest V3), Gemini API, Alibaba's open-source page-agent library (read-only, following the principle of least privilege), JSON schema validation, and Cypress for end-to-end testing and demo recording.
-
-> The app does not provide legal advice; it is only a first-pass reading tool.
-
-*I would like to thank Asst. Prof. Dr. Nurettin Şenyer for the guidance.*
-`,
-  },
-  {
     slug: 'predictive-edge',
     translationKey: 'predictive-edge',
     title: 'Predictive-Edge — Predictive Maintenance on a Microcontroller',
@@ -683,29 +583,51 @@ The dataset is synthetic, generated from a physical fault model. Running the mod
   {
     slug: 'iscev-business-management-platform',
     translationKey: 'iscev-is-yonetim-platformu',
+    period: '2026',
     title: 'İSÇEV — Enterprise Business Management Platform',
     summary:
-      'An enterprise business management platform built with Next.js, tRPC, and Prisma: RBAC, an immutable audit trail, AES-256-GCM field encryption, and BullMQ queues.',
-    tags: ['Full-stack', 'Enterprise'],
-    stack: ['Next.js', 'TypeScript', 'tRPC', 'Prisma', 'PostgreSQL', 'Redis', 'BullMQ'],
+      "A management platform I built from scratch that brings a water treatment company's quotes, projects, purchasing, field work, finance, accounting and service processes into a single panel. 43 data models, 245 automated tests.",
+    tags: ['Full-stack', 'Enterprise software', 'Security'],
+    stack: ['Next.js', 'TypeScript', 'tRPC', 'Prisma', 'PostgreSQL', 'Redis', 'BullMQ', 'Auth.js'],
     featured: true,
-    content: `## Scope
+    content: `## Problem
 
-A web platform that brings an organization's business processes together in a single dashboard. Built with Next.js, TypeScript, tRPC, and Prisma (PostgreSQL, Redis).
+A company that builds water treatment plants on a project basis and runs purchasing, service and maintenance was managing its processes across scattered tools. The goal was to manage every step — from the quote to project handover — in a single, auditable system.
 
-## Security
+## Workflow
 
-- Role-based access control (**RBAC**)
-- **Immutable audit trail**
-- Field-level encryption with **AES-256-GCM**
+Account (customer / supplier) → revisioned quote → "Convert to project" → work plan and phases → requirements list → purchasing (supplier quote comparison) → instalments and collections → finance and accounting → closing the project with the delivery invoice.
 
-## Infrastructure
+## Modules
 
-- BullMQ-based email notification queues
+- **Accounts:** customer and supplier records, account statements, bulk import from Excel
+- **Quotes:** revision history, VAT options, multi-currency pricing at the Central Bank of Türkiye rate, printable output
+- **Projects:** work plan, requirements list, purchasing, instalments and per-project profit / loss
+- **Work:** Kanban board, assignment, time tracking and a work calendar
+- **Finance:** cash, bank accounts, loans and credit cards, budget plan vs. actuals
+- **Accounting:** invoices, receipts, recurring invoices and ledger entries
+- **Service & maintenance:** service contracts, visits and maintenance plans
+- **Customer portal:** a link that lets customers follow their project without logging in
+- **Notifications:** in-app, Web Push (PWA) and email; live stream and daily reminders
 
-## Development process
+## Security and data integrity
 
-Development runs on a workflow built around orchestrating multiple AI agents.
+- Permission-based role management (**RBAC**) and **TOTP two-factor authentication**
+- **AES-256-GCM** encryption of sensitive fields at the application layer
+- An **immutable audit log** enforced by database triggers; every money transaction is audited
+- **Row Level Security**, rate limiting, CSRF protection and schema validation on every input
+- Lossless money arithmetic at cent precision; user anonymisation for data protection (KVKK)
+
+## Numbers
+
+| Measure | Value |
+| --- | --- |
+| Data models | 43 |
+| Pages | 46 |
+| Automated tests | 245 (unit, integration, Playwright end-to-end) |
+| Database migrations | 55 |
+
+On every change, the CI pipeline runs lint, type checking, unit and integration tests, a migration drift check and a production build.
 `,
   },
   {
@@ -716,7 +638,7 @@ Development runs on a workflow built around orchestrating multiple AI agents.
     summary:
       'The corporate website of the 360° digital agency I co-founded — built end to end, from design to launch.',
     tags: ['Corporate website', 'Kıyı Medya'],
-    stack: [],
+    stack: ['React'],
     liveUrl: 'https://kiyimedya.com',
     clientName: 'Kıyı Medya',
     featured: false,
@@ -735,7 +657,7 @@ I built the agency's corporate website end to end, from design to launch.
     summary:
       'A corporate website for a water treatment and environmental technology company — delivered through Kıyı Medya.',
     tags: ['Corporate website', 'Kıyı Medya'],
-    stack: [],
+    stack: ['Vite'],
     liveUrl: 'https://iscevaritma.com.tr',
     clientName: 'İSÇEV Arıtma',
     featured: false,
@@ -751,13 +673,126 @@ A corporate website for a company working in industrial wastewater treatment and
     title: 'Askar Medikal — Corporate Website',
     summary: 'A corporate website for a medical device supplier — delivered through Kıyı Medya.',
     tags: ['Corporate website', 'Kıyı Medya'],
-    stack: [],
+    stack: ['Next.js'],
     liveUrl: 'https://askarmedikal.com',
     clientName: 'Askar Medikal',
     featured: false,
     content: `## Project
 
 A corporate website for a medical device supplier. Built end to end, from design to launch, through Kıyı Medya.
+`,
+  },
+  {
+    slug: 'costman-corporate-website',
+    translationKey: 'costman-kurumsal-site',
+    commercial: true,
+    title: 'Costman — Corporate Website',
+    summary:
+      'Corporate website for a brand that provides cost consulting to restaurants, cafés and bars — built at Kıyı Medya.',
+    tags: ['Corporate website', 'Kıyı Medya'],
+    stack: ['Vite'],
+    liveUrl: 'https://mrcostman.com',
+    clientName: 'Costman',
+    featured: false,
+    content: `## Project
+
+Corporate website for a brand that provides cost consulting to restaurants, cafés and bars. Built end to end at Kıyı Medya, from design to launch.
+`,
+  },
+  {
+    slug: 'ilkadim-hearing-aids-website',
+    translationKey: 'ilkadim-isitme-cihazlari-site',
+    commercial: true,
+    title: 'İlkadım Hearing Aids — Corporate Website',
+    summary: 'Corporate website for a hearing aid centre — built at Kıyı Medya.',
+    tags: ['Corporate website', 'Kıyı Medya'],
+    stack: ['Vite'],
+    liveUrl: 'https://ilkadimisitmecihazlari.com',
+    clientName: 'İlkadım İşitme Cihazları',
+    featured: false,
+    content: `## Project
+
+Corporate website for a hearing aid centre. Built end to end at Kıyı Medya, from design to launch.
+`,
+  },
+  {
+    slug: 'crp-project-corporate-website',
+    translationKey: 'crp-project-kurumsal-site',
+    commercial: true,
+    title: 'CRP Project — Corporate Website',
+    summary:
+      'Corporate website for a café and restaurant management consulting brand — built at Kıyı Medya.',
+    tags: ['Corporate website', 'Kıyı Medya'],
+    stack: ['Vite'],
+    liveUrl: 'https://crpproject.com',
+    clientName: 'CRP Project',
+    featured: false,
+    content: `## Project
+
+Corporate website for a café and restaurant management consulting brand. Built end to end at Kıyı Medya, from design to launch.
+`,
+  },
+  {
+    slug: 'spectraloop-team-website',
+    translationKey: 'spectraloop-tanitim-sitesi',
+    commercial: true,
+    title: 'Spectraloop — Team Website',
+    summary: 'Website for the Spectraloop student technology team — built at Kıyı Medya.',
+    tags: ['Corporate website', 'Kıyı Medya'],
+    stack: ['Next.js'],
+    liveUrl: 'https://spectraloop.com.tr',
+    clientName: 'Spectraloop',
+    featured: false,
+    content: `## Project
+
+Website for the student technology team Spectraloop. Built end to end at Kıyı Medya, from design to launch.
+`,
+  },
+  {
+    slug: 'dna-environment-treatment-website',
+    translationKey: 'dna-cevre-aritma-site',
+    commercial: true,
+    title: 'DNA Çevre ve Arıtma — Corporate Website',
+    summary:
+      'Redesigned corporate website for an Ankara-based water treatment company — built at Kıyı Medya.',
+    tags: ['Corporate website', 'Kıyı Medya'],
+    stack: [],
+    clientName: 'DNA Çevre ve Arıtma',
+    featured: false,
+    content: `## Project
+
+Redesigned corporate website for an Ankara-based water treatment company. Built at Kıyı Medya.
+`,
+  },
+  {
+    slug: 'yay-grup-water-treatment-website',
+    translationKey: 'yay-grup-su-aritma-site',
+    commercial: true,
+    title: 'Yay Grup Water Treatment — Corporate Website',
+    summary: 'Corporate website for a water and wastewater treatment brand — built at Kıyı Medya.',
+    tags: ['Corporate website', 'Kıyı Medya'],
+    stack: [],
+    clientName: 'Yay Grup',
+    featured: false,
+    content: `## Project
+
+Corporate website for a water and wastewater treatment brand. Built at Kıyı Medya.
+`,
+  },
+  {
+    slug: 'yay-grup-metal-processing-website',
+    translationKey: 'yay-grup-metal-isleme-site',
+    commercial: true,
+    title: 'Yay Grup Metal Processing — Corporate Website',
+    summary:
+      'Corporate website for a laser cutting and sheet metal processing brand — built at Kıyı Medya.',
+    tags: ['Corporate website', 'Kıyı Medya'],
+    stack: [],
+    clientName: 'Yay Grup',
+    featured: false,
+    content: `## Project
+
+Corporate website for a laser cutting and sheet metal processing brand. Built at Kıyı Medya.
 `,
   },
   {
@@ -790,12 +825,17 @@ export const HIZMETLER = [
   {
     title: 'Corporate website',
     description:
-      'End to end, from design to launch: fast, search-engine-friendly corporate websites with content managed from an admin panel. Five corporate websites have been delivered this way with Kıyı Medya.',
+      'End to end, from design to launch: fast, search-engine-friendly corporate websites with content managed from an admin panel. Websites for brands such as İSÇEV Arıtma, Aşkar Medikal, Costman and İlkadım Hearing Aids have been delivered this way with Kıyı Medya.',
   },
   {
     title: 'Web application & admin panel',
     description:
       'Enterprise platforms with role-based permissions, audit trails, and workflows, plus purpose-built applications such as booking and business management systems. Built with Next.js, TypeScript, and PostgreSQL.',
+  },
+  {
+    title: 'Embedded systems & firmware',
+    description:
+      'STM32-based firmware, sensor integration and CAN Bus / Modbus RTU / RS-485 communication; field devices for image processing and data acquisition on Raspberry Pi and Jetson. The Hyperloop pod control software and the production line monitoring system were built this way.',
   },
   {
     title: 'Mobile app',

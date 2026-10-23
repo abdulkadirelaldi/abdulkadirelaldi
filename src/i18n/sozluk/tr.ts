@@ -60,6 +60,7 @@ export const tr = {
     kodKonum: 'konum',
     kodSaat: 'saat',
     pencereEtiket: 'Kısa künye',
+    yeteneklerEtiket: 'Başlıca yetenekler',
     projeler: 'Projeler',
     cta: 'Benimle çalış',
   },

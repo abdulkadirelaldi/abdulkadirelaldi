@@ -20,6 +20,8 @@ export type HeroProps = {
   avatar: string | null;
   /** Süren işler ("Kurum · Rol") — penceredeki `şimdi` dizisi; boşsa satır yok. */
   simdi: string[];
+  /** Başlıca yetenekler — isminin üstündeki satır; boşsa satır yok. */
+  yetenekler: string[];
 };
 
 /**
@@ -42,7 +44,7 @@ export type HeroProps = {
  * metinden alıyor. Kod penceresi bir `<figure>` — ekran okuyucu onu
  * "kısa künye" diye duyar, içindeki noktalama gürültüsünü değil (`aria-label`).
  */
-export function Hero({ dil, profil, ad, avatar, simdi }: HeroProps) {
+export function Hero({ dil, profil, ad, avatar, simdi, yetenekler }: HeroProps) {
   const s = sozluk(dil);
   const h = s.hero;
   const [ilkAd = ad, ...kalan] = ad.split(' ');
@@ -78,13 +80,27 @@ export function Hero({ dil, profil, ad, avatar, simdi }: HeroProps) {
                 className="bg-accent-soft ml-1 inline-block h-[1em] w-[0.5em] translate-y-[0.15em] animate-pulse"
               />
             </span>
-            {profil.availability && (
-              <span className="border-line text-body flex items-center gap-2 rounded-full border px-3 py-1 tracking-[0.08em] uppercase">
-                <span aria-hidden="true" className="relative flex size-2">
-                  <span className="bg-success absolute inline-flex size-full animate-ping rounded-full opacity-60" />
-                  <span className="bg-success relative inline-flex size-2 rounded-full" />
-                </span>
-                {profil.availability}
+            {/*
+              BAŞLICA YETENEKLER — 2026-10-23'e kadar burada "durum" satırı vardı
+              (staja/işe açık); sahibinin isteğiyle yerini yetenekler aldı. Durum
+              bilgisi iletişim bölümünde duruyor.
+            */}
+            {yetenekler.length > 0 && (
+              <span
+                role="list"
+                aria-label={h.yeteneklerEtiket}
+                className="border-line text-body flex flex-wrap items-center gap-x-2 gap-y-1 rounded-full border px-3 py-1 tracking-[0.08em]"
+              >
+                {yetenekler.map((y, i) => (
+                  <span key={y} role="listitem" className="flex items-center gap-2">
+                    {i > 0 && (
+                      <span aria-hidden="true" className="text-accent-soft">
+                        ·
+                      </span>
+                    )}
+                    {y}
+                  </span>
+                ))}
               </span>
             )}
           </p>

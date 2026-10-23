@@ -15,12 +15,11 @@
 export const PROFIL = {
   headline: 'Gömülü Sistemler · Yapay Zeka · Full-Stack',
   subtitle:
-    'Samsun Üniversitesi Yazılım Mühendisliği 4. sınıf · Spectraloop Hyperloop yazılım ekip lideri',
+    'Samsun Üniversitesi Yazılım Mühendisliği · Spectraloop Hyperloop yazılım ekip lideri · Kıyı Medya kurucu ortağı',
   bio: [
     'Donanımla yazılımın buluştuğu uçtan uca sistemler geliştiriyorum: STM32 tabanlı kontrol yazılımından sahada çalışan OCR sistemlerine ve mikrodenetleyicide çalışacak yapay zeka modellerine kadar.',
-    "Üç sezondur TEKNOFEST Hyperloop'ta Spectraloop takımının 11 kişilik yazılım ekibini yönetiyorum. STM32 tabanlı kontrol yazılımı, CAN Bus ve Modbus RTU haberleşmesi ile fail-safe mimariler üzerinde çalışıyorum. Takımımla TEKNOFEST 2026 Hyperloop Geliştirme Yarışması'nda Teknoloji Gösterim kategorisinde Türkiye 1.liği, Performans ve Tanımlı Problem Çözme kategorilerinde 3.lük kazandık.",
+    "Üç sezondur TEKNOFEST Hyperloop'ta Spectraloop takımının yazılım ekibini yönetiyorum. STM32 tabanlı kontrol yazılımı, CAN Bus ve Modbus RTU haberleşmesi ile fail-safe mimariler üzerinde çalışıyorum. Takımımla TEKNOFEST 2026 Hyperloop Geliştirme Yarışması'nda Teknoloji Gösterim kategorisinde Türkiye 1.liği, Performans ve Tanımlı Problem Çözme kategorilerinde 3.lük kazandık.",
     "Samsun Teknopark'taki stajımda veri çıkışı olmayan üretim makinelerinin ekranını OCR ile okuyan, sahada doğrulanmış bir hat izleme sistemi geliştirdim. Kıyı Medya'nın kurucu ortağı olarak ajansın yazılım birimini yönetiyor, kurumsal web sitelerini tasarımdan yayına uçtan uca geliştiriyorum.",
-    'Son dönemde yapay zekanın güvenilirliği üzerine çalışıyorum: sözleşmelerdeki riskli maddeleri yalnızca birebir alıntıyla gösteren bir LLM sistemi (ToS Risk Guard) ve Türkçe komutla çalışan, her adımını kamerayla doğrulayan bir robot kol (Çoban) geliştirdim.',
     'Gömülü sistemler, uç cihazlarda yapay zeka ve full-stack geliştirmeyi bir araya getirerek uçtan uca ürün çıkarmayı hedefliyorum.',
   ].join('\n\n'),
   location: 'Samsun, Türkiye',
@@ -77,17 +76,7 @@ const YETENEK_GRUPLARI: [Kategori, string[]][] = [
   ['MOBILE', ['Mobil uygulama geliştirme', 'React Native']],
   [
     'TOOLING',
-    [
-      'Git / GitHub',
-      'Linux',
-      'systemd',
-      'GStreamer',
-      'WebSocket',
-      'Playwright',
-      'Cypress',
-      'Chrome Extension (MV3)',
-      'Claude Code',
-    ],
+    ['Git / GitHub', 'Linux', 'systemd', 'GStreamer', 'WebSocket', 'Playwright', 'Claude Code'],
   ],
 ];
 
@@ -117,7 +106,7 @@ export const DENEYIMLER: Deneyim[] = [
     startDate: '2023-11-01',
     current: true,
     description:
-      "11 kişilik yazılım ekibini 3 sezondur yönetiyorum; alt sistem gruplarını (sensörler, CAN, navigasyon, BMS, gerçek zamanlı kontrol, telemetri) ve Teknik Tasarım Raporu sürecini koordine ediyorum; rapor 2026'da 500 üzerinden 468,5 puanla 1. oldu. İki Delta MS300 VFD'yi tek RS-485 hattında Modbus RTU ile süren STM32 firmware'ini geliştirdim; itki ve fren sistemleri TÜBİTAK Gebze yerleşkesinde sahada test edildi.",
+      "Yazılım ekibini 3 sezondur yönetiyorum; alt sistem gruplarını (sensörler, CAN, navigasyon, BMS, gerçek zamanlı kontrol, telemetri) ve Teknik Tasarım Raporu sürecini koordine ediyorum; rapor 2026'da 500 üzerinden 468,5 puanla 1. oldu. İki Delta MS300 VFD'yi tek RS-485 hattında Modbus RTU ile süren STM32 firmware'ini geliştirdim; itki ve fren sistemleri TÜBİTAK Gebze yerleşkesinde sahada test edildi.",
   },
   {
     type: 'WORK',
@@ -135,7 +124,7 @@ export const DENEYIMLER: Deneyim[] = [
     startDate: '2024-09-01',
     current: true,
     description:
-      "Ajansın kuruluşunda ve yazılım biriminin yönetiminde yer alıyorum; 50'den fazla firmaya 500'den fazla proje teslim edildi. 5 kurumsal web sitesini uçtan uca geliştirdim, bir mobil uygulamanın geliştirme sürecini yürütüyorum.",
+      "Ajansın kuruluşunda ve yazılım biriminin yönetiminde yer alıyorum; 50'den fazla firmaya 500'den fazla proje teslim edildi. Ajansın kurumsal web sitelerini (İSÇEV Arıtma, Aşkar Medikal, Costman, İlkadım İşitme Cihazları, CRP Project ve diğerleri) uçtan uca geliştirdim; bir mobil uygulamanın geliştirme sürecini yürütüyorum.",
   },
   {
     type: 'WORK',
@@ -542,7 +531,7 @@ Lineer motorla itilen kapsülün yüksek EMI altında güvenilir haberleşmesi, 
 
 - **Lineer motor sürüşü:** İki Delta MS300 VFD'yi tek RS-485 hattında **Modbus RTU** (9600 baud, 8N1, slave 1 ve 2) ile süren STM32 firmware'ini geliştirdim: ileri/geri/dur kontrol sözcükleri ve 150 Hz'e kadar frekans. Kodu STM32F407'den Nucleo-F401RE'ye taşıdım.
 - **Saha doğrulaması:** VFD parametrelerini (frekans ve çalıştırma kaynağı RS-485, üst frekans sınırı) sahada test ederek doğruladım. Python seri↔WebSocket köprüsü ve canlı kontrol paneli ekledim.
-- **Ekip yönetimi:** 11 kişilik ekibi 6 alt sistem grubuna ayırdım (sensörler, CAN, navigasyon, BMS, RTOS, telemetri) ve Teknik Tasarım Raporu sürecini koordine ettim.
+- **Ekip yönetimi:** Yazılım ekibini 6 alt sistem grubuna ayırdım (sensörler, CAN, navigasyon, BMS, RTOS, telemetri) ve Teknik Tasarım Raporu sürecini koordine ettim.
 
 ## Ekip olarak geliştirdiklerimiz
 
@@ -601,93 +590,6 @@ Fabrikadaki makineler üretim sayaçlarını yalnızca operatör ekranında gös
 `,
   },
   {
-    slug: 'coban-robot-kol',
-    period: '2026',
-    title: 'Çoban — Türkçe Komutla Çalışan Robot Kol',
-    summary:
-      'Türkçe komutla çalışan, her adımı kamerayla doğrulayan kapalı döngü robot kol: Shepherd Robotics (YC F26) yaklaşımını Türk sanayisine uyarladım. Gerçek Gemini API ile 5 senaryo, 43 otomatik test.',
-    tags: ['Fiziksel yapay zeka', 'Robotik', 'Gömülü'],
-    stack: ['Python', 'Gemini API', 'Dijital ikiz (simülasyon)'],
-    featured: true,
-    content: `## Soru
-
-Türkiye'deki bir KOBİ, robot programcısı olmadan bir robota "çatlak konnektörü hurdaya at" diyebilir mi? Çıkış noktası Y Combinator'ın Fall 2026 *Request for Startups* listesindeki "fiziksel dünya için yeni işletim sistemleri" çağrısı ve aynı dönem YC'ye kabul edilen Shepherd Robotics oldu. Çoban, bu yaklaşımın Türk sanayisine uyarlanmış bir klonu.
-
-## Bileşenler
-
-- **Kapalı döngü görev yürütme:** Gemini her adımda kameradan gelen yeni görüntüye bakarak sıradaki hareketi seçiyor ve bir önceki adımın gerçekten başarılı olup olmadığını kontrol ediyor.
-- **Görme + dokunma füzyonu:** Görüntüden fark edilemeyen 1–2 cm'lik kaymaları gripper sensörü yakalıyor, sistem yeniden planlıyor.
-- **Bitiş doğrulaması:** Model "bitti" dediğinde ayrı bir kalite kontrol adımı son görüntüyü sayıyor; eksik varsa görev devam ediyor.
-- **Dijital ikiz:** Robot olmadan da aynı kodun çalıştığı simülasyon; Bursa'daki otomotiv tedarikçilerini örnek alan kablo demeti kitting ve çatlak parça kalite kontrol senaryoları.
-- **KVKK uyumlu görüntü işleme:** Görüntü buluta gönderilmeden önce çalışanların yüzleri cihaz üzerinde bulanıklaştırılıyor.
-- **Veri çarkı:** Her görev, ileride açık kaynak bir robot modelini eğitmek için veri seti olarak kaydediliyor.
-
-## Gerçek Gemini ile sonuçlar
-
-| Görev | Sonuç | Gösterdiği |
-| --- | --- | --- |
-| Kırmızı küpleri sarı kutuya koy | Tamamlandı (5 adım) | Çok adımlı planlama, her adımın görüntüyle doğrulanması |
-| Çatlak konnektörü hurda kutusuna at | Tamamlandı (3 adım) | Görsel kalite kontrol |
-| Mor küpü beyaz tepsiye koy | İmkânsız | Masada olmayan nesne için robotu hiç hareket ettirmeme |
-| Aynı görev, %40 tutma hatasıyla | Tamamlandı (8 adım) | Sensör 2 kaymayı yakalıyor; erken "bitti" kararı reddediliyor |
-
-Sistem 5 senaryoda gerçek Gemini API'siyle test edildi ve 43 otomatik testle doğrulandı.
-
-## En çok öğreten kısım: hatalar
-
-Model kayan bir parçayı fark etmedi, beyaz konnektörü siyah sandı, görev bitmeden "bitti" dedi. Her birini bir mühendislik çözümüyle kapattım. **Modelin "bitti" demesi, işin bittiği anlamına gelmiyor.**
-
-## Hedef
-
-Robot yoğunluğu dünya ortalamasının altında kalan Türk imalat sektörü için düşük maliyetli, Türkçe anlayan ve güvenilir bir otomasyon yaklaşımı.
-
-*Rehberliği ve akademik katkıları için Dr. Öğr. Üyesi Nurettin Şenyer'e teşekkür ederim.*
-`,
-  },
-  {
-    slug: 'tos-risk-guard',
-    period: '2026',
-    title: 'ToS Risk Guard — Alıntı Kanıtlı Sözleşme Risk Analizi',
-    summary:
-      'Kullanım koşulları ve gizlilik politikalarındaki riskli maddeleri yalnızca birebir alıntıyla gösteren Chrome eklentisi: "yapay zekâya güvenmeyen bir yapay zekâ sistemi". 6 gerçek sözleşmede %95 kesinlik; 4 gizli prompt injection denemesinin 4\'ü yakalandı.',
-    tags: ['Yapay zeka', 'LLM güvenliği', 'Chrome eklentisi'],
-    stack: ['Chrome Extension (MV3)', 'Gemini API', 'JSON Schema', 'Cypress'],
-    featured: true,
-    content: `## Problem
-
-"Kabul ediyorum" kutusunu işaretlemeden önce sözleşmeyi okuyan çok az. ToS Risk Guard; kullanım koşulları, gizlilik politikası veya abonelik şartları sayfası açıldığında metni yakalıyor ve riskli maddeleri sade Türkçeyle açıklıyor.
-
-## Tasarım ilkesi: LLM'e güvenmeyen bir LLM sistemi
-
-- **Her iddia alıntıyla:** Her riskli madde sözleşmeden birebir alıntıyla gösteriliyor. Alıntısı orijinal metinde bulunamayan iddia, kullanıcıya hiç gösterilmeden eleniyor.
-- **Skoru kod hesaplıyor:** Risk skoru (0–100) LLM'den değil, yalnızca doğrulanmış maddelerden sabit ağırlıklarla hesaplanıyor.
-- **Serbest metin yok:** LLM çıktısı JSON şemayla alınıp deterministik olarak yeniden doğrulanıyor.
-- **Prompt injection ayıklanıyor:** Sayfaya gizlenmiş "yapay zekâya talimat" denemeleri LLM'e ulaşmadan ayıklanıyor ve kullanıcıya uyarı olarak gösteriliyor.
-- **Emin değilse söylüyor:** Sistem emin olmadığında bunu gerekçeleriyle bildiriyor: "Düşük güven — sistem emin değil".
-
-## Değerlendirme
-
-6 gerçek sözleşme (Netflix, Spotify, YouTube, Zoom, GitHub, Dropbox) üzerinde mini değerlendirme:
-
-| Ölçü | Sonuç |
-| --- | --- |
-| Kesinlik (precision) | %95 — gösterilen maddelerin %95'i doğru |
-| Duyarlılık (recall) | %51 — maddelerin yaklaşık yarısı kaçırılıyor |
-| Daha güçlü modelle duyarlılık | %62, ama analiz 10–60 kat yavaş |
-| Gizli prompt injection | 4 denemenin 4'ü yakalandı, skor manipüle edilemedi |
-
-Kaçırılan ve yanlış alarm veren her maddeyi depoda tek tek listeledim; sistemin zayıf yanlarını da görünür kılmak istedim.
-
-## Kullanılanlar
-
-Chrome Extension (Manifest V3), Gemini API, Alibaba'nın açık kaynak page-agent kütüphanesi (yalnızca okuma amaçlı, en az yetki ilkesiyle), JSON şema doğrulama, Cypress ile uçtan uca test ve demo kaydı.
-
-> Uygulama hukuki tavsiye vermez; yalnızca bir ön okuma aracıdır.
-
-*Yönlendirmeleri için Dr. Öğr. Üyesi Nurettin Şenyer'e teşekkür ederim.*
-`,
-  },
-  {
     slug: 'predictive-edge',
     title: 'Predictive-Edge — Mikrodenetleyicide Kestirimci Bakım',
     summary:
@@ -718,29 +620,51 @@ Veri seti fiziksel arıza modeline dayalı sentetik veridir. Modelin gerçek STM
   },
   {
     slug: 'iscev-is-yonetim-platformu',
+    period: '2026',
     title: 'İSÇEV — Kurumsal İş Yönetim Platformu',
     summary:
-      'Next.js, tRPC ve Prisma ile geliştirilen kurumsal iş yönetim platformu: RBAC, değiştirilemez denetim izi, AES-256-GCM alan şifreleme ve BullMQ kuyrukları.',
-    tags: ['Full-stack', 'Kurumsal'],
-    stack: ['Next.js', 'TypeScript', 'tRPC', 'Prisma', 'PostgreSQL', 'Redis', 'BullMQ'],
+      'Bir su arıtma firmasının teklif, proje, satın alma, saha işleri, finans, muhasebe ve servis süreçlerini tek panelde toplayan, sıfırdan geliştirdiğim kurumsal yönetim platformu. 43 veri modeli, 245 otomatik test.',
+    tags: ['Full-stack', 'Kurumsal yazılım', 'Güvenlik'],
+    stack: ['Next.js', 'TypeScript', 'tRPC', 'Prisma', 'PostgreSQL', 'Redis', 'BullMQ', 'Auth.js'],
     featured: true,
-    content: `## Kapsam
+    content: `## Problem
 
-Kurumsal iş süreçlerini tek panelde toplayan web platformu. Next.js, TypeScript, tRPC ve Prisma (PostgreSQL, Redis) ile geliştiriliyor.
+Proje bazlı arıtma tesisi kuran, satın alma, servis ve bakım yürüten bir firmanın süreçleri dağınık araçlarda yürüyordu. Hedef, teklif aşamasından proje teslimine kadar her adımı tek bir sistemde, denetlenebilir biçimde yönetmekti.
 
-## Güvenlik
+## İş akışı
 
-- Rol tabanlı erişim kontrolü (**RBAC**)
-- **Değiştirilemez denetim izi**
-- **AES-256-GCM** ile alan şifreleme
+Cari (müşteri / tedarikçi) → revizyonlu teklif → "Projeye dönüştür" → iş planı ve aşamalar → ihtiyaç listesi → satın alma (tedarikçi teklifi karşılaştırma) → taksit ve tahsilat → finans ve muhasebe → teslim faturasıyla projeyi kapatma.
 
-## Altyapı
+## Modüller
 
-- BullMQ tabanlı e-posta bildirim kuyrukları
+- **Cariler:** müşteri ve tedarikçi kartları, cari ekstre, Excel ile toplu içe aktarma
+- **Teklifler:** revizyon geçmişi, KDV seçenekleri, TCMB kuruyla çok dövizli fiyatlandırma, yazdırılabilir çıktı
+- **Projeler:** iş planı, ihtiyaç listesi, satın alma, taksitler ve proje bazında kâr / zarar
+- **İşler:** Kanban görünümü, atama, zaman kaydı ve iş takvimi
+- **Finans:** kasa, banka hesapları, krediler ve kredi kartları, bütçe planı ile gerçekleşenin karşılaştırması
+- **Muhasebe:** faturalar, makbuzlar, tekrarlayan faturalar ve defter kayıtları
+- **Servis ve bakım:** servis sözleşmeleri, ziyaretler ve bakım planları
+- **Müşteri portalı:** müşterinin projesini giriş yapmadan izleyebildiği bağlantı
+- **Bildirimler:** uygulama içi, Web Push (PWA) ve e-posta; canlı akış ve günlük hatırlatmalar
 
-## Geliştirme süreci
+## Güvenlik ve veri bütünlüğü
 
-Geliştirme, çoklu yapay zeka ajanlarının orkestrasyonuna dayalı bir iş akışıyla yürütülüyor.
+- İzin tabanlı rol yönetimi (**RBAC**) ve **TOTP ile iki adımlı doğrulama**
+- Hassas alanlarda uygulama katmanında **AES-256-GCM** şifreleme
+- Veritabanı tetikleyicileriyle **değiştirilemez denetim kaydı**; tüm para işlemleri denetime yazılıyor
+- **Row Level Security**, hız sınırlama, CSRF koruması ve her girdide şema doğrulaması
+- Kuruş hassasiyetinde, kayıpsız para hesabı; KVKK için kullanıcı anonimleştirme
+
+## Sayılar
+
+| Ölçü | Değer |
+| --- | --- |
+| Veri modeli | 43 |
+| Sayfa | 46 |
+| Otomatik test | 245 (birim, entegrasyon, Playwright uçtan uca) |
+| Veritabanı göçü | 55 |
+
+CI hattı her değişiklikte lint, tip denetimi, birim ve entegrasyon testlerini, göç tutarlılığını ve üretim derlemesini çalıştırıyor.
 `,
   },
   {
@@ -750,7 +674,7 @@ Geliştirme, çoklu yapay zeka ajanlarının orkestrasyonuna dayalı bir iş ak�
     summary:
       'Kurucu ortağı olduğum 360° dijital ajansın kurumsal sitesi — tasarımdan yayına uçtan uca.',
     tags: ['Kurumsal site', 'Kıyı Medya'],
-    stack: [],
+    stack: ['React'],
     liveUrl: 'https://kiyimedya.com',
     clientName: 'Kıyı Medya',
     featured: false,
@@ -768,7 +692,7 @@ Ajansın kurumsal sitesini tasarımdan yayına uçtan uca geliştirdim.
     summary:
       'Arıtma ve çevre teknolojileri firması için kurumsal web sitesi — Kıyı Medya bünyesinde.',
     tags: ['Kurumsal site', 'Kıyı Medya'],
-    stack: [],
+    stack: ['Vite'],
     liveUrl: 'https://iscevaritma.com.tr',
     clientName: 'İSÇEV Arıtma',
     featured: false,
@@ -783,13 +707,118 @@ Endüstriyel atıksu arıtma ve çevre teknolojileri alanında çalışan firma 
     title: 'Askar Medikal — Kurumsal Site',
     summary: 'Tıbbi cihaz tedarikçisi için kurumsal web sitesi — Kıyı Medya bünyesinde.',
     tags: ['Kurumsal site', 'Kıyı Medya'],
-    stack: [],
+    stack: ['Next.js'],
     liveUrl: 'https://askarmedikal.com',
     clientName: 'Askar Medikal',
     featured: false,
     content: `## Proje
 
 Tıbbi cihaz tedarikçisi için kurumsal web sitesi. Kıyı Medya bünyesinde, tasarımdan yayına uçtan uca geliştirildi.
+`,
+  },
+  {
+    slug: 'costman-kurumsal-site',
+    commercial: true,
+    title: 'Costman — Kurumsal Site',
+    summary:
+      'Restoran, kafe ve bar işletmelerine maliyet danışmanlığı veren marka için kurumsal web sitesi — Kıyı Medya bünyesinde.',
+    tags: ['Kurumsal site', 'Kıyı Medya'],
+    stack: ['Vite'],
+    liveUrl: 'https://mrcostman.com',
+    clientName: 'Costman',
+    featured: false,
+    content: `## Proje
+
+Restoran, kafe ve bar işletmelerine maliyet danışmanlığı veren marka için kurumsal web sitesi. Kıyı Medya bünyesinde, tasarımdan yayına uçtan uca geliştirildi.
+`,
+  },
+  {
+    slug: 'ilkadim-isitme-cihazlari-site',
+    commercial: true,
+    title: 'İlkadım İşitme Cihazları — Kurumsal Site',
+    summary: 'İşitme cihazı merkezi için kurumsal web sitesi — Kıyı Medya bünyesinde.',
+    tags: ['Kurumsal site', 'Kıyı Medya'],
+    stack: ['Vite'],
+    liveUrl: 'https://ilkadimisitmecihazlari.com',
+    clientName: 'İlkadım İşitme Cihazları',
+    featured: false,
+    content: `## Proje
+
+İşitme cihazı merkezi için kurumsal web sitesi. Kıyı Medya bünyesinde, tasarımdan yayına uçtan uca geliştirildi.
+`,
+  },
+  {
+    slug: 'crp-project-kurumsal-site',
+    commercial: true,
+    title: 'CRP Project — Kurumsal Site',
+    summary:
+      'Kafe ve restoran yönetim danışmanlığı markası için kurumsal web sitesi — Kıyı Medya bünyesinde.',
+    tags: ['Kurumsal site', 'Kıyı Medya'],
+    stack: ['Vite'],
+    liveUrl: 'https://crpproject.com',
+    clientName: 'CRP Project',
+    featured: false,
+    content: `## Proje
+
+Kafe ve restoran yönetim danışmanlığı markası için kurumsal web sitesi. Kıyı Medya bünyesinde, tasarımdan yayına uçtan uca geliştirildi.
+`,
+  },
+  {
+    slug: 'spectraloop-tanitim-sitesi',
+    commercial: true,
+    title: 'Spectraloop — Takım Tanıtım Sitesi',
+    summary: 'Spectraloop öğrenci teknoloji takımı için tanıtım sitesi — Kıyı Medya bünyesinde.',
+    tags: ['Kurumsal site', 'Kıyı Medya'],
+    stack: ['Next.js'],
+    liveUrl: 'https://spectraloop.com.tr',
+    clientName: 'Spectraloop',
+    featured: false,
+    content: `## Proje
+
+Öğrenci teknoloji takımı Spectraloop için tanıtım sitesi. Kıyı Medya bünyesinde, tasarımdan yayına uçtan uca geliştirildi.
+`,
+  },
+  {
+    slug: 'dna-cevre-aritma-site',
+    commercial: true,
+    title: 'DNA Çevre ve Arıtma — Kurumsal Site',
+    summary:
+      'Ankara merkezli arıtma firması için yenilenen kurumsal web sitesi — Kıyı Medya bünyesinde.',
+    tags: ['Kurumsal site', 'Kıyı Medya'],
+    stack: [],
+    clientName: 'DNA Çevre ve Arıtma',
+    featured: false,
+    content: `## Proje
+
+Ankara merkezli arıtma firması için yenilenen kurumsal web sitesi. Kıyı Medya bünyesinde geliştirildi.
+`,
+  },
+  {
+    slug: 'yay-grup-su-aritma-site',
+    commercial: true,
+    title: 'Yay Grup Su Arıtma — Kurumsal Site',
+    summary: 'Su ve atıksu arıtma markası için kurumsal web sitesi — Kıyı Medya bünyesinde.',
+    tags: ['Kurumsal site', 'Kıyı Medya'],
+    stack: [],
+    clientName: 'Yay Grup',
+    featured: false,
+    content: `## Proje
+
+Su ve atıksu arıtma markası için kurumsal web sitesi. Kıyı Medya bünyesinde geliştirildi.
+`,
+  },
+  {
+    slug: 'yay-grup-metal-isleme-site',
+    commercial: true,
+    title: 'Yay Grup Metal İşleme — Kurumsal Site',
+    summary: 'Lazer kesim ve sac işleme markası için kurumsal web sitesi — Kıyı Medya bünyesinde.',
+    tags: ['Kurumsal site', 'Kıyı Medya'],
+    stack: [],
+    clientName: 'Yay Grup',
+    featured: false,
+    content: `## Proje
+
+Lazer kesim ve sac işleme markası için kurumsal web sitesi. Kıyı Medya bünyesinde geliştirildi.
 `,
   },
   {
@@ -816,19 +845,24 @@ Yaklaşık 20 şehirde 100'den fazla işletmeye yönelik pazarlama ve saha çal�
  * HİZMETLER — Kıyı Medya üzerinden yürüyen ticari işler (CTA boş → Kıyı Medya).
  * Her başlık belgelerdeki GERÇEK bir işe dayanıyor: 5 kurumsal site
  * (kiyimedya.com, iscevaritma.com.tr, askarmedikal.com…), İSÇEV ve TesisBul
- * platformları, yürütülen mobil uygulama. Gömülü/yapay zeka işleri ticari hizmet
- * olarak listelenmedi — belgelerde öyle bir teklif yok.
+ * platformları, yürütülen mobil uygulama. Gömülü sistem hizmeti 2026-10-23'te
+ * sahibinin isteğiyle eklendi (Spectraloop ve JWC işlerine dayanıyor).
  */
 export const HIZMETLER = [
   {
     title: 'Kurumsal web sitesi',
     description:
-      'Tasarımdan yayına uçtan uca: hızlı, arama motoru dostu ve içeriği panelden yönetilen kurumsal siteler. Kıyı Medya ile 5 kurumsal site bu şekilde teslim edildi.',
+      'Tasarımdan yayına uçtan uca: hızlı, arama motoru dostu ve içeriği panelden yönetilen kurumsal siteler. İSÇEV Arıtma, Aşkar Medikal, Costman ve İlkadım İşitme Cihazları gibi markaların siteleri Kıyı Medya ile bu şekilde teslim edildi.',
   },
   {
     title: 'Web uygulaması ve yönetim paneli',
     description:
       'Rol tabanlı yetki, denetim izi ve iş akışlarıyla kurumsal platformlar; rezervasyon ve iş yönetimi gibi işe özel uygulamalar. Next.js, TypeScript ve PostgreSQL ile.',
+  },
+  {
+    title: 'Gömülü sistem ve donanım yazılımı',
+    description:
+      'STM32 tabanlı firmware, sensör entegrasyonu ve CAN Bus / Modbus RTU / RS-485 haberleşmesi; Raspberry Pi ve Jetson ile sahada çalışan görüntü işleme ve veri toplama cihazları. Hyperloop kapsül kontrol yazılımı ve üretim hattı izleme sistemi bu yaklaşımla geliştirildi.',
   },
   {
     title: 'Mobil uygulama',
