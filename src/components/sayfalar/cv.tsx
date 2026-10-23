@@ -1,8 +1,9 @@
-import { FileText } from 'lucide-react';
+import { Download, FileText } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { aralik, ayYil } from '@/components/public/gun-bicim';
+import { URETILMIS_CV } from '@/components/public/uretilmis-cv';
 import { buttonClasses } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { YazdirDugmesi } from '@/components/ui/yazdir-dugmesi';
@@ -115,7 +116,19 @@ export async function CvSayfasi({ dil }: { dil: Dil }) {
           </p>
         </header>
 
-        <YazdirDugmesi etiket={c.yazdir} />
+        <div data-yazdirmada-gizle className="flex flex-wrap gap-2">
+          {URETILMIS_CV[dil] && (
+            <a
+              href={URETILMIS_CV[dil] ?? undefined}
+              download
+              className={buttonClasses({ size: 'sm' })}
+            >
+              <Download className="size-4" aria-hidden="true" />
+              {s.cvIndir.indir}
+            </a>
+          )}
+          <YazdirDugmesi etiket={c.yazdir} />
+        </div>
       </div>
 
       {/*

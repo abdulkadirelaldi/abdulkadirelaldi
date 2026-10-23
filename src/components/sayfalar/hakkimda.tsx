@@ -7,6 +7,7 @@ import { OdulIzgarasi } from '@/components/public/basarilar';
 import { SertifikaListesi } from '@/components/public/sertifikalar';
 import { Spor } from '@/components/public/spor';
 import { CvIndir } from '@/components/public/cv-indir';
+import { URETILMIS_CV } from '@/components/public/uretilmis-cv';
 import type { Dil } from '@/i18n/diller';
 import { dilAlternatifleri } from '@/i18n/meta';
 import { yol } from '@/i18n/rotalar';
@@ -206,6 +207,7 @@ export async function HakkimdaSayfasi({ dil }: { dil: Dil }) {
             dil={dil}
             cv={profil.cv}
             indirmeUrl={profil.cv ? dosyaAdresi(profil.cv.id) : null}
+            uretilmisPdf={URETILMIS_CV[dil]}
           />
         </section>
       </div>
