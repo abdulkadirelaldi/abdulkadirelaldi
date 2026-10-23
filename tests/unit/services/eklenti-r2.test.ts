@@ -116,9 +116,15 @@ describe('⚠️ sniffMime — İÇERİK okunuyor', () => {
      * ölçüyordu, yenisi REDDEDİLDİĞİNİ. T-053'te öğrenilen ders — sapma
      * imkânsızlaştığında assert'i düzeltmek değil SORUYU DEĞİŞTİRMEK gerekir.
      */
-    const gercekSvg = readFileSync(join(KOK, 'src/app/icon.svg'));
+    // Eski `src/app/icon.svg`in ŞEKLİ (2026-10-23'te PNG/ICO simgelerle
+    // değiştirildi): XML yorumuyla başlayan, `<svg`i 514. bayta itilmiş bir SVG.
+    // Dosya artık yok; ölçülen durum aynen burada kuruluyor.
+    const gercekSvg = Buffer.from(
+      `<!--${' '.repeat(506)}-->\n<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"></svg>`,
+    );
+    expect(gercekSvg.indexOf('<svg')).toBe(514);
 
-    // Depodaki SVG hâlâ bir SVG; değişen şey YÜKLENEBİLİR olup olmadığı.
+    // Yorumla başlayan SVG hâlâ bir SVG; değişen şey YÜKLENEBİLİR olup olmadığı.
     expect(gercekSvg.toString('utf8', 0, 4)).toBe('<!--');
     expect(sniffMime(gercekSvg)).toBeNull();
 
