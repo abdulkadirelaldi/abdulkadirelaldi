@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import { KapakGorsel } from '@/components/public/kapak-gorsel';
+import { statikKapak } from '@/components/public/statik-kapak';
 import { hapSiniflari } from '@/components/public/tasarim/gradyan-baglanti';
 import type { Dil } from '@/i18n/diller';
 import { yol } from '@/i18n/rotalar';
@@ -75,6 +76,8 @@ export function ProjeYigini({
               <div className="group overflow-hidden rounded-[1.25rem] md:rounded-[1.75rem]">
                 <KapakGorsel
                   kapak={proje.cover}
+                  // Yüklenmiş kapak yoksa statik kapak (statik-kapak.ts).
+                  src={proje.cover ? undefined : (statikKapak(proje) ?? undefined)}
                   baslik={proje.title}
                   className="ease-brand h-full transition-transform duration-700 group-hover:scale-[1.04]"
                 />
