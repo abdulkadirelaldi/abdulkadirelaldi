@@ -77,11 +77,11 @@ const jetBrainsMono = localFont({
   weight: '400 500',
   style: 'normal',
   display: 'swap',
-  // ADR-045 ölçümü: ön yükleme YALNIZCA ekranın üstünde gereken fontlarda (Inter +
-  // public'te Archivo). Bu aile ilk ekranda neredeyse yok; ön yüklemesi hero
-  // görseliyle bant genişliği yarışına girip mobil LCP'yi geciktiriyordu.
-  // `swap` + `adjustFontFallback` sayesinde geç gelmesi düzen kaydırmıyor.
-  preload: false,
+  // 2026-10-23: hero yeniden tasarlandı — büyük portre kalktı, ilk ekranda bir
+  // kod penceresi var ve mobilde LCP öğesi O. Ön yüklenmeyen font geç gelip
+  // metni yeniden dizdiriyordu (ölçüldü: CLS 0,046, LCP 3,2 sn). Eskiden ön
+  // yükleme hero portresiyle bant genişliği yarışıyordu; portre artık yok.
+  preload: true,
   adjustFontFallback: 'Arial',
   variable: '--font-jetbrains-mono',
 });

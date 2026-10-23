@@ -35,24 +35,14 @@ const ANA_SAYFA_YETENEK = 24;
 const KIYI_MEDYA_URL = process.env.NEXT_PUBLIC_KIYI_MEDYA_URL ?? 'https://kiyimedya.com';
 
 /**
- * 3B AVATAR — `public/` altına bu adlardan biriyle konduğu an hero'da görünür
- * (ilk bulunan kazanır). Yoksa hero parlak küre süsünü çizer. Dosya sistemi
- * MODÜL YÜKLENİRKEN bir kez okunur: her istekte `existsSync` gereksiz, dosya
- * yalnızca yeni bir dağıtımla değişir. Standalone imaj `public/`u kopyalıyor.
+ * HERO AVATARI — `public/avatar-kucuk.webp` (192×192 kare, ~8 KB) varsa
+ * kod penceresinin başlığında küçük, yuvarlak; yoksa baş harfler. Dosya
+ * sistemi MODÜL YÜKLENİRKEN bir kez okunur: dosya yalnızca yeni bir
+ * dağıtımla değişir. Standalone imaj `public/`u kopyalıyor.
  */
-const AVATAR_ADAYLARI = ['avatar-3d.webp', 'avatar-3d.png'] as const;
-const publicteVar = (ad: string) => existsSync(join(process.cwd(), 'public', ad));
-const avatar = (() => {
-  const bulunan = AVATAR_ADAYLARI.find(publicteVar);
-  if (!bulunan) return null;
-  // Küçük kopya (`avatar-3d-720.webp`) varsa mobil onu indirir — LCP öğesi bu
-  // görsel, mobilde bayt sayısı doğrudan LCP'ye yazılıyor (ADR-045 ölçümü).
-  const kucuk = bulunan === 'avatar-3d.webp' && publicteVar('avatar-3d-720.webp');
-  return {
-    src: `/${bulunan}`,
-    srcSet: kucuk ? '/avatar-3d-720.webp 720w, /avatar-3d.webp 900w' : undefined,
-  };
-})();
+const avatar = existsSync(join(process.cwd(), 'public', 'avatar-kucuk.webp'))
+  ? '/avatar-kucuk.webp'
+  : null;
 
 export function anaSayfaMetadata(dil: Dil): Metadata {
   const s = sozluk(dil);
@@ -88,7 +78,23 @@ export async function AnaSayfa({ dil }: { dil: Dil }) {
 
   return (
     <>
-      <Hero dil={dil} profil={profil} ad={SITE_NAME} avatar={avatar} />
+      <Hero
+        dil={dil}
+        profil={profil}
+        ad={SITE_NAME}
+        avatar={avatar}
+        // Öne çıkan ödül: ödüller panel sırasıyla geliyor, ilki en güçlüsü.
+        // Kurumun ` · kategori` kuyruğu kesiliyor — yorum satırı tek satır kalsın.
+        // Süren işler — pencerede `şimdi`. Kurumun açıklama kuyruğu kesiliyor; çevirilerde
+        // ayraç uzun tire ya da kısa tire olabildiği için ikisi de (Almanca ` – `).
+        simdi={deneyimler
+          .filter((d) => d.type === ExperienceType.WORK && d.current)
+          .slice(0, 3)
+          .map((d) => `${d.organization.split(/\s[—–-]\s/)[0]} · ${d.role}`)}
+        oneCikan={
+          oduller[0] ? `${oduller[0].role} — ${oduller[0].organization.split(' · ')[0]}` : null
+        }
+      />
 
       <div className="flex flex-col gap-10 py-10 md:gap-14 md:py-14">
         <LogoSeridi logolar={logolar} etiket={s.seritler.ekipler} />
