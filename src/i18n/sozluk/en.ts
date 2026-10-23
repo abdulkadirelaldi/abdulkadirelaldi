@@ -51,6 +51,7 @@ export const en: Sozluk = {
     kodKonum: 'location',
     kodSaat: 'localTime',
     pencereEtiket: 'Quick profile',
+    yeteneklerEtiket: 'Core skills',
     projeler: 'Projects',
     cta: 'Work with me',
   },

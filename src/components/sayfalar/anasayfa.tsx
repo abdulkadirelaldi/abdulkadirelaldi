@@ -40,6 +40,13 @@ const KIYI_MEDYA_URL = process.env.NEXT_PUBLIC_KIYI_MEDYA_URL ?? 'https://kiyime
  * sistemi MODÜL YÜKLENİRKEN bir kez okunur: dosya yalnızca yeni bir
  * dağıtımla değişir. Standalone imaj `public/`u kopyalıyor.
  */
+/**
+ * Hero'daki başlıca yetenekler — sahibinin öne çıkardığı alanlar (2026-10-23).
+ * Ad listesi burada, VERİ yetenek kayıtlarında: kaydı silinen ad hero'dan da
+ * düşer, uydurma bir yetenek görünmez. Adlar teknoloji adı, dile göre değişmiyor.
+ */
+const HERO_YETENEKLERI = ['STM32 (HAL)', 'CAN Bus', 'Python', 'TypeScript', 'Next.js', 'YOLO'];
+
 const avatar = existsSync(join(process.cwd(), 'public', 'avatar-kucuk.webp'))
   ? '/avatar-kucuk.webp'
   : null;
@@ -85,6 +92,9 @@ export async function AnaSayfa({ dil }: { dil: Dil }) {
         avatar={avatar}
         // Süren işler — pencerede `şimdi`. Kurumun açıklama kuyruğu kesiliyor; çevirilerde
         // ayraç uzun tire ya da kısa tire olabildiği için ikisi de (Almanca ` – `).
+        yetenekler={HERO_YETENEKLERI.filter((ad) => yetenekler.some((y) => y.name === ad)).map(
+          (ad) => ad.replace(' (HAL)', ''),
+        )}
         simdi={deneyimler
           .filter((d) => d.type === ExperienceType.WORK && d.current)
           .slice(0, 3)
