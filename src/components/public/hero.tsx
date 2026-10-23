@@ -18,8 +18,6 @@ export type HeroProps = {
   ad: string;
   /** Küçük kare portre (`public/`), yoksa `null` ve baş harfler çiziliyor. */
   avatar: string | null;
-  /** Öne çıkan ödül — kod penceresinde yorum satırı; yoksa satır yok. */
-  oneCikan: string | null;
   /** Süren işler ("Kurum · Rol") — penceredeki `şimdi` dizisi; boşsa satır yok. */
   simdi: string[];
 };
@@ -35,7 +33,7 @@ export type HeroProps = {
  *     bölüm başlıklarının dolu/kontur ikiliği.
  *   - Sağda proje kartlarındaki kod künyesinin akrabası bir "ben.ts"
  *     penceresi: odak, SÜREN işler (deneyim kayıtlarından — soldaki alt
- *     başlığı tekrar etmesin), konum, canlı saat; en güçlü ödül yorum satırı. Portre burada KÜÇÜK, yuvarlak bir avatar.
+ *     başlığı tekrar etmesin), konum, canlı saat. Portre burada KÜÇÜK, yuvarlak bir avatar.
  *
  * LCP artık `<h1>` METNİ: görsel beklemiyor, sunucuda çiziliyor. Avatar 8 KB,
  * ön yükleme YOK (ekranın odağı değil).
@@ -44,7 +42,7 @@ export type HeroProps = {
  * metinden alıyor. Kod penceresi bir `<figure>` — ekran okuyucu onu
  * "kısa künye" diye duyar, içindeki noktalama gürültüsünü değil (`aria-label`).
  */
-export function Hero({ dil, profil, ad, avatar, oneCikan, simdi }: HeroProps) {
+export function Hero({ dil, profil, ad, avatar, simdi }: HeroProps) {
   const s = sozluk(dil);
   const h = s.hero;
   const [ilkAd = ad, ...kalan] = ad.split(' ');
@@ -171,13 +169,6 @@ export function Hero({ dil, profil, ad, avatar, oneCikan, simdi }: HeroProps) {
 
             <pre className="tabular text-muted px-5 py-5 text-[0.74rem] leading-[1.75] break-words whitespace-pre-wrap md:px-6 md:text-[0.8rem]">
               <code>
-                {oneCikan && (
-                  <span className="text-muted/80 italic">
-                    {'// '}
-                    {oneCikan}
-                    {'\n'}
-                  </span>
-                )}
                 <span className="text-accent-soft">const</span>{' '}
                 <span className="text-primary">{h.kodDegisken}</span> = {'{'}
                 {'\n'}
