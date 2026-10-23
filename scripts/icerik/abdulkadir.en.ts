@@ -444,6 +444,7 @@ export const DENEYIMLER: Deneyim[] = [
     organization: 'Erzurum TRT Sports Club',
     startDate: '2014-01-01',
     endDate: '2017-12-31',
+    description: 'Football',
   },
   {
     type: 'SPORT',

@@ -79,7 +79,12 @@ export function Spor({
                 </span>
                 <span className="text-sm leading-snug">
                   <span className="text-primary">{k.organization}</span>
-                  <span className="text-muted"> · {k.role}</span>
+                  <span className="text-muted">
+                    {' · '}
+                    {k.role}
+                    {/* Branş yalnızca adından anlaşılmıyorsa girilir (ör. TRT Spor → futbol). */}
+                    {k.description && <> · {k.description}</>}
+                  </span>
                 </span>
               </li>
             ))}
