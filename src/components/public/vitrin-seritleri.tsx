@@ -1,4 +1,5 @@
 import { KapakGorsel } from '@/components/public/kapak-gorsel';
+import { statikKapak } from '@/components/public/statik-kapak';
 import { KayanSerit } from '@/components/public/tasarim/kayan-serit';
 import { dosyaAdresi } from '@/lib/dosya-adresi';
 import type { ProjectListItemDto } from '@/server/services/content-dto';
@@ -80,7 +81,8 @@ export function TeknolojiSeridi({ kelimeler, etiket }: { kelimeler: string[]; et
  * (yer tutucu kutuları kaydırmak boş vitrin göstermek olurdu).
  */
 export function KapakSeridi({ projeler }: { projeler: ProjectListItemDto[] }) {
-  const kapakli = projeler.filter((p) => p.cover?.mime.startsWith('image/'));
+  // Yüklenmiş görsel kapak YA DA statik kapak (statik-kapak.ts) taşıyanlar.
+  const kapakli = projeler.filter((p) => p.cover?.mime.startsWith('image/') || statikKapak(p));
   if (kapakli.length < KAPAK_ESIGI) return null;
 
   const yarim = Math.ceil(kapakli.length / 2);
@@ -91,7 +93,12 @@ export function KapakSeridi({ projeler }: { projeler: ProjectListItemDto[] }) {
           key={p.id}
           className="mx-2 w-[22rem] shrink-0 overflow-hidden rounded-[1.5rem] md:w-[28rem]"
         >
-          <KapakGorsel kapak={p.cover} baslik={p.title} className="!aspect-[16/10]" />
+          <KapakGorsel
+            kapak={p.cover}
+            src={p.cover ? undefined : (statikKapak(p) ?? undefined)}
+            baslik={p.title}
+            className="!aspect-[16/10]"
+          />
         </div>
       ))}
     </KayanSerit>

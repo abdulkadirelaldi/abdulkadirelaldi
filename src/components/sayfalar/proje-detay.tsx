@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { KapakGorsel } from '@/components/public/kapak-gorsel';
+import { statikKapak } from '@/components/public/statik-kapak';
 import { Mdx } from '@/components/public/mdx';
 import { cipSiniflari, filtreAdresi } from '@/components/public/proje-filtre';
 import { PROJE_SEMALARI } from '@/components/public/proje-semalari';
@@ -193,6 +194,7 @@ export async function ProjeDetaySayfasi({ dil, slug }: SayfaProps) {
         <div className="overflow-hidden rounded-[2rem]">
           <KapakGorsel
             kapak={proje.cover}
+            src={proje.cover ? undefined : (statikKapak(proje) ?? undefined)}
             baslik={proje.title}
             yokEtiketi={p.kapakYok(proje.title)}
           />
