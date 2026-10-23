@@ -17,10 +17,11 @@ export const PROFIL = {
     'Ich entwickle End-to-End-Systeme an der Schnittstelle von Hardware und Software: von STM32-basierter Steuerungssoftware über OCR-Systeme im Praxiseinsatz bis hin zu KI-Modellen, die auf Mikrocontrollern laufen.',
     'Seit drei Saisons leite ich beim TEKNOFEST Hyperloop das 11-köpfige Softwareteam von Spectraloop. Ich arbeite an STM32-basierter Steuerungssoftware, CAN-Bus- und Modbus-RTU-Kommunikation sowie an Fail-safe-Architekturen. Mit meinem Team habe ich beim TEKNOFEST 2026 Hyperloop-Entwicklungswettbewerb in der Kategorie Technologiedemonstration den 1. Platz in der Türkei sowie in den Kategorien Performance und Lösung definierter Problemstellungen jeweils den 3. Platz belegt.',
     'Während meines Praktikums im Samsun Teknopark habe ich ein im Feld validiertes Linienüberwachungssystem entwickelt, das die Bildschirme von Produktionsmaschinen ohne Datenschnittstelle per OCR ausliest. Als Mitgründer von Kıyı Medya leite ich die Softwareabteilung der Agentur und entwickle Unternehmenswebsites durchgängig – vom Design bis zum Go-live.',
+    'In letzter Zeit beschäftige ich mich mit der Zuverlässigkeit von KI: Ich habe ein LLM-System entwickelt, das riskante Klauseln in Verträgen ausschließlich mit wörtlichen Zitaten belegt (ToS Risk Guard), sowie einen Roboterarm, der auf türkische Befehle hin arbeitet und jeden seiner Schritte per Kamera überprüft (Çoban).',
     'Mein Ziel ist es, Embedded-Systeme, KI auf Edge-Geräten und Full-Stack-Entwicklung zu verbinden und so Produkte von Anfang bis Ende zu realisieren.',
   ].join('\n\n'),
   location: 'Samsun, Türkei',
-  availability: 'Offen für Praktika, Stellen und Projekte · Abschluss 2027',
+  availability: 'Offen für Praktika, Stellen und Projekte · Abschluss 2028',
   socials: PROFIL_TR.socials,
 } as const;
 
@@ -50,6 +51,7 @@ const YETENEK_GRUPLARI: [Kategori, string[]][] = [
       'scikit-learn',
       'ONNX Runtime',
       'TinyML',
+      'LLM-Integration (Gemini, Anthropic)',
     ],
   ],
   [
@@ -58,8 +60,21 @@ const YETENEK_GRUPLARI: [Kategori, string[]][] = [
   ],
   ['DATABASE', ['PostgreSQL', 'MongoDB', 'SQLite', 'Redis']],
   ['FRONTEND', ['React', 'Next.js', 'HTML / CSS']],
-  ['MOBILE', ['Mobile-App-Entwicklung']],
-  ['TOOLING', ['Git / GitHub', 'Linux', 'systemd', 'GStreamer', 'WebSocket', 'Claude Code']],
+  ['MOBILE', ['Mobile-App-Entwicklung', 'React Native']],
+  [
+    'TOOLING',
+    [
+      'Git / GitHub',
+      'Linux',
+      'systemd',
+      'GStreamer',
+      'WebSocket',
+      'Playwright',
+      'Cypress',
+      'Chrome Extension (MV3)',
+      'Claude Code',
+    ],
+  ],
 ];
 
 /** Türkçedeki ile aynı — sitede gösterilmiyor. */
@@ -78,7 +93,7 @@ export const DENEYIMLER: Deneyim[] = [
     startDate: '2023-11-01',
     current: true,
     description:
-      'Seit 3 Saisons leite ich das 11-köpfige Softwareteam; ich koordiniere die Subsystemgruppen (Sensorik, CAN, Navigation, BMS, Echtzeitsteuerung, Telemetrie) und den Prozess rund um den technischen Designbericht. Ich habe die STM32-Firmware entwickelt, die zwei Delta-MS300-Frequenzumrichter (VFD) über eine einzige RS-485-Leitung per Modbus RTU ansteuert.',
+      'Seit 3 Saisons leite ich das 11-köpfige Softwareteam; ich koordiniere die Subsystemgruppen (Sensorik, CAN, Navigation, BMS, Echtzeitsteuerung, Telemetrie) und den Prozess rund um den technischen Designbericht; der Bericht belegte 2026 mit 468,5 von 500 Punkten den 1. Platz. Ich habe die STM32-Firmware entwickelt, die zwei Delta-MS300-Frequenzumrichter (VFD) über eine einzige RS-485-Leitung per Modbus RTU ansteuert; die Antriebs- und Bremssysteme wurden auf dem TÜBİTAK-Campus Gebze im Feld getestet.',
   },
   {
     type: 'WORK',
@@ -87,7 +102,7 @@ export const DENEYIMLER: Deneyim[] = [
     startDate: '2026-07-01',
     endDate: '2026-08-31',
     description:
-      'JWC-Linienüberwachungssystem: Raspberry Pi 5 als Feldgerät, GStreamer-Videopipeline, alle 6 Felder mit RapidOCR / ONNX Runtime auf ARM im Feld mit 99 %+ Konfidenz ausgelesen; FastAPI-basierte Event-Engine und OEE-Berechnung.',
+      'Zwei End-to-End-Projekte: (1) JWC-Linienüberwachungssystem – Raspberry Pi 5 als Feldgerät, GStreamer-Videopipeline, alle 6 Felder mit RapidOCR / ONNX Runtime auf ARM im Feld mit 99 %+ Konfidenz ausgelesen; FastAPI-Event-Engine, OEE in Echtzeit per WebSocket auf React-Native-Dashboards. (2) Radar – cloudbasiertes System für Lead-Screening und Audits, das Unternehmenskonten analysiert und darüber Berichte erstellt: asynchrones FastAPI, PostgreSQL, Redis, Playwright und Next.js; deterministische Regeln werden durch ein zweistufiges LLM-Verfahren (Anthropic) ergänzt.',
   },
   {
     type: 'WORK',
@@ -102,19 +117,19 @@ export const DENEYIMLER: Deneyim[] = [
     type: 'WORK',
     organization: 'SEA STARS Team – TEKNOFEST Unbemannte Unterwassersysteme',
     role: 'Leiter des Softwareteams',
-    startDate: '2024-01-01',
-    current: true,
+    startDate: '2024-09-01',
+    endDate: '2026-09-30',
     description:
-      'Ich leite das Team, das die Missionssoftware des autonomen Unterwasserfahrzeugs entwickelt. Serielle Kommunikation zwischen Jetson Nano, STM32 und Arduino sowie Objekterkennung auf Basis von YOLO / TensorFlow.',
+      'Ich leitete das Team, das die Missionssoftware des autonomen Unterwasserfahrzeugs entwickelte: serielle Kommunikation zwischen Jetson Nano, STM32 und Arduino sowie Objekterkennung auf Basis von YOLO / TensorFlow. Die Phase „Kritischer Designbericht“ beim TEKNOFEST 2026 wurde mit 83,1 Punkten abgeschlossen.',
   },
   {
     type: 'WORK',
     organization: 'TesisBul.com',
-    role: 'Gründer',
+    role: 'Gründer & CEO',
     startDate: '2024-06-01',
     endDate: '2025-02-28',
     description:
-      'Ich habe eine Online-Buchungsplattform für Einrichtungen von Grund auf entwickelt. In rund 20 Städten habe ich Marketing- und Vor-Ort-Arbeit mit Fokus auf über 100 Betriebe durchgeführt.',
+      'Ich habe von Grund auf eine Plattform entwickelt, über die Sportanlagen wie Kunstrasen-Fußballplätze online gebucht werden können – mit oder ohne Vorauszahlung; ich war für den Betrieb und die strategische Weiterentwicklung des Produkts verantwortlich. In rund 20 Städten habe ich Marketing- und Vor-Ort-Arbeit mit Fokus auf über 100 Betriebe durchgeführt.',
   },
   {
     type: 'WORK',
@@ -132,7 +147,7 @@ export const DENEYIMLER: Deneyim[] = [
     role: 'Software Engineering (Bachelor) – 4. Studienjahr',
     startDate: '2023-10-01',
     current: true,
-    description: 'Voraussichtlicher Abschluss: Juni 2027.',
+    description: 'Voraussichtlicher Abschluss: Juni 2028.',
   },
   {
     type: 'EDUCATION',
@@ -179,8 +194,8 @@ export const DENEYIMLER: Deneyim[] = [
     type: 'AWARD',
     role: '1. Platz – Technischer Designbericht',
     organization: 'TEKNOFEST 2026 Hyperloop · Technischer Designbericht, Kategorie Performance',
-    startDate: '2026-09-01',
-    description: 'Spectraloop',
+    startDate: '2026-06-01',
+    description: 'Spectraloop · 468,5/500',
   },
   {
     type: 'AWARD',
@@ -209,6 +224,85 @@ export const DENEYIMLER: Deneyim[] = [
     organization: 'TEKNOFEST 2021 Wettbewerb Unbemannte Unterwassersysteme',
     startDate: '2021-09-01',
     description: 'Provezza · Leiter des Softwareteams',
+  },
+  // ----------------------------------------------------------- SERTİFİKA ---
+  {
+    type: 'CERTIFICATE',
+    role: 'Finalist im TEKNOFEST Hyperloop-Entwicklungswettbewerb',
+    organization: 'TEKNOFEST',
+    startDate: '2025-09-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'Schulung ASP.NET Core Web API',
+    organization: 'BTK Akademi',
+    startDate: '2025-01-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'Schulung ASP.NET Core MVC',
+    organization: 'BTK Akademi',
+    startDate: '2025-01-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'Einführung in Webservices',
+    organization: 'BTK Akademi',
+    startDate: '2024-11-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'Objektorientierte Programmierung mit Anwendungen',
+    organization: 'BTK Akademi',
+    startDate: '2024-11-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'Gründerschulung',
+    organization: 'KOSGEB',
+    startDate: '2024-11-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'Schule für Luftfahrttriebwerke (6. Jahrgang)',
+    organization: 'TEI – TUSAŞ Engine Industries',
+    startDate: '2026-06-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'Dankesurkunde für ehrenamtliche Mitarbeit',
+    organization: 'TEKNOFEST',
+    startDate: '2023-04-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'Teilnahmeurkunde – Wettbewerb Unbemannte Unterwassersysteme',
+    organization: 'TEKNOFEST',
+    startDate: '2021-09-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'Schulung Mobile-App-Entwicklung',
+    organization: 'Deneyap Türkiye',
+    startDate: '2022-05-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'Schulung Nanotechnologie und Materialwissenschaft',
+    organization: 'Deneyap Türkiye',
+    startDate: '2022-02-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'Schulung Robotik-Programmierung',
+    organization: 'Deneyap Türkiye',
+    startDate: '2019-12-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'Schulung Design und Fertigung',
+    organization: 'Deneyap Türkiye',
+    startDate: '2019-09-01',
   },
 ];
 
@@ -288,6 +382,95 @@ Die Maschinen in der Fabrik zeigten ihre Produktionszähler nur auf dem Bediener
 | Stillstandserkennung | Real 90 s → gemessen 88 s |
 | Ausfallsicherheit | 38 ausstehende Messwerte vom Datenträger wiederhergestellt |
 | Modellwechsel / Zählerrücksetzung | In beide Richtungen erkannt |
+`,
+  },
+  {
+    translationKey: 'coban-robot-kol',
+    period: '2026',
+    slug: 'coban-roboterarm',
+    title: 'Çoban – Roboterarm, gesteuert über türkische Befehle',
+    summary:
+      'Roboterarm mit geschlossenem Regelkreis, der auf türkische Befehle hin arbeitet und jeden Schritt per Kamera überprüft: Ich habe den Ansatz von Shepherd Robotics (YC F26) auf die türkische Industrie übertragen. 5 Szenarien mit der echten Gemini API, 43 automatisierte Tests.',
+    tags: ['Physische KI', 'Robotik', 'Embedded Systems'],
+    stack: ['Python', 'Gemini API', 'Digitaler Zwilling (Simulation)'],
+    featured: true,
+    content: `## Die Frage
+
+Kann ein KMU in der Türkei einem Roboter ohne Roboterprogrammierer sagen: „Wirf den gerissenen Steckverbinder in den Schrott“? Ausgangspunkt waren der Aufruf nach „neuen Betriebssystemen für die physische Welt“ in der *Request for Startups*-Liste von Y Combinator für Fall 2026 und Shepherd Robotics, das im selben Zeitraum bei YC aufgenommen wurde. Çoban ist ein Klon dieses Ansatzes, angepasst an die türkische Industrie.
+
+## Komponenten
+
+- **Aufgabenausführung im geschlossenen Regelkreis:** Gemini betrachtet bei jedem Schritt das neue Kamerabild, wählt die nächste Bewegung und prüft, ob der vorherige Schritt tatsächlich erfolgreich war.
+- **Fusion von Sehen und Tasten:** Verschiebungen von 1–2 cm, die im Bild nicht erkennbar sind, erfasst der Greifersensor; das System plant daraufhin neu.
+- **Abschlussprüfung:** Meldet das Modell „fertig“, zählt ein separater Qualitätskontrollschritt die Objekte im letzten Bild; fehlt etwas, wird die Aufgabe fortgesetzt.
+- **Digitaler Zwilling:** Eine Simulation, in der derselbe Code auch ohne Roboter läuft; Szenarien für Kabelbaum-Kitting und die Qualitätskontrolle gerissener Teile nach dem Vorbild von Automobilzulieferern in Bursa.
+- **KVKK-konforme Bildverarbeitung:** Bevor ein Bild in die Cloud gesendet wird, werden die Gesichter der Beschäftigten direkt auf dem Gerät unkenntlich gemacht.
+- **Daten-Flywheel:** Jede Aufgabe wird als Datensatz gespeichert, um künftig ein Open-Source-Robotermodell zu trainieren.
+
+## Ergebnisse mit der echten Gemini API
+
+| Aufgabe | Ergebnis | Zeigt |
+| --- | --- | --- |
+| Rote Würfel in die gelbe Kiste legen | Abgeschlossen (5 Schritte) | Mehrstufige Planung, bildbasierte Prüfung jedes Schritts |
+| Gerissenen Steckverbinder in die Schrottkiste werfen | Abgeschlossen (3 Schritte) | Visuelle Qualitätskontrolle |
+| Lila Würfel auf das weiße Tablett legen | Unmöglich | Roboter wird bei einem nicht vorhandenen Objekt gar nicht erst bewegt |
+| Dieselbe Aufgabe mit 40 % Greiffehlern | Abgeschlossen (8 Schritte) | Sensor erfasst 2 Verschiebungen; verfrühtes „fertig“ wird abgelehnt |
+
+Das System wurde in 5 Szenarien mit der echten Gemini API getestet und mit 43 automatisierten Tests verifiziert.
+
+## Am lehrreichsten: die Fehler
+
+Das Modell bemerkte ein verrutschendes Teil nicht, hielt einen weißen Steckverbinder für schwarz und meldete „fertig“, bevor die Aufgabe erledigt war. Jeden dieser Fehler habe ich mit einer technischen Lösung behoben. **Wenn das Modell „fertig“ sagt, heißt das nicht, dass die Arbeit erledigt ist.**
+
+## Ziel
+
+Ein kostengünstiger, zuverlässiger Automatisierungsansatz, der Türkisch versteht – für die türkische Fertigungsindustrie, deren Roboterdichte unter dem weltweiten Durchschnitt liegt.
+
+*Für die Betreuung und die wissenschaftlichen Beiträge danke ich Dr. Nurettin Şenyer.*
+`,
+  },
+  {
+    translationKey: 'tos-risk-guard',
+    period: '2026',
+    slug: 'tos-risk-guard',
+    title: 'ToS Risk Guard – Risikoanalyse von Verträgen mit Zitatbeleg',
+    summary:
+      'Chrome-Erweiterung, die riskante Klauseln in Nutzungsbedingungen und Datenschutzerklärungen ausschließlich mit wörtlichen Zitaten aufzeigt: „ein KI-System, das der KI nicht vertraut“. 95 % Präzision bei 6 realen Verträgen; 4 von 4 versteckten Prompt-Injection-Versuchen erkannt.',
+    tags: ['KI', 'LLM-Sicherheit', 'Chrome-Erweiterung'],
+    stack: ['Chrome Extension (MV3)', 'Gemini API', 'JSON Schema', 'Cypress'],
+    featured: true,
+    content: `## Problem
+
+Kaum jemand liest einen Vertrag, bevor er das Kästchen „Ich stimme zu“ anklickt. ToS Risk Guard erfasst den Text, sobald eine Seite mit Nutzungsbedingungen, einer Datenschutzerklärung oder Abonnementbedingungen geöffnet wird, und erklärt riskante Klauseln in einfachem Türkisch.
+
+## Designprinzip: ein LLM-System, das dem LLM nicht vertraut
+
+- **Jede Aussage mit Zitat:** Jede riskante Klausel wird mit einem wörtlichen Zitat aus dem Vertrag belegt. Aussagen, deren Zitat sich im Originaltext nicht findet, werden aussortiert, ohne dem Nutzer je angezeigt zu werden.
+- **Der Score kommt aus dem Code:** Der Risiko-Score (0–100) stammt nicht vom LLM, sondern wird ausschließlich aus verifizierten Klauseln mit festen Gewichten berechnet.
+- **Kein Freitext:** Die LLM-Ausgabe wird über ein JSON-Schema abgefragt und anschließend deterministisch erneut validiert.
+- **Prompt Injection wird herausgefiltert:** Auf der Seite versteckte „Anweisungen an die KI“ werden entfernt, bevor sie das LLM erreichen, und dem Nutzer als Warnung angezeigt.
+- **Unsicherheit wird benannt:** Ist sich das System nicht sicher, teilt es dies mit Begründung mit: „Geringe Konfidenz – das System ist sich nicht sicher“.
+
+## Evaluation
+
+Mini-Evaluation an 6 realen Verträgen (Netflix, Spotify, YouTube, Zoom, GitHub, Dropbox):
+
+| Kennzahl | Ergebnis |
+| --- | --- |
+| Präzision (Precision) | 95 % – 95 % der angezeigten Klauseln sind korrekt |
+| Trefferquote (Recall) | 51 % – etwa die Hälfte der Klauseln wird übersehen |
+| Trefferquote mit stärkerem Modell | 62 %, aber die Analyse ist 10- bis 60-mal langsamer |
+| Versteckte Prompt Injection | 4 von 4 Versuchen erkannt, der Score ließ sich nicht manipulieren |
+
+Jede übersehene Klausel und jeden Fehlalarm habe ich im Repository einzeln aufgeführt; auch die Schwächen des Systems sollten sichtbar sein.
+
+## Eingesetzte Technik
+
+Chrome Extension (Manifest V3), Gemini API, die Open-Source-Bibliothek page-agent von Alibaba (nur lesend, nach dem Prinzip der minimalen Rechte), Validierung per JSON-Schema, End-to-End-Tests und Demo-Aufzeichnung mit Cypress.
+
+> Die Anwendung bietet keine Rechtsberatung; sie ist lediglich ein Werkzeug zur ersten Durchsicht.
+
+*Für die Anregungen danke ich Dr. Nurettin Şenyer.*
 `,
   },
   {
@@ -405,15 +588,15 @@ Unternehmenswebsite für einen Lieferanten von Medizinprodukten. Bei Kıyı Medy
     translationKey: 'tesisbul',
     period: '2024 – 2025',
     slug: 'tesisbul-buchungsplattform',
-    title: 'TesisBul.com – Online-Buchungsplattform',
+    title: 'TesisBul.com – Buchungsplattform für Sportanlagen',
     summary:
-      'Eine von mir von Grund auf entwickelte Online-Buchungsplattform für Einrichtungen; Marketing- und Vor-Ort-Arbeit mit Fokus auf über 100 Betriebe in rund 20 Städten.',
+      'Eine von mir von Grund auf entwickelte Plattform, über die Sportanlagen wie Kunstrasen-Fußballplätze online und mit Vorauszahlung gebucht werden können; Marketing- und Vor-Ort-Arbeit mit Fokus auf über 100 Betriebe in rund 20 Städten.',
     tags: ['Start-up', 'Online-Buchung'],
     stack: [],
     featured: false,
     content: `## Start-up
 
-Ein Start-up, das ich von Juni 2024 bis Februar 2025 als Gründer geführt habe. Die Online-Buchungsplattform für Einrichtungen habe ich von Grund auf entwickelt.
+Ein Start-up, das ich von Juni 2024 bis Februar 2025 als Gründer und CEO geführt habe. Ich habe von Grund auf die Plattform entwickelt, über die Nutzer Sportanlagen wie Kunstrasen-Fußballplätze schnell und sicher buchen können, noch bevor sie vor Ort sind – mit Vorauszahlung oder ohne Bezahlung im Voraus; ich war für den Betrieb und die strategische Weiterentwicklung des Produkts verantwortlich.
 
 ## Vor Ort
 

@@ -4,6 +4,7 @@ import { dosyaAdresi } from '@/lib/dosya-adresi';
 import Link from 'next/link';
 
 import { OdulIzgarasi } from '@/components/public/basarilar';
+import { SertifikaListesi } from '@/components/public/sertifikalar';
 import { CvIndir } from '@/components/public/cv-indir';
 import type { Dil } from '@/i18n/diller';
 import { dilAlternatifleri } from '@/i18n/meta';
@@ -55,6 +56,7 @@ export async function HakkimdaSayfasi({ dil }: { dil: Dil }) {
   const isler = deneyimler.filter((d) => d.type === ExperienceType.WORK);
   const egitim = deneyimler.filter((d) => d.type === ExperienceType.EDUCATION);
   const oduller = deneyimler.filter((d) => d.type === ExperienceType.AWARD);
+  const sertifikalar = deneyimler.filter((d) => d.type === ExperienceType.CERTIFICATE);
 
   const [ilk, ...diger] = paragraflar;
 
@@ -163,6 +165,19 @@ export async function HakkimdaSayfasi({ dil }: { dil: Dil }) {
             />
           )}
         </section>
+
+        {/* Sertifikalar — kayıt yoksa bölüm HİÇ yok (boş başlık bilgi değil). */}
+        {sertifikalar.length > 0 && (
+          <section aria-labelledby="sertifika-baslik" className="flex flex-col gap-10">
+            <h2
+              id="sertifika-baslik"
+              className="dev-baslik text-primary text-[clamp(2.25rem,7vw,5.5rem)]"
+            >
+              {h.sertifikalar}
+            </h2>
+            <SertifikaListesi sertifikalar={sertifikalar} dil={dil} />
+          </section>
+        )}
 
         <section aria-labelledby="cv-baslik" className="flex flex-col gap-10">
           <h2 id="cv-baslik" className="dev-baslik text-primary text-[clamp(2.25rem,7vw,5.5rem)]">

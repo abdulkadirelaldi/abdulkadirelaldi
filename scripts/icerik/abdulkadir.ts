@@ -20,6 +20,7 @@ export const PROFIL = {
     'Donanımla yazılımın buluştuğu uçtan uca sistemler geliştiriyorum: STM32 tabanlı kontrol yazılımından sahada çalışan OCR sistemlerine ve mikrodenetleyicide çalışacak yapay zeka modellerine kadar.',
     "Üç sezondur TEKNOFEST Hyperloop'ta Spectraloop takımının 11 kişilik yazılım ekibini yönetiyorum. STM32 tabanlı kontrol yazılımı, CAN Bus ve Modbus RTU haberleşmesi ile fail-safe mimariler üzerinde çalışıyorum. Takımımla TEKNOFEST 2026 Hyperloop Geliştirme Yarışması'nda Teknoloji Gösterim kategorisinde Türkiye 1.liği, Performans ve Tanımlı Problem Çözme kategorilerinde 3.lük kazandık.",
     "Samsun Teknopark'taki stajımda veri çıkışı olmayan üretim makinelerinin ekranını OCR ile okuyan, sahada doğrulanmış bir hat izleme sistemi geliştirdim. Kıyı Medya'nın kurucu ortağı olarak ajansın yazılım birimini yönetiyor, kurumsal web sitelerini tasarımdan yayına uçtan uca geliştiriyorum.",
+    'Son dönemde yapay zekanın güvenilirliği üzerine çalışıyorum: sözleşmelerdeki riskli maddeleri yalnızca birebir alıntıyla gösteren bir LLM sistemi (ToS Risk Guard) ve Türkçe komutla çalışan, her adımını kamerayla doğrulayan bir robot kol (Çoban) geliştirdim.',
     'Gömülü sistemler, uç cihazlarda yapay zeka ve full-stack geliştirmeyi bir araya getirerek uçtan uca ürün çıkarmayı hedefliyorum.',
   ].join('\n\n'),
   location: 'Samsun, Türkiye',
@@ -27,7 +28,7 @@ export const PROFIL = {
    * İKİ KİTLEYE: işveren (staj/iş, mezuniyet yılı) ve müşteri (projeler).
    * Yalnızca "yeni projelere açığım" işverene hiçbir şey söylemiyordu.
    */
-  availability: 'Staj, iş ve projelere açığım · Mezuniyet 2027',
+  availability: 'Staj, iş ve projelere açığım · Mezuniyet 2028',
   socials: {
     github: 'https://github.com/abdulkadirelaldi',
     linkedin: 'https://www.linkedin.com/in/abdulkadirelaldi',
@@ -64,6 +65,7 @@ const YETENEK_GRUPLARI: [Kategori, string[]][] = [
       'scikit-learn',
       'ONNX Runtime',
       'TinyML',
+      'LLM entegrasyonu (Gemini, Anthropic)',
     ],
   ],
   [
@@ -72,8 +74,21 @@ const YETENEK_GRUPLARI: [Kategori, string[]][] = [
   ],
   ['DATABASE', ['PostgreSQL', 'MongoDB', 'SQLite', 'Redis']],
   ['FRONTEND', ['React', 'Next.js', 'HTML / CSS']],
-  ['MOBILE', ['Mobil uygulama geliştirme']],
-  ['TOOLING', ['Git / GitHub', 'Linux', 'systemd', 'GStreamer', 'WebSocket', 'Claude Code']],
+  ['MOBILE', ['Mobil uygulama geliştirme', 'React Native']],
+  [
+    'TOOLING',
+    [
+      'Git / GitHub',
+      'Linux',
+      'systemd',
+      'GStreamer',
+      'WebSocket',
+      'Playwright',
+      'Cypress',
+      'Chrome Extension (MV3)',
+      'Claude Code',
+    ],
+  ],
 ];
 
 /** Belgelerde seviye yok — sitede gösterilmiyor; panelde düzenlenebilir. */
@@ -84,7 +99,7 @@ export const YETENEKLER = YETENEK_GRUPLARI.flatMap(([category, adlar]) =>
 ).map((yetenek, i) => ({ ...yetenek, order: i + 1 }));
 
 export type Deneyim = {
-  type: 'WORK' | 'EDUCATION' | 'AWARD';
+  type: 'WORK' | 'EDUCATION' | 'AWARD' | 'CERTIFICATE';
   organization: string;
   role: string;
   startDate: string;
@@ -102,7 +117,7 @@ export const DENEYIMLER: Deneyim[] = [
     startDate: '2023-11-01',
     current: true,
     description:
-      "11 kişilik yazılım ekibini 3 sezondur yönetiyorum; alt sistem gruplarını (sensörler, CAN, navigasyon, BMS, gerçek zamanlı kontrol, telemetri) ve Teknik Tasarım Raporu sürecini koordine ediyorum. İki Delta MS300 VFD'yi tek RS-485 hattında Modbus RTU ile süren STM32 firmware'ini geliştirdim.",
+      "11 kişilik yazılım ekibini 3 sezondur yönetiyorum; alt sistem gruplarını (sensörler, CAN, navigasyon, BMS, gerçek zamanlı kontrol, telemetri) ve Teknik Tasarım Raporu sürecini koordine ediyorum; rapor 2026'da 500 üzerinden 468,5 puanla 1. oldu. İki Delta MS300 VFD'yi tek RS-485 hattında Modbus RTU ile süren STM32 firmware'ini geliştirdim; itki ve fren sistemleri TÜBİTAK Gebze yerleşkesinde sahada test edildi.",
   },
   {
     type: 'WORK',
@@ -111,7 +126,7 @@ export const DENEYIMLER: Deneyim[] = [
     startDate: '2026-07-01',
     endDate: '2026-08-31',
     description:
-      'JWC Hat İzleme Sistemi: Raspberry Pi 5 saha cihazı, GStreamer görüntü hattı, ARM üzerinde RapidOCR / ONNX Runtime ile 6 alanın tamamı sahada %99+ güvenle okundu; FastAPI tabanlı olay motoru ve OEE hesabı.',
+      'İki uçtan uca proje: (1) JWC Hat İzleme Sistemi — Raspberry Pi 5 saha cihazı, GStreamer görüntü hattı, ARM üzerinde RapidOCR / ONNX Runtime ile 6 alanın tamamı sahada %99+ güvenle okundu; FastAPI olay motoru, WebSocket ile React Native panellere anlık OEE. (2) Radar — işletme hesaplarını analiz edip raporlayan bulut tabanlı aday tarama ve denetim sistemi: async FastAPI, PostgreSQL, Redis, Playwright ve Next.js; deterministik kurallar iki kademeli LLM (Anthropic) ile destekleniyor.',
   },
   {
     type: 'WORK',
@@ -126,19 +141,19 @@ export const DENEYIMLER: Deneyim[] = [
     type: 'WORK',
     organization: 'SEA STARS Takımı — TEKNOFEST İnsansız Sualtı Sistemleri',
     role: 'Yazılım Ekip Lideri',
-    startDate: '2024-01-01',
-    current: true,
+    startDate: '2024-09-01',
+    endDate: '2026-09-30',
     description:
-      'Otonom sualtı aracının görev yazılımını geliştiren ekibi yönetiyorum. Jetson Nano, STM32 ve Arduino arasında seri haberleşme ile YOLO / TensorFlow tabanlı nesne tespiti.',
+      'Otonom sualtı aracının görev yazılımını geliştiren ekibi yönettim: Jetson Nano, STM32 ve Arduino arasında seri haberleşme, YOLO / TensorFlow tabanlı nesne tespiti. TEKNOFEST 2026 Kritik Tasarım Raporu aşaması 83,1 puanla tamamlandı.',
   },
   {
     type: 'WORK',
     organization: 'TesisBul.com',
-    role: 'Kurucu',
+    role: 'Kurucu & CEO',
     startDate: '2024-06-01',
     endDate: '2025-02-28',
     description:
-      "Tesisler için online rezervasyon platformunu sıfırdan geliştirdim. Yaklaşık 20 şehirde 100'den fazla işletmeye yönelik pazarlama ve saha çalışması yürüttüm.",
+      "Halı saha gibi spor tesislerinin ön ödemeli ya da ödemesiz online rezervasyonunu sağlayan platformu sıfırdan geliştirdim; ürünün işleyişinden ve stratejik gelişiminden sorumluydum. Yaklaşık 20 şehirde 100'den fazla işletmeye yönelik pazarlama ve saha çalışması yürüttüm.",
   },
   {
     type: 'WORK',
@@ -156,7 +171,7 @@ export const DENEYIMLER: Deneyim[] = [
     role: 'Yazılım Mühendisliği (Lisans) — 4. sınıf',
     startDate: '2023-10-01',
     current: true,
-    description: 'Beklenen mezuniyet: Haziran 2027.',
+    description: 'Beklenen mezuniyet: Haziran 2028.',
   },
   {
     type: 'EDUCATION',
@@ -202,8 +217,8 @@ export const DENEYIMLER: Deneyim[] = [
     type: 'AWARD',
     role: 'TTR 1.liği',
     organization: 'TEKNOFEST 2026 Hyperloop · Performans Kategorisi Teknik Tasarım Raporu',
-    startDate: '2026-09-01',
-    description: 'Spectraloop',
+    startDate: '2026-06-01',
+    description: 'Spectraloop · 468,5/500',
   },
   {
     type: 'AWARD',
@@ -232,6 +247,87 @@ export const DENEYIMLER: Deneyim[] = [
     organization: 'TEKNOFEST 2021 İnsansız Sualtı Sistemleri Yarışması',
     startDate: '2021-09-01',
     description: 'Provezza · Yazılım Ekip Lideri',
+  },
+  // ----------------------------------------------------------- SERTİFİKA ---
+  // Kaynak: LinkedIn "Lisanslar ve sertifikalar" (2026-10-23) + TEI katılım
+  // belgesi (LinkedIn gönderisi, Haziran 2026). Tarih = veriliş ayı.
+  {
+    type: 'CERTIFICATE',
+    role: 'Teknofest Hyperloop Geliştirme Yarışması Finalist',
+    organization: 'TEKNOFEST',
+    startDate: '2025-09-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'Asp.Net Core Web API Eğitimi',
+    organization: 'BTK Akademi',
+    startDate: '2025-01-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'ASP.NET Core MVC Eğitimi',
+    organization: 'BTK Akademi',
+    startDate: '2025-01-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'Web Servislerine Giriş Eğitimi',
+    organization: 'BTK Akademi',
+    startDate: '2024-11-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'Uygulamalarla Nesne Yönelimli Programlama Eğitimi',
+    organization: 'BTK Akademi',
+    startDate: '2024-11-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'Girişimcilik Eğitimi',
+    organization: 'KOSGEB',
+    startDate: '2024-11-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'Havacılık Motorları Okulu (6. Dönem)',
+    organization: 'TEI — TUSAŞ Motor Sanayii',
+    startDate: '2026-06-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'Gönüllü Görevli Teşekkür Belgesi',
+    organization: 'TEKNOFEST',
+    startDate: '2023-04-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'İnsansız Sualtı Sistemleri Yarışması Katılım Belgesi',
+    organization: 'TEKNOFEST',
+    startDate: '2021-09-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'Mobil Uygulama Eğitimi',
+    organization: 'Deneyap Türkiye',
+    startDate: '2022-05-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'Nanoteknoloji ve Malzeme Bilimi Eğitimi',
+    organization: 'Deneyap Türkiye',
+    startDate: '2022-02-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'Robotik Kodlama Eğitimi',
+    organization: 'Deneyap Türkiye',
+    startDate: '2019-12-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'Tasarım ve Üretim Eğitimi',
+    organization: 'Deneyap Türkiye',
+    startDate: '2019-09-01',
   },
 ];
 
@@ -330,6 +426,93 @@ Fabrikadaki makineler üretim sayaçlarını yalnızca operatör ekranında gös
 | Duruş tespiti | Gerçek 90 sn → ölçülen 88 sn |
 | Kesinti dayanıklılığı | 38 bekleyen okuma diskten geri yüklendi |
 | Model değişimi / sayaç sıfırlanması | Her iki yönde yakalandı |
+`,
+  },
+  {
+    slug: 'coban-robot-kol',
+    period: '2026',
+    title: 'Çoban — Türkçe Komutla Çalışan Robot Kol',
+    summary:
+      'Türkçe komutla çalışan, her adımı kamerayla doğrulayan kapalı döngü robot kol: Shepherd Robotics (YC F26) yaklaşımını Türk sanayisine uyarladım. Gerçek Gemini API ile 5 senaryo, 43 otomatik test.',
+    tags: ['Fiziksel yapay zeka', 'Robotik', 'Gömülü'],
+    stack: ['Python', 'Gemini API', 'Dijital ikiz (simülasyon)'],
+    featured: true,
+    content: `## Soru
+
+Türkiye'deki bir KOBİ, robot programcısı olmadan bir robota "çatlak konnektörü hurdaya at" diyebilir mi? Çıkış noktası Y Combinator'ın Fall 2026 *Request for Startups* listesindeki "fiziksel dünya için yeni işletim sistemleri" çağrısı ve aynı dönem YC'ye kabul edilen Shepherd Robotics oldu. Çoban, bu yaklaşımın Türk sanayisine uyarlanmış bir klonu.
+
+## Bileşenler
+
+- **Kapalı döngü görev yürütme:** Gemini her adımda kameradan gelen yeni görüntüye bakarak sıradaki hareketi seçiyor ve bir önceki adımın gerçekten başarılı olup olmadığını kontrol ediyor.
+- **Görme + dokunma füzyonu:** Görüntüden fark edilemeyen 1–2 cm'lik kaymaları gripper sensörü yakalıyor, sistem yeniden planlıyor.
+- **Bitiş doğrulaması:** Model "bitti" dediğinde ayrı bir kalite kontrol adımı son görüntüyü sayıyor; eksik varsa görev devam ediyor.
+- **Dijital ikiz:** Robot olmadan da aynı kodun çalıştığı simülasyon; Bursa'daki otomotiv tedarikçilerini örnek alan kablo demeti kitting ve çatlak parça kalite kontrol senaryoları.
+- **KVKK uyumlu görüntü işleme:** Görüntü buluta gönderilmeden önce çalışanların yüzleri cihaz üzerinde bulanıklaştırılıyor.
+- **Veri çarkı:** Her görev, ileride açık kaynak bir robot modelini eğitmek için veri seti olarak kaydediliyor.
+
+## Gerçek Gemini ile sonuçlar
+
+| Görev | Sonuç | Gösterdiği |
+| --- | --- | --- |
+| Kırmızı küpleri sarı kutuya koy | Tamamlandı (5 adım) | Çok adımlı planlama, her adımın görüntüyle doğrulanması |
+| Çatlak konnektörü hurda kutusuna at | Tamamlandı (3 adım) | Görsel kalite kontrol |
+| Mor küpü beyaz tepsiye koy | İmkânsız | Masada olmayan nesne için robotu hiç hareket ettirmeme |
+| Aynı görev, %40 tutma hatasıyla | Tamamlandı (8 adım) | Sensör 2 kaymayı yakalıyor; erken "bitti" kararı reddediliyor |
+
+Sistem 5 senaryoda gerçek Gemini API'siyle test edildi ve 43 otomatik testle doğrulandı.
+
+## En çok öğreten kısım: hatalar
+
+Model kayan bir parçayı fark etmedi, beyaz konnektörü siyah sandı, görev bitmeden "bitti" dedi. Her birini bir mühendislik çözümüyle kapattım. **Modelin "bitti" demesi, işin bittiği anlamına gelmiyor.**
+
+## Hedef
+
+Robot yoğunluğu dünya ortalamasının altında kalan Türk imalat sektörü için düşük maliyetli, Türkçe anlayan ve güvenilir bir otomasyon yaklaşımı.
+
+*Rehberliği ve akademik katkıları için Dr. Öğr. Üyesi Nurettin Şenyer'e teşekkür ederim.*
+`,
+  },
+  {
+    slug: 'tos-risk-guard',
+    period: '2026',
+    title: 'ToS Risk Guard — Alıntı Kanıtlı Sözleşme Risk Analizi',
+    summary:
+      'Kullanım koşulları ve gizlilik politikalarındaki riskli maddeleri yalnızca birebir alıntıyla gösteren Chrome eklentisi: "yapay zekâya güvenmeyen bir yapay zekâ sistemi". 6 gerçek sözleşmede %95 kesinlik; 4 gizli prompt injection denemesinin 4\'ü yakalandı.',
+    tags: ['Yapay zeka', 'LLM güvenliği', 'Chrome eklentisi'],
+    stack: ['Chrome Extension (MV3)', 'Gemini API', 'JSON Schema', 'Cypress'],
+    featured: true,
+    content: `## Problem
+
+"Kabul ediyorum" kutusunu işaretlemeden önce sözleşmeyi okuyan çok az. ToS Risk Guard; kullanım koşulları, gizlilik politikası veya abonelik şartları sayfası açıldığında metni yakalıyor ve riskli maddeleri sade Türkçeyle açıklıyor.
+
+## Tasarım ilkesi: LLM'e güvenmeyen bir LLM sistemi
+
+- **Her iddia alıntıyla:** Her riskli madde sözleşmeden birebir alıntıyla gösteriliyor. Alıntısı orijinal metinde bulunamayan iddia, kullanıcıya hiç gösterilmeden eleniyor.
+- **Skoru kod hesaplıyor:** Risk skoru (0–100) LLM'den değil, yalnızca doğrulanmış maddelerden sabit ağırlıklarla hesaplanıyor.
+- **Serbest metin yok:** LLM çıktısı JSON şemayla alınıp deterministik olarak yeniden doğrulanıyor.
+- **Prompt injection ayıklanıyor:** Sayfaya gizlenmiş "yapay zekâya talimat" denemeleri LLM'e ulaşmadan ayıklanıyor ve kullanıcıya uyarı olarak gösteriliyor.
+- **Emin değilse söylüyor:** Sistem emin olmadığında bunu gerekçeleriyle bildiriyor: "Düşük güven — sistem emin değil".
+
+## Değerlendirme
+
+6 gerçek sözleşme (Netflix, Spotify, YouTube, Zoom, GitHub, Dropbox) üzerinde mini değerlendirme:
+
+| Ölçü | Sonuç |
+| --- | --- |
+| Kesinlik (precision) | %95 — gösterilen maddelerin %95'i doğru |
+| Duyarlılık (recall) | %51 — maddelerin yaklaşık yarısı kaçırılıyor |
+| Daha güçlü modelle duyarlılık | %62, ama analiz 10–60 kat yavaş |
+| Gizli prompt injection | 4 denemenin 4'ü yakalandı, skor manipüle edilemedi |
+
+Kaçırılan ve yanlış alarm veren her maddeyi depoda tek tek listeledim; sistemin zayıf yanlarını da görünür kılmak istedim.
+
+## Kullanılanlar
+
+Chrome Extension (Manifest V3), Gemini API, Alibaba'nın açık kaynak page-agent kütüphanesi (yalnızca okuma amaçlı, en az yetki ilkesiyle), JSON şema doğrulama, Cypress ile uçtan uca test ve demo kaydı.
+
+> Uygulama hukuki tavsiye vermez; yalnızca bir ön okuma aracıdır.
+
+*Yönlendirmeleri için Dr. Öğr. Üyesi Nurettin Şenyer'e teşekkür ederim.*
 `,
   },
   {
@@ -440,15 +623,15 @@ Tıbbi cihaz tedarikçisi için kurumsal web sitesi. Kıyı Medya bünyesinde, t
   {
     slug: 'tesisbul',
     period: '2024 – 2025',
-    title: 'TesisBul.com — Online Rezervasyon Platformu',
+    title: 'TesisBul.com — Spor Tesisi Rezervasyon Platformu',
     summary:
-      "Tesisler için sıfırdan geliştirdiğim online rezervasyon platformu; yaklaşık 20 şehirde 100'den fazla işletmeye yönelik saha ve pazarlama çalışması.",
+      "Halı saha gibi spor tesislerini online ve ön ödemeli rezerve etmeyi sağlayan, sıfırdan geliştirdiğim platform; yaklaşık 20 şehirde 100'den fazla işletmeye yönelik saha ve pazarlama çalışması.",
     tags: ['Girişim', 'Rezervasyon'],
     stack: [],
     featured: false,
     content: `## Girişim
 
-Haziran 2024 – Şubat 2025 arasında kurucusu olduğum girişim. Tesisler için online rezervasyon platformunu sıfırdan geliştirdim.
+Haziran 2024 – Şubat 2025 arasında kurucusu ve CEO'su olduğum girişim. Kullanıcıların halı saha gibi spor tesislerini hızlı ve güvenli biçimde, tesise gitmeden önce ön ödemeyle ya da ödemesiz rezerve edebildiği platformu sıfırdan geliştirdim; ürünün işleyişinden ve stratejik gelişiminden sorumluydum.
 
 ## Saha
 

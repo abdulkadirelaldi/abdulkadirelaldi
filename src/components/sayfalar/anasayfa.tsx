@@ -83,17 +83,12 @@ export async function AnaSayfa({ dil }: { dil: Dil }) {
         profil={profil}
         ad={SITE_NAME}
         avatar={avatar}
-        // Öne çıkan ödül: ödüller panel sırasıyla geliyor, ilki en güçlüsü.
-        // Kurumun ` · kategori` kuyruğu kesiliyor — yorum satırı tek satır kalsın.
         // Süren işler — pencerede `şimdi`. Kurumun açıklama kuyruğu kesiliyor; çevirilerde
         // ayraç uzun tire ya da kısa tire olabildiği için ikisi de (Almanca ` – `).
         simdi={deneyimler
           .filter((d) => d.type === ExperienceType.WORK && d.current)
           .slice(0, 3)
           .map((d) => `${d.organization.split(/\s[—–-]\s/)[0]} · ${d.role}`)}
-        oneCikan={
-          oduller[0] ? `${oduller[0].role} — ${oduller[0].organization.split(' · ')[0]}` : null
-        }
       />
 
       <div className="flex flex-col gap-10 py-10 md:gap-14 md:py-14">
