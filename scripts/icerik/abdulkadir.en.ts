@@ -22,10 +22,11 @@ export const PROFIL = {
     'I build end-to-end systems where hardware meets software: from STM32-based control software to OCR systems running in the field and AI models designed to run on microcontrollers.',
     'For three seasons I have led the 11-person software team of Spectraloop at TEKNOFEST Hyperloop. I work on STM32-based control software, CAN Bus and Modbus RTU communication, and fail-safe architectures. At the TEKNOFEST 2026 Hyperloop Development Competition, my team and I took 1st place in Türkiye in the Technology Demonstration category and 3rd place in both the Performance and Defined Problem Solving categories.',
     "During my internship at Samsun Teknopark, I built a field-validated line monitoring system that uses OCR to read the screens of production machines with no data output. As a co-founder of Kıyı Medya, I run the agency's software unit and build corporate websites end to end, from design to launch.",
+    'Lately I have been working on AI reliability: I built an LLM system that flags risky clauses in contracts only with verbatim quotes (ToS Risk Guard), and a robot arm that takes commands in Turkish and verifies every step with a camera (Çoban).',
     'My goal is to ship end-to-end products by bringing together embedded systems, edge AI, and full-stack development.',
   ].join('\n\n'),
   location: 'Samsun, Türkiye',
-  availability: 'Open to internships, roles and projects · Graduating 2027',
+  availability: 'Open to internships, roles and projects · Graduating 2028',
   socials: PROFIL_TR.socials,
 } as const;
 
@@ -55,6 +56,7 @@ const YETENEK_GRUPLARI: [Kategori, string[]][] = [
       'scikit-learn',
       'ONNX Runtime',
       'TinyML',
+      'LLM integration (Gemini, Anthropic)',
     ],
   ],
   [
@@ -63,8 +65,21 @@ const YETENEK_GRUPLARI: [Kategori, string[]][] = [
   ],
   ['DATABASE', ['PostgreSQL', 'MongoDB', 'SQLite', 'Redis']],
   ['FRONTEND', ['React', 'Next.js', 'HTML / CSS']],
-  ['MOBILE', ['Mobile app development']],
-  ['TOOLING', ['Git / GitHub', 'Linux', 'systemd', 'GStreamer', 'WebSocket', 'Claude Code']],
+  ['MOBILE', ['Mobile app development', 'React Native']],
+  [
+    'TOOLING',
+    [
+      'Git / GitHub',
+      'Linux',
+      'systemd',
+      'GStreamer',
+      'WebSocket',
+      'Playwright',
+      'Cypress',
+      'Chrome Extension (MV3)',
+      'Claude Code',
+    ],
+  ],
 ];
 
 /** No levels in the source documents — not shown on the site; editable in the panel. */
@@ -83,7 +98,7 @@ export const DENEYIMLER: Deneyim[] = [
     startDate: '2023-11-01',
     current: true,
     description:
-      'I have led the 11-person software team for 3 seasons, coordinating the subsystem groups (sensors, CAN, navigation, BMS, real-time control, telemetry) and the Technical Design Report process. I developed the STM32 firmware that drives two Delta MS300 VFDs over Modbus RTU on a single RS-485 line.',
+      'I have led the 11-person software team for 3 seasons, coordinating the subsystem groups (sensors, CAN, navigation, BMS, real-time control, telemetry) and the Technical Design Report process; in 2026 the report placed 1st with a score of 468.5 out of 500. I developed the STM32 firmware that drives two Delta MS300 VFDs over Modbus RTU on a single RS-485 line; the propulsion and braking systems were field-tested at the TÜBİTAK Gebze campus.',
   },
   {
     type: 'WORK',
@@ -92,7 +107,7 @@ export const DENEYIMLER: Deneyim[] = [
     startDate: '2026-07-01',
     endDate: '2026-08-31',
     description:
-      'JWC Line Monitoring System: a Raspberry Pi 5 field device and a GStreamer video pipeline, with RapidOCR / ONNX Runtime on ARM reading all 6 fields in the field at 99%+ confidence; a FastAPI-based event engine and OEE calculation.',
+      'Two end-to-end projects: (1) JWC Line Monitoring System — a Raspberry Pi 5 field device and a GStreamer video pipeline, with RapidOCR / ONNX Runtime on ARM reading all 6 fields in the field at 99%+ confidence; a FastAPI event engine and real-time OEE pushed over WebSocket to React Native dashboards. (2) Radar — a cloud-based lead screening and audit system that analyzes and reports on business accounts: async FastAPI, PostgreSQL, Redis, Playwright, and Next.js, with deterministic rules backed by a two-stage LLM (Anthropic).',
   },
   {
     type: 'WORK',
@@ -107,19 +122,19 @@ export const DENEYIMLER: Deneyim[] = [
     type: 'WORK',
     organization: 'SEA STARS Team — TEKNOFEST Unmanned Underwater Systems',
     role: 'Software Team Lead',
-    startDate: '2024-01-01',
-    current: true,
+    startDate: '2024-09-01',
+    endDate: '2026-09-30',
     description:
-      'I lead the team developing the mission software for an autonomous underwater vehicle: serial communication between Jetson Nano, STM32, and Arduino, plus YOLO / TensorFlow-based object detection.',
+      'I led the team developing the mission software for an autonomous underwater vehicle: serial communication between Jetson Nano, STM32, and Arduino, plus YOLO / TensorFlow-based object detection. The TEKNOFEST 2026 Critical Design Report stage was completed with a score of 83.1.',
   },
   {
     type: 'WORK',
     organization: 'TesisBul.com',
-    role: 'Founder',
+    role: 'Founder & CEO',
     startDate: '2024-06-01',
     endDate: '2025-02-28',
     description:
-      'I built an online booking platform for venues and facilities from scratch, and ran marketing and field outreach targeting more than 100 businesses in about 20 cities.',
+      'I built from scratch a platform for booking sports facilities such as artificial-turf football pitches online, with or without prepayment, and was responsible for how the product operated and its strategic development. I ran marketing and field outreach targeting more than 100 businesses in about 20 cities.',
   },
   {
     type: 'WORK',
@@ -137,7 +152,7 @@ export const DENEYIMLER: Deneyim[] = [
     role: 'B.S. in Software Engineering — 4th year',
     startDate: '2023-10-01',
     current: true,
-    description: 'Expected graduation: June 2027.',
+    description: 'Expected graduation: June 2028.',
   },
   {
     type: 'EDUCATION',
@@ -183,8 +198,8 @@ export const DENEYIMLER: Deneyim[] = [
     type: 'AWARD',
     role: '1st place, Technical Design Report',
     organization: 'TEKNOFEST 2026 Hyperloop · Performance Category Technical Design Report',
-    startDate: '2026-09-01',
-    description: 'Spectraloop',
+    startDate: '2026-06-01',
+    description: 'Spectraloop · 468.5/500',
   },
   {
     type: 'AWARD',
@@ -213,6 +228,87 @@ export const DENEYIMLER: Deneyim[] = [
     organization: 'TEKNOFEST 2021 Unmanned Underwater Systems Competition',
     startDate: '2021-09-01',
     description: 'Provezza · Software Team Lead',
+  },
+  // --------------------------------------------------------- CERTIFICATES ---
+  // Source: LinkedIn "Licenses & certifications" (2026-10-23) + TEI certificate
+  // of participation (LinkedIn post, June 2026). Date = month issued.
+  {
+    type: 'CERTIFICATE',
+    role: 'TEKNOFEST Hyperloop Development Competition Finalist',
+    organization: 'TEKNOFEST',
+    startDate: '2025-09-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'ASP.NET Core Web API Training',
+    organization: 'BTK Akademi',
+    startDate: '2025-01-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'ASP.NET Core MVC Training',
+    organization: 'BTK Akademi',
+    startDate: '2025-01-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'Introduction to Web Services Training',
+    organization: 'BTK Akademi',
+    startDate: '2024-11-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'Object-Oriented Programming with Applications Training',
+    organization: 'BTK Akademi',
+    startDate: '2024-11-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'Entrepreneurship Training',
+    organization: 'KOSGEB',
+    startDate: '2024-11-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'Aviation Engines School (6th Cohort)',
+    organization: 'TEI — TUSAŞ Engine Industries',
+    startDate: '2026-06-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'Volunteer Staff Certificate of Appreciation',
+    organization: 'TEKNOFEST',
+    startDate: '2023-04-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'Unmanned Underwater Systems Competition Participation Certificate',
+    organization: 'TEKNOFEST',
+    startDate: '2021-09-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'Mobile App Development Training',
+    organization: 'Deneyap Türkiye',
+    startDate: '2022-05-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'Nanotechnology and Materials Science Training',
+    organization: 'Deneyap Türkiye',
+    startDate: '2022-02-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'Robotic Coding Training',
+    organization: 'Deneyap Türkiye',
+    startDate: '2019-12-01',
+  },
+  {
+    type: 'CERTIFICATE',
+    role: 'Design and Manufacturing Training',
+    organization: 'Deneyap Türkiye',
+    startDate: '2019-09-01',
   },
 ];
 
@@ -292,6 +388,95 @@ The factory's machines showed their production counters only on the operator scr
 | Stoppage detection | Actual 90 s → measured 88 s |
 | Outage resilience | 38 pending readings restored from disk |
 | Model changeover / counter reset | Caught in both directions |
+`,
+  },
+  {
+    slug: 'coban-robot-arm',
+    translationKey: 'coban-robot-kol',
+    period: '2026',
+    title: 'Çoban — A Robot Arm Driven by Turkish Commands',
+    summary:
+      'A closed-loop robot arm that takes commands in Turkish and verifies every step with a camera: I adapted the Shepherd Robotics (YC F26) approach to Turkish industry. 5 scenarios with the real Gemini API, 43 automated tests.',
+    tags: ['Physical AI', 'Robotics', 'Embedded'],
+    stack: ['Python', 'Gemini API', 'Digital twin (simulation)'],
+    featured: true,
+    content: `## The question
+
+Can a small manufacturer in Türkiye tell a robot to "scrap the cracked connector" without a robot programmer? The starting point was the "new operating systems for the physical world" call in Y Combinator's Fall 2026 *Request for Startups* list, along with Shepherd Robotics, which was accepted into YC in the same batch. Çoban is a clone of that approach adapted to Turkish industry.
+
+## Components
+
+- **Closed-loop task execution:** At every step, Gemini looks at the fresh camera image to choose the next move and checks whether the previous step actually succeeded.
+- **Vision + touch fusion:** The gripper sensor catches 1–2 cm slips that can't be seen in the image, and the system replans.
+- **Completion check:** When the model says "done," a separate quality control step counts what's in the final image; if anything is missing, the task continues.
+- **Digital twin:** A simulation that runs the same code without a robot, with wire harness kitting and cracked-part quality control scenarios modeled on automotive suppliers in Bursa.
+- **KVKK-compliant image processing:** Workers' faces are blurred on the device before any image is sent to the cloud.
+- **Data flywheel:** Every task is recorded as a dataset for training an open-source robot model in the future.
+
+## Results with the real Gemini API
+
+| Task | Result | What it shows |
+| --- | --- | --- |
+| Put the red cubes in the yellow box | Completed (5 steps) | Multi-step planning, with every step verified against the image |
+| Throw the cracked connector in the scrap bin | Completed (3 steps) | Visual quality control |
+| Put the purple cube on the white tray | Impossible | Not moving the robot at all for an object that isn't on the table |
+| Same task, with a 40% grip failure rate | Completed (8 steps) | The sensor catches 2 slips; a premature "done" is rejected |
+
+The system was tested in 5 scenarios with the real Gemini API and validated with 43 automated tests.
+
+## What taught me the most: the failures
+
+The model missed a slipping part, mistook a white connector for a black one, and said "done" before the task was finished. I closed each of these with an engineering fix. **The model saying "done" doesn't mean the job is done.**
+
+## The goal
+
+A low-cost, reliable automation approach that understands Turkish, for a Turkish manufacturing sector whose robot density is below the world average.
+
+*I would like to thank Asst. Prof. Dr. Nurettin Şenyer for the guidance and academic contributions.*
+`,
+  },
+  {
+    slug: 'tos-risk-guard',
+    translationKey: 'tos-risk-guard',
+    period: '2026',
+    title: 'ToS Risk Guard — Quote-Backed Contract Risk Analysis',
+    summary:
+      'A Chrome extension that flags risky clauses in terms of service and privacy policies only with verbatim quotes: "an AI system that doesn\'t trust AI." 95% precision on 6 real contracts; 4 out of 4 hidden prompt injection attempts caught.',
+    tags: ['AI', 'LLM safety', 'Chrome extension'],
+    stack: ['Chrome Extension (MV3)', 'Gemini API', 'JSON Schema', 'Cypress'],
+    featured: true,
+    content: `## Problem
+
+Very few people read the contract before checking the "I agree" box. When a terms of service, privacy policy, or subscription terms page is opened, ToS Risk Guard captures the text and explains the risky clauses in plain Turkish.
+
+## Design principle: an LLM system that doesn't trust the LLM
+
+- **Every claim backed by a quote:** Each risky clause is shown with a verbatim quote from the contract. Any claim whose quote can't be found in the original text is discarded before the user ever sees it.
+- **Code computes the score:** The risk score (0–100) doesn't come from the LLM; it is calculated with fixed weights from verified clauses only.
+- **No free text:** LLM output is obtained through a JSON schema and deterministically re-validated.
+- **Prompt injection filtered out:** "Instructions to the AI" hidden in the page are stripped out before they reach the LLM and shown to the user as a warning.
+- **Says so when unsure:** When the system isn't sure, it says so and explains why: "Low confidence — the system is not sure."
+
+## Evaluation
+
+A mini evaluation on 6 real contracts (Netflix, Spotify, YouTube, Zoom, GitHub, Dropbox):
+
+| Metric | Result |
+| --- | --- |
+| Precision | 95% — 95% of the clauses shown are correct |
+| Recall | 51% — roughly half of the clauses are missed |
+| Recall with a stronger model | 62%, but analysis is 10–60× slower |
+| Hidden prompt injection | 4 out of 4 attempts caught; the score could not be manipulated |
+
+I listed every missed clause and every false alarm one by one in the repository; I wanted the system's weaknesses to be visible too.
+
+## Built with
+
+Chrome Extension (Manifest V3), Gemini API, Alibaba's open-source page-agent library (read-only, following the principle of least privilege), JSON schema validation, and Cypress for end-to-end testing and demo recording.
+
+> The app does not provide legal advice; it is only a first-pass reading tool.
+
+*I would like to thank Asst. Prof. Dr. Nurettin Şenyer for the guidance.*
 `,
   },
   {
@@ -408,15 +593,15 @@ A corporate website for a medical device supplier. Built end to end, from design
     slug: 'tesisbul',
     translationKey: 'tesisbul',
     period: '2024 – 2025',
-    title: 'TesisBul.com — Online Booking Platform',
+    title: 'TesisBul.com — Sports Facility Booking Platform',
     summary:
-      'An online booking platform for venues and facilities that I built from scratch, backed by field and marketing outreach to more than 100 businesses in about 20 cities.',
+      'A platform I built from scratch for booking sports facilities such as artificial-turf football pitches online with prepayment, backed by field and marketing outreach to more than 100 businesses in about 20 cities.',
     tags: ['Startup', 'Booking'],
     stack: [],
     featured: false,
     content: `## The startup
 
-A startup I founded and ran from June 2024 to February 2025. I built its online booking platform for venues and facilities from scratch.
+A startup I founded and led as CEO from June 2024 to February 2025. I built from scratch a platform where users could book sports facilities such as artificial-turf football pitches quickly and securely before heading there, with or without prepayment, and I was responsible for how the product operated and its strategic development.
 
 ## In the field
 

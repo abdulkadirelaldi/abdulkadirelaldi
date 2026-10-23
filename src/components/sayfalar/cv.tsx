@@ -2,7 +2,7 @@ import { FileText } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
-import { aralik } from '@/components/public/gun-bicim';
+import { aralik, ayYil } from '@/components/public/gun-bicim';
 import { buttonClasses } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { YazdirDugmesi } from '@/components/ui/yazdir-dugmesi';
@@ -69,6 +69,7 @@ export async function CvSayfasi({ dil }: { dil: Dil }) {
   const isler = deneyimler.filter((d) => d.type === ExperienceType.WORK);
   const egitim = deneyimler.filter((d) => d.type === ExperienceType.EDUCATION);
   const oduller = deneyimler.filter((d) => d.type === ExperienceType.AWARD);
+  const sertifikalar = deneyimler.filter((d) => d.type === ExperienceType.CERTIFICATE);
 
   /** Özet: biyografinin İLK paragrafı. Tamamı bir sayfaya sığmaz, /hakkimda'da duruyor. */
   const ozet = profil.bio.split(/\n\s*\n/)[0]?.trim();
@@ -90,6 +91,7 @@ export async function CvSayfasi({ dil }: { dil: Dil }) {
     isler.length === 0 &&
     egitim.length === 0 &&
     oduller.length === 0 &&
+    sertifikalar.length === 0 &&
     gruplar.length === 0;
 
   // Üst boşluk: sabit (fixed) gezinme çubuğunun altından başlasın diye — ADR-045.
@@ -180,6 +182,26 @@ export async function CvSayfasi({ dil }: { dil: Dil }) {
               <Kayit key={kayit.id} kayit={kayit} dil={dil} />
             ))}
           </ol>
+        </section>
+      )}
+
+      {/*
+        Sertifikalar — kâğıtta yer kaplamasın diye TEK SATIR: "ad — kurum (ay yıl)".
+        Ayrıntı (kurum gruplaması) /hakkimda'da.
+      */}
+      {sertifikalar.length > 0 && (
+        <section aria-labelledby="cv-sertifika-baslik" className="flex flex-col gap-2">
+          <h2 id="cv-sertifika-baslik" className="border-line border-b pb-1 text-base">
+            {c.sertifikalar}
+          </h2>
+          <ul className="grid gap-x-6 gap-y-1 text-xs sm:grid-cols-2">
+            {sertifikalar.map((b) => (
+              <li key={b.id} className="text-body">
+                <span className="text-primary">{b.role}</span> — {b.organization}{' '}
+                <span className="tabular text-muted">({ayYil(b.startDate, dil)})</span>
+              </li>
+            ))}
+          </ul>
         </section>
       )}
 
