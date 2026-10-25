@@ -386,29 +386,13 @@ jobs:
              * dayandığı önerme sınanmadığı sürece istisna, gereksiz de olabilir.
              * Tam ölçüm zinciri docs/security/README.md → ADVISORY-002.
              */
-            {
-              ghsa: 'GHSA-vfj7-8cjw-p6xm',
-              paket: 'braces',
-              /*
-               * Maruziyet ölçümü BU ZİNCİRE dayanıyor: `braces`e yalnızca
-               * eslint zinciri ulaşıyor (eslint-config-next →
-               * @next/eslint-plugin-next → fast-glob → micromatch → braces),
-               * yani devDependency. Başka bir yoldan gelirse — özellikle
-               * `dependencies` altından — ölçüm geçersizdir ve kapı bunu
-               * yol kontrolüyle yakalar.
-               */
-              yolIcermeli: 'micromatch@',
-              bitis: '2027-01-09',
-              kayit: 'ADVISORY-006',
-              neden:
-                'YAMALI SÜRÜM YOK (audit: "fix: <0.0.0"). En son yayın 3.0.3 ve ' +
-                '2024-09-18 tarihli — paket fiilen bakımsız. Üst zincirin yeni ' +
-                'sürümleri de micromatch/braces taşıyor (fast-glob@3.3.3 ve ' +
-                '@next/eslint-plugin-next@16.4.0 ölçüldü), yani katman C de yok. ' +
-                'Maruziyet dört ölçümde sıfır: devDependency, üretim paketinde 0 ' +
-                'dosya, `pnpm lint` ve `prisma generate` sırasında hiç yüklenmiyor, ' +
-                'tetikleyici girdi (derin yuvalı glob) bizim kendi config dosyamız.',
-            },
+            /*
+             * ADVISORY-006 (GHSA-vfj7-8cjw-p6xm, braces) BURADAN KALDIRILDI —
+             * 2026-10-25'te `pnpm audit` uyarıyı ARTIK BİLDİRMİYOR (zincir ve
+             * braces@3.0.3 aynı; uyarı muhtemelen geri çekilmiş). Kapı satırı
+             * "istisna GEREKSİZ" diyerek kendisi sildirdi. Kayıt:
+             * docs/security/README.md → ADVISORY-006 KAPANDI.
+             */
           ];
 
           const raporYolu = path.join(process.env.RUNNER_TEMP, 'denetim.json');
