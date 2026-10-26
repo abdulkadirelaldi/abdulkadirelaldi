@@ -10,7 +10,7 @@ import { Hizmetler } from '@/components/public/hizmetler';
 import { IletisimBlogu } from '@/components/public/iletisim';
 import { TembelIletisimFormu } from '@/components/public/tembel-iletisim-formu';
 import { Projeler } from '@/components/public/projeler';
-import { KapakSeridi, LogoSeridi, TeknolojiSeridi } from '@/components/public/vitrin-seritleri';
+import { LogoSeridi, TeknolojiSeridi } from '@/components/public/vitrin-seritleri';
 import { Yetenekler } from '@/components/public/yetenekler';
 import type { Dil } from '@/i18n/diller';
 import { dilAlternatifleri } from '@/i18n/meta';
@@ -104,7 +104,6 @@ export async function AnaSayfa({ dil }: { dil: Dil }) {
       <div className="flex flex-col gap-10 py-10 md:gap-14 md:py-14">
         <LogoSeridi logolar={logolar} etiket={s.seritler.ekipler} />
         <TeknolojiSeridi kelimeler={teknolojiler} etiket={s.seritler.teknolojiler} />
-        <KapakSeridi projeler={projeler} />
       </div>
 
       <Hakkimda dil={dil} profil={profil} istatistikler={istatistikler} />
