@@ -66,7 +66,7 @@ export const de: Sozluk = {
   hakkimdaBolum: {
     baslik: 'Über mich',
     devam: 'Meine ganze Geschichte',
-    yilDeneyim: 'Jahre Erfahrung',
+    odulDerece: 'Preise und Platzierungen',
     yayinlananProje: 'veröffentlichte Projekte',
   },
   basarilar: { baslik: 'Erfolge' },

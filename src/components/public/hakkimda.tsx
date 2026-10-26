@@ -15,15 +15,25 @@ export type HakkimdaProps = {
   dil: Dil;
   profil: ProfileDto;
   istatistikler: SiteStatsDto;
+  /** Ödül ve derece sayısı — hemen altındaki Başarılar listesinde tek tek görünür. */
+  odulSayisi: number;
 };
 
-/** Sıfır değerli istatistik ÇİZİLMEZ — "0 yıl deneyim" kendine zarar verir. */
+/**
+ * Sıfır değerli istatistik ÇİZİLMEZ.
+ *
+ * "Yıl deneyim" 2026-10-26'da KALDIRILDI: 2028 mezunu bir öğrencide lise
+ * takımından sayılan "5+ yıl" işe alımcıya abartı gibi okunuyordu ve sayfadaki
+ * öteki sayılara güveni zedeliyordu. Yerine sayfada TEK TEK doğrulanabilen
+ * ödül sayısı geldi.
+ */
 function kartlar(
-  { experienceYears, publishedProjects }: SiteStatsDto,
+  { publishedProjects }: SiteStatsDto,
+  odulSayisi: number,
   s: Sozluk['hakkimdaBolum'],
 ): Kart[] {
   return [
-    experienceYears > 0 && { deger: experienceYears, sonek: '+', etiket: s.yilDeneyim },
+    odulSayisi > 0 && { deger: odulSayisi, etiket: s.odulDerece },
     publishedProjects > 0 && { deger: publishedProjects, etiket: s.yayinlananProje },
   ].filter((kart): kart is Kart => Boolean(kart));
 }
@@ -35,13 +45,13 @@ function kartlar(
  * süzülüyor (paralaks derinliği). Biyografinin İLK paragrafı ortada — tamamı
  * /hakkimda'da.
  */
-export function Hakkimda({ dil, profil, istatistikler }: HakkimdaProps) {
+export function Hakkimda({ dil, profil, istatistikler, odulSayisi }: HakkimdaProps) {
   const s = sozluk(dil).hakkimdaBolum;
   const [ilkParagraf] = profil.bio
     .split(/\n\s*\n/)
     .map((p) => p.trim())
     .filter(Boolean);
-  const istatistikKartlari = kartlar(istatistikler, s);
+  const istatistikKartlari = kartlar(istatistikler, odulSayisi, s);
 
   return (
     <section

@@ -5291,3 +5291,9 @@ ana sürümü farklı`), geri alındı → **EXIT 0**.
 
 T-070'te `Dockerfile` taban imajı (`node:22-alpine`) bu üçlüden sapmamalı;
 Docker'ın kendi kontrolü o görevde eklenecek.
+
+## ADVISORY-006 (braces) — **KAPANDI** (2026-10-25) · yeni bulgu: `zod` GHSA-mrhx-c7xc-m3w5
+
+- **ADVISORY-006:** §8.24 kapısı PR #47'de "GHSA-vfj7-8cjw-p6xm artık bildirilmiyor — istisna GEREKSİZ" dedi. Ölçüldü: `pnpm why braces` zinciri aynı (eslint-config-next → @next/eslint-plugin-next → fast-glob → micromatch@4.0.8 → braces@3.0.3), paket sürümü değişmedi, `pnpm audit --json` uyarıyı listelemiyor → uyarı muhtemelen kaynağında geri çekilmiş. İstisna `ci.yml`den silindi (ADVISORY-002 emsali).
+- **GHSA-mrhx-c7xc-m3w5 (Yüksek, `zod` <4.6.6):** doğrudan bağımlılık, yamalı sürüm var → istisna YAZILMADI, `zod` 4.4.3 → **4.6.7** (katman A). Birim + tip kontrolü yeşil.
+- Kalan: `fast-uri` (2 orta, 2 düşük) — §8.24 eşiği (high) altında.

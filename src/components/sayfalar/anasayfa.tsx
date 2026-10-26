@@ -6,11 +6,10 @@ import type { Metadata } from 'next';
 import { Basarilar } from '@/components/public/basarilar';
 import { Hakkimda } from '@/components/public/hakkimda';
 import { Hero } from '@/components/public/hero';
-import { Hizmetler } from '@/components/public/hizmetler';
 import { IletisimBlogu } from '@/components/public/iletisim';
 import { TembelIletisimFormu } from '@/components/public/tembel-iletisim-formu';
 import { Projeler } from '@/components/public/projeler';
-import { KapakSeridi, LogoSeridi, TeknolojiSeridi } from '@/components/public/vitrin-seritleri';
+import { LogoSeridi, TeknolojiSeridi } from '@/components/public/vitrin-seritleri';
 import { Yetenekler } from '@/components/public/yetenekler';
 import type { Dil } from '@/i18n/diller';
 import { dilAlternatifleri } from '@/i18n/meta';
@@ -22,17 +21,14 @@ import {
   getExperience,
   getFeaturedProjects,
   getProfile,
-  getServices,
   getSiteClientLogos,
   getSiteStats,
   getSkills,
 } from '@/server/services';
 
 /** Ana sayfadaki yetenek şeridine giren kayıt sayısı (tam liste /cv'de). */
-const ANA_SAYFA_YETENEK = 24;
 
 /** §12 — adres koda gömülmez, ortam değişkeninden okunur. */
-const KIYI_MEDYA_URL = process.env.NEXT_PUBLIC_KIYI_MEDYA_URL ?? 'https://kiyimedya.com';
 
 /**
  * HERO AVATARI — `public/avatar-kucuk.webp` (192×192 kare, ~8 KB) varsa
@@ -66,12 +62,11 @@ export function anaSayfaMetadata(dil: Dil): Metadata {
  */
 export async function AnaSayfa({ dil }: { dil: Dil }) {
   const s = sozluk(dil);
-  const [profil, yetenekler, projeler, hizmetler, istatistikler, logolar, deneyimler] =
+  const [profil, yetenekler, projeler, istatistikler, logolar, deneyimler] =
     await Promise.all([
       getProfile(dil),
       getSkills(dil),
       getFeaturedProjects(dil),
-      getServices(dil),
       getSiteStats(dil),
       getSiteClientLogos(),
       getExperience(dil),
@@ -104,23 +99,27 @@ export async function AnaSayfa({ dil }: { dil: Dil }) {
       <div className="flex flex-col gap-10 py-10 md:gap-14 md:py-14">
         <LogoSeridi logolar={logolar} etiket={s.seritler.ekipler} />
         <TeknolojiSeridi kelimeler={teknolojiler} etiket={s.seritler.teknolojiler} />
-        <KapakSeridi projeler={projeler} />
       </div>
 
-      <Hakkimda dil={dil} profil={profil} istatistikler={istatistikler} />
+      <Hakkimda
+        dil={dil}
+        profil={profil}
+        istatistikler={istatistikler}
+        odulSayisi={oduller.length}
+      />
 
       <Basarilar dil={dil} oduller={oduller} />
 
-      <Hizmetler dil={dil} hizmetler={hizmetler} kiyiMedyaUrl={KIYI_MEDYA_URL} />
-
+      {/* Hizmetler bölümü 2026-10-26'da ana sayfadan KALDIRILDI: iş başvurusu için
+          gelen okuyucuya "zaten kendi işini yapıyor" izlenimi veriyordu. Hizmetler
+          kendi sayfasında (/hizmetler) ve menüde duruyor. */}
       <Projeler dil={dil} projeler={projeler} />
 
-      {/* Ana sayfada ilk 24 (sıraya göre — diller, gömülü, yapay zeka önde); tam liste
-          /cv'de. Kayan şerit içeriği HTML'de iki kez basıyor: 44 kart, mobil LCP
-          benzetimine yazılan belge baytını boşuna şişiriyordu (ADR-045). */}
+      {/* Tüm yetenekler, kategoriye göre gruplu (sabit ızgara — kayan şeritteki gibi
+          HTML'de iki kez basılmıyor, sınır gerekmiyor). */}
       <Yetenekler
         dil={dil}
-        yetenekler={[...yetenekler].sort((a, b) => a.order - b.order).slice(0, ANA_SAYFA_YETENEK)}
+        yetenekler={yetenekler}
       />
 
       <IletisimBlogu

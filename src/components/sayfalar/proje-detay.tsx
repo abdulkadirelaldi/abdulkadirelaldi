@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 
 import { KapakGorsel } from '@/components/public/kapak-gorsel';
+import { statikKapak } from '@/components/public/statik-kapak';
 import { Mdx } from '@/components/public/mdx';
 import { cipSiniflari, filtreAdresi } from '@/components/public/proje-filtre';
 import { PROJE_SEMALARI } from '@/components/public/proje-semalari';
@@ -189,14 +190,18 @@ export async function ProjeDetaySayfasi({ dil, slug }: SayfaProps) {
       </header>
 
       <div className="mx-auto flex max-w-7xl flex-col gap-16 px-4 pb-32 md:px-8">
-        {/* Kapak: liste kartıyla AYNI bileşen (ADR-018 yer tutucusu dahil). */}
-        <div className="overflow-hidden rounded-[2rem]">
-          <KapakGorsel
-            kapak={proje.cover}
-            baslik={proje.title}
-            yokEtiketi={p.kapakYok(proje.title)}
-          />
-        </div>
+        {/* Kapak: liste kartıyla AYNI bileşen. Görseli olmayan projede kutu HİÇ
+            çizilmez — boş yer tutucu "bitmemiş site" izlenimi veriyordu (2026-10-26). */}
+        {(proje.cover || statikKapak(proje)) && (
+          <div className="overflow-hidden rounded-[2rem]">
+            <KapakGorsel
+              kapak={proje.cover}
+              src={proje.cover ? undefined : (statikKapak(proje) ?? undefined)}
+              baslik={proje.title}
+              yokEtiketi={p.kapakYok(proje.title)}
+            />
+          </div>
+        )}
 
         {Sema && (
           <section aria-labelledby="mimari-baslik" className="flex flex-col gap-6">

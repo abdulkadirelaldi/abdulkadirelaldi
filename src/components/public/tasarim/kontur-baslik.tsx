@@ -26,7 +26,13 @@ export function KonturBaslik({ metin, as: Etiket = 'h2', id, className }: Kontur
       <span aria-hidden="true" className="dev-baslik metin-kontur block">
         {metin}
       </span>
-      <Etiket id={id} className="dev-baslik text-primary kontur-dol absolute inset-0">
+      {/* Kutu üstten/alttan 0,25em GENİŞ, metin aynı yerde (pt telafisi): dolgu
+          `clip-path` ile kutuya kırpılıyor ve Ç/Ş çengeli, İ noktası satır kutusunun
+          dışına taşıyordu — o parçalar dolmuyor, kontur olarak kalıyordu. */}
+      <Etiket
+        id={id}
+        className="dev-baslik text-primary kontur-dol absolute inset-x-0 -top-[0.25em] -bottom-[0.25em] pt-[0.25em]"
+      >
         {metin}
       </Etiket>
     </div>

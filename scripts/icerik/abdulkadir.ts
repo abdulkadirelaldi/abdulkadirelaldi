@@ -13,7 +13,7 @@
  */
 
 export const PROFIL = {
-  headline: 'Gömülü Sistemler · Yapay Zeka · Full-Stack',
+  headline: 'Gömülü Yazılım · Uçta Yapay Zeka · Full-Stack',
   subtitle:
     'Samsun Üniversitesi Yazılım Mühendisliği · Spectraloop Hyperloop yazılım ekip lideri · Kıyı Medya kurucu ortağı',
   bio: [
@@ -668,157 +668,33 @@ CI hattı her değişiklikte lint, tip denetimi, birim ve entegrasyon testlerini
 `,
   },
   {
-    slug: 'kiyi-medya-kurumsal-site',
+    slug: 'kiyi-medya-web-projeleri',
     commercial: true,
-    title: 'Kıyı Medya — Kurumsal Site',
+    title: 'Kıyı Medya — Kurumsal Web Projeleri',
     summary:
-      'Kurucu ortağı olduğum 360° dijital ajansın kurumsal sitesi — tasarımdan yayına uçtan uca.',
+      "Kurucu ortağı olduğum Kıyı Medya'nın yazılım biriminde tasarımdan yayına teslim ettiğim 10 kurumsal site: arıtma, sağlık, danışmanlık ve sanayi markaları.",
     tags: ['Kurumsal site', 'Kıyı Medya'],
-    stack: ['React'],
+    stack: ['Next.js', 'React', 'Vite'],
     liveUrl: 'https://kiyimedya.com',
-    clientName: 'Kıyı Medya',
     featured: false,
-    content: `## Kıyı Medya
+    content: `## Kapsam
 
-Kuruluşunda ve yazılım biriminin yönetiminde yer aldığım 360° dijital ajans. 50'den fazla firmaya 500'den fazla proje teslim edildi.
+Kıyı Medya'nın yazılım birimini yönetirken müşteri markaları için kurumsal siteleri tasarımdan yayına uçtan uca geliştirdim: gereksinim, arayüz, geliştirme, arama motoru ayarları ve yayın.
 
-Ajansın kurumsal sitesini tasarımdan yayına uçtan uca geliştirdim.
-`,
-  },
-  {
-    slug: 'iscev-aritma-kurumsal-site',
-    commercial: true,
-    title: 'İSÇEV Arıtma — Kurumsal Site',
-    summary:
-      'Arıtma ve çevre teknolojileri firması için kurumsal web sitesi — Kıyı Medya bünyesinde.',
-    tags: ['Kurumsal site', 'Kıyı Medya'],
-    stack: ['Vite'],
-    liveUrl: 'https://iscevaritma.com.tr',
-    clientName: 'İSÇEV Arıtma',
-    featured: false,
-    content: `## Proje
+## Siteler
 
-Endüstriyel atıksu arıtma ve çevre teknolojileri alanında çalışan firma için kurumsal web sitesi. Kıyı Medya bünyesinde, tasarımdan yayına uçtan uca geliştirildi.
-`,
-  },
-  {
-    slug: 'askar-medikal-kurumsal-site',
-    commercial: true,
-    title: 'Askar Medikal — Kurumsal Site',
-    summary: 'Tıbbi cihaz tedarikçisi için kurumsal web sitesi — Kıyı Medya bünyesinde.',
-    tags: ['Kurumsal site', 'Kıyı Medya'],
-    stack: ['Next.js'],
-    liveUrl: 'https://askarmedikal.com',
-    clientName: 'Askar Medikal',
-    featured: false,
-    content: `## Proje
-
-Tıbbi cihaz tedarikçisi için kurumsal web sitesi. Kıyı Medya bünyesinde, tasarımdan yayına uçtan uca geliştirildi.
-`,
-  },
-  {
-    slug: 'costman-kurumsal-site',
-    commercial: true,
-    title: 'Costman — Kurumsal Site',
-    summary:
-      'Restoran, kafe ve bar işletmelerine maliyet danışmanlığı veren marka için kurumsal web sitesi — Kıyı Medya bünyesinde.',
-    tags: ['Kurumsal site', 'Kıyı Medya'],
-    stack: ['Vite'],
-    liveUrl: 'https://mrcostman.com',
-    clientName: 'Costman',
-    featured: false,
-    content: `## Proje
-
-Restoran, kafe ve bar işletmelerine maliyet danışmanlığı veren marka için kurumsal web sitesi. Kıyı Medya bünyesinde, tasarımdan yayına uçtan uca geliştirildi.
-`,
-  },
-  {
-    slug: 'ilkadim-isitme-cihazlari-site',
-    commercial: true,
-    title: 'İlkadım İşitme Cihazları — Kurumsal Site',
-    summary: 'İşitme cihazı merkezi için kurumsal web sitesi — Kıyı Medya bünyesinde.',
-    tags: ['Kurumsal site', 'Kıyı Medya'],
-    stack: ['Vite'],
-    liveUrl: 'https://ilkadimisitmecihazlari.com',
-    clientName: 'İlkadım İşitme Cihazları',
-    featured: false,
-    content: `## Proje
-
-İşitme cihazı merkezi için kurumsal web sitesi. Kıyı Medya bünyesinde, tasarımdan yayına uçtan uca geliştirildi.
-`,
-  },
-  {
-    slug: 'crp-project-kurumsal-site',
-    commercial: true,
-    title: 'CRP Project — Kurumsal Site',
-    summary:
-      'Kafe ve restoran yönetim danışmanlığı markası için kurumsal web sitesi — Kıyı Medya bünyesinde.',
-    tags: ['Kurumsal site', 'Kıyı Medya'],
-    stack: ['Vite'],
-    liveUrl: 'https://crpproject.com',
-    clientName: 'CRP Project',
-    featured: false,
-    content: `## Proje
-
-Kafe ve restoran yönetim danışmanlığı markası için kurumsal web sitesi. Kıyı Medya bünyesinde, tasarımdan yayına uçtan uca geliştirildi.
-`,
-  },
-  {
-    slug: 'spectraloop-tanitim-sitesi',
-    commercial: true,
-    title: 'Spectraloop — Takım Tanıtım Sitesi',
-    summary: 'Spectraloop öğrenci teknoloji takımı için tanıtım sitesi — Kıyı Medya bünyesinde.',
-    tags: ['Kurumsal site', 'Kıyı Medya'],
-    stack: ['Next.js'],
-    liveUrl: 'https://spectraloop.com.tr',
-    clientName: 'Spectraloop',
-    featured: false,
-    content: `## Proje
-
-Öğrenci teknoloji takımı Spectraloop için tanıtım sitesi. Kıyı Medya bünyesinde, tasarımdan yayına uçtan uca geliştirildi.
-`,
-  },
-  {
-    slug: 'dna-cevre-aritma-site',
-    commercial: true,
-    title: 'DNA Çevre ve Arıtma — Kurumsal Site',
-    summary:
-      'Ankara merkezli arıtma firması için yenilenen kurumsal web sitesi — Kıyı Medya bünyesinde.',
-    tags: ['Kurumsal site', 'Kıyı Medya'],
-    stack: [],
-    clientName: 'DNA Çevre ve Arıtma',
-    featured: false,
-    content: `## Proje
-
-Ankara merkezli arıtma firması için yenilenen kurumsal web sitesi. Kıyı Medya bünyesinde geliştirildi.
-`,
-  },
-  {
-    slug: 'yay-grup-su-aritma-site',
-    commercial: true,
-    title: 'Yay Grup Su Arıtma — Kurumsal Site',
-    summary: 'Su ve atıksu arıtma markası için kurumsal web sitesi — Kıyı Medya bünyesinde.',
-    tags: ['Kurumsal site', 'Kıyı Medya'],
-    stack: [],
-    clientName: 'Yay Grup',
-    featured: false,
-    content: `## Proje
-
-Su ve atıksu arıtma markası için kurumsal web sitesi. Kıyı Medya bünyesinde geliştirildi.
-`,
-  },
-  {
-    slug: 'yay-grup-metal-isleme-site',
-    commercial: true,
-    title: 'Yay Grup Metal İşleme — Kurumsal Site',
-    summary: 'Lazer kesim ve sac işleme markası için kurumsal web sitesi — Kıyı Medya bünyesinde.',
-    tags: ['Kurumsal site', 'Kıyı Medya'],
-    stack: [],
-    clientName: 'Yay Grup',
-    featured: false,
-    content: `## Proje
-
-Lazer kesim ve sac işleme markası için kurumsal web sitesi. Kıyı Medya bünyesinde geliştirildi.
+| Marka | Adres |
+|---|---|
+| Kıyı Medya | [kiyimedya.com](https://kiyimedya.com) |
+| İSÇEV Arıtma | [iscevaritma.com.tr](https://iscevaritma.com.tr) |
+| Aşkar Medikal | [askarmedikal.com](https://askarmedikal.com) |
+| Costman | [mrcostman.com](https://mrcostman.com) |
+| İlkadım İşitme Cihazları | [ilkadimisitmecihazlari.com](https://ilkadimisitmecihazlari.com) |
+| CRP Project | [crpproject.com](https://crpproject.com) |
+| Spectraloop | [spectraloop.com.tr](https://spectraloop.com.tr) |
+| DNA Çevre ve Arıtma | yeni sürüm hazırlanıyor |
+| Yay Grup Su Arıtma | yeni sürüm hazırlanıyor |
+| Yay Grup Metal İşleme | yeni sürüm hazırlanıyor |
 `,
   },
   {
