@@ -45,8 +45,17 @@ Geliştirme makinesinde, `main` güncel ve temizken:
 deploy/sunucu/gonder.sh
 ```
 
-İmajları amd64 için derler, sunucuya gönderir, göçleri uygular, uygulamayı
-yeniden başlatır (birkaç saniyelik kesinti). Kontrol:
+Dal `origin`e itilmiş olmalı. İmajlar GitHub Actions'ta amd64 için derlenir
+(`.github/workflows/imaj.yml`, ~birkaç dk; aynı commit zaten derlendiyse
+yeniden derlenmez), betik yapıtı indirip ssh ile sunucuya yükler, göçleri
+uygular, uygulamayı yeniden başlatır (birkaç saniyelik kesinti). GitHub'ın
+sunucuya erişimi yok. GitHub erişilemezse yedek yol `YEREL=1 deploy/sunucu/gonder.sh`
+(bu Mac'te QEMU — 10–30 dk; Mac uykuya geçerse takılır, `caffeinate -i` ile çalıştırın).
+
+⚠️ Betik çalışırken `gonder.sh` dosyasını düzenlemeyin: bash betiği satır
+satır okur, çalışan gönderim sözdizimi hatasıyla yarıda kalır.
+
+Kontrol:
 `curl -s https://abdulkadirelaldi.com/api/v1/health`.
 
 İçerik dosyaları (`scripts/icerik/*`) değiştiyse ardından:
