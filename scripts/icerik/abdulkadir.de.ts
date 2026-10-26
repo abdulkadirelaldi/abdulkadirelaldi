@@ -646,7 +646,7 @@ Als Leiter der Softwareabteilung von Kıyı Medya habe ich Unternehmenswebsites 
 |---|---|
 | Kıyı Medya | [kiyimedya.com](https://kiyimedya.com) |
 | İSÇEV Arıtma | [iscevaritma.com.tr](https://iscevaritma.com.tr) |
-| Askar Medikal | [askarmedikal.com](https://askarmedikal.com) |
+| Aşkar Medikal | [askarmedikal.com](https://askarmedikal.com) |
 | Costman | [mrcostman.com](https://mrcostman.com) |
 | İlkadım İşitme Cihazları | [ilkadimisitmecihazlari.com](https://ilkadimisitmecihazlari.com) |
 | CRP Project | [crpproject.com](https://crpproject.com) |
