@@ -58,10 +58,16 @@ else
     echo "[gonder] derleniyor: $(gh run view "$KOSU" --json url -q .url)"
     gh run watch "$KOSU" --exit-status --interval 15 >/dev/null
   fi
-  GECICI=$(mktemp -d)
-  trap 'rm -rf "$GECICI"' EXIT
-  gh run download "$KOSU" -n "imajlar-$SURUM" -D "$GECICI"
-  ssh "$SUNUCU" 'gunzip | docker load' < "$GECICI/imajlar.tar.gz"
+  # Yapıt (~500 MB) diske İNDİRİLMEDEN akıtılıyor: zip → bsdtar → ssh. Diski
+  # dolu bir geliştirme makinesinde `gh run download` yarıda kalıyordu
+  # (2026-10-26). Zip sıkıştırmasız (imaj.yml: compression-level 0); bsdtar
+  # boyutu baştan bilinmeyen kaydı da akış halinde okuyabiliyor, funzip okuyamıyor.
+  YAPIT=$(gh api "repos/{owner}/{repo}/actions/runs/$KOSU/artifacts" \
+    -q ".artifacts[] | select(.name == \"imajlar-$SURUM\") | .id")
+  [ -n "$YAPIT" ] || { echo "Yapıt bulunamadı: imajlar-$SURUM" >&2; exit 1; }
+  gh api "repos/{owner}/{repo}/actions/artifacts/$YAPIT/zip" \
+    | bsdtar -xOf - imajlar.tar.gz \
+    | ssh "$SUNUCU" 'gunzip | docker load'
 fi
 
 # Eski sürümler: güncel + bir önceki (geri dönüş için) kalır, gerisi silinir.
