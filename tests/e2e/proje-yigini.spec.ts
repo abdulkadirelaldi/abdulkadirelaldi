@@ -15,7 +15,17 @@ import { expect, test } from '@playwright/test';
  * sayı ölçümü; içerik değişince kırılmaz, düzen bozulunca kırılır.
  */
 test.describe('proje yığını düzeni', () => {
-  test.skip(({ isMobile }) => isMobile, 'mobilde yığılma yok (tasarım gereği)');
+  // ATLAMA YOK (CI atlanan testi reddediyor): her test pencereyi KENDİSİ
+  // ayarlıyor, iki projede de (masaüstü/mobil) aynı ölçüm anlamlı.
+  test('390×844 (telefon): kartlar yığılmıyor, düz liste', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/projeler');
+    const konumlar = await page
+      .locator('main ol > li:has(> article)')
+      .evaluateAll((liler) => liler.map((li) => getComputedStyle(li).position));
+    expect(konumlar.length).toBeGreaterThan(0);
+    expect(konumlar.every((k) => k !== 'sticky')).toBe(true);
+  });
 
   for (const yukseklik of [640, 880]) {
     test(`1440×${yukseklik}: her kart yapışkan ve pencereye sığıyor`, async ({ page }) => {
