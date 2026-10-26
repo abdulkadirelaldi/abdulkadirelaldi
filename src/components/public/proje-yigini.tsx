@@ -11,6 +11,12 @@ import type { ProjectListItemDto } from '@/server/services/content-dto';
 /** Kartların yapışma noktası; her kart bir öncekinin bu kadar altında durur. */
 const UST = 6; // rem
 const ADIM = 4.25; // rem — kart başlık şeridinin yüksekliği
+/**
+ * Üstte görünür kalan en fazla başlık şeridi. Sınırsız yığında 16 projeyle
+ * şeritler ekranı dolduruyor, yeni kart görünmüyordu (2026-10-26); bu
+ * sınırdan sonraki kartlar aynı noktaya yapışıp öncekinin üstüne biniyor.
+ */
+const YIGIN = 3;
 
 /**
  * ADR-045 — yapışkan, üst üste yığılan proje kartları (örnekteki
@@ -40,9 +46,14 @@ export function ProjeYigini({
   return (
     <ol className="flex flex-col gap-6 md:gap-10">
       {projeler.map((proje, sira) => (
-        <li key={proje.id} className="md:sticky" style={{ top: `${UST + sira * ADIM}rem` }}>
+        <li
+          key={proje.id}
+          className="[@media(min-width:768px)_and_(min-height:760px)]:sticky"
+          style={{ top: `${UST + Math.min(sira, YIGIN - 1) * ADIM}rem` }}
+        >
           <article className="border-line-hover bg-surface overflow-hidden rounded-[1.75rem] border shadow-[0_-20px_60px_-30px_rgba(0,0,0,0.9)] md:rounded-[2.25rem]">
-            {/* Mobilde yığılma yok (yapışkan değil), başlık SATIR KIRABİLİR; masaüstünde
+            {/* Mobilde ve kısa ekranda (<760px yükseklik — kart, yığının altına sığmıyor)
+                yığılma yok, başlık SATIR KIRABİLİR; masaüstünde
                 yığın şeridi sabit yükseklikte olmalı, orada tek satır + üç nokta. */}
             <header className="flex min-h-[4.25rem] items-center gap-4 px-5 py-3 md:h-[4.25rem] md:px-8 md:py-0">
               <span className="dev-baslik text-primary text-2xl md:text-3xl">
