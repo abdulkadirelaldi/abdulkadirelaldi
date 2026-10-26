@@ -15,6 +15,10 @@ const ADIM = 4.25; // rem — kart başlık şeridinin yüksekliği
  * Üstte görünür kalan en fazla başlık şeridi. Sınırsız yığında 16 projeyle
  * şeritler ekranı dolduruyor, yeni kart görünmüyordu (2026-10-26); bu
  * sınırdan sonraki kartlar aynı noktaya yapışıp öncekinin üstüne biniyor.
+ *
+ * Kart yüksekliği de EKRANA BAĞLI (`100dvh - yapışma noktası`): kart yığının
+ * altına sığmazsa alt kısmı bir sonraki kartın altında kalıyordu. Kısa
+ * ekranda kapak görseli küçülüyor (`object-cover`), yığılma kapanmıyor.
  */
 const YIGIN = 3;
 
@@ -48,14 +52,18 @@ export function ProjeYigini({
       {projeler.map((proje, sira) => (
         <li
           key={proje.id}
-          className="[@media(min-width:768px)_and_(min-height:760px)]:sticky"
-          style={{ top: `${UST + Math.min(sira, YIGIN - 1) * ADIM}rem` }}
+          className="md:sticky"
+          style={
+            {
+              '--ust': `${UST + Math.min(sira, YIGIN - 1) * ADIM}rem`,
+              top: 'var(--ust)',
+            } as React.CSSProperties
+          }
         >
-          <article className="border-line-hover bg-surface overflow-hidden rounded-[1.75rem] border shadow-[0_-20px_60px_-30px_rgba(0,0,0,0.9)] md:rounded-[2.25rem]">
-            {/* Mobilde ve kısa ekranda (<760px yükseklik — kart, yığının altına sığmıyor)
-                yığılma yok, başlık SATIR KIRABİLİR; masaüstünde
+          <article className="border-line-hover bg-surface overflow-hidden rounded-[1.75rem] border shadow-[0_-20px_60px_-30px_rgba(0,0,0,0.9)] md:flex md:h-[min(34rem,calc(100dvh-var(--ust)-1.5rem))] md:flex-col md:rounded-[2.25rem]">
+            {/* Mobilde yığılma yok, başlık SATIR KIRABİLİR; masaüstünde
                 yığın şeridi sabit yükseklikte olmalı, orada tek satır + üç nokta. */}
-            <header className="flex min-h-[4.25rem] items-center gap-4 px-5 py-3 md:h-[4.25rem] md:px-8 md:py-0">
+            <header className="flex min-h-[4.25rem] items-center gap-4 px-5 py-3 md:h-[4.25rem] md:shrink-0 md:px-8 md:py-0">
               <span className="dev-baslik text-primary text-2xl md:text-3xl">
                 {String(sira + 1).padStart(2, '0')}
               </span>
@@ -83,18 +91,18 @@ export function ProjeYigini({
               </Link>
             </header>
 
-            <div className="grid gap-3 p-3 pt-0 md:grid-cols-[1.6fr_1fr] md:gap-4 md:p-4 md:pt-0">
-              <div className="group overflow-hidden rounded-[1.25rem] md:rounded-[1.75rem]">
+            <div className="grid gap-3 p-3 pt-0 md:min-h-0 md:flex-1 md:grid-cols-[1.6fr_1fr] md:gap-4 md:p-4 md:pt-0">
+              <div className="group overflow-hidden rounded-[1.25rem] md:min-h-0 md:rounded-[1.75rem]">
                 <KapakGorsel
                   kapak={proje.cover}
                   // Yüklenmiş kapak yoksa statik kapak (statik-kapak.ts).
                   src={proje.cover ? undefined : (statikKapak(proje) ?? undefined)}
                   baslik={proje.title}
-                  className="ease-brand h-full transition-transform duration-700 group-hover:scale-[1.04]"
+                  className="ease-brand h-full transition-transform duration-700 group-hover:scale-[1.04] md:!aspect-auto"
                 />
               </div>
 
-              <div className="bg-canvas border-line flex flex-col justify-between gap-6 rounded-[1.25rem] border p-5 md:rounded-[1.75rem] md:p-6">
+              <div className="bg-canvas border-line flex flex-col justify-between gap-6 rounded-[1.25rem] border p-5 md:min-h-0 md:overflow-hidden md:rounded-[1.75rem] md:p-6">
                 <p className="text-body text-sm leading-relaxed">{proje.summary}</p>
 
                 <pre
