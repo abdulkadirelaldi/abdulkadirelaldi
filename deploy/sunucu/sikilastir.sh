@@ -47,5 +47,6 @@ if grep -qE '^\s*#\s*server_tokens off;' /etc/nginx/nginx.conf; then
   fi
 fi
 
-echo
-echo "SON ADIM — root şifresi sohbette paylaşıldığı için değiştirin: passwd"
+# Root şifresi DEĞİŞTİRİLMEDİ (sahibinin kararı, 2026-10-26): şifreyle SSH
+# kapalı olduğundan şifre SSH'tan kullanılamaz. Hâlâ geçerli olduğu tek yer
+# sağlayıcının web konsolu (VNC/seri konsol).
