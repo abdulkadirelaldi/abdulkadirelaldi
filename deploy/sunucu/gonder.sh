@@ -64,5 +64,10 @@ else
   ssh "$SUNUCU" 'gunzip | docker load' < "$GECICI/imajlar.tar.gz"
 fi
 
-ssh "$SUNUCU" "cd /opt/aelaldi && docker compose up -d --remove-orphans && docker image prune -f >/dev/null"
+# Eski sürümler: güncel + bir önceki (geri dönüş için) kalır, gerisi silinir.
+# Her sürüm ~2,6 GB; disk müşteri siteleri ve mailcow ile paylaşılıyor.
+ssh "$SUNUCU" "cd /opt/aelaldi && docker compose up -d --remove-orphans && \
+  for r in aelaldi-uygulama aelaldi-araclar; do \
+    docker images \$r --format '{{.Tag}}' | grep -vx latest | tail -n +3 | xargs -r -I{} docker rmi \$r:{} >/dev/null; \
+  done; docker image prune -f >/dev/null"
 echo "[gonder] $SURUM yayında — kontrol: curl -s $SITE_URL/api/v1/health"

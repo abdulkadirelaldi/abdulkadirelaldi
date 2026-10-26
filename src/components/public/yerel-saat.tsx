@@ -11,12 +11,14 @@ const BICIM = new Intl.DateTimeFormat('tr-TR', {
 /**
  * Hero'daki canlı yerel saat ("İSTANBUL · 14:32").
  *
- * İLK KAREDE BOŞ: sunucunun saati ile istemcinin saati farklı dakikaya
- * düşebilir ve hidrasyon uyuşmazlığı verir. Saat yalnızca istemcide, bağlandıktan
- * sonra basılıyor; yer tutucu genişliği sabit (`tabular`, 5 karakter) — CLS yok.
+ * SUNUCUDA DA BASILIYOR: sayfa her istekte üretiliyor (CSP nonce'u, bkz.
+ * middleware), yani sunucunun saati isteğin saati. Önceden ilk karede `--:--`
+ * gösteriliyordu ve boş bir alan gibi duruyordu (2026-10-26). Sunucu ile
+ * istemci farklı dakikaya düşerse uyuşmazlık uyarısı `suppressHydrationWarning`
+ * ile susturuluyor; etkisi sonraki güncellemede düzelen tek bir dakika.
  */
 export function YerelSaat() {
-  const [saat, setSaat] = useState<string | null>(null);
+  const [saat, setSaat] = useState(() => BICIM.format(new Date()));
 
   useEffect(() => {
     const guncelle = () => setSaat(BICIM.format(new Date()));
@@ -27,7 +29,7 @@ export function YerelSaat() {
 
   return (
     <time className="tabular inline-block w-[5ch]" suppressHydrationWarning>
-      {saat ?? '--:--'}
+      {saat}
     </time>
   );
 }

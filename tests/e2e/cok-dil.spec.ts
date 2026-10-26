@@ -15,8 +15,9 @@ import { expect, test } from '@playwright/test';
  *      sözlük dilimi doğru).
  *
  * Seed sözleşmesi (`prisma/seed.ts`): `kiyi-medya-kurumsal-site` projesinin
- * İngilizcesi `kiyi-medya-corporate-website` — üretim içeriğiyle (scripts/icerik)
- * AYNI slug, test iki veri kümesinde de geçer.
+ * İngilizcesi `kiyi-medya-corporate-website`. Üretim içeriğinde (scripts/icerik)
+ * bu kayıt 2026-10-26'da `kiyi-medya-web-projeleri` kartında birleşti; test
+ * yalnızca seed verisiyle geçer.
  *
  * NE ÖLÇÜLMÜYOR: çevirinin kalitesi (insan işi) ve uzun Almanca başlıkların
  * taşması — o, görsel bir kontrol (bkz. ADR-046 notu).

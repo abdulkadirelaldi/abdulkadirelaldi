@@ -62,7 +62,7 @@ export const en: Sozluk = {
   hakkimdaBolum: {
     baslik: 'About',
     devam: 'Read my full story',
-    yilDeneyim: 'years of experience',
+    odulDerece: 'awards and rankings',
     yayinlananProje: 'published projects',
   },
   basarilar: { baslik: 'Achievements' },

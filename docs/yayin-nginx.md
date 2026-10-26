@@ -62,8 +62,13 @@ Kontrol:
 
 ```bash
 ssh root@187.77.66.202 'cd /opt/aelaldi && docker compose exec -T araclar \
-  node --import ./scripts/yedek-register.mjs scripts/icerik-yukle.ts && docker compose restart uygulama'
+  node --import ./scripts/yedek-register.mjs scripts/icerik-yukle.ts --esitle && docker compose up -d --force-recreate uygulama'
 ```
+
+`restart` YETMEZ: uygulama içerik önbelleğini (`unstable_cache`) konteynerin
+diskinde, `/app/.next/cache/fetch-cache` altında tutar ve `restart` bu katmanı
+korur; sayfalar önbellek süresi dolana kadar eski içeriği gösterir.
+`--force-recreate` konteyneri imajdan yeniden kurar, önbellek boş başlar.
 
 ## Panel yöneticisi — BİR KEZ, site sahibi yapar
 

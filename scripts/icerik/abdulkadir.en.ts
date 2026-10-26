@@ -15,7 +15,7 @@
 import { PROFIL as PROFIL_TR, type Deneyim, type Kategori, type Proje } from './abdulkadir';
 
 export const PROFIL = {
-  headline: 'Embedded Systems · AI · Full-Stack',
+  headline: 'Embedded Software · Edge AI · Full-Stack',
   subtitle:
     'Software Engineering at Samsun University · Software team lead at Spectraloop Hyperloop · Co-founder of Kıyı Medya',
   bio: [
@@ -631,168 +631,34 @@ On every change, the CI pipeline runs lint, type checking, unit and integration 
 `,
   },
   {
-    slug: 'kiyi-medya-corporate-website',
-    translationKey: 'kiyi-medya-kurumsal-site',
+    slug: 'kiyi-medya-web-projects',
+    translationKey: 'kiyi-medya-web-projeleri',
     commercial: true,
-    title: 'Kıyı Medya — Corporate Website',
+    title: 'Kıyı Medya — Corporate Web Projects',
     summary:
-      'The corporate website of the 360° digital agency I co-founded — built end to end, from design to launch.',
+      'Ten corporate websites I delivered from design to launch in the software unit of Kıyı Medya, the agency I co-founded: water treatment, healthcare, consulting and industrial brands.',
     tags: ['Corporate website', 'Kıyı Medya'],
-    stack: ['React'],
+    stack: ['Next.js', 'React', 'Vite'],
     liveUrl: 'https://kiyimedya.com',
-    clientName: 'Kıyı Medya',
     featured: false,
-    content: `## Kıyı Medya
+    content: `## Scope
 
-A 360° digital agency that I helped found and whose software unit I run. The agency has delivered more than 500 projects to more than 50 companies.
+While running Kıyı Medya's software unit I built corporate websites for client brands end to end: requirements, interface, development, search engine setup and launch.
 
-I built the agency's corporate website end to end, from design to launch.
-`,
-  },
-  {
-    slug: 'iscev-aritma-corporate-website',
-    translationKey: 'iscev-aritma-kurumsal-site',
-    commercial: true,
-    title: 'İSÇEV Arıtma — Corporate Website',
-    summary:
-      'A corporate website for a water treatment and environmental technology company — delivered through Kıyı Medya.',
-    tags: ['Corporate website', 'Kıyı Medya'],
-    stack: ['Vite'],
-    liveUrl: 'https://iscevaritma.com.tr',
-    clientName: 'İSÇEV Arıtma',
-    featured: false,
-    content: `## Project
+## Websites
 
-A corporate website for a company working in industrial wastewater treatment and environmental technology. Built end to end, from design to launch, through Kıyı Medya.
-`,
-  },
-  {
-    slug: 'askar-medikal-corporate-website',
-    translationKey: 'askar-medikal-kurumsal-site',
-    commercial: true,
-    title: 'Askar Medikal — Corporate Website',
-    summary: 'A corporate website for a medical device supplier — delivered through Kıyı Medya.',
-    tags: ['Corporate website', 'Kıyı Medya'],
-    stack: ['Next.js'],
-    liveUrl: 'https://askarmedikal.com',
-    clientName: 'Askar Medikal',
-    featured: false,
-    content: `## Project
-
-A corporate website for a medical device supplier. Built end to end, from design to launch, through Kıyı Medya.
-`,
-  },
-  {
-    slug: 'costman-corporate-website',
-    translationKey: 'costman-kurumsal-site',
-    commercial: true,
-    title: 'Costman — Corporate Website',
-    summary:
-      'Corporate website for a brand that provides cost consulting to restaurants, cafés and bars — built at Kıyı Medya.',
-    tags: ['Corporate website', 'Kıyı Medya'],
-    stack: ['Vite'],
-    liveUrl: 'https://mrcostman.com',
-    clientName: 'Costman',
-    featured: false,
-    content: `## Project
-
-Corporate website for a brand that provides cost consulting to restaurants, cafés and bars. Built end to end at Kıyı Medya, from design to launch.
-`,
-  },
-  {
-    slug: 'ilkadim-hearing-aids-website',
-    translationKey: 'ilkadim-isitme-cihazlari-site',
-    commercial: true,
-    title: 'İlkadım Hearing Aids — Corporate Website',
-    summary: 'Corporate website for a hearing aid centre — built at Kıyı Medya.',
-    tags: ['Corporate website', 'Kıyı Medya'],
-    stack: ['Vite'],
-    liveUrl: 'https://ilkadimisitmecihazlari.com',
-    clientName: 'İlkadım İşitme Cihazları',
-    featured: false,
-    content: `## Project
-
-Corporate website for a hearing aid centre. Built end to end at Kıyı Medya, from design to launch.
-`,
-  },
-  {
-    slug: 'crp-project-corporate-website',
-    translationKey: 'crp-project-kurumsal-site',
-    commercial: true,
-    title: 'CRP Project — Corporate Website',
-    summary:
-      'Corporate website for a café and restaurant management consulting brand — built at Kıyı Medya.',
-    tags: ['Corporate website', 'Kıyı Medya'],
-    stack: ['Vite'],
-    liveUrl: 'https://crpproject.com',
-    clientName: 'CRP Project',
-    featured: false,
-    content: `## Project
-
-Corporate website for a café and restaurant management consulting brand. Built end to end at Kıyı Medya, from design to launch.
-`,
-  },
-  {
-    slug: 'spectraloop-team-website',
-    translationKey: 'spectraloop-tanitim-sitesi',
-    commercial: true,
-    title: 'Spectraloop — Team Website',
-    summary: 'Website for the Spectraloop student technology team — built at Kıyı Medya.',
-    tags: ['Corporate website', 'Kıyı Medya'],
-    stack: ['Next.js'],
-    liveUrl: 'https://spectraloop.com.tr',
-    clientName: 'Spectraloop',
-    featured: false,
-    content: `## Project
-
-Website for the student technology team Spectraloop. Built end to end at Kıyı Medya, from design to launch.
-`,
-  },
-  {
-    slug: 'dna-environment-treatment-website',
-    translationKey: 'dna-cevre-aritma-site',
-    commercial: true,
-    title: 'DNA Çevre ve Arıtma — Corporate Website',
-    summary:
-      'Redesigned corporate website for an Ankara-based water treatment company — built at Kıyı Medya.',
-    tags: ['Corporate website', 'Kıyı Medya'],
-    stack: [],
-    clientName: 'DNA Çevre ve Arıtma',
-    featured: false,
-    content: `## Project
-
-Redesigned corporate website for an Ankara-based water treatment company. Built at Kıyı Medya.
-`,
-  },
-  {
-    slug: 'yay-grup-water-treatment-website',
-    translationKey: 'yay-grup-su-aritma-site',
-    commercial: true,
-    title: 'Yay Grup Water Treatment — Corporate Website',
-    summary: 'Corporate website for a water and wastewater treatment brand — built at Kıyı Medya.',
-    tags: ['Corporate website', 'Kıyı Medya'],
-    stack: [],
-    clientName: 'Yay Grup',
-    featured: false,
-    content: `## Project
-
-Corporate website for a water and wastewater treatment brand. Built at Kıyı Medya.
-`,
-  },
-  {
-    slug: 'yay-grup-metal-processing-website',
-    translationKey: 'yay-grup-metal-isleme-site',
-    commercial: true,
-    title: 'Yay Grup Metal Processing — Corporate Website',
-    summary:
-      'Corporate website for a laser cutting and sheet metal processing brand — built at Kıyı Medya.',
-    tags: ['Corporate website', 'Kıyı Medya'],
-    stack: [],
-    clientName: 'Yay Grup',
-    featured: false,
-    content: `## Project
-
-Corporate website for a laser cutting and sheet metal processing brand. Built at Kıyı Medya.
+| Brand | Address |
+|---|---|
+| Kıyı Medya | [kiyimedya.com](https://kiyimedya.com) |
+| İSÇEV Arıtma | [iscevaritma.com.tr](https://iscevaritma.com.tr) |
+| Askar Medikal | [askarmedikal.com](https://askarmedikal.com) |
+| Costman | [mrcostman.com](https://mrcostman.com) |
+| İlkadım İşitme Cihazları | [ilkadimisitmecihazlari.com](https://ilkadimisitmecihazlari.com) |
+| CRP Project | [crpproject.com](https://crpproject.com) |
+| Spectraloop | [spectraloop.com.tr](https://spectraloop.com.tr) |
+| DNA Çevre ve Arıtma | new version in progress |
+| Yay Grup Su Arıtma | new version in progress |
+| Yay Grup Metal İşleme | new version in progress |
 `,
   },
   {

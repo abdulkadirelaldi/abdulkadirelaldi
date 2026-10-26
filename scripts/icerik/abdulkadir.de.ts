@@ -10,7 +10,7 @@
 import { PROFIL as PROFIL_TR, type Deneyim, type Kategori, type Proje } from './abdulkadir';
 
 export const PROFIL = {
-  headline: 'Embedded-Systeme · Künstliche Intelligenz · Full-Stack',
+  headline: 'Embedded-Software · Edge-KI · Full-Stack',
   subtitle:
     'Software Engineering an der Universität Samsun · Leiter des Softwareteams von Spectraloop Hyperloop · Mitgründer von Kıyı Medya',
   bio: [
@@ -626,170 +626,34 @@ Bei jeder Änderung führt die CI-Pipeline Lint, Typprüfung, Unit- und Integrat
 `,
   },
   {
-    translationKey: 'kiyi-medya-kurumsal-site',
+    slug: 'kiyi-medya-webprojekte',
+    translationKey: 'kiyi-medya-web-projeleri',
     commercial: true,
-    slug: 'kiyi-medya-unternehmenswebsite',
-    title: 'Kıyı Medya – Unternehmenswebsite',
+    title: 'Kıyı Medya — Unternehmenswebsites',
     summary:
-      'Unternehmenswebsite der 360°-Digitalagentur, die ich mitgegründet habe – durchgängig vom Design bis zum Go-live.',
+      'Zehn Unternehmenswebsites, die ich in der Softwareabteilung der von mir mitgegründeten Agentur Kıyı Medya vom Design bis zum Go-live umgesetzt habe: Wasseraufbereitung, Gesundheit, Beratung und Industrie.',
     tags: ['Unternehmenswebsite', 'Kıyı Medya'],
-    stack: ['React'],
+    stack: ['Next.js', 'React', 'Vite'],
     liveUrl: 'https://kiyimedya.com',
-    clientName: 'Kıyı Medya',
     featured: false,
-    content: `## Kıyı Medya
+    content: `## Umfang
 
-Eine 360°-Digitalagentur, an deren Gründung und an der Leitung deren Softwareabteilung ich beteiligt bin. Für mehr als 50 Unternehmen wurden über 500 Projekte umgesetzt.
+Als Leiter der Softwareabteilung von Kıyı Medya habe ich Unternehmenswebsites für Kundenmarken durchgängig umgesetzt: Anforderungen, Oberfläche, Entwicklung, Suchmaschinen-Einrichtung und Go-live.
 
-Die Unternehmenswebsite der Agentur habe ich durchgängig vom Design bis zum Go-live entwickelt.
-`,
-  },
-  {
-    translationKey: 'iscev-aritma-kurumsal-site',
-    commercial: true,
-    slug: 'iscev-aritma-unternehmenswebsite',
-    title: 'İSÇEV Arıtma – Unternehmenswebsite',
-    summary:
-      'Unternehmenswebsite für ein Unternehmen der Abwasserbehandlung und Umwelttechnik – umgesetzt bei Kıyı Medya.',
-    tags: ['Unternehmenswebsite', 'Kıyı Medya'],
-    stack: ['Vite'],
-    liveUrl: 'https://iscevaritma.com.tr',
-    clientName: 'İSÇEV Arıtma',
-    featured: false,
-    content: `## Projekt
+## Websites
 
-Unternehmenswebsite für ein Unternehmen, das in der industriellen Abwasserbehandlung und Umwelttechnik tätig ist. Bei Kıyı Medya durchgängig vom Design bis zum Go-live entwickelt.
-`,
-  },
-  {
-    translationKey: 'askar-medikal-kurumsal-site',
-    commercial: true,
-    slug: 'askar-medikal-unternehmenswebsite',
-    title: 'Askar Medikal – Unternehmenswebsite',
-    summary:
-      'Unternehmenswebsite für einen Lieferanten von Medizinprodukten – umgesetzt bei Kıyı Medya.',
-    tags: ['Unternehmenswebsite', 'Kıyı Medya'],
-    stack: ['Next.js'],
-    liveUrl: 'https://askarmedikal.com',
-    clientName: 'Askar Medikal',
-    featured: false,
-    content: `## Projekt
-
-Unternehmenswebsite für einen Lieferanten von Medizinprodukten. Bei Kıyı Medya durchgängig vom Design bis zum Go-live entwickelt.
-`,
-  },
-  {
-    slug: 'costman-unternehmenswebsite',
-    translationKey: 'costman-kurumsal-site',
-    commercial: true,
-    title: 'Costman – Unternehmenswebsite',
-    summary:
-      'Unternehmenswebsite für eine Marke, die Restaurants, Cafés und Bars bei Kosten berät – bei Kıyı Medya umgesetzt.',
-    tags: ['Unternehmenswebsite', 'Kıyı Medya'],
-    stack: ['Vite'],
-    liveUrl: 'https://mrcostman.com',
-    clientName: 'Costman',
-    featured: false,
-    content: `## Projekt
-
-Unternehmenswebsite für eine Marke, die Restaurants, Cafés und Bars bei Kosten berät. Bei Kıyı Medya durchgängig vom Design bis zum Go-live umgesetzt.
-`,
-  },
-  {
-    slug: 'ilkadim-hoergeraete-website',
-    translationKey: 'ilkadim-isitme-cihazlari-site',
-    commercial: true,
-    title: 'İlkadım Hörgeräte – Unternehmenswebsite',
-    summary: 'Unternehmenswebsite für ein Hörgerätezentrum – bei Kıyı Medya umgesetzt.',
-    tags: ['Unternehmenswebsite', 'Kıyı Medya'],
-    stack: ['Vite'],
-    liveUrl: 'https://ilkadimisitmecihazlari.com',
-    clientName: 'İlkadım İşitme Cihazları',
-    featured: false,
-    content: `## Projekt
-
-Unternehmenswebsite für ein Hörgerätezentrum. Bei Kıyı Medya durchgängig vom Design bis zum Go-live umgesetzt.
-`,
-  },
-  {
-    slug: 'crp-project-unternehmenswebsite',
-    translationKey: 'crp-project-kurumsal-site',
-    commercial: true,
-    title: 'CRP Project – Unternehmenswebsite',
-    summary:
-      'Unternehmenswebsite für eine Beratungsmarke für Café- und Restaurantmanagement – bei Kıyı Medya umgesetzt.',
-    tags: ['Unternehmenswebsite', 'Kıyı Medya'],
-    stack: ['Vite'],
-    liveUrl: 'https://crpproject.com',
-    clientName: 'CRP Project',
-    featured: false,
-    content: `## Projekt
-
-Unternehmenswebsite für eine Beratungsmarke für Café- und Restaurantmanagement. Bei Kıyı Medya durchgängig vom Design bis zum Go-live umgesetzt.
-`,
-  },
-  {
-    slug: 'spectraloop-teamwebsite',
-    translationKey: 'spectraloop-tanitim-sitesi',
-    commercial: true,
-    title: 'Spectraloop – Teamwebsite',
-    summary: 'Website des studentischen Technologieteams Spectraloop – bei Kıyı Medya umgesetzt.',
-    tags: ['Unternehmenswebsite', 'Kıyı Medya'],
-    stack: ['Next.js'],
-    liveUrl: 'https://spectraloop.com.tr',
-    clientName: 'Spectraloop',
-    featured: false,
-    content: `## Projekt
-
-Website des studentischen Technologieteams Spectraloop. Bei Kıyı Medya durchgängig vom Design bis zum Go-live umgesetzt.
-`,
-  },
-  {
-    slug: 'dna-umwelt-aufbereitung-website',
-    translationKey: 'dna-cevre-aritma-site',
-    commercial: true,
-    title: 'DNA Çevre ve Arıtma – Unternehmenswebsite',
-    summary:
-      'Neu gestaltete Unternehmenswebsite für ein Wasseraufbereitungsunternehmen aus Ankara – bei Kıyı Medya umgesetzt.',
-    tags: ['Unternehmenswebsite', 'Kıyı Medya'],
-    stack: [],
-    clientName: 'DNA Çevre ve Arıtma',
-    featured: false,
-    content: `## Projekt
-
-Neu gestaltete Unternehmenswebsite für ein Wasseraufbereitungsunternehmen aus Ankara. Bei Kıyı Medya umgesetzt.
-`,
-  },
-  {
-    slug: 'yay-grup-wasseraufbereitung-website',
-    translationKey: 'yay-grup-su-aritma-site',
-    commercial: true,
-    title: 'Yay Grup Wasseraufbereitung – Unternehmenswebsite',
-    summary:
-      'Unternehmenswebsite für eine Marke für Wasser- und Abwasseraufbereitung – bei Kıyı Medya umgesetzt.',
-    tags: ['Unternehmenswebsite', 'Kıyı Medya'],
-    stack: [],
-    clientName: 'Yay Grup',
-    featured: false,
-    content: `## Projekt
-
-Unternehmenswebsite für eine Marke für Wasser- und Abwasseraufbereitung. Bei Kıyı Medya umgesetzt.
-`,
-  },
-  {
-    slug: 'yay-grup-metallbearbeitung-website',
-    translationKey: 'yay-grup-metal-isleme-site',
-    commercial: true,
-    title: 'Yay Grup Metallbearbeitung – Unternehmenswebsite',
-    summary:
-      'Unternehmenswebsite für eine Marke für Laserschneiden und Blechbearbeitung – bei Kıyı Medya umgesetzt.',
-    tags: ['Unternehmenswebsite', 'Kıyı Medya'],
-    stack: [],
-    clientName: 'Yay Grup',
-    featured: false,
-    content: `## Projekt
-
-Unternehmenswebsite für eine Marke für Laserschneiden und Blechbearbeitung. Bei Kıyı Medya umgesetzt.
+| Marke | Adresse |
+|---|---|
+| Kıyı Medya | [kiyimedya.com](https://kiyimedya.com) |
+| İSÇEV Arıtma | [iscevaritma.com.tr](https://iscevaritma.com.tr) |
+| Askar Medikal | [askarmedikal.com](https://askarmedikal.com) |
+| Costman | [mrcostman.com](https://mrcostman.com) |
+| İlkadım İşitme Cihazları | [ilkadimisitmecihazlari.com](https://ilkadimisitmecihazlari.com) |
+| CRP Project | [crpproject.com](https://crpproject.com) |
+| Spectraloop | [spectraloop.com.tr](https://spectraloop.com.tr) |
+| DNA Çevre ve Arıtma | neue Version in Arbeit |
+| Yay Grup Su Arıtma | neue Version in Arbeit |
+| Yay Grup Metal İşleme | neue Version in Arbeit |
 `,
   },
   {

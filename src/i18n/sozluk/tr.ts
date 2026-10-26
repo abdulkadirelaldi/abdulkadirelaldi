@@ -71,7 +71,7 @@ export const tr = {
   hakkimdaBolum: {
     baslik: 'Hakkımda',
     devam: 'Hikâyemin devamı',
-    yilDeneyim: 'yıl deneyim',
+    odulDerece: 'ödül ve derece',
     yayinlananProje: 'yayınlanan proje',
   },
   basarilar: { baslik: 'Başarılar' },

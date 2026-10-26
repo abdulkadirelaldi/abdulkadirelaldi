@@ -1,4 +1,3 @@
-import { KayanSerit } from '@/components/public/tasarim/kayan-serit';
 import { KonturBaslik } from '@/components/public/tasarim/kontur-baslik';
 import { ParlakGlif, ParlakKup } from '@/components/public/tasarim/sekiller';
 import { Yuzen } from '@/components/public/tasarim/yuzen';
@@ -11,40 +10,27 @@ export type YeteneklerProps = {
   yetenekler: SkillDto[];
 };
 
-/** Bundan azında kayan şerit seyrek görünüyor; düz ızgaraya düşülüyor. */
-const SERIT_ESIGI = 6;
-
-function YetenekKarti({ yetenek, kategori }: { yetenek: SkillDto; kategori: string }) {
-  return (
-    <article className="border-line-hover bg-surface mx-2 flex w-64 shrink-0 flex-col gap-3 rounded-[1.5rem] border p-5 md:w-72">
-      <span className="tabular text-muted text-[0.68rem] tracking-[0.14em] uppercase">
-        {kategori}
-      </span>
-      {/* Seviye (0–100) BİLEREK gösterilmiyor: kendine verilen yüzde bir ölçüm
-          değil, ziyaretçiye kesinlik iddiası gibi okunur. Panelde sıralama için duruyor. */}
-      <h3 className="text-primary font-display text-xl font-bold">{yetenek.name}</h3>
-    </article>
-  );
-}
-
 /**
  * ADR-045 — "Neyle çalışıyorum" (örnekteki "What Clients Are Saying").
  *
- * Örnekte müşteri yorumları var; veritabanında yorum YOK ve uydurma yorum
- * yazılmaz (kullanıcı kararı, 2026-10-21). Aynı görünüm — iki sıra, ters
- * yönlerde kayan kartlar — gerçek yetenek verisiyle.
+ * KATEGORİYE GÖRE SABİT IZGARA (2026-10-26): önceden iki sıra kayan karttı.
+ * Kayan şerit bir yeteneği okumak için beklemeyi gerektiriyor, sayfadaki
+ * hareketi de fazlalaştırıyordu (teknoloji şeridi, yığın kartlar…). İşe alımcı
+ * "C biliyor mu?" sorusunu tek bakışta yanıtlayabilmeli. Kategori sırası
+ * yeteneklerin `order` sırasından — diller ve gömülü önde.
  *
- * Kayan şeridin ikinci kopyası `aria-hidden` + `inert` (KayanSerit); her kart
- * ekran okuyucuya bir kez okunuyor.
+ * Seviye (0–100) BİLEREK gösterilmiyor: kendine verilen yüzde bir ölçüm
+ * değil, ziyaretçiye kesinlik iddiası gibi okunur.
  */
 export function Yetenekler({ dil, yetenekler }: YeteneklerProps) {
   const sz = sozluk(dil);
   const s = sz.yeteneklerBolum;
   if (yetenekler.length === 0) return null;
 
-  const sirali = [...yetenekler].sort((a, b) => a.order - b.order);
-  const ust = sirali.filter((_, i) => i % 2 === 0);
-  const alt = sirali.filter((_, i) => i % 2 === 1);
+  const gruplar = new Map<SkillDto['category'], SkillDto[]>();
+  for (const y of [...yetenekler].sort((a, b) => a.order - b.order)) {
+    gruplar.set(y.category, [...(gruplar.get(y.category) ?? []), y]);
+  }
 
   return (
     <section
@@ -55,7 +41,7 @@ export function Yetenekler({ dil, yetenekler }: YeteneklerProps) {
       <Yuzen hiz={-140} className="top-24 right-[6%] w-16 md:w-24">
         <ParlakKup className="w-full" />
       </Yuzen>
-      <Yuzen hiz={-80} gecikme={0.8} className="bottom-24 left-[4%] w-20 md:w-28">
+      <Yuzen hiz={-80} gecikme={0.8} className="bottom-24 left-[4%] -z-10 w-20 md:w-28">
         <ParlakGlif glif="#" className="text-[5rem] md:text-[7rem]" />
       </Yuzen>
 
@@ -67,28 +53,29 @@ export function Yetenekler({ dil, yetenekler }: YeteneklerProps) {
         />
       </div>
 
-      {sirali.length < SERIT_ESIGI ? (
-        <ul className="mx-auto mt-16 flex max-w-7xl flex-wrap justify-center gap-y-4 px-4 md:px-8">
-          {sirali.map((y) => (
-            <li key={y.id}>
-              <YetenekKarti yetenek={y} kategori={sz.kategori[y.category]} />
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <div className="mt-16 flex flex-col gap-4 md:mt-20">
-          <KayanSerit sure={55} durdur etiket={s.sira1}>
-            {ust.map((y) => (
-              <YetenekKarti key={y.id} yetenek={y} kategori={sz.kategori[y.category]} />
-            ))}
-          </KayanSerit>
-          <KayanSerit sure={60} ters durdur etiket={s.sira2}>
-            {alt.map((y) => (
-              <YetenekKarti key={y.id} yetenek={y} kategori={sz.kategori[y.category]} />
-            ))}
-          </KayanSerit>
-        </div>
-      )}
+      <div className="mx-auto mt-16 grid max-w-7xl gap-4 px-4 sm:grid-cols-2 md:mt-20 md:px-8 lg:grid-cols-3">
+        {[...gruplar].map(([kategori, liste]) => (
+          <section
+            key={kategori}
+            aria-label={sz.kategori[kategori]}
+            className="border-line-hover bg-surface flex flex-col gap-4 rounded-[1.5rem] border p-6"
+          >
+            <h3 className="tabular text-accent-soft text-[0.72rem] tracking-[0.14em] uppercase">
+              {sz.kategori[kategori]}
+            </h3>
+            <ul className="flex flex-wrap gap-2">
+              {liste.map((y) => (
+                <li
+                  key={y.id}
+                  className="border-line text-primary rounded-full border px-3 py-1 text-sm"
+                >
+                  {y.name}
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+      </div>
     </section>
   );
 }
