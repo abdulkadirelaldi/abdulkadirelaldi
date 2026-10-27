@@ -1,5 +1,4 @@
 import { headers } from 'next/headers';
-import localFont from 'next/font/local';
 import Script from 'next/script';
 import type { ReactNode } from 'react';
 
@@ -10,23 +9,6 @@ import { sozluk } from '@/i18n/sozluk';
 import { analitikAyari } from '@/lib/analitik';
 import { getProfile } from '@/server/services';
 import type { ProfileDto } from '@/server/services/content-dto';
-
-/**
- * ADR-045 — dev başlık fontu: Archivo, geniş (wdth 125), 800–900.
- *
- * KÖK layout'ta DEĞİL, burada: `next/font` fontu tanımlandığı layout'un
- * rotalarında ön yükler. Panel bu fontu hiç kullanmıyor; kökte tanımlansaydı
- * her panel sayfası 38 kB'lık bir dosyayı boşuna ön yüklerdi.
- * Kaynak ve altküme: `src/app/fonts/uret.py` (ADR-031 kalıbı).
- */
-const archivoGenis = localFont({
-  src: '../fonts/archivo-genis.woff2',
-  weight: '800 900',
-  style: 'normal',
-  display: 'swap',
-  adjustFontFallback: 'Arial',
-  variable: '--font-archivo-genis',
-});
 
 /**
  * Alt bilgi için profil — OKUNAMAZSA `null`. `getProfile` profil satırı yoksa
@@ -44,8 +26,9 @@ async function altBilgiProfili(dil: Dil): Promise<ProfileDto | null> {
 /**
  * Public route group layout — §4.3, ADR-045.
  *
- * `site-koyu`: public site HER ZAMAN koyu (kullanıcı kararı, 2026-10-21). Kap,
- * koyu token'ları yeniden basıyor; tema çerezi panelde geçerliliğini koruyor.
+ * `site-kurumsal`: public site HER ZAMAN açık, kurumsal tema (kullanıcı kararı,
+ * 2026-10-27; önceki koyu ADR-045 dili "şablon gibi" bulundu). Kap kendi
+ * token'larını basıyor; tema çerezi panelde geçerliliğini koruyor.
  *
  * "İçeriğe geç" bağlantısı klavye kullanıcısının her sayfada menüyü tekrar
  * tekrar geçmesini engeller (K5 / WCAG 2.4.1). Odaklanana kadar görünmez.
@@ -63,9 +46,7 @@ export default async function PublicLayout({ children }: { children: ReactNode }
   const nonce = analitik ? (istek.get('x-nonce') ?? undefined) : undefined;
 
   return (
-    <div
-      className={`${archivoGenis.variable} site-koyu bg-canvas text-body flex min-h-dvh flex-col`}
-    >
+    <div className="site-kurumsal bg-canvas text-body flex min-h-dvh flex-col">
       <a
         data-yazdirmada-gizle
         href="#icerik"

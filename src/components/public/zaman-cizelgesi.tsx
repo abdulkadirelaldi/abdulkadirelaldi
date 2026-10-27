@@ -34,15 +34,13 @@ export function ZamanCizelgesi({
         >
           {/* ADR-045 — hizmet satırlarıyla aynı dil: tarih | rol + kurum | açıklama. */}
           <div className="flex flex-wrap items-center gap-2">
-            <p className="tabular text-muted text-xs tracking-wider uppercase">
+            <p className="text-muted text-sm">
               {aralik(kayit.startDate, kayit.endDate, kayit.current, dil)}
             </p>
             {kayit.current && <Badge variant="success">{devamEdiyor}</Badge>}
           </div>
           <div className="flex flex-col gap-1">
-            <h3 className="font-display text-primary text-base font-bold tracking-[0.08em] uppercase">
-              {kayit.role}
-            </h3>
+            <h3 className="text-primary text-base font-bold">{kayit.role}</h3>
             <p className="text-accent-soft text-sm">{kayit.organization}</p>
           </div>
           {kayit.description && (

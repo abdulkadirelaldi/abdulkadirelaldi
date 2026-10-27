@@ -17,7 +17,6 @@ export const de: Sozluk = {
     anaSayfaAciklama:
       'Softwareingenieur für Embedded-Systeme, KI und Full-Stack-Entwicklung. Projekte, Leistungen und Kontakt.',
     icerigeGec: 'Zum Inhalt springen',
-    terminalKullanici: 'abdulkadir@site',
   },
   sayfaAdi: {
     anasayfa: 'Startseite',
@@ -48,20 +47,17 @@ export const de: Sozluk = {
     yigin: 'Von Hand gebaut mit Next.js · TypeScript · PostgreSQL.',
   },
   hero: {
-    dosya: 'ich.ts',
-    kodDegisken: 'ich',
-    kodOdak: 'fokus',
-    kodSimdi: 'aktuell',
-    kodKonum: 'standort',
-    kodSaat: 'ortszeit',
-    pencereEtiket: 'Kurzprofil',
+    kartEtiket: 'Kurzprofil',
+    kartSimdi: 'Aktuell',
+    kartKonum: 'Standort',
+    kartSaat: 'Ortszeit',
     yeteneklerEtiket: 'Kernkompetenzen',
     projeler: 'Projekte',
+    cv: 'Lebenslauf',
     cta: 'Zusammenarbeiten',
   },
   seritler: {
     ekipler: 'Teams, mit denen ich gearbeitet habe',
-    teknolojiler: 'Technologien, die ich einsetze',
   },
   hakkimdaBolum: {
     baslik: 'Über mich',
@@ -70,27 +66,14 @@ export const de: Sozluk = {
     yayinlananProje: 'veröffentlichte Projekte',
   },
   basarilar: { baslik: 'Erfolge' },
-  hizmetlerBolum: {
-    baslik: 'Leistungen',
-    kiyiOnce: 'Kommerzielle Aufträge laufen über',
-    kiyiSonra: ' – Angebot, Vertrag und Rechnung werden dort abgewickelt.',
-    tumu: 'Alle Details →',
-  },
   projelerBolum: {
     baslik: 'Projekte',
     tumu: 'Alle Projekte',
-    incele: 'Ansehen',
     inceleEtiket: (baslik) => `Projekt ${baslik} ansehen`,
-    kunyeEtiket: (baslik) => `Steckbrief: ${baslik}`,
-    kodDegisken: 'projekt',
-    kodYigin: 'stack',
-    kodEtiketler: 'tags',
-    kodDonem: 'zeitraum',
+    yiginEtiket: 'Eingesetzte Technologien',
   },
   yeteneklerBolum: {
     baslik: 'Womit ich arbeite',
-    sira1: 'Kenntnisse – erste Reihe',
-    sira2: 'Kenntnisse – zweite Reihe',
   },
   iletisimBolum: {
     baslikUst: 'Lassen Sie',
@@ -179,8 +162,8 @@ export const de: Sozluk = {
   },
   liste: {
     tumu: 'Alle',
-    etiket: 'tag',
-    teknoloji: 'technik',
+    etiket: 'Schlagwort',
+    teknoloji: 'Technologie',
     projeSayisi: (n, suzulmus) =>
       `${n} Projekt${n === 1 ? '' : 'e'}${suzulmus ? ' (gefiltert)' : ''}`,
     yaziSayisi: (n, suzulmus) =>
@@ -204,7 +187,7 @@ export const de: Sozluk = {
     dkOkuma: (n) => `${n} Min. Lesezeit`,
   },
   proje: {
-    geri: 'cd ../projekte',
+    geri: 'Alle Projekte',
     musteri: 'Kunde',
     donem: 'Zeitraum',
     yigin: 'Stack',
@@ -229,7 +212,7 @@ export const de: Sozluk = {
     kapakYok: (baslik) => `${baslik} – Titelbild noch nicht hinzugefügt`,
   },
   yazi: {
-    geri: 'cd ../blog',
+    geri: 'Alle Beiträge',
     icindekiler: 'Inhalt',
     kaldirildi: 'Dieser Beitrag wurde entfernt',
     kaldirildiAciklama:
@@ -293,8 +276,6 @@ export const de: Sozluk = {
   bulunamadi: {
     metaBaslik: 'Seite nicht gefunden',
     baslik: 'Dieser Pfad führt nirgendwohin',
-    komut: 'cd gesuchte-seite',
-    cikti: 'bash: cd: Datei oder Verzeichnis nicht gefunden',
     aciklama:
       'Die Adresse ist möglicherweise falsch geschrieben, oder die Seite wurde verschoben. Hier geht es weiter:',
   },

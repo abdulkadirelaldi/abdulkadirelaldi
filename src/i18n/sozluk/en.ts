@@ -13,7 +13,6 @@ export const en: Sozluk = {
     anaSayfaAciklama:
       'Software engineer working across embedded systems, AI and full-stack development. Projects, services and contact.',
     icerigeGec: 'Skip to content',
-    terminalKullanici: 'abdulkadir@site',
   },
   sayfaAdi: {
     anasayfa: 'Home',
@@ -44,20 +43,17 @@ export const en: Sozluk = {
     yigin: 'Hand-built with Next.js · TypeScript · PostgreSQL.',
   },
   hero: {
-    dosya: 'me.ts',
-    kodDegisken: 'me',
-    kodOdak: 'focus',
-    kodSimdi: 'now',
-    kodKonum: 'location',
-    kodSaat: 'localTime',
-    pencereEtiket: 'Quick profile',
+    kartEtiket: 'Quick profile',
+    kartSimdi: 'Currently',
+    kartKonum: 'Location',
+    kartSaat: 'Local time',
     yeteneklerEtiket: 'Core skills',
     projeler: 'Projects',
+    cv: 'CV',
     cta: 'Work with me',
   },
   seritler: {
     ekipler: "Teams I've worked with",
-    teknolojiler: 'Technologies I use',
   },
   hakkimdaBolum: {
     baslik: 'About',
@@ -66,27 +62,14 @@ export const en: Sozluk = {
     yayinlananProje: 'published projects',
   },
   basarilar: { baslik: 'Achievements' },
-  hizmetlerBolum: {
-    baslik: 'Services',
-    kiyiOnce: 'Commercial work is handled through',
-    kiyiSonra: ' — quotes, contracts and invoicing happen there.',
-    tumu: 'All details →',
-  },
   projelerBolum: {
     baslik: 'Projects',
     tumu: 'All projects',
-    incele: 'View',
     inceleEtiket: (baslik) => `View the ${baslik} project`,
-    kunyeEtiket: (baslik) => `${baslik} fact sheet`,
-    kodDegisken: 'project',
-    kodYigin: 'stack',
-    kodEtiketler: 'tags',
-    kodDonem: 'period',
+    yiginEtiket: 'Technologies used',
   },
   yeteneklerBolum: {
     baslik: 'What I work with',
-    sira1: 'Skills — first row',
-    sira2: 'Skills — second row',
   },
   iletisimBolum: {
     baslikUst: "Let's",
@@ -172,8 +155,8 @@ export const en: Sozluk = {
   },
   liste: {
     tumu: 'All',
-    etiket: 'tag',
-    teknoloji: 'tech',
+    etiket: 'Tag',
+    teknoloji: 'Technology',
     projeSayisi: (n, suzulmus) =>
       `${n} project${n === 1 ? '' : 's'}${suzulmus ? ' (filtered)' : ''}`,
     yaziSayisi: (n, suzulmus) => `${n} post${n === 1 ? '' : 's'}${suzulmus ? ' (filtered)' : ''}`,
@@ -194,7 +177,7 @@ export const en: Sozluk = {
     dkOkuma: (n) => `${n} min read`,
   },
   proje: {
-    geri: 'cd ../projects',
+    geri: 'All projects',
     musteri: 'Client',
     donem: 'Period',
     yigin: 'Stack',
@@ -219,7 +202,7 @@ export const en: Sozluk = {
     kapakYok: (baslik) => `${baslik} — cover image not added yet`,
   },
   yazi: {
-    geri: 'cd ../blog',
+    geri: 'All posts',
     icindekiler: 'Contents',
     kaldirildi: 'This post has been removed',
     kaldirildiAciklama:
@@ -279,8 +262,6 @@ export const en: Sozluk = {
   bulunamadi: {
     metaBaslik: 'Page not found',
     baslik: "This path doesn't lead anywhere",
-    komut: 'cd the-page-you-want',
-    cikti: 'bash: cd: no such file or directory',
     aciklama:
       'The address may be mistyped, or the page may have moved. You can continue from here.',
   },

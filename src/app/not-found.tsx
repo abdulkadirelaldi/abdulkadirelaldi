@@ -18,7 +18,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /**
  * Hiçbir rotaya uymayan adres. Kök seviyede yalnızca kök layout var; public
- * layout'u (gezinme, alt bilgi, koyu sahne, Archivo) burada AÇIKÇA sarıyoruz —
+ * layout'u (gezinme, alt bilgi, kurumsal tema) burada AÇIKÇA sarıyoruz —
  * yoksa 404 sitenin geri kalanından kopuk, çıplak bir sayfa olurdu.
  */
 export default async function KokBulunamadi() {

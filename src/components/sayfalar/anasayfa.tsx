@@ -9,7 +9,6 @@ import { Hero } from '@/components/public/hero';
 import { IletisimBlogu } from '@/components/public/iletisim';
 import { TembelIletisimFormu } from '@/components/public/tembel-iletisim-formu';
 import { Projeler } from '@/components/public/projeler';
-import { LogoSeridi, TeknolojiSeridi } from '@/components/public/vitrin-seritleri';
 import { Yetenekler } from '@/components/public/yetenekler';
 import type { Dil } from '@/i18n/diller';
 import { dilAlternatifleri } from '@/i18n/meta';
@@ -21,21 +20,10 @@ import {
   getExperience,
   getFeaturedProjects,
   getProfile,
-  getSiteClientLogos,
   getSiteStats,
   getSkills,
 } from '@/server/services';
 
-/** Ana sayfadaki yetenek şeridine giren kayıt sayısı (tam liste /cv'de). */
-
-/** §12 — adres koda gömülmez, ortam değişkeninden okunur. */
-
-/**
- * HERO AVATARI — `public/avatar-kucuk.webp` (192×192 kare, ~8 KB) varsa
- * kod penceresinin başlığında küçük, yuvarlak; yoksa baş harfler. Dosya
- * sistemi MODÜL YÜKLENİRKEN bir kez okunur: dosya yalnızca yeni bir
- * dağıtımla değişir. Standalone imaj `public/`u kopyalıyor.
- */
 /**
  * Hero'daki başlıca yetenekler — sahibinin öne çıkardığı alanlar (2026-10-23).
  * Ad listesi burada, VERİ yetenek kayıtlarında: kaydı silinen ad hero'dan da
@@ -43,6 +31,12 @@ import {
  */
 const HERO_YETENEKLERI = ['STM32 (HAL)', 'CAN Bus', 'Python', 'TypeScript', 'Next.js', 'YOLO'];
 
+/**
+ * HERO AVATARI — `public/avatar-kucuk.webp` (192×192 kare, ~8 KB) varsa künye
+ * kartında küçük, yuvarlak; yoksa baş harfler. Dosya sistemi MODÜL
+ * YÜKLENİRKEN bir kez okunur: dosya yalnızca yeni bir dağıtımla değişir.
+ * Standalone imaj `public/`u kopyalıyor.
+ */
 const avatar = existsSync(join(process.cwd(), 'public', 'avatar-kucuk.webp'))
   ? '/avatar-kucuk.webp'
   : null;
@@ -62,21 +56,14 @@ export function anaSayfaMetadata(dil: Dil): Metadata {
  */
 export async function AnaSayfa({ dil }: { dil: Dil }) {
   const s = sozluk(dil);
-  const [profil, yetenekler, projeler, istatistikler, logolar, deneyimler] =
-    await Promise.all([
-      getProfile(dil),
-      getSkills(dil),
-      getFeaturedProjects(dil),
-      getSiteStats(dil),
-      getSiteClientLogos(),
-      getExperience(dil),
-    ]);
+  const [profil, yetenekler, projeler, istatistikler, deneyimler] = await Promise.all([
+    getProfile(dil),
+    getSkills(dil),
+    getFeaturedProjects(dil),
+    getSiteStats(dil),
+    getExperience(dil),
+  ]);
   const oduller = deneyimler.filter((d) => d.type === ExperienceType.AWARD);
-
-  // Teknoloji şeridi: projelerde gerçekten KULLANILAN yığın önce, sonra yetenekler.
-  const teknolojiler = [
-    ...new Set([...projeler.flatMap((p) => p.stack), ...yetenekler.map((y) => y.name)]),
-  ].slice(0, 12);
 
   return (
     <>
@@ -85,21 +72,16 @@ export async function AnaSayfa({ dil }: { dil: Dil }) {
         profil={profil}
         ad={SITE_NAME}
         avatar={avatar}
-        // Süren işler — pencerede `şimdi`. Kurumun açıklama kuyruğu kesiliyor; çevirilerde
-        // ayraç uzun tire ya da kısa tire olabildiği için ikisi de (Almanca ` – `).
         yetenekler={HERO_YETENEKLERI.filter((ad) => yetenekler.some((y) => y.name === ad)).map(
           (ad) => ad.replace(' (HAL)', ''),
         )}
+        // Süren işler — kartta "Şu an". Kurumun açıklama kuyruğu kesiliyor; çevirilerde
+        // ayraç uzun tire ya da kısa tire olabildiği için ikisi de (Almanca ` – `).
         simdi={deneyimler
           .filter((d) => d.type === ExperienceType.WORK && d.current)
           .slice(0, 3)
           .map((d) => `${d.organization.split(/\s[—–-]\s/)[0]} · ${d.role}`)}
       />
-
-      <div className="flex flex-col gap-10 py-10 md:gap-14 md:py-14">
-        <LogoSeridi logolar={logolar} etiket={s.seritler.ekipler} />
-        <TeknolojiSeridi kelimeler={teknolojiler} etiket={s.seritler.teknolojiler} />
-      </div>
 
       <Hakkimda
         dil={dil}
@@ -108,19 +90,14 @@ export async function AnaSayfa({ dil }: { dil: Dil }) {
         odulSayisi={oduller.length}
       />
 
-      <Basarilar dil={dil} oduller={oduller} />
-
-      {/* Hizmetler bölümü 2026-10-26'da ana sayfadan KALDIRILDI: iş başvurusu için
-          gelen okuyucuya "zaten kendi işini yapıyor" izlenimi veriyordu. Hizmetler
-          kendi sayfasında (/hizmetler) ve menüde duruyor. */}
+      {/* Sıra işe alımcının sorusuna göre: ne yaptı (projeler) → ne kazandı
+          (başarılar) → neyle çalışıyor (yetenekler). Hizmetler ana sayfada YOK
+          (2026-10-26) — kendi sayfasında. */}
       <Projeler dil={dil} projeler={projeler} />
 
-      {/* Tüm yetenekler, kategoriye göre gruplu (sabit ızgara — kayan şeritteki gibi
-          HTML'de iki kez basılmıyor, sınır gerekmiyor). */}
-      <Yetenekler
-        dil={dil}
-        yetenekler={yetenekler}
-      />
+      <Basarilar dil={dil} oduller={oduller} />
+
+      <Yetenekler dil={dil} yetenekler={yetenekler} />
 
       <IletisimBlogu
         dil={dil}

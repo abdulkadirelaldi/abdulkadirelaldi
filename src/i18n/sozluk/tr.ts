@@ -20,7 +20,6 @@ export const tr = {
     anaSayfaAciklama:
       'Web uygulamaları ve dijital ürünler tasarlıyor, uçtan uca geliştiriyorum. Projeler, hizmetler ve iletişim.',
     icerigeGec: 'İçeriğe geç',
-    terminalKullanici: 'abdulkadir@site',
   },
   sayfaAdi: {
     anasayfa: 'Ana sayfa',
@@ -53,20 +52,17 @@ export const tr = {
     yigin: 'Next.js · TypeScript · PostgreSQL ile elle yazıldı.',
   },
   hero: {
-    dosya: 'ben.ts',
-    kodDegisken: 'ben',
-    kodOdak: 'odak',
-    kodSimdi: 'şimdi',
-    kodKonum: 'konum',
-    kodSaat: 'saat',
-    pencereEtiket: 'Kısa künye',
+    kartEtiket: 'Kısa künye',
+    kartSimdi: 'Şu an',
+    kartKonum: 'Konum',
+    kartSaat: 'Yerel saat',
     yeteneklerEtiket: 'Başlıca yetenekler',
     projeler: 'Projeler',
+    cv: 'CV',
     cta: 'Benimle çalış',
   },
   seritler: {
     ekipler: 'Birlikte çalıştığım ekipler',
-    teknolojiler: 'Kullandığım teknolojiler',
   },
   hakkimdaBolum: {
     baslik: 'Hakkımda',
@@ -75,27 +71,14 @@ export const tr = {
     yayinlananProje: 'yayınlanan proje',
   },
   basarilar: { baslik: 'Başarılar' },
-  hizmetlerBolum: {
-    baslik: 'Hizmetler',
-    kiyiOnce: 'Ticari işler',
-    kiyiSonra: ' üzerinden yürüyor — teklif, sözleşme ve faturalandırma orada.',
-    tumu: 'Tüm ayrıntılar →',
-  },
   projelerBolum: {
     baslik: 'Projeler',
     tumu: 'Tüm projeler',
-    incele: 'İncele',
     inceleEtiket: (baslik: string) => `${baslik} projesini incele`,
-    kunyeEtiket: (baslik: string) => `${baslik} künyesi`,
-    kodDegisken: 'proje',
-    kodYigin: 'yığın',
-    kodEtiketler: 'etiketler',
-    kodDonem: 'dönem',
+    yiginEtiket: 'Kullanılan teknolojiler',
   },
   yeteneklerBolum: {
     baslik: 'Neyle çalışıyorum',
-    sira1: 'Yetenekler — birinci sıra',
-    sira2: 'Yetenekler — ikinci sıra',
   },
   iletisimBolum: {
     baslikUst: 'Hadi',
@@ -184,8 +167,8 @@ export const tr = {
   },
   liste: {
     tumu: 'Tümü',
-    etiket: 'etiket',
-    teknoloji: 'teknoloji',
+    etiket: 'Etiket',
+    teknoloji: 'Teknoloji',
     projeSayisi: (n: number, suzulmus: boolean) => `${n} proje${suzulmus ? ' (süzülmüş)' : ''}`,
     yaziSayisi: (n: number, suzulmus: boolean) => `${n} yazı${suzulmus ? ' (süzülmüş)' : ''}`,
     bosSuzgecProje: 'Bu süzgece uyan proje yok',
@@ -207,7 +190,7 @@ export const tr = {
     dkOkuma: (n: number) => `${n} dk okuma`,
   },
   proje: {
-    geri: 'cd ../projeler',
+    geri: 'Tüm projeler',
     musteri: 'Müşteri',
     donem: 'Dönem',
     yigin: 'Yığın',
@@ -232,7 +215,7 @@ export const tr = {
     kapakYok: (baslik: string) => `${baslik} — kapak görseli henüz eklenmedi`,
   },
   yazi: {
-    geri: 'cd ../blog',
+    geri: 'Tüm yazılar',
     icindekiler: 'İçindekiler',
     kaldirildi: 'Bu yazı kaldırıldı',
     kaldirildiAciklama:
@@ -293,8 +276,6 @@ export const tr = {
   bulunamadi: {
     metaBaslik: 'Sayfa bulunamadı',
     baslik: 'Bu yol bir yere çıkmıyor',
-    komut: 'cd aradığın-sayfa',
-    cikti: 'bash: cd: böyle bir dosya ya da dizin yok',
     aciklama:
       'Adres yanlış yazılmış ya da sayfa taşınmış olabilir. Aşağıdakilerden biriyle devam edebilirsin.',
   },

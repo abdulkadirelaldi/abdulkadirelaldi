@@ -3,10 +3,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { HizmetListesi } from '@/components/public/hizmetler';
-import { GradyanDisBaglanti, hapSiniflari } from '@/components/public/tasarim/gradyan-baglanti';
+import { BirincilDisBaglanti, ikincilSiniflari } from '@/components/public/tasarim/dugmeler';
 import { SayfaBasligi } from '@/components/public/tasarim/sayfa-basligi';
-import { ParlakKup } from '@/components/public/tasarim/sekiller';
-import { Yuzen } from '@/components/public/tasarim/yuzen';
 import { LOGO_ESIGI, LogoSeridi } from '@/components/public/vitrin-seritleri';
 import { buttonClasses } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -39,7 +37,7 @@ const KIYI_MEDYA_URL = process.env.NEXT_PUBLIC_KIYI_MEDYA_URL ?? 'https://kiyime
  * veri yoktu ve uydurma logo ADR-027'nin yasakladığı uydurma istatistikle aynı
  * şey olurdu. Artık veri `showOnSite` işaretli müşterilerden geliyor
  * (ad + logo, başka hiçbir alan). Eşik `LOGO_ESIGI` (vitrin-seritleri.tsx):
- * altındaysa bölüm HİÇ çizilmiyor. Şerit saf CSS (ADR-045) — JS maliyeti yok.
+ * altındaysa bölüm HİÇ çizilmiyor. Sıra sabit, JS yok.
  */
 export async function HizmetlerSayfasi({ dil }: { dil: Dil }) {
   const s = sozluk(dil);
@@ -51,29 +49,20 @@ export async function HizmetlerSayfasi({ dil }: { dil: Dil }) {
     <>
       <SayfaBasligi
         baslik={s.sayfaBaslik.hizmetler.baslik}
-        yol={`~${yol(dil, 'hizmetler')}`}
         aciklama={s.sayfaBaslik.hizmetler.aciklama}
-        susler={
-          <Yuzen hiz={-120} className="top-32 right-[6%] w-16 md:w-28">
-            <ParlakKup className="w-full" />
-          </Yuzen>
-        }
       />
 
       {logolar.length >= LOGO_ESIGI && (
         <section aria-labelledby="logolar-baslik" className="flex flex-col gap-6 pb-16">
-          <h2
-            id="logolar-baslik"
-            className="tabular text-muted text-center text-xs font-normal tracking-[0.16em] uppercase"
-          >
+          <h2 id="logolar-baslik" className="text-muted text-center text-sm font-medium">
             {h.ekipler}
           </h2>
           <LogoSeridi logolar={logolar} etiket={h.ekipler} />
         </section>
       )}
 
-      <section className="panel-acik bg-canvas text-body relative z-10 rounded-t-[2.5rem] md:rounded-t-[3.5rem]">
-        <div className="mx-auto max-w-7xl px-4 pt-16 pb-28 md:px-8 md:pt-24 md:pb-36">
+      <section className="bg-surface border-line border-t">
+        <div className="mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-20">
           {sirali.length === 0 ? (
             <EmptyState
               icon={Briefcase}
@@ -97,10 +86,10 @@ export async function HizmetlerSayfasi({ dil }: { dil: Dil }) {
 
           <section
             aria-labelledby="kiyi-medya-baslik"
-            className="bg-surface border-line mt-20 grid gap-8 rounded-[2rem] border p-8 md:grid-cols-[1fr_auto] md:items-end md:p-12"
+            className="bg-canvas border-line rounded-card mt-12 grid gap-8 border p-8 md:grid-cols-[1fr_auto] md:items-end md:p-10"
           >
             <div className="flex flex-col gap-4">
-              <h2 id="kiyi-medya-baslik" className="dev-baslik text-primary text-3xl md:text-5xl">
+              <h2 id="kiyi-medya-baslik" className="dev-baslik text-primary text-2xl md:text-3xl">
                 {h.kiyiBaslik}
               </h2>
               <p className="text-body max-w-2xl text-sm">
@@ -109,7 +98,7 @@ export async function HizmetlerSayfasi({ dil }: { dil: Dil }) {
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <GradyanDisBaglanti
+              <BirincilDisBaglanti
                 href={KIYI_MEDYA_URL}
                 data-cta="kiyi-medya"
                 data-umami-event="kiyi-medya"
@@ -117,8 +106,8 @@ export async function HizmetlerSayfasi({ dil }: { dil: Dil }) {
                 data-kaynak="hizmetler"
               >
                 {h.kiyiGit}
-              </GradyanDisBaglanti>
-              <Link href={yol(dil, 'iletisim')} className={hapSiniflari('h-11')}>
+              </BirincilDisBaglanti>
+              <Link href={yol(dil, 'iletisim')} className={ikincilSiniflari('md')}>
                 {h.banaYaz}
               </Link>
             </div>

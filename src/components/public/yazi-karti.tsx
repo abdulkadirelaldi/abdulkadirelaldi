@@ -45,7 +45,7 @@ export function YaziKarti({
       </div>
 
       <div className="flex flex-col gap-3">
-        <Baslik className="font-display text-2xl leading-tight font-bold md:text-3xl">
+        <Baslik className="text-2xl leading-tight font-bold md:text-3xl">
           {/* Bağlantının `::after`'ı satırın tamamını tıklanabilir yapıyor; erişilebilir
               ad yalnızca başlık (kartı saran bir <a> tüm metni ada katardı). */}
           <Link

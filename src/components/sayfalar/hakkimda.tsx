@@ -13,8 +13,6 @@ import { dilAlternatifleri } from '@/i18n/meta';
 import { yol } from '@/i18n/rotalar';
 import { sozluk } from '@/i18n/sozluk';
 import { SayfaBasligi } from '@/components/public/tasarim/sayfa-basligi';
-import { ParlakGlif, ParlakKure } from '@/components/public/tasarim/sekiller';
-import { Yuzen } from '@/components/public/tasarim/yuzen';
 import { ZamanCizelgesi } from '@/components/public/zaman-cizelgesi';
 import { buttonClasses } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -72,41 +70,25 @@ export async function HakkimdaSayfasi({ dil }: { dil: Dil }) {
       */}
       <SayfaBasligi
         baslik={SITE_NAME}
-        yol={`~${yol(dil, 'hakkimda')}`}
         aciklama={
           <>
             <span className="text-primary font-semibold">{profil.headline}</span>
             {profil.subtitle && <> — {profil.subtitle}</>}
           </>
         }
-        susler={
-          <>
-            <Yuzen hiz={-140} className="top-28 right-[5%] w-20 md:w-32">
-              <ParlakGlif glif="{ }" className="text-[4.5rem] md:text-[7rem]" />
-            </Yuzen>
-            <Yuzen hiz={-90} gecikme={1} className="right-[28%] bottom-4 hidden w-16 md:block">
-              <ParlakKure className="w-full" renk="var(--sekil-pembe)" />
-            </Yuzen>
-          </>
-        }
       />
 
-      <div className="mx-auto flex max-w-7xl flex-col gap-24 px-4 pb-32 md:gap-32 md:px-8">
+      <div className="mx-auto flex max-w-6xl flex-col gap-16 px-4 pt-12 pb-24 md:gap-20 md:px-8">
         {ilk && (
           <section
             aria-labelledby="biyografi-baslik"
             className="grid gap-8 md:grid-cols-[14rem_1fr]"
           >
-            <h2
-              id="biyografi-baslik"
-              className="tabular text-muted text-xs font-normal tracking-[0.16em] uppercase"
-            >
+            <h2 id="biyografi-baslik" className="text-muted text-sm font-medium">
               {h.kisaca}
             </h2>
             <div className="flex flex-col gap-6">
-              <p className="text-primary text-2xl leading-snug font-medium text-balance md:text-4xl">
-                {ilk}
-              </p>
+              <p className="text-primary text-xl leading-relaxed font-medium md:text-2xl">{ilk}</p>
               {diger.map((paragraf) => (
                 <p key={paragraf.slice(0, 32)} className="text-body max-w-3xl md:text-lg">
                   {paragraf}
@@ -118,10 +100,7 @@ export async function HakkimdaSayfasi({ dil }: { dil: Dil }) {
 
         {oduller.length > 0 && (
           <section aria-labelledby="oduller-baslik" className="flex flex-col gap-10">
-            <h2
-              id="oduller-baslik"
-              className="dev-baslik text-gradient-vurgu text-[clamp(2.25rem,7vw,5.5rem)]"
-            >
+            <h2 id="oduller-baslik" className="dev-baslik text-primary text-2xl md:text-3xl">
               {h.oduller}
             </h2>
             <OdulIzgarasi oduller={oduller} />
@@ -129,10 +108,7 @@ export async function HakkimdaSayfasi({ dil }: { dil: Dil }) {
         )}
 
         <section aria-labelledby="deneyim-baslik" className="flex flex-col gap-10">
-          <h2
-            id="deneyim-baslik"
-            className="dev-baslik text-primary text-[clamp(2.25rem,7vw,5.5rem)]"
-          >
+          <h2 id="deneyim-baslik" className="dev-baslik text-primary text-2xl md:text-3xl">
             {h.deneyim}
           </h2>
           {isler.length > 0 ? (
@@ -152,10 +128,7 @@ export async function HakkimdaSayfasi({ dil }: { dil: Dil }) {
         </section>
 
         <section aria-labelledby="egitim-baslik" className="flex flex-col gap-10">
-          <h2
-            id="egitim-baslik"
-            className="dev-baslik metin-kontur text-[clamp(2.25rem,7vw,5.5rem)]"
-          >
+          <h2 id="egitim-baslik" className="dev-baslik text-primary text-2xl md:text-3xl">
             {h.egitim}
           </h2>
           {egitim.length > 0 ? (
@@ -172,10 +145,7 @@ export async function HakkimdaSayfasi({ dil }: { dil: Dil }) {
         {/* Sertifikalar — kayıt yoksa bölüm HİÇ yok (boş başlık bilgi değil). */}
         {sertifikalar.length > 0 && (
           <section aria-labelledby="sertifika-baslik" className="flex flex-col gap-10">
-            <h2
-              id="sertifika-baslik"
-              className="dev-baslik text-primary text-[clamp(2.25rem,7vw,5.5rem)]"
-            >
+            <h2 id="sertifika-baslik" className="dev-baslik text-primary text-2xl md:text-3xl">
               {h.sertifikalar}
             </h2>
             <SertifikaListesi sertifikalar={sertifikalar} dil={dil} />
@@ -185,10 +155,7 @@ export async function HakkimdaSayfasi({ dil }: { dil: Dil }) {
         {/* Spor — kayıt yoksa bölüm yok. Dereceler kronolojik (spor.tsx notu). */}
         {spor.length > 0 && (
           <section aria-labelledby="spor-baslik" className="flex flex-col gap-10">
-            <h2
-              id="spor-baslik"
-              className="dev-baslik metin-kontur text-[clamp(2.25rem,7vw,5.5rem)]"
-            >
+            <h2 id="spor-baslik" className="dev-baslik text-primary text-2xl md:text-3xl">
               {h.spor}
             </h2>
             <Spor
@@ -199,7 +166,7 @@ export async function HakkimdaSayfasi({ dil }: { dil: Dil }) {
         )}
 
         <section aria-labelledby="cv-baslik" className="flex flex-col gap-10">
-          <h2 id="cv-baslik" className="dev-baslik text-primary text-[clamp(2.25rem,7vw,5.5rem)]">
+          <h2 id="cv-baslik" className="dev-baslik text-primary text-2xl md:text-3xl">
             {h.ozgecmis}
           </h2>
           {/* Kalıcı, aynı kökenli adres (ADR-044) — T-037'nin öngördüğü "tek prop". */}

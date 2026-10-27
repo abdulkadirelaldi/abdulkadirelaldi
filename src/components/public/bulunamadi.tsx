@@ -1,8 +1,6 @@
 import Link from 'next/link';
 
-import { GradyanBaglanti, hapSiniflari } from '@/components/public/tasarim/gradyan-baglanti';
-import { ParlakGlif, ParlakHalka } from '@/components/public/tasarim/sekiller';
-import { Yuzen } from '@/components/public/tasarim/yuzen';
+import { BirincilBaglanti, ikincilSiniflari } from '@/components/public/tasarim/dugmeler';
 import type { Dil } from '@/i18n/diller';
 import { yol } from '@/i18n/rotalar';
 import { sozluk } from '@/i18n/sozluk';
@@ -19,40 +17,25 @@ export function Bulunamadi({ dil }: { dil: Dil }) {
   const s = sozluk(dil);
   const b = s.bulunamadi;
   return (
-    <section className="relative isolate flex min-h-[80dvh] items-center overflow-hidden pt-28 pb-20">
-      <Yuzen hiz={-100} className="top-[38%] right-[8%] hidden w-24 md:block">
-        <ParlakHalka className="w-full" />
-      </Yuzen>
-      <Yuzen hiz={-60} gecikme={0.8} className="right-[22%] bottom-16 hidden md:block">
-        <ParlakGlif glif="?" className="text-[7rem]" />
-      </Yuzen>
-
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 md:px-8">
+    <section className="flex min-h-[70dvh] items-center pt-28 pb-20">
+      <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 md:px-8">
         <p
           aria-hidden="true"
-          className="dev-baslik metin-kontur text-[clamp(6rem,26vw,22rem)] leading-[0.8]"
+          className="text-accent text-7xl font-semibold tracking-tight md:text-8xl"
         >
           404
         </p>
 
-        <h1 className="dev-baslik text-primary text-[clamp(2rem,6vw,4.5rem)]">{b.baslik}</h1>
-
-        <pre className="tabular bg-surface border-line text-muted w-fit max-w-full overflow-x-auto rounded-[1rem] border px-5 py-4 text-xs leading-relaxed">
-          <code>
-            <span className="text-accent-soft">{s.site.terminalKullanici}</span>:~$ {b.komut}
-            {'\n'}
-            <span className="text-danger">{b.cikti}</span>
-          </code>
-        </pre>
+        <h1 className="dev-baslik text-primary text-3xl md:text-4xl">{b.baslik}</h1>
 
         <p className="text-body max-w-xl">{b.aciklama}</p>
 
         <div className="flex flex-wrap gap-3">
-          <GradyanBaglanti href={yol(dil, 'anasayfa')}>{s.sayfaAdi.anasayfa}</GradyanBaglanti>
-          <Link href={yol(dil, 'projeler')} className={hapSiniflari('h-11 px-5')}>
+          <BirincilBaglanti href={yol(dil, 'anasayfa')}>{s.sayfaAdi.anasayfa}</BirincilBaglanti>
+          <Link href={yol(dil, 'projeler')} className={ikincilSiniflari('md')}>
             {s.sayfaAdi.projeler}
           </Link>
-          <Link href={yol(dil, 'blog')} className={hapSiniflari('h-11 px-5')}>
+          <Link href={yol(dil, 'blog')} className={ikincilSiniflari('md')}>
             {s.sayfaAdi.blog}
           </Link>
         </div>

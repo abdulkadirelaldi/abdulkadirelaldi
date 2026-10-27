@@ -2498,7 +2498,7 @@ Sunum tarafı da açıktı: ADR-018 imzalı adresi "istek anında" istiyor ama p
 
 ## ADR-045 — Public Sitenin Görsel Dili Yenilendi: Koyu Sahne, Dev Başlıklar, Kayan Paneller
 
-**Durum:** Kabul edildi · 2026-10-21 · **Kapsar:** public site (`src/app/(public)`, `src/components/public`) · **Değiştirir:** §3.1 (public'te tema seçimi), §3.2 (display fontu), §5.1 (bileşen haritası) — panel ETKİLENMEZ
+**Durum:** Yerini ADR-047 aldı (2026-10-27) · kabul 2026-10-21 · **Kapsar:** public site (`src/app/(public)`, `src/components/public`) · **Değiştirir:** §3.1 (public'te tema seçimi), §3.2 (display fontu), §5.1 (bileşen haritası) — panel ETKİLENMEZ
 
 ### Bağlam
 
@@ -2557,3 +2557,26 @@ Kullanıcı İngilizce ve Almanca seçeneği istedi: "doğru ve profesyonel olsu
 ### Sonuç
 
 İçerik `scripts/icerik/*.{en,de}.ts` dosyalarında, `scripts/icerik-yukle.ts` üç dili sırayla yazar. Çeviriler kaynakta olmayan hiçbir iddia eklemez; sayı, sıralama ve adlar birebir korunur.
+
+---
+
+## ADR-047 — Public Site Kurumsal Tasarıma Geçti: Açık Zemin, Tek Vurgu, Süssüz Bölümler
+
+**Durum:** Kabul edildi · 2026-10-27 · **Kapsar:** public site (`(public)` route grubu, `components/public`, `components/sayfalar`) · **Değiştirir:** ADR-045'in görsel dili (koyu sahne, dev kontur başlıklar, kayan şeritler, yüzen şekiller, yapışkan proje yığını)
+
+### Bağlam
+
+Sahibi ADR-045 dilini "çok şablon gibi, yapmacık" buldu ve "daha kurumsal, profesyonel" bir tarz istedi; zemin seçimi soruldu, **açık zemin** seçildi. Ayrıca bir gün önceki inceleme aynı dilin hedef okuyucu (işe alımcı, iş ortağı) için hareketi fazla bulduğunu ve yığın kartların 16 projede ekranı doldurduğunu ölçmüştü.
+
+### Karar
+
+1. **Tema:** `.site-kurumsal` kabı açık token'lar basar (beyaz zemin, `#0f172a` metin, tek vurgu `#1d4ed8`). Gradyan yok: `--gradient-accent` düz vurguya eşit. Panel kendi temasını korur (`:root` koyu, `.light`).
+2. **Tipografi:** sitede bütün başlıklar Inter 600 (dosya 400–600 üretildi, 700 sahte kalın olurdu). Archivo (geniş, 900) ve dosyası kaldırıldı. `tabular` sitede rakam hizasını korur ama mono değildir; mono yalnızca kod.
+3. **Bileşenler:** `Bolum` (bölüm kabı + başlık + sağda tek eylem, zemin beyaz/gri sırayla), `SayfaBasligi` (terminal istemi ve harf animasyonu yok), `dugmeler.tsx` (birincil düz / ikincil çerçeveli; büyük harf ve kayan ok yok), `ProjeKartlari` (iki sütun ızgara; yığın kaldırıldı).
+4. **Kaldırılanlar:** `KonturBaslik`, `SahnePaneli`, `HarfHarf`, `Yuzen` + şekiller, `KayanSerit`, teknoloji şeridi, kaydırmaya bağlı animasyonlar (`kontur-dol`, `panel-otur`, `paralaks`), terminal tarzı metinler (`cd ../projeler`, `--etiket`, sahte yığın izi).
+5. **Ana sayfa sırası:** hero → hakkımda → projeler → başarılar → yetenekler → iletişim (işe alımcının sorusuna göre).
+
+### Bilinçli olarak korunanlar
+
+- `BolumGiris` (ekrana girerken kısa, opak olmayan kayma) ve sayfa girişi animasyonu — ölçülü, `prefers-reduced-motion`a tabi.
+- `dev-baslik` yardımcısının ADI (çağıran yerler boyutu kendisi veriyor); içi artık olağan başlık.

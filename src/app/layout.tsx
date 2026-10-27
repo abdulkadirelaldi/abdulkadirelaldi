@@ -54,8 +54,7 @@ const spaceGrotesk = localFont({
   weight: '600 700',
   style: 'normal',
   display: 'swap',
-  // ADR-045 ölçümü: ön yükleme YALNIZCA ekranın üstünde gereken fontlarda (Inter +
-  // public'te Archivo). Bu aile ilk ekranda neredeyse yok; ön yüklemesi hero
+  // ADR-045 ölçümü: ön yükleme YALNIZCA ekranın üstünde gereken fontlarda (Inter). Bu aile ilk ekranda neredeyse yok; ön yüklemesi hero
   // görseliyle bant genişliği yarışına girip mobil LCP'yi geciktiriyordu.
   // `swap` + `adjustFontFallback` sayesinde geç gelmesi düzen kaydırmıyor.
   preload: false,

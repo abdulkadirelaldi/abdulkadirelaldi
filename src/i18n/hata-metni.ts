@@ -10,9 +10,7 @@ export const HATA_METNI = {
   tr: {
     sus: 'Hata',
     baslik: 'Sayfa yüklenemedi',
-    yigin: 'içerik getirilemedi',
-    konum: 'sayfa',
-    kod: 'kod',
+    kod: 'Hata kodu',
     aciklama:
       'Beklenmedik bir şey oldu. Tekrar denemek çoğu zaman yetiyor; devam ederse bana yaz ve yukarıdaki kodu ekle — sunucu kaydında tam ayrıntıyı bulurum.',
     tekrar: 'Tekrar dene',
@@ -21,9 +19,7 @@ export const HATA_METNI = {
   en: {
     sus: 'Error',
     baslik: "The page couldn't load",
-    yigin: 'content could not be fetched',
-    konum: 'page',
-    kod: 'code',
+    kod: 'Error code',
     aciklama:
       'Something unexpected happened. Trying again usually helps; if it persists, write to me and include the code above — it lets me find the full details in the server log.',
     tekrar: 'Try again',
@@ -32,9 +28,7 @@ export const HATA_METNI = {
   de: {
     sus: 'Fehler',
     baslik: 'Die Seite konnte nicht geladen werden',
-    yigin: 'Inhalt konnte nicht abgerufen werden',
-    konum: 'seite',
-    kod: 'code',
+    kod: 'Fehlercode',
     aciklama:
       'Etwas Unerwartetes ist passiert. Ein erneuter Versuch hilft meist; falls nicht, schreiben Sie mir bitte mit dem Code oben – damit finde ich die Details im Serverprotokoll.',
     tekrar: 'Erneut versuchen',

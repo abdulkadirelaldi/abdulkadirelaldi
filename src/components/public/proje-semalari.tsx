@@ -102,12 +102,12 @@ function Sema({
 }) {
   return (
     // Dar ekranda şema yatay kayar; küçültülseydi 11 px'lik etiketler okunmazdı.
-    <div className="border-line bg-surface overflow-x-auto rounded-[1.5rem] border p-4 md:p-6">
+    <div className="border-line bg-surface rounded-card overflow-x-auto border p-4 md:p-6">
       <svg
         role="img"
         aria-labelledby={`${id}-baslik ${id}-aciklama`}
         viewBox={`0 0 ${genislik} ${yukseklik}`}
-        className="font-display h-auto w-full min-w-[640px]"
+        className="h-auto w-full min-w-[640px]"
       >
         <title id={`${id}-baslik`}>{baslik}</title>
         <desc id={`${id}-aciklama`}>{aciklama}</desc>

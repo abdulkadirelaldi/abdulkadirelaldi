@@ -1,6 +1,5 @@
 import Link from 'next/link';
 
-import { SekilSeridi } from '@/components/public/tasarim/sekiller';
 import type { Dil } from '@/i18n/diller';
 import { yol, type Sayfa } from '@/i18n/rotalar';
 import { sozluk } from '@/i18n/sozluk';
@@ -24,9 +23,9 @@ const SOSYAL_ETIKET = {
   instagram: 'Instagram',
 } as const;
 
-const BASLIK = 'text-muted text-[0.7rem] font-semibold tracking-[0.18em] uppercase';
+const BASLIK = 'text-primary text-sm font-semibold';
 const BAGLANTI =
-  'focus-ring rounded-btn text-body hover:text-primary ease-brand text-sm transition-colors duration-300';
+  'focus-ring rounded-btn text-body hover:text-accent text-sm transition-colors duration-200';
 
 /**
  * Public alt bilgi — ADR-045. Sunucu Bileşeni, JS yok.
@@ -47,20 +46,14 @@ export function Footer({ profil, dil }: { profil: ProfileDto | null; dil: Dil })
     .map((anahtar) => ({ etiket: SOSYAL_ETIKET[anahtar], adres: sosyal[anahtar] }))
     .filter((g): g is typeof g & { adres: string } => Boolean(g.adres));
 
-  const [ad, ...soyad] = SITE_NAME.split(' ');
-
   return (
-    <footer
-      data-yazdirmada-gizle
-      className="bg-canvas border-line relative z-40 -mt-10 overflow-hidden rounded-t-[2.5rem] border-t"
-    >
-      <div className="mx-auto flex max-w-7xl flex-col gap-14 px-4 pt-20 pb-10 md:px-8">
-        <div className="grid gap-12 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
-          <p className="dev-baslik metin-kontur text-[clamp(2.5rem,6vw,5rem)]">
-            {ad}
-            <br />
-            {soyad.join(' ')}
-          </p>
+    <footer data-yazdirmada-gizle className="bg-surface border-line border-t">
+      <div className="mx-auto flex max-w-6xl flex-col gap-12 px-4 pt-16 pb-8 md:px-8">
+        <div className="grid gap-10 md:grid-cols-[1.4fr_1fr_1fr_1fr]">
+          <div className="flex flex-col gap-2">
+            <p className="text-primary text-base font-semibold">{SITE_NAME}</p>
+            {profil?.headline && <p className="text-muted max-w-xs text-sm">{profil.headline}</p>}
+          </div>
 
           <nav aria-label={s.altBilgi.menu} className="flex flex-col gap-4">
             <p className={BASLIK}>{s.altBilgi.sayfalar}</p>
@@ -120,8 +113,6 @@ export function Footer({ profil, dil }: { profil: ProfileDto | null; dil: Dil })
           </div>
         </div>
 
-        <SekilSeridi className="w-full" />
-
         <div className="border-line text-muted flex flex-col gap-2 border-t pt-6 text-xs sm:flex-row sm:items-center sm:justify-between">
           <p>
             © <span className="tabular">{year}</span> {SITE_NAME} · {s.altBilgi.kiyiOnce}{' '}
@@ -129,7 +120,7 @@ export function Footer({ profil, dil }: { profil: ProfileDto | null; dil: Dil })
               href={kiyiMedyaUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="focus-ring rounded-btn text-accent-soft"
+              className="focus-ring rounded-btn text-accent"
             >
               Kıyı Medya
             </a>

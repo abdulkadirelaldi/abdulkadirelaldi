@@ -4,8 +4,6 @@ import Link from 'next/link';
 
 import { cipSiniflari } from '@/components/public/proje-filtre';
 import { SayfaBasligi } from '@/components/public/tasarim/sayfa-basligi';
-import { ParlakGlif } from '@/components/public/tasarim/sekiller';
-import { Yuzen } from '@/components/public/tasarim/yuzen';
 import { YaziKarti } from '@/components/public/yazi-karti';
 import { buttonClasses } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -74,7 +72,6 @@ export async function BlogSayfasi({
     <>
       <SayfaBasligi
         baslik={s.sayfaBaslik.blog.baslik}
-        yol={`~${yol(dil, 'blog')}`}
         aciklama={s.sayfaBaslik.blog.aciklama}
         ek={
           yazilar.length > 0 && (
@@ -83,20 +80,12 @@ export async function BlogSayfasi({
             </p>
           )
         }
-        susler={
-          <Yuzen hiz={-120} className="top-28 right-[8%] w-20 md:w-32">
-            <ParlakGlif glif="/*" className="text-[5rem] md:text-[8rem]" />
-          </Yuzen>
-        }
       />
 
-      <div className="mx-auto flex max-w-7xl flex-col gap-10 px-4 pb-32 md:px-8">
+      <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 pb-32 md:px-8">
         {etiketler.length > 0 && (
           <div className="flex flex-wrap items-center gap-2">
-            <span className="tabular text-muted w-24 shrink-0 text-xs">
-              <span aria-hidden="true">--</span>
-              {s.liste.etiket}
-            </span>
+            <span className="text-primary w-24 shrink-0 text-sm font-medium">{s.liste.etiket}</span>
 
             {[undefined, ...etiketler].map((secenek) => {
               const secili = etiket === secenek;
