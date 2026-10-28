@@ -87,6 +87,23 @@ unset ADMIN_PASSWORD
 Sonra `https://abdulkadirelaldi.com/giris` → e-posta + şifre → panel 2FA
 kurulumunu zorunlu açar; **kurtarma kodlarını kaydet**.
 
+### Şifreyi unuttum
+
+`uretim-baslat.ts` var olan hesabın şifresine dokunmaz; sıfırlama ayrı betik:
+
+```bash
+ssh root@187.77.66.202
+cd /opt/aelaldi
+read -rsp "Yeni şifre: " ADMIN_PASSWORD; echo
+docker compose exec -T -e ADMIN_PASSWORD="$ADMIN_PASSWORD" araclar \
+  node --import ./scripts/yedek-register.mjs scripts/sifre-sifirla.ts
+unset ADMIN_PASSWORD
+# [sifirla] şifre güncellendi · oturumlar kapatıldı · 2FA: korundu
+```
+
+Doğrulama uygulaması VE kurtarma kodları da kaybolduysa komutun sonuna
+`--2fa-sifirla` ekle: ilk girişte 2FA kurulumu yeniden açılır.
+
 ## R2 (dosya yükleme ve uzak yedek)
 
 Kapak, CV ve logo yükleme R2 ister. Cloudflare → R2 → **yeni** API anahtarı
