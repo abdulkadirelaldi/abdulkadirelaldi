@@ -51,9 +51,6 @@ ISLER = [
     ("spacegrotesk/SpaceGrotesk%5Bwght%5D.ttf", "space-grotesk", {"wght": (600, 700)}),
     ("inter/Inter%5Bopsz,wght%5D.ttf", "inter", {"opsz": 14, "wght": (400, 600)}),
     ("jetbrainsmono/JetBrainsMono%5Bwght%5D.ttf", "jetbrains-mono", {"wght": (400, 500)}),
-    # ADR-045 — dev başlıklar. Genişlik GENİŞ uçta sabit (125), ağırlık 800–900:
-    # yalnızca display başlıklarda kullanılıyor, gövde metnine hiç inmiyor.
-    ("archivo/Archivo%5Bwdth,wght%5D.ttf", "archivo-genis", {"wdth": 125, "wght": (800, 900)}),
 ]
 
 # Doğrulama kümeleri: Türkçe harfler + Genişletilmiş-A ve para biriminin temsilcileri.
@@ -98,7 +95,7 @@ def dogrula(hedef: str) -> None:
 
 if __name__ == "__main__":
     os.chdir(os.path.dirname(os.path.abspath(__file__)))
-    # `python3 uret.py archivo-genis` — yalnızca adı verilen aileler; diğer
+    # `python3 uret.py inter` — yalnızca adı verilen aileler; diğer
     # dosyalar yeniden yazılıp ikili fark üretmesin.
     secilen = set(sys.argv[1:])
     for yol, ad, eksenler in ISLER:

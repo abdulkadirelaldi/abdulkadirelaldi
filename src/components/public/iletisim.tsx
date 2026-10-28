@@ -1,8 +1,6 @@
 import type { ReactNode } from 'react';
 
-import { SahnePaneli } from '@/components/public/tasarim/sahne-paneli';
-import { ParlakGlif, ParlakHalka } from '@/components/public/tasarim/sekiller';
-import { Yuzen } from '@/components/public/tasarim/yuzen';
+import { ikincilSiniflari } from '@/components/public/tasarim/dugmeler';
 import type { Dil } from '@/i18n/diller';
 import { sozluk } from '@/i18n/sozluk';
 import type { ProfileDto } from '@/server/services/content-dto';
@@ -25,13 +23,11 @@ export function IletisimBlogu({
   dil,
   profil,
   baslikDuzeyi: Baslik = 'h2',
-  katman = 30,
   form,
 }: {
   dil: Dil;
   profil: ProfileDto;
   baslikDuzeyi?: 'h1' | 'h2';
-  katman?: number;
   /**
    * Form DIŞARIDAN, yuva olarak geliyor — bu modül hiçbir form bileşenini
    * import ETMİYOR. Sebep ölçüldü: sunucu modülünün import ettiği her istemci
@@ -51,28 +47,15 @@ export function IletisimBlogu({
   })).filter((g): g is { etiket: (typeof SOSYAL)[number][1]; adres: string } => Boolean(g.adres));
 
   return (
-    <SahnePaneli ton="acik" katman={katman} id="iletisim" aria-labelledby="iletisim-baslik">
-      <div className="relative isolate mx-auto grid max-w-7xl gap-14 px-4 pt-20 pb-28 md:grid-cols-[1fr_1.1fr] md:px-8 md:pt-28 md:pb-36">
-        <Yuzen hiz={-120} className="top-10 right-[4%] w-16 md:w-24">
-          <ParlakHalka className="w-full" renk="var(--sekil-mor)" />
-        </Yuzen>
-        {/*
-          ALT BOŞLUKTA KALIR: önceki hâli (`bottom-10`, 200 px kayma) kaydırırken
-          "Konum/Durum" satırının üstüne biniyordu (inceleme, 2026-10-22). Kayma
-          40 px'e indi; süs metin sütununun altındaki boşluktan çıkmıyor.
-        */}
-        <Yuzen hiz={-40} gecikme={0.7} className="bottom-4 left-[2%] hidden md:block">
-          <ParlakGlif glif="@" className="text-[7rem]" />
-        </Yuzen>
-
-        <div className="flex flex-col gap-8">
-          <Baslik
-            id="iletisim-baslik"
-            className="dev-baslik text-primary text-[clamp(2.1rem,8vw,6.5rem)]"
-          >
-            {s.baslikUst}
-            <br />
-            {s.baslikAlt}
+    <section
+      id="iletisim"
+      aria-labelledby="iletisim-baslik"
+      className="bg-surface border-line scroll-mt-20 border-t py-20 md:py-24"
+    >
+      <div className="mx-auto grid max-w-6xl gap-12 px-4 md:grid-cols-[1fr_1.1fr] md:gap-16 md:px-8">
+        <div className="flex flex-col gap-6">
+          <Baslik id="iletisim-baslik" className="dev-baslik text-primary text-3xl md:text-4xl">
+            {s.baslikUst} {s.baslikAlt}
           </Baslik>
 
           <p className="text-body max-w-md">{s.giris}</p>
@@ -80,23 +63,23 @@ export function IletisimBlogu({
           {eposta && (
             <a
               href={`mailto:${eposta}`}
-              className="focus-ring rounded-btn text-primary w-fit text-lg font-semibold break-all underline decoration-2 underline-offset-[6px] md:text-2xl"
+              className="focus-ring rounded-btn text-accent hover:text-accent-hover w-fit text-lg font-semibold break-all"
             >
               {eposta}
             </a>
           )}
 
           {(profil.location || profil.availability) && (
-            <dl className="tabular text-muted flex flex-wrap gap-x-8 gap-y-2 text-xs tracking-[0.12em] uppercase">
+            <dl className="border-line flex flex-col gap-3 border-t pt-6 text-sm">
               {profil.location && (
-                <div className="flex gap-2">
-                  <dt>{s.konum}</dt>
+                <div className="flex gap-3">
+                  <dt className="text-muted w-20 shrink-0">{s.konum}</dt>
                   <dd className="text-primary">{profil.location}</dd>
                 </div>
               )}
               {profil.availability && (
-                <div className="flex gap-2">
-                  <dt>{s.durum}</dt>
+                <div className="flex gap-3">
+                  <dt className="text-muted w-20 shrink-0">{s.durum}</dt>
                   <dd className="text-primary">{profil.availability}</dd>
                 </div>
               )}
@@ -111,7 +94,7 @@ export function IletisimBlogu({
                     href={g.adres}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="focus-ring rounded-pill border-line-strong text-primary ease-brand hover:bg-primary hover:text-canvas inline-flex h-9 items-center border px-4 text-[0.7rem] font-semibold tracking-[0.12em] uppercase transition-colors duration-300"
+                    className={ikincilSiniflari('sm')}
                   >
                     {g.etiket}
                   </a>
@@ -121,10 +104,8 @@ export function IletisimBlogu({
           )}
         </div>
 
-        <div className="bg-surface border-line relative rounded-[1.75rem] border p-6 shadow-[0_30px_80px_-40px_rgba(20,20,43,0.35)] md:p-8">
-          {form}
-        </div>
+        <div className="border-line bg-canvas rounded-card border p-6 shadow-sm md:p-8">{form}</div>
       </div>
-    </SahnePaneli>
+    </section>
   );
 }

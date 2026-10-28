@@ -9,7 +9,6 @@ derleme anında ağa gittiği ve CI'ı iki kez düşürdüğü için (koşu 3190
 | `space-grotesk.woff2`  | Space Grotesk                                         | 600–700        | 35.2 kB |
 | `inter.woff2`          | Inter (opsz 14'e sabit)                               | 400–600        | 94.4 kB |
 | `jetbrains-mono.woff2` | JetBrains Mono                                        | 400–500        | 33.8 kB |
-| `archivo-genis.woff2`  | Archivo (wdth 125'e sabit) — ADR-045, yalnızca public | 800–900        | 29.6 kB |
 
 Üçü de **değişken** kaldı: tek dosya bütün ağırlıkları karşılıyor. Sabit
 ağırlıklara ayırmak yedi dosya ve 275 kB ederdi (ölçüldü); Google'ın altkümeli
@@ -28,7 +27,6 @@ sayıyor:
 | Dosya                  | Önce    | Sonra   |
 | ---------------------- | ------- | ------- |
 | `inter.woff2`          | 94.4 kB | 37.3 kB |
-| `archivo-genis.woff2`  | 29.6 kB | 29.6 kB |
 | `space-grotesk.woff2`  | 35.2 kB | 24.4 kB |
 | `jetbrains-mono.woff2` | 33.8 kB | 30.9 kB |
 
@@ -42,7 +40,6 @@ fontun kendisinde yok; altkümeyle ilgisi yok.)
 pip install fonttools brotli
 cd src/app/fonts
 python3 uret.py          # kaynak TTF'leri google/fonts'tan indirir, altkümeler
-python3 uret.py archivo-genis   # yalnızca adı verilen aile(ler)
 ```
 
 `uret.py` üretimden sonra kapsamı **doğrular**: Türkçe karakterlerden veya
@@ -51,5 +48,5 @@ temsili latin-ext karakterlerinden biri eksikse hata verir.
 ## Lisans
 
 Üçü de SIL Open Font License 1.1. Lisans metinleri bu klasörde:
-`inter-OFL.txt`, `space-grotesk-OFL.txt`, `jetbrains-mono-OFL.txt`, `archivo-OFL.txt`.
+`inter-OFL.txt`, `space-grotesk-OFL.txt`, `jetbrains-mono-OFL.txt`.
 Kaynak: <https://github.com/google/fonts>.

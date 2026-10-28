@@ -172,7 +172,7 @@ const BILESENLER = {
     />
   ),
   code: ({ className, ...props }: ComponentProps<'code'>) => (
-    <code className={cn('tabular text-primary text-[0.9em]', className)} {...props} />
+    <code className={cn('text-primary font-mono text-[0.9em]', className)} {...props} />
   ),
 
   /*

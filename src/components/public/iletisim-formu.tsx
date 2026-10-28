@@ -5,7 +5,7 @@ import { CheckCircle2, Loader2, Send } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
-import { gradyanSiniflari } from '@/components/public/tasarim/gradyan-baglanti';
+import { birincilSiniflari } from '@/components/public/tasarim/dugmeler';
 import { FormAlert, FormError } from '@/components/ui/form-error';
 import { Input, Textarea } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -407,7 +407,7 @@ export function IletisimFormu({
       <button
         type="submit"
         disabled={gonderiliyor}
-        className={gradyanSiniflari(
+        className={birincilSiniflari(
           'md',
           'self-start disabled:pointer-events-none disabled:opacity-60',
         )}

@@ -1,6 +1,4 @@
-import { KonturBaslik } from '@/components/public/tasarim/kontur-baslik';
-import { ParlakGlif, ParlakKup } from '@/components/public/tasarim/sekiller';
-import { Yuzen } from '@/components/public/tasarim/yuzen';
+import { Bolum } from '@/components/public/tasarim/bolum';
 import type { Dil } from '@/i18n/diller';
 import { sozluk } from '@/i18n/sozluk';
 import type { SkillDto } from '@/server/services/content-dto';
@@ -11,9 +9,9 @@ export type YeteneklerProps = {
 };
 
 /**
- * ADR-045 — "Neyle çalışıyorum" (örnekteki "What Clients Are Saying").
+ * "Neyle çalışıyorum" — kategori satırları (2026-10-27: tablo düzeni).
  *
- * KATEGORİYE GÖRE SABİT IZGARA (2026-10-26): önceden iki sıra kayan karttı.
+ * KATEGORİYE GÖRE SABİT (2026-10-26): önceden iki sıra kayan karttı.
  * Kayan şerit bir yeteneği okumak için beklemeyi gerektiriyor, sayfadaki
  * hareketi de fazlalaştırıyordu (teknoloji şeridi, yığın kartlar…). İşe alımcı
  * "C biliyor mu?" sorusunu tek bakışta yanıtlayabilmeli. Kategori sırası
@@ -33,49 +31,30 @@ export function Yetenekler({ dil, yetenekler }: YeteneklerProps) {
   }
 
   return (
-    <section
-      id="yetenekler"
-      aria-labelledby="yetenekler-baslik"
-      className="relative isolate overflow-hidden pt-24 pb-32 md:pt-32 md:pb-44"
-    >
-      <Yuzen hiz={-140} className="top-24 right-[6%] w-16 md:w-24">
-        <ParlakKup className="w-full" />
-      </Yuzen>
-      <Yuzen hiz={-80} gecikme={0.8} className="bottom-24 left-[4%] -z-10 w-20 md:w-28">
-        <ParlakGlif glif="#" className="text-[5rem] md:text-[7rem]" />
-      </Yuzen>
-
-      <div className="mx-auto max-w-7xl px-4 md:px-8">
-        <KonturBaslik
-          id="yetenekler-baslik"
-          metin={s.baslik}
-          className="mx-auto max-w-5xl text-center text-[clamp(2.1rem,7vw,6.5rem)]"
-        />
-      </div>
-
-      <div className="mx-auto mt-16 grid max-w-7xl gap-4 px-4 sm:grid-cols-2 md:mt-20 md:px-8 lg:grid-cols-3">
+    <Bolum id="yetenekler" baslik={s.baslik}>
+      {/* Tablo gibi satırlar: solda kategori, sağda yetenekler. */}
+      <dl className="border-line border-t">
         {[...gruplar].map(([kategori, liste]) => (
-          <section
+          <div
             key={kategori}
-            aria-label={sz.kategori[kategori]}
-            className="border-line-hover bg-surface flex flex-col gap-4 rounded-[1.5rem] border p-6"
+            className="border-line grid gap-3 border-b py-5 md:grid-cols-[14rem_1fr] md:gap-8"
           >
-            <h3 className="tabular text-accent-soft text-[0.72rem] tracking-[0.14em] uppercase">
-              {sz.kategori[kategori]}
-            </h3>
-            <ul className="flex flex-wrap gap-2">
-              {liste.map((y) => (
-                <li
-                  key={y.id}
-                  className="border-line text-primary rounded-full border px-3 py-1 text-sm"
-                >
-                  {y.name}
-                </li>
-              ))}
-            </ul>
-          </section>
+            <dt className="text-primary text-sm font-semibold">{sz.kategori[kategori]}</dt>
+            <dd>
+              <ul className="flex flex-wrap gap-2">
+                {liste.map((y) => (
+                  <li
+                    key={y.id}
+                    className="border-line bg-canvas text-body rounded-md border px-2.5 py-1 text-sm"
+                  >
+                    {y.name}
+                  </li>
+                ))}
+              </ul>
+            </dd>
+          </div>
         ))}
-      </div>
-    </section>
+      </dl>
+    </Bolum>
   );
 }

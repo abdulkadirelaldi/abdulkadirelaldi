@@ -32,10 +32,7 @@ export function Spor({
     <div className="grid gap-12 lg:grid-cols-[1.6fr_1fr] lg:gap-16">
       {dereceler.length > 0 && (
         <section aria-labelledby="spor-derece-baslik" className="flex flex-col gap-5">
-          <h3
-            id="spor-derece-baslik"
-            className="tabular text-accent-soft text-[0.72rem] tracking-[0.14em] uppercase"
-          >
+          <h3 id="spor-derece-baslik" className="tabular text-accent-soft text-xs">
             {metin.dereceler}
           </h3>
           <ol className="border-line border-t">
@@ -58,10 +55,7 @@ export function Spor({
 
       {takimlar.length > 0 && (
         <section aria-labelledby="spor-takim-baslik" className="flex flex-col gap-5">
-          <h3
-            id="spor-takim-baslik"
-            className="tabular text-accent-soft text-[0.72rem] tracking-[0.14em] uppercase"
-          >
+          <h3 id="spor-takim-baslik" className="tabular text-accent-soft text-xs">
             {metin.takimlar}
           </h3>
           {/* Satır satır, kart değil: on iki takım kart olarak derece listesinin iki katı uzuyordu. */}

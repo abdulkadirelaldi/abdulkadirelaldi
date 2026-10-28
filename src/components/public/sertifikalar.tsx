@@ -33,11 +33,9 @@ export function SertifikaListesi({
         <section
           key={kurum}
           aria-label={kurum}
-          className="bg-surface border-line flex flex-col gap-4 rounded-[1.5rem] border p-6"
+          className="bg-surface border-line rounded-card flex flex-col gap-4 border p-6"
         >
-          <h3 className="tabular text-accent-soft text-[0.72rem] tracking-[0.14em] uppercase">
-            {kurum}
-          </h3>
+          <h3 className="tabular text-accent-soft text-xs">{kurum}</h3>
           <ul className="flex flex-col gap-3">
             {belgeler.map((b) => (
               <li key={b.id} className="flex items-baseline justify-between gap-4">

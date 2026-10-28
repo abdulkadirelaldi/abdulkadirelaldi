@@ -9,11 +9,10 @@ import { Mdx } from '@/components/public/mdx';
 import { cipSiniflari, filtreAdresi } from '@/components/public/proje-filtre';
 import { PROJE_SEMALARI } from '@/components/public/proje-semalari';
 import {
-  GradyanBaglanti,
-  GradyanDisBaglanti,
-  hapSiniflari,
-} from '@/components/public/tasarim/gradyan-baglanti';
-import { HarfHarf } from '@/components/public/tasarim/harf-harf';
+  BirincilBaglanti,
+  BirincilDisBaglanti,
+  ikincilSiniflari,
+} from '@/components/public/tasarim/dugmeler';
 import { buttonClasses } from '@/components/ui/button';
 import type { Dil } from '@/i18n/diller';
 import { karsiliklar } from '@/i18n/karsiliklar';
@@ -83,7 +82,7 @@ export async function ProjeDetaySayfasi({ dil, slug }: SayfaProps) {
       <div className="mx-auto flex max-w-2xl flex-col items-start gap-4 px-4 py-24">
         <span
           aria-hidden="true"
-          className="bg-elevated text-muted rounded-pill flex size-12 items-center justify-center"
+          className="bg-elevated text-muted flex size-12 items-center justify-center rounded-md"
         >
           <Trash2 className="size-6" />
         </span>
@@ -117,23 +116,20 @@ export async function ProjeDetaySayfasi({ dil, slug }: SayfaProps) {
 
   return (
     <article>
-      <header className="relative isolate overflow-hidden pt-32 pb-12 md:pt-40 md:pb-16">
-        <div className="mx-auto flex max-w-7xl flex-col gap-8 px-4 md:px-8">
+      <header className="border-line border-b pt-28 pb-12 md:pt-36 md:pb-16">
+        <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 md:px-8">
           <Link
             href={yol(dil, 'projeler')}
-            className="focus-ring tabular text-muted hover:text-primary rounded-btn inline-flex w-fit items-center gap-2 text-xs transition-colors"
+            className="focus-ring text-muted hover:text-accent rounded-btn inline-flex w-fit items-center gap-2 text-sm transition-colors"
           >
             <ArrowLeft className="size-4" aria-hidden="true" />
             {p.geri}
           </Link>
 
           {/* Sayfadaki TEK <h1>. MDX içindeki `#` başlıkları `<h2>` olarak çizilir. */}
-          <h1 className="dev-baslik text-primary text-[clamp(2.25rem,7.5vw,7rem)]">
-            <span className="sr-only">{proje.title}</span>
-            <HarfHarf metin={proje.title} aralik={0.02} />
-          </h1>
+          <h1 className="dev-baslik text-primary max-w-4xl text-4xl md:text-5xl">{proje.title}</h1>
 
-          <div className="animate-sayfa-giris grid gap-10 [animation-delay:0.3s] md:grid-cols-[1.3fr_1fr]">
+          <div className="grid gap-10 md:grid-cols-[1.3fr_1fr]">
             <p className="text-body text-lg leading-relaxed md:text-xl">{proje.summary}</p>
 
             <div className="flex flex-col gap-6">
@@ -144,9 +140,7 @@ export async function ProjeDetaySayfasi({ dil, slug }: SayfaProps) {
                       key={k.ad}
                       className="border-line grid grid-cols-[6rem_1fr] gap-4 border-b py-3 text-sm"
                     >
-                      <dt className="tabular text-muted text-xs tracking-[0.14em] uppercase">
-                        {k.ad}
-                      </dt>
+                      <dt className="text-muted">{k.ad}</dt>
                       <dd className="text-primary">{k.deger}</dd>
                     </div>
                   ))}
@@ -169,14 +163,14 @@ export async function ProjeDetaySayfasi({ dil, slug }: SayfaProps) {
               {(proje.liveUrl || proje.repoUrl) && (
                 <div className="flex flex-wrap gap-3">
                   {proje.liveUrl && (
-                    <GradyanDisBaglanti href={proje.liveUrl}>{p.canliSite}</GradyanDisBaglanti>
+                    <BirincilDisBaglanti href={proje.liveUrl}>{p.canliSite}</BirincilDisBaglanti>
                   )}
                   {proje.repoUrl && (
                     <a
                       href={proje.repoUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={hapSiniflari('h-11 px-5')}
+                      className={ikincilSiniflari('md')}
                     >
                       <Code2 className="size-4" aria-hidden="true" />
                       {p.kaynakKodu}
@@ -189,11 +183,11 @@ export async function ProjeDetaySayfasi({ dil, slug }: SayfaProps) {
         </div>
       </header>
 
-      <div className="mx-auto flex max-w-7xl flex-col gap-16 px-4 pb-32 md:px-8">
+      <div className="mx-auto flex max-w-6xl flex-col gap-16 px-4 pt-12 pb-24 md:px-8">
         {/* Kapak: liste kartıyla AYNI bileşen. Görseli olmayan projede kutu HİÇ
             çizilmez — boş yer tutucu "bitmemiş site" izlenimi veriyordu (2026-10-26). */}
         {(proje.cover || statikKapak(proje)) && (
-          <div className="overflow-hidden rounded-[2rem]">
+          <div className="border-line rounded-card overflow-hidden border">
             <KapakGorsel
               kapak={proje.cover}
               src={proje.cover ? undefined : (statikKapak(proje) ?? undefined)}
@@ -205,10 +199,7 @@ export async function ProjeDetaySayfasi({ dil, slug }: SayfaProps) {
 
         {Sema && (
           <section aria-labelledby="mimari-baslik" className="flex flex-col gap-6">
-            <h2
-              id="mimari-baslik"
-              className="dev-baslik text-primary text-[clamp(2rem,6vw,4.5rem)]"
-            >
+            <h2 id="mimari-baslik" className="dev-baslik text-primary text-2xl md:text-3xl">
               {p.mimari}
             </h2>
             <Sema dil={dil} />
@@ -226,10 +217,7 @@ export async function ProjeDetaySayfasi({ dil, slug }: SayfaProps) {
 
         {proje.gallery.length > 0 && (
           <section aria-labelledby="galeri-baslik" className="flex flex-col gap-8">
-            <h2
-              id="galeri-baslik"
-              className="dev-baslik text-primary text-[clamp(2rem,6vw,4.5rem)]"
-            >
+            <h2 id="galeri-baslik" className="dev-baslik text-primary text-2xl md:text-3xl">
               {p.gorseller}
             </h2>
 
@@ -241,7 +229,7 @@ export async function ProjeDetaySayfasi({ dil, slug }: SayfaProps) {
             */}
             <ul className="grid gap-4 sm:grid-cols-2">
               {proje.gallery.map((gorsel, sira) => (
-                <li key={gorsel.id} className="overflow-hidden rounded-[1.5rem]">
+                <li key={gorsel.id} className="rounded-card overflow-hidden">
                   <KapakGorsel kapak={gorsel} baslik={p.gorselEtiket(proje.title, sira + 1)} />
                 </li>
               ))}
@@ -255,20 +243,20 @@ export async function ProjeDetaySayfasi({ dil, slug }: SayfaProps) {
           ve ona ajans teklifi sunmak yersiz — iletişim ve CV.
         */}
         {!proje.commercial ? (
-          <aside className="panel-acik bg-canvas grid gap-8 rounded-[2rem] p-8 md:grid-cols-[1fr_auto] md:items-end md:p-12">
+          <aside className="bg-surface border-line rounded-card grid gap-8 border p-8 md:grid-cols-[1fr_auto] md:items-end md:p-12">
             <div className="flex flex-col gap-3">
-              <p className="dev-baslik text-primary text-3xl md:text-5xl">{p.konusalim}</p>
+              <p className="dev-baslik text-primary text-2xl md:text-3xl">{p.konusalim}</p>
               <p className="text-body max-w-xl text-sm">{p.konusalimAciklama}</p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <GradyanBaglanti
+              <BirincilBaglanti
                 href={yol(dil, 'iletisim')}
                 data-cta="proje-iletisim"
                 data-proje={proje.slug}
               >
                 {p.banaYaz}
-              </GradyanBaglanti>
-              <Link href={yol(dil, 'cv')} className={hapSiniflari('h-11')}>
+              </BirincilBaglanti>
+              <Link href={yol(dil, 'cv')} className={ikincilSiniflari('md')}>
                 {p.cvGor}
               </Link>
             </div>
@@ -279,15 +267,15 @@ export async function ProjeDetaySayfasi({ dil, slug }: SayfaProps) {
           `data-cta` + `data-proje`: analitik bağlandığında (F6) HANGİ projenin
           dönüştürdüğü ayırt edilebilsin. Sonradan eklemek zor, şimdi ücretsiz.
         */
-          <aside className="panel-acik bg-canvas grid gap-8 rounded-[2rem] p-8 md:grid-cols-[1fr_auto] md:items-end md:p-12">
+          <aside className="bg-surface border-line rounded-card grid gap-8 border p-8 md:grid-cols-[1fr_auto] md:items-end md:p-12">
             <div className="flex flex-col gap-3">
-              <p className="dev-baslik text-primary text-3xl md:text-5xl">{p.benzer}</p>
+              <p className="dev-baslik text-primary text-2xl md:text-3xl">{p.benzer}</p>
               <p className="text-body max-w-xl text-sm">
                 {p.kiyiOnce} <span className="text-primary font-semibold">Kıyı Medya</span>
                 {p.kiyiSonra}
               </p>
             </div>
-            <GradyanDisBaglanti
+            <BirincilDisBaglanti
               href={KIYI_MEDYA_URL}
               data-cta="proje-detay"
               data-proje={proje.slug}
@@ -295,7 +283,7 @@ export async function ProjeDetaySayfasi({ dil, slug }: SayfaProps) {
               data-umami-event-proje={proje.slug}
             >
               {p.kiyiIlerle}
-            </GradyanDisBaglanti>
+            </BirincilDisBaglanti>
           </aside>
         )}
       </div>

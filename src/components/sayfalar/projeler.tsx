@@ -3,10 +3,8 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { filtreAdresi, ProjeFiltre } from '@/components/public/proje-filtre';
-import { ProjeYigini } from '@/components/public/proje-yigini';
-import { ParlakHalka, ParlakKure } from '@/components/public/tasarim/sekiller';
+import { ProjeKartlari } from '@/components/public/proje-kartlari';
 import { SayfaBasligi } from '@/components/public/tasarim/sayfa-basligi';
-import { Yuzen } from '@/components/public/tasarim/yuzen';
 import { buttonClasses } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import type { Dil } from '@/i18n/diller';
@@ -73,7 +71,6 @@ export async function ProjelerSayfasi({
     <>
       <SayfaBasligi
         baslik={s.sayfaBaslik.projeler.baslik}
-        yol={`~${yol(dil, 'projeler')}`}
         aciklama={s.sayfaBaslik.projeler.aciklama}
         ek={
           projeler.length > 0 && (
@@ -82,19 +79,9 @@ export async function ProjelerSayfasi({
             </p>
           )
         }
-        susler={
-          <>
-            <Yuzen hiz={-120} className="top-32 right-[6%] w-16 md:w-28">
-              <ParlakKure className="w-full" renk="var(--accent)" />
-            </Yuzen>
-            <Yuzen hiz={-80} gecikme={0.8} className="right-[22%] bottom-6 hidden w-16 md:block">
-              <ParlakHalka className="w-full" />
-            </Yuzen>
-          </>
-        }
       />
 
-      <div className="mx-auto flex max-w-7xl flex-col gap-12 px-4 pb-32 md:px-8">
+      <div className="mx-auto flex max-w-6xl flex-col gap-12 px-4 pb-32 md:px-8">
         <ProjeFiltre
           etiketler={etiketler}
           teknolojiler={teknolojiler}
@@ -139,7 +126,7 @@ export async function ProjelerSayfasi({
         ) : (
           // Sonuç sayısı `aria-live` DEĞİL: filtre bir sayfa gezinmesi; ekran okuyucu
           // yeni sayfayı zaten baştan duyuruyor (sayaç başlığın yanında).
-          <ProjeYigini dil={dil} projeler={projeler} baslikDuzeyi="h2" />
+          <ProjeKartlari dil={dil} projeler={projeler} baslikDuzeyi="h2" />
         )}
       </div>
     </>

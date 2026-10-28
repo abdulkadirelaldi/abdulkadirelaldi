@@ -55,7 +55,7 @@ export function filtreAdresi(
  */
 export function cipSiniflari(secili: boolean) {
   return cn(
-    'focus-ring rounded-pill ease-brand inline-flex h-9 items-center border px-4 text-[0.7rem] font-semibold tracking-[0.12em] uppercase transition-colors duration-300',
+    'focus-ring rounded-md ease-brand inline-flex h-9 items-center border px-4 text-xs font-semibold transition-colors duration-300',
     secili
       ? 'bg-primary text-canvas border-primary'
       : 'border-line-hover text-body hover:border-primary hover:text-primary',
@@ -101,10 +101,7 @@ export function ProjeFiltre({
     <div className="flex flex-col gap-4">
       {etiketler.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="tabular text-muted w-24 shrink-0 text-xs">
-            <span aria-hidden="true">--</span>
-            {metin.etiket}
-          </span>
+          <span className="text-primary w-24 shrink-0 text-sm font-medium">{metin.etiket}</span>
 
           <Cip adres={filtreAdresi({ teknoloji: seciliTeknoloji }, dil)} secili={!seciliEtiket}>
             {metin.tumu}
@@ -124,10 +121,7 @@ export function ProjeFiltre({
 
       {teknolojiler.length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="tabular text-muted w-24 shrink-0 text-xs">
-            <span aria-hidden="true">--</span>
-            {metin.teknoloji}
-          </span>
+          <span className="text-primary w-24 shrink-0 text-sm font-medium">{metin.teknoloji}</span>
 
           <Cip adres={filtreAdresi({ etiket: seciliEtiket }, dil)} secili={!seciliTeknoloji}>
             {metin.tumu}

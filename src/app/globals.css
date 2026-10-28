@@ -21,11 +21,7 @@
    <html class="dark"> açık koyu seçimidir ve (b)'yi ezer.
    -------------------------------------------------------------------------- */
 
-/* ADR-045: `.site-koyu` public sitenin kabı — kullanıcının tema çerezi ya da
-   sistem tercihi ne olursa olsun koyu token'ları YENİDEN basar. Panel bu
-   sınıfın dışında kalır ve tema seçimini korur. */
-:root,
-.site-koyu {
+:root {
   /* Zeminler */
   --bg-base: #0a0a12;
   --bg-surface: #12121f;
@@ -71,20 +67,8 @@
   /* §3.1 — gradient yalnızca birincil buton, aktif nav göstergesi ve isim vurgusunda */
   --gradient-accent: linear-gradient(135deg, var(--accent) 0%, var(--accent-blue) 100%);
 
-  /* ADR-045 — public sitenin vurgu gradyanı (gradient düğme, isim vurgusu).
-     Beyaz metin her durakta ≥ 4.6:1: #d1127f 5.12, #7756ff 4.61 (ölçüldü). */
-  --gradient-vurgu: linear-gradient(100deg, #d1127f 0%, #7756ff 100%);
-
   /* Vurgu (mor) zemin ÜSTÜNDEKİ metin — şema kutuları. #7756ff üzerinde 4.61:1. */
   --vurgu-uzeri: #ffffff;
-
-  /* ADR-045 — dekoratif geometrik şekiller (alt bilgi şeridi, yüzen öğeler).
-     YALNIZCA aria-hidden süslerde; metin rengi olarak KULLANILMAZ. */
-  --sekil-mor: #8b5cf6;
-  --sekil-yesil: #a3e635;
-  --sekil-turuncu: #fb923c;
-  --sekil-pembe: #ec4899;
-  --sekil-beyaz: #f5f5f7;
 
   /* §3.4 — hareket */
   --ease-brand: cubic-bezier(0.22, 1, 0.36, 1);
@@ -93,6 +77,45 @@
   --duration-enter: 400ms;
 
   color-scheme: dark;
+}
+
+/* 2026-10-27 — KURUMSAL SİTE TEMASI (ADR-045'in koyu "şablon" dilinin yerine).
+   `.site-kurumsal` public sitenin kabı: kullanıcının tema çerezi ya da sistem
+   tercihi ne olursa olsun bu AÇIK token'ları basar. Panel bu sınıfın dışında
+   kalır ve kendi tema seçimini korur.
+   Tek vurgu rengi (lacivert-mavi), gradyan YOK: `--gradient-accent` düz renge
+   eşit — paylaşılan `ui/button` sitede de düz vurgu çizer.
+   Kontrast (beyaz zemin): primary 17.9:1 · body 10.4:1 · muted 4.76:1 ·
+   accent 6.70:1 · accent üzerinde beyaz 6.70:1. `--bg-surface` (#f6f7f9)
+   üzerinde muted 4.52:1 — AA sınırında, yalnızca ikincil metin. */
+.site-kurumsal {
+  --bg-base: #ffffff;
+  --bg-surface: #f6f7f9;
+  --bg-elevated: #ffffff;
+
+  --border: #e5e7eb;
+  --border-hover: #d1d5db;
+  --border-strong: #6b7280;
+
+  --text-primary: #0f172a;
+  --text-body: #334155;
+  --text-muted: #64748b;
+
+  --accent: #1d4ed8;
+  --accent-hover: #1e40af;
+  --accent-soft: #1d4ed8;
+  --accent-blue: #1d4ed8;
+  --accent-glow: rgba(29, 78, 216, 0.14);
+
+  --gradient-accent: linear-gradient(var(--accent), var(--accent));
+  --vurgu-uzeri: #ffffff;
+
+  --success: #047857;
+  --warning: #92400e;
+  --danger: #b91c1c;
+  --info: #1d4ed8;
+
+  color-scheme: light;
 }
 
 /* (a) Kullanıcı açıkça aydınlık seçti.
@@ -195,8 +218,6 @@
   --font-body: var(--font-inter);
   --font-sans: var(--font-inter);
   --font-mono: var(--font-jetbrains-mono);
-  /* ADR-045 — dev başlıklar (Archivo, geniş, 800–900). Public layout basar. */
-  --font-dev: var(--font-archivo-genis), var(--font-space-grotesk);
 
   /* Boşluk — §3.3, 4px tabanlı. Varsayılan adım zaten 0.25rem; açıkça sabitlendi.
      4/8/12/16/24/32/48/64/96px  ->  1/2/3/4/6/8/12/16/24 */
@@ -357,92 +378,41 @@
 }
 
 /* --------------------------------------------------------------------------
-   ADR-045 — PUBLIC SİTE DİLİ
-   Dev, geniş, büyük harf başlıklar; kontur (içi boş) yazı; gradyan düğme;
-   kayan şeritler ve yüzen şekiller. Hepsinin hareketi aşağıdaki
-   `prefers-reduced-motion` bloğuna tabi.
+   PUBLIC SİTE BAŞLIKLARI — 2026-10-27 kurumsal tasarım
+   ADR-045'in dev, geniş, büyük harf başlıkları ve kontur yazısı "şablon"
+   gibi duruyordu; başlıklar artık gövde fontunda (Inter), olağan yazımda ve
+   ölçülü boyda. `dev-baslik` adı geriye uyum için duruyor: çağıran yerler
+   boyutu kendisi veriyor.
    -------------------------------------------------------------------------- */
 
+/* Public sitede TÜM başlıklar Inter — panelin Space Grotesk'i burada teknik/
+   "şablon" duruyordu. Taban katmandaki h1–h6 kuralını yalnızca site kabında ezer. */
+.site-kurumsal :is(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--font-inter), sans-serif;
+  font-weight: 600;
+}
+
+/* Sitede `tabular` rakam hizasını korur ama MONO FONT DEĞİL: tarihlerde ve
+   sayılarda mono yazı "terminal" havası veriyordu. Panel mono kalır. */
+.site-kurumsal .tabular {
+  font-family: inherit;
+}
+
 @utility dev-baslik {
-  /* `--font-dev` DEĞİL: `@theme inline` değişkeni :root'a basmayabilir; font
-     değişkeni public layout'un kabında tanımlı, doğrudan oradan okunuyor. */
-  font-family: var(--font-archivo-genis), var(--font-space-grotesk), sans-serif;
-  font-weight: 900;
-  text-transform: uppercase;
-  line-height: 0.88;
-  letter-spacing: -0.035em;
+  font-family: var(--font-inter), sans-serif;
+  /* Inter dosyası 400–600 aralığında üretildi (fonts/uret.py); 700 sahte kalın olurdu. */
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.025em;
   text-wrap: balance;
   /* ADR-046: Almancanın tek sözcüklük uzun başlıkları ("Berufserfahrung")
-     375 px'te satıra sığmıyordu ve sayfa yatay kayıyordu (ÖLÇÜLDÜ). Önce dilin
-     heceleme kuralıyla böl (`lang` kökte doğru), olmazsa sözcüğü kır. */
+     375 px'te satıra sığmıyordu ve sayfa yatay kayıyordu (ÖLÇÜLDÜ). */
   hyphens: auto;
   overflow-wrap: break-word;
 }
 
-/* İçi boş yazı. Okunabilirliği DOLU kopyası taşır (kontur-baslik.tsx); bu
-   katman her zaman aria-hidden süstür. */
-@utility metin-kontur {
-  color: transparent;
-  -webkit-text-stroke: 1.5px var(--text-primary);
-}
-
-@utility bg-gradient-vurgu {
-  background-image: var(--gradient-vurgu);
-}
-
-@utility text-gradient-vurgu {
-  background-image: var(--gradient-vurgu);
-  background-clip: text;
-  color: transparent;
-}
-
 @theme {
-  --animate-kayan-serit: kayan-serit var(--serit-sure, 40s) linear infinite;
-  /* 0.9 → 0.55 sn (2026-10-22): canlıda isim ancak ~1,75 sn'de tamamlanıyordu,
-     Speed Index 4,6 sn. Hareket aynı, bekleme yok — bkz. hero.tsx gecikmeleri. */
-  --animate-harf-yuksel: harf-yuksel 0.55s var(--ease-brand) both;
-  --animate-yuzme: yuzme 6s ease-in-out infinite;
   --animate-sayfa-giris: sayfa-giris 0.6s var(--ease-brand) both;
-}
-
-/* Şerit ve yüzen süs: kendi katmanlarında (bileşimci animasyonu), ekran
-   dışındaysa çizim atlanır. `contain-intrinsic-size` atlanan şeridin yerini
-   tutar — kaydırma çubuğu zıplamaz. ÖLÇÜM: kayan-serit.tsx yorumu. */
-.kayan-serit-kap {
-  content-visibility: auto;
-  contain-intrinsic-size: auto 160px;
-}
-
-.animate-yuzme {
-  will-change: transform;
-}
-
-@keyframes kayan-serit {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    transform: translate3d(-50%, 0, 0);
-  }
-}
-
-@keyframes harf-yuksel {
-  from {
-    transform: translate3d(0, 105%, 0);
-  }
-  to {
-    transform: translate3d(0, 0, 0);
-  }
-}
-
-@keyframes yuzme {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) rotate(0deg);
-  }
-  50% {
-    transform: translate3d(0, -14px, 0) rotate(4deg);
-  }
 }
 
 /* YALNIZCA KAYMA, OPAKLIK YOK — ÖLÇÜLDÜ (PR #36, Lighthouse mobil): opaklık
@@ -461,74 +431,6 @@
   }
 }
 
-/* --------------------------------------------------------------------------
-   ADR-045 — KAYDIRMAYA BAĞLI HAREKET: CSS scroll-driven animations, JS YOK
-   --------------------------------------------------------------------------
-   İlk sürüm framer-motion `useScroll` kullanıyordu; ölçüm (PR #36) mobilde
-   TBT ~250 ms ve ana iş parçacığında 1.2 sn betik değerlendirmesi gösterdi.
-   T-023 aynı dersi BolumGiris için almıştı — burada TEKRARLANMADI.
-
-   AŞAMALI GELİŞTİRME: taban stiller son kareyi gösterir (başlık dolu, panel
-   tam boy, süs yerinde). Hareket yalnızca tarayıcı `animation-timeline`ı
-   destekliyorsa VE kullanıcı hareketi azaltmamışsa eklenir. Desteklemeyen
-   tarayıcıda site eksiksiz ama durağan.
-
-   `animation` kısaltması `animation-timeline`ı SIFIRLAR — zaman çizgisi her
-   zaman kısaltmadan SONRA yazılmalı. */
-
-@keyframes kontur-dol {
-  from {
-    clip-path: inset(0 100% 0 0);
-  }
-  to {
-    clip-path: inset(0 0 0 0);
-  }
-}
-
-@keyframes panel-otur {
-  from {
-    scale: 0.94;
-  }
-  to {
-    scale: 1;
-  }
-}
-
-@keyframes paralaks {
-  from {
-    translate: 0 0;
-  }
-  to {
-    translate: 0 var(--paralaks, -120px);
-  }
-}
-
-@supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
-    /* Başlık ekranın altından girerken boş, ortasına vardığında dolu. */
-    .kontur-dol {
-      animation: kontur-dol linear both;
-      animation-timeline: view();
-      animation-range: entry 0% cover 50%;
-    }
-
-    /* Panel ekrana girerken %94'ten tam boya. */
-    .panel-otur {
-      transform-origin: top center;
-      animation: panel-otur linear both;
-      animation-timeline: view();
-      animation-range: entry 0% cover 30%;
-    }
-
-    /* Süs, ekranı boydan boya geçerken `--paralaks` kadar kayar. */
-    .paralaks {
-      animation: paralaks linear both;
-      animation-timeline: view();
-      animation-range: cover;
-    }
-  }
-}
-
 /* Tema değişirken renk geçişleri "yayılma" etkisi yapmasın diye ThemeProvider
    bu sınıfı bir kare boyunca <html>'e ekler. */
 .theme-switching,
@@ -541,9 +443,7 @@
 /* --------------------------------------------------------------------------
    §3.4 / §5.2.4 / K5 — prefers-reduced-motion
    Bu opsiyonel değil: hareket tercihini kapatan kullanıcıda tüm animasyon ve
-   geçişler pratikte anında biter. Kaydırmaya bağlı efektler (ADR-045) buna EK
-   olarak `prefers-reduced-motion: no-preference` koşuluna bağlı; bu kural son
-   savunma hattıdır.
+   geçişler pratikte anında biter.
    -------------------------------------------------------------------------- */
 
 @media (prefers-reduced-motion: reduce) {
@@ -579,13 +479,13 @@
      arka planları zaten atıyor ama METİN rengini atmıyor, açık gri metin
      kâğıtta okunmaz hâle geliyordu. Vurgu rengi KORUNUYOR: başlıkları
      ayırıyor ve tek renkli lazerde de gri tona düşerek okunur kalıyor. */
-  /* `.site-koyu` ve `.panel-acik` token'ları KENDİ kaplarında yeniden basıyor
-     (ADR-045); yalnızca :root'u değiştirmek public sayfaları kâğıtta KOYU
-     bırakıyordu — ÖLÇÜLDÜ, CV PDF'i (2026-10-23). */
+  /* `.site-kurumsal` ve `.panel-acik` token'ları KENDİ kaplarında yeniden
+     basıyor; yalnızca :root'u değiştirmek public sayfaları kâğıtta temanın
+     renginde bırakıyordu — ÖLÇÜLDÜ, CV PDF'i (2026-10-23). */
   :root,
   :root.dark,
   :root.light,
-  .site-koyu,
+  .site-kurumsal,
   .panel-acik {
     --bg-base: #ffffff;
     --bg-surface: #ffffff;
@@ -595,15 +495,14 @@
     --text-muted: #4a4a4a;
     --border-line: #b4b4b4;
     --border-line-hover: #b4b4b4;
-    /* Vurgu METNİ aydınlık temadaki koyu tonuna: koyu temanın açık moru
-       beyaz kâğıtta okunmuyor (unvan satırı). */
-    --accent-soft: #6b3bf7;
+    /* Vurgu METNİ sitenin koyu mavisi: kâğıtta da okunur, gri tonda da ayrışır. */
+    --accent-soft: #1d4ed8;
     color-scheme: light;
   }
 
   html,
   body,
-  .site-koyu {
+  .site-kurumsal {
     background: #ffffff;
   }
 

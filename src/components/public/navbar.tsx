@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
-import { gradyanSiniflari } from '@/components/public/tasarim/gradyan-baglanti';
+import { birincilSiniflari, ikincilSiniflari } from '@/components/public/tasarim/dugmeler';
 import { DIL_ADI, DILLER, type Dil } from '@/i18n/diller';
 import { cozumle, yol, type Sayfa } from '@/i18n/rotalar';
 import type { Sozluk } from '@/i18n/sozluk';
@@ -106,23 +106,23 @@ export function Navbar({ dil, metin }: { dil: Dil; metin: NavbarMetni }) {
         'ease-brand fixed inset-x-0 top-0 z-50 transition-[translate,background-color,border-color] duration-500 focus-within:translate-none',
         gizli && !acik && '-translate-y-full',
         kaydirildi && !acik
-          ? 'border-line/60 bg-canvas/70 border-b backdrop-blur-xl'
+          ? 'border-line bg-canvas/90 border-b backdrop-blur'
           : 'border-b border-transparent',
       )}
     >
       <nav
         aria-label={nav.anaMenu}
-        className="mx-auto flex h-16 max-w-7xl items-center gap-6 px-4 md:h-20 md:px-8"
+        className="mx-auto flex h-16 max-w-6xl items-center gap-6 px-4 md:px-8"
       >
         <Link
           href={yol(dil, 'anasayfa')}
           aria-label={nav.anaSayfa}
-          className="focus-ring rounded-btn font-dev text-primary relative z-10 text-xl font-black tracking-tight"
+          className="focus-ring rounded-btn text-primary relative z-10 text-lg font-semibold tracking-tight"
         >
-          AE<span className="text-gradient-vurgu">.</span>
+          AE<span className="text-accent">.</span>
         </Link>
 
-        <ul className="mx-auto hidden items-center gap-10 md:flex">
+        <ul className="mx-auto hidden items-center gap-8 md:flex">
           {baglantilar.map((link) => (
             <li key={link.href}>
               <Link
@@ -130,24 +130,15 @@ export function Navbar({ dil, metin }: { dil: Dil; metin: NavbarMetni }) {
                 prefetch
                 aria-current={aktif(link.href) ? 'page' : undefined}
                 className={cn(
-                  'group focus-ring rounded-btn relative block overflow-hidden py-1 text-[0.7rem] font-semibold tracking-[0.18em] uppercase',
-                  aktif(link.href) ? 'text-primary' : 'text-body hover:text-primary',
+                  'focus-ring rounded-btn relative block py-1 text-sm font-medium transition-colors',
+                  aktif(link.href) ? 'text-accent' : 'text-body hover:text-primary',
                 )}
               >
-                {/* Metin yukarı kayıp alttan kopyası geliyor — "yuvarlanan" hover. */}
-                <span className="ease-brand block transition-transform duration-300 group-hover:-translate-y-full">
-                  {link.label}
-                </span>
-                <span
-                  aria-hidden="true"
-                  className="ease-brand absolute inset-x-0 top-full block py-1 transition-transform duration-300 group-hover:-translate-y-full"
-                >
-                  {link.label}
-                </span>
+                {link.label}
                 {aktif(link.href) && (
                   <span
                     aria-hidden="true"
-                    className="bg-gradient-vurgu rounded-pill absolute inset-x-0 bottom-0 h-px"
+                    className="bg-accent absolute inset-x-0 -bottom-1 h-0.5"
                   />
                 )}
               </Link>
@@ -164,7 +155,7 @@ export function Navbar({ dil, metin }: { dil: Dil; metin: NavbarMetni }) {
 
         <Link
           href={yol(dil, 'iletisim')}
-          className={gradyanSiniflari('sm', 'hidden md:inline-flex')}
+          className={birincilSiniflari('sm', 'hidden md:inline-flex')}
         >
           {nav.cta}
         </Link>
@@ -175,7 +166,7 @@ export function Navbar({ dil, metin }: { dil: Dil; metin: NavbarMetni }) {
           aria-expanded={acik}
           aria-controls="mobil-menu"
           aria-label={acik ? nav.menuyuKapat : nav.menuyuAc}
-          className="focus-ring rounded-pill border-line-strong text-primary relative z-10 ml-auto inline-flex h-10 items-center gap-2 border px-4 text-[0.7rem] font-semibold tracking-[0.18em] uppercase md:hidden"
+          className={ikincilSiniflari('sm', 'relative z-10 ml-auto md:hidden')}
         >
           {acik ? nav.kapat : nav.menu}
         </button>
@@ -184,31 +175,28 @@ export function Navbar({ dil, metin }: { dil: Dil; metin: NavbarMetni }) {
       {acik && (
         <div
           id="mobil-menu"
-          className="bg-canvas animate-sayfa-giris fixed inset-0 flex flex-col justify-between px-4 pt-24 pb-10 [animation-duration:0.4s] md:hidden"
+          className="bg-canvas fixed inset-0 flex flex-col justify-between px-4 pt-20 pb-10 md:hidden"
         >
           <ul className="flex flex-col gap-2">
-            {baglantilar.map((link, sira) => (
+            {baglantilar.map((link) => (
               <li key={link.href} className="border-line border-b">
                 <Link
                   href={link.href}
                   prefetch
                   aria-current={aktif(link.href) ? 'page' : undefined}
                   className={cn(
-                    'focus-ring dev-baslik flex items-baseline justify-between py-4 text-4xl',
-                    aktif(link.href) ? 'text-gradient-vurgu' : 'text-primary',
+                    'focus-ring block py-4 text-2xl font-semibold',
+                    aktif(link.href) ? 'text-accent' : 'text-primary',
                   )}
                 >
                   {link.label}
-                  <span className="tabular text-muted text-xs font-normal tracking-normal">
-                    0{sira + 1}
-                  </span>
                 </Link>
               </li>
             ))}
           </ul>
           <div className="flex flex-col gap-6">
             <DilSecici dil={dil} pathname={pathname} etiket={nav.dilSecici} />
-            <Link href={yol(dil, 'iletisim')} className={gradyanSiniflari('lg', 'w-full')}>
+            <Link href={yol(dil, 'iletisim')} className={birincilSiniflari('lg', 'w-full')}>
               {nav.cta}
             </Link>
           </div>
@@ -246,8 +234,8 @@ function DilSecici({
             title={DIL_ADI[d]}
             aria-current={d === dil ? 'true' : undefined}
             className={cn(
-              'focus-ring rounded-pill inline-flex h-8 items-center px-2.5 text-[0.7rem] font-semibold tracking-[0.14em] uppercase transition-colors',
-              d === dil ? 'bg-primary text-canvas' : 'text-body hover:text-primary',
+              'focus-ring rounded-btn inline-flex h-8 items-center px-2 text-sm font-medium uppercase transition-colors',
+              d === dil ? 'text-primary bg-surface' : 'text-muted hover:text-primary',
             )}
           >
             {d}

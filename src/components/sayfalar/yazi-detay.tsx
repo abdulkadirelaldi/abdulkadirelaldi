@@ -96,7 +96,7 @@ export async function YaziSayfasi({ dil, slug }: SayfaProps) {
       <div className="mx-auto flex max-w-2xl flex-col items-start gap-4 px-4 py-24">
         <span
           aria-hidden="true"
-          className="bg-elevated text-muted rounded-pill flex size-12 items-center justify-center"
+          className="bg-elevated text-muted flex size-12 items-center justify-center rounded-md"
         >
           <Trash2 className="size-6" />
         </span>
@@ -129,9 +129,7 @@ export async function YaziSayfasi({ dil, slug }: SayfaProps) {
 
           {/* Sayfadaki TEK <h1>. MDX'teki `#` başlıklar `<h2>` olarak çizilir. Yazı
               başlıkları uzun olabilir: dev başlık ölçeğinin bir altı, harf animasyonu yok. */}
-          <h1 className="font-display text-primary text-[clamp(2rem,5vw,4rem)] leading-[1.05] font-bold tracking-tight">
-            {yazi.title}
-          </h1>
+          <h1 className="dev-baslik text-primary text-4xl md:text-5xl">{yazi.title}</h1>
 
           <p className="text-body max-w-3xl text-lg leading-relaxed md:text-xl">{yazi.excerpt}</p>
 
@@ -152,7 +150,7 @@ export async function YaziSayfasi({ dil, slug }: SayfaProps) {
                     {/* Etiket, listeye süzülmüş olarak döner — T-024'teki kalıp. */}
                     <Link
                       href={yolSorgulu(dil, 'blog', { etiket })}
-                      className="focus-ring rounded-pill"
+                      className="focus-ring rounded-md"
                     >
                       <Badge variant="accent">{etiket}</Badge>
                     </Link>
@@ -172,7 +170,7 @@ export async function YaziSayfasi({ dil, slug }: SayfaProps) {
           taşımaz.
         */}
         {yazi.cover && (
-          <div className="overflow-hidden rounded-[2rem]">
+          <div className="rounded-card overflow-hidden">
             <KapakGorsel kapak={yazi.cover} baslik={yazi.title} />
           </div>
         )}
