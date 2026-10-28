@@ -65,9 +65,26 @@ else
   YAPIT=$(gh api "repos/{owner}/{repo}/actions/runs/$KOSU/artifacts" \
     -q ".artifacts[] | select(.name == \"imajlar-$SURUM\") | .id")
   [ -n "$YAPIT" ] || { echo "Yapıt bulunamadı: imajlar-$SURUM" >&2; exit 1; }
-  gh api "repos/{owner}/{repo}/actions/artifacts/$YAPIT/zip" \
-    | bsdtar -xOf - imajlar.tar.gz \
-    | ssh "$SUNUCU" 'gunzip | docker load'
+  # Yapıtı SUNUCU doğrudan GitHub'dan indirir (2026-10-28). Önce imaj Mac
+  # üzerinden akıyordu: ev bağlantısının YÜKLEME hızı (bir gün ~1,7 MB/sn, ertesi
+  # gün ~70 KB/sn) gönderimi 5 dakikadan 2 saate çıkarabiliyordu. Sunucuya
+  # kalıcı jeton KONMUYOR: GitHub yapıt adresi, ~1 dakika geçerli ve yalnızca bu
+  # dosyayı okuyan imzalı bir adrese yönlendiriyor; o adres ssh'ın standart
+  # girdisinden geçiyor (Mac'te komut satırında görünmez). Sunucuda unzip yok,
+  # zip python3 ile açılıyor. 60 sn boyunca 10 KB/sn altına düşen indirme
+  # kesilir ve zincir hata verir — eksik imaj yüklenmez, canlı sürüm değişmez.
+  DEPO=$(gh repo view --json nameWithOwner -q .nameWithOwner)
+  IMZALI=$(printf 'header = "Authorization: Bearer %s"\n' "$(gh auth token)" \
+    | curl -fsS -K - -o /dev/null -w '%{redirect_url}' \
+      "https://api.github.com/repos/$DEPO/actions/artifacts/$YAPIT/zip")
+  [ -n "$IMZALI" ] || { echo "Yapıt indirme adresi alınamadı." >&2; exit 1; }
+  printf '%s' "$IMZALI" | ssh "$SUNUCU" 'set -euo pipefail
+    adres=$(cat)
+    zip=$(mktemp /tmp/aelaldi-imaj.XXXXXX)
+    trap "rm -f \"$zip\"" EXIT
+    curl -fsSL --speed-limit 10240 --speed-time 60 -o "$zip" "$adres"
+    python3 -c "import shutil, sys, zipfile; shutil.copyfileobj(zipfile.ZipFile(sys.argv[1]).open(\"imajlar.tar.gz\"), sys.stdout.buffer)" "$zip" \
+      | gunzip | docker load'
 fi
 
 # Eski sürümler: güncel + bir önceki (geri dönüş için) kalır, gerisi silinir.
