@@ -593,8 +593,8 @@ Fabrikadaki makineler üretim sayaçlarını yalnızca operatör ekranında gös
     slug: 'predictive-edge',
     title: 'Predictive-Edge — Mikrodenetleyicide Kestirimci Bakım',
     summary:
-      "Endüstriyel motorlarda rulman arızasını önceden tespit eden ve kalan ömrü (RUL) kestiren TinyML sistemi: STM32H7'ye sığan 289 parametrelik (~1,1 KB) model. Bitirme projesi.",
-    tags: ['TinyML', 'Sinyal işleme', 'Bitirme projesi'],
+      "Endüstriyel motorlarda rulman arızasını önceden tespit eden ve kalan ömrü (RUL) kestiren TinyML sistemi: STM32H7'ye sığan 289 parametrelik (~1,1 KB) model.",
+    tags: ['TinyML', 'Sinyal işleme', 'Kestirimci bakım'],
     stack: ['Python', 'NumPy', 'scikit-learn', 'STM32H7', 'Flask', 'Chart.js'],
     featured: true,
     content: `## Yaklaşım

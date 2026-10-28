@@ -68,7 +68,7 @@ Ders: "en iyi model" diye bir şey yok, **bu sahaya en uygun model** var — ve 
     tags: ['tinyml', 'stm32', 'sinyal işleme'],
     content: `## Hedef
 
-Bitirme projem **Predictive-Edge**, endüstriyel motorlarda rulman arızasını önceden tespit edip kalan kullanım ömrünü (RUL) kestirmeyi amaçlıyor — ve bunu bulutta değil, **motorun yanındaki mikrodenetleyicide** yapmayı.
+**Predictive-Edge** projem, endüstriyel motorlarda rulman arızasını önceden tespit edip kalan kullanım ömrünü (RUL) kestirmeyi amaçlıyor — ve bunu bulutta değil, **motorun yanındaki mikrodenetleyicide** yapmayı.
 
 ## Özellikler fizikten geliyor
 

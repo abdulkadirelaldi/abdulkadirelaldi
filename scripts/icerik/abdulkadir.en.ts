@@ -555,8 +555,8 @@ The factory's machines showed their production counters only on the operator scr
     translationKey: 'predictive-edge',
     title: 'Predictive-Edge — Predictive Maintenance on a Microcontroller',
     summary:
-      'A TinyML system that detects bearing faults in industrial motors early and estimates remaining useful life (RUL): a 289-parameter (~1.1 KB) model that fits on an STM32H7. Capstone project.',
-    tags: ['TinyML', 'Signal processing', 'Capstone project'],
+      'A TinyML system that detects bearing faults in industrial motors early and estimates remaining useful life (RUL): a 289-parameter (~1.1 KB) model that fits on an STM32H7.',
+    tags: ['TinyML', 'Signal processing', 'Predictive maintenance'],
     stack: ['Python', 'NumPy', 'scikit-learn', 'STM32H7', 'Flask', 'Chart.js'],
     featured: true,
     content: `## Approach
