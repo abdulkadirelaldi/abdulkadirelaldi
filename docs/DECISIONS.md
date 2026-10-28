@@ -2580,3 +2580,7 @@ Sahibi ADR-045 dilini "çok şablon gibi, yapmacık" buldu ve "daha kurumsal, pr
 
 - `BolumGiris` (ekrana girerken kısa, opak olmayan kayma) ve sayfa girişi animasyonu — ölçülü, `prefers-reduced-motion`a tabi.
 - `dev-baslik` yardımcısının ADI (çağıran yerler boyutu kendisi veriyor); içi artık olağan başlık.
+
+### Ek (2026-10-28) — ölçülü hareket
+
+Sahibi "hiç animasyon yok, biraz dinamik olsun" dedi. Eklenenler: hero öğelerinin 60–300 ms arayla belirmesi (LCP `<h1>` yalnızca kayar, opaklık yok); bölüm başlıkları ve kartların ekrana girerken kademeli belirmesi (`BolumGiris`); kart, düğme ve çiplerde üzerine gelme geçişleri; menü alt çizgisinin soldan dolması; istatistiklerin ekrana girince sayması (`sayac.tsx`, framer-motion yok, sunucu son değeri basar); "Şu an" noktasının nabzı; kaydırmaya bağlı okuma ilerleme çubuğu (saf CSS). Hepsi `prefers-reduced-motion`a tabi.

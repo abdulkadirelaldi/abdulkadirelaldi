@@ -24,7 +24,7 @@ export function OdulIzgarasi({
       {oduller.map((odul, sira) => (
         <li key={odul.id} className="h-full">
           <BolumGiris gecikme={(sira % 4) * 0.05} className="h-full">
-            <article className="border-line bg-canvas rounded-card flex h-full flex-col gap-2 border p-5">
+            <article className="border-line bg-canvas rounded-card hover:border-accent/40 flex h-full flex-col gap-2 border p-5 transition-[transform,border-color] duration-300 hover:-translate-y-0.5">
               <p className="text-accent text-sm font-semibold">{odul.startDate.slice(0, 4)}</p>
               <Baslik className="text-primary text-lg leading-snug font-semibold [overflow-wrap:anywhere]">
                 {odul.role}

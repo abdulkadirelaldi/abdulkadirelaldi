@@ -1,5 +1,6 @@
 import Link from 'next/link';
 
+import { Sayac } from '@/components/public/sayac';
 import { Bolum } from '@/components/public/tasarim/bolum';
 import type { Dil } from '@/i18n/diller';
 import { yol } from '@/i18n/rotalar';
@@ -72,9 +73,9 @@ export function Hakkimda({ dil, profil, istatistikler, odulSayisi }: HakkimdaPro
             {istatistikKartlari.map((i) => (
               <div key={i.etiket} className="border-accent flex flex-col gap-1 border-l-2 pl-4">
                 <dt className="text-muted order-2 text-sm">{i.etiket}</dt>
-                {/* Düz sayı, CountUp DEĞİL: sayaç framer-motion çekiyordu (ADR-045 ölçümü). */}
                 <dd className="text-primary order-1 text-4xl font-semibold tracking-tight">
-                  {i.deger}
+                  {/* Sayaç saf JS, framer-motion DEĞİL (ADR-045 ölçümü): sayac.tsx. */}
+                  <Sayac deger={i.deger} />
                   {i.sonek}
                 </dd>
               </div>

@@ -10,7 +10,7 @@ import { cn } from '@/lib/utils/cn';
  * İKİ TÜR, BAŞKA YOK: birincil (düz vurgu zemini) sayfanın tek ana eylemi için,
  * ikincil (çerçeveli) geri kalan her şey için. ADR-045'in gradyan, büyük harf ve
  * kayan ok animasyonlu "hap" düğmeleri şablon gibi duruyordu; burada yazım
- * olağan, hareket yalnızca renk geçişi.
+ * olağan, hareket ince: renk geçişi, okun 2 px kayması, basınca %98.
  */
 
 type Boyut = 'sm' | 'md' | 'lg';
@@ -22,7 +22,7 @@ const BOYUT: Record<Boyut, string> = {
 };
 
 const TABAN =
-  'focus-ring rounded-btn inline-flex items-center justify-center gap-2 font-medium whitespace-nowrap transition-colors duration-200';
+  'group/dugme focus-ring rounded-btn inline-flex items-center justify-center gap-2 font-medium whitespace-nowrap transition-[color,background-color,border-color,transform] duration-200 active:scale-[0.98]';
 
 export function birincilSiniflari(boyut: Boyut = 'md', className?: string) {
   return cn(TABAN, 'bg-accent hover:bg-accent-hover text-white', BOYUT[boyut], className);
@@ -48,7 +48,10 @@ export function BirincilBaglanti({
   return (
     <Link className={birincilSiniflari(boyut, className)} {...props}>
       {children}
-      <ArrowRight aria-hidden="true" className="size-4" />
+      <ArrowRight
+        aria-hidden="true"
+        className="size-4 transition-transform duration-200 group-hover/dugme:translate-x-0.5"
+      />
     </Link>
   );
 }
@@ -68,7 +71,10 @@ export function BirincilDisBaglanti({
       {...props}
     >
       {children}
-      <ArrowUpRight aria-hidden="true" className="size-4" />
+      <ArrowUpRight
+        aria-hidden="true"
+        className="size-4 transition-transform duration-200 group-hover/dugme:translate-x-0.5 group-hover/dugme:-translate-y-0.5"
+      />
     </a>
   );
 }

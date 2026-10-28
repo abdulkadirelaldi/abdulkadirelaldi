@@ -27,7 +27,8 @@ export type HeroProps = {
  * NEDEN DEĞİŞTİ: ADR-045 dili (harf harf yükselen dev isim, kontur soyad,
  * gradyan ünvan, nokta ızgarası ve yüzen küreler, `ben.ts` kod penceresi)
  * sahibine "şablon gibi, yapmacık" geldi. Şimdi solda isim ve ünvan, sağda
- * sade bir künye kartı; süs ve giriş animasyonu yok.
+ * sade bir künye kartı. Hareket ölçülü (2026-10-28): öğeler 60–300 ms arayla
+ * beliriyor, "Şu an" noktası nabız atıyor.
  *
  * LCP `<h1>` METNİ: sunucuda çiziliyor, görsel ya da animasyon beklemiyor.
  * Avatar 8 KB, ön yükleme yok (ekranın odağı değil).
@@ -40,14 +41,19 @@ export function Hero({ dil, profil, ad, avatar, simdi, yetenekler }: HeroProps) 
   return (
     <section
       aria-labelledby="hero-baslik"
-      className="border-line border-b pt-32 pb-16 md:pt-40 md:pb-24"
+      className="border-line relative isolate overflow-hidden border-b pt-32 pb-16 md:pt-40 md:pb-24"
     >
+      {/* Tek, durağan bir ışık — sağ üstten çok hafif vurgu; süs, metin yok. */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 -z-10 bg-[radial-gradient(60%_50%_at_85%_0%,var(--accent-glow),transparent_70%)]"
+      />
       <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 md:px-8 lg:grid-cols-[1.5fr_1fr] lg:gap-16">
         <div className="flex min-w-0 flex-col gap-6">
           {yetenekler.length > 0 && (
             <ul
               aria-label={h.yeteneklerEtiket}
-              className="text-muted flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"
+              className="animate-belir text-muted flex flex-wrap items-center gap-x-2 gap-y-1 text-sm"
             >
               {yetenekler.map((y, i) => (
                 <li key={y} className="flex items-center gap-2">
@@ -62,18 +68,22 @@ export function Hero({ dil, profil, ad, avatar, simdi, yetenekler }: HeroProps) 
             </ul>
           )}
 
-          <h1 id="hero-baslik" className="dev-baslik text-primary text-5xl md:text-6xl">
+          {/* LCP öğesi: yalnızca KAYMA (`sayfa-giris`), opaklık yok — globals.css notu. */}
+          <h1
+            id="hero-baslik"
+            className="dev-baslik text-primary animate-sayfa-giris text-5xl [animation-delay:60ms] md:text-6xl"
+          >
             {ad}
           </h1>
 
-          <div className="flex max-w-2xl flex-col gap-3">
+          <div className="animate-belir flex max-w-2xl flex-col gap-3 [animation-delay:140ms]">
             <p className="text-accent text-lg font-semibold md:text-xl">{profil.headline}</p>
             {profil.subtitle && (
               <p className="text-body text-base leading-relaxed md:text-lg">{profil.subtitle}</p>
             )}
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 pt-2">
+          <div className="animate-belir flex flex-wrap items-center gap-3 pt-2 [animation-delay:220ms]">
             <BirincilBaglanti href={yol(dil, 'iletisim')}>{h.cta}</BirincilBaglanti>
             <Link href={yol(dil, 'projeler')} className={ikincilSiniflari('md')}>
               {h.projeler}
@@ -86,7 +96,7 @@ export function Hero({ dil, profil, ad, avatar, simdi, yetenekler }: HeroProps) 
 
         <figure
           aria-label={h.kartEtiket}
-          className="border-line bg-canvas rounded-card min-w-0 border p-6 shadow-sm"
+          className="animate-belir border-line bg-canvas rounded-card min-w-0 border p-6 shadow-sm [animation-delay:300ms]"
         >
           <figcaption className="flex items-center gap-4">
             {avatar ? (
@@ -119,7 +129,14 @@ export function Hero({ dil, profil, ad, avatar, simdi, yetenekler }: HeroProps) 
           <dl className="border-line mt-6 flex flex-col gap-4 border-t pt-6 text-sm">
             {simdi.length > 0 && (
               <div className="flex flex-col gap-1.5">
-                <dt className="text-muted">{h.kartSimdi}</dt>
+                <dt className="text-muted flex items-center gap-2">
+                  {/* Süren iş var → canlı nokta. Süs; bilgi metinde. */}
+                  <span
+                    aria-hidden="true"
+                    className="bg-success animate-nabiz size-2 shrink-0 rounded-full"
+                  />
+                  {h.kartSimdi}
+                </dt>
                 {simdi.map((is) => (
                   <dd key={is} className="text-primary">
                     {is}
