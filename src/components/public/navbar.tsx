@@ -131,16 +131,14 @@ export function Navbar({ dil, metin }: { dil: Dil; metin: NavbarMetni }) {
                 aria-current={aktif(link.href) ? 'page' : undefined}
                 className={cn(
                   'focus-ring rounded-btn relative block py-1 text-sm font-medium transition-colors',
-                  aktif(link.href) ? 'text-accent' : 'text-body hover:text-primary',
+                  // Alt çizgi soldan dolar: üzerine gelince, aktif sayfada sabit.
+                  'after:bg-accent after:absolute after:inset-x-0 after:-bottom-1 after:h-0.5 after:origin-left after:transition-transform after:duration-300',
+                  aktif(link.href)
+                    ? 'text-accent after:scale-x-100'
+                    : 'text-body hover:text-primary after:scale-x-0 hover:after:scale-x-100',
                 )}
               >
                 {link.label}
-                {aktif(link.href) && (
-                  <span
-                    aria-hidden="true"
-                    className="bg-accent absolute inset-x-0 -bottom-1 h-0.5"
-                  />
-                )}
               </Link>
             </li>
           ))}
@@ -171,6 +169,12 @@ export function Navbar({ dil, metin }: { dil: Dil; metin: NavbarMetni }) {
           {acik ? nav.kapat : nav.menu}
         </button>
       </nav>
+
+      {/* Okuma ilerlemesi — saf CSS (globals.css `.okuma-ilerleme`), süs. */}
+      <span
+        aria-hidden="true"
+        className="okuma-ilerleme bg-accent pointer-events-none absolute inset-x-0 bottom-0 h-0.5"
+      />
 
       {acik && (
         <div

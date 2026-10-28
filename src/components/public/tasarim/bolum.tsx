@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 
+import { BolumGiris } from '@/components/public/bolum-giris';
 import { cn } from '@/lib/utils/cn';
 
 export type BolumProps = {
@@ -21,7 +22,8 @@ export type BolumProps = {
  * ADR-045'in kaydırdıkça dolan 10rem kontur başlıklarının, üst üste binen
  * yuvarlak "sahne panellerinin" ve yüzen şekillerin yerine: sabit genişlikte
  * bir kap, solda başlık + açıklama, sağda tek eylem. Bölümler zemin tonuyla
- * ayrışıyor.
+ * ayrışıyor. Başlık satırı ekrana girerken belirir (`BolumGiris`); içerik
+ * kendi öğelerini ayrıca kademelendirir.
  */
 export function Bolum({
   id,
@@ -44,7 +46,7 @@ export function Bolum({
       )}
     >
       <div className="mx-auto max-w-6xl px-4 md:px-8">
-        <div className="mb-10 flex flex-col gap-4 md:mb-12 md:flex-row md:items-end md:justify-between">
+        <BolumGiris className="mb-10 flex flex-col gap-4 md:mb-12 md:flex-row md:items-end md:justify-between">
           <div className="flex max-w-2xl flex-col gap-3">
             <h2 id={baslikId} className="dev-baslik text-primary text-3xl md:text-4xl">
               {baslik}
@@ -52,7 +54,7 @@ export function Bolum({
             {aciklama && <div className="text-body text-base">{aciklama}</div>}
           </div>
           {ek && <div className="shrink-0">{ek}</div>}
-        </div>
+        </BolumGiris>
         {children}
       </div>
     </section>

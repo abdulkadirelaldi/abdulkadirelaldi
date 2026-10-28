@@ -413,6 +413,56 @@
 
 @theme {
   --animate-sayfa-giris: sayfa-giris 0.6s var(--ease-brand) both;
+  /* 2026-10-28 — kurumsal tasarımın ölçülü hareketi (ADR-047 ek). */
+  --animate-belir: belir 0.7s var(--ease-brand) both;
+  --animate-nabiz: nabiz 2.2s ease-out infinite;
+}
+
+/* Opaklık + kısa kayma. YALNIZCA LCP OLMAYAN öğelerde: LCP öğesi (hero `<h1>`)
+   `sayfa-giris` kullanır — opaklıktan başlayan öğe ilk boyamada sayılmıyor
+   (aşağıdaki `sayfa-giris` notu, PR #36 ölçümü). */
+@keyframes belir {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 16px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* "Müsait" noktasının halkası — yalnızca gölge büyüyor, düzen değişmiyor. */
+@keyframes nabiz {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklab, var(--success) 55%, transparent);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+
+/* Okuma ilerleme çubuğu — saf CSS, kaydırmaya bağlı (`animation-timeline`).
+   Desteklemeyen tarayıcıda çubuk hiç görünmez (scaleX 0); JS yok. */
+.okuma-ilerleme {
+  transform: scaleX(0);
+  transform-origin: left;
+}
+
+@keyframes ilerleme {
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@supports (animation-timeline: scroll()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .okuma-ilerleme {
+      animation: ilerleme linear both;
+      animation-timeline: scroll(root);
+    }
+  }
 }
 
 /* YALNIZCA KAYMA, OPAKLIK YOK — ÖLÇÜLDÜ (PR #36, Lighthouse mobil): opaklık
