@@ -65,7 +65,7 @@ The lesson: there is no such thing as "the best model" — only **the best model
     tags: ['tinyml', 'stm32', 'signal processing'],
     content: `## The goal
 
-My capstone project, **Predictive-Edge**, aims to detect bearing faults in industrial motors early and estimate their remaining useful life (RUL) — and to do it not in the cloud, but **on the microcontroller sitting next to the motor**.
+My project **Predictive-Edge** aims to detect bearing faults in industrial motors early and estimate their remaining useful life (RUL) — and to do it not in the cloud, but **on the microcontroller sitting next to the motor**.
 
 ## The features come from physics
 

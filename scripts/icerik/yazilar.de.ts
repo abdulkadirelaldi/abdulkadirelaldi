@@ -61,7 +61,7 @@ Die Lehre: Es gibt nicht „das beste Modell“, sondern **das Modell, das am be
     tags: ['TinyML', 'STM32', 'Signalverarbeitung'],
     content: `## Das Ziel
 
-Meine Abschlussarbeit **Predictive-Edge** soll Lagerschäden an Industriemotoren frühzeitig erkennen und die Restlebensdauer (RUL) schätzen – und zwar nicht in der Cloud, sondern **auf dem Mikrocontroller direkt am Motor**.
+Mein Projekt **Predictive-Edge** soll Lagerschäden an Industriemotoren frühzeitig erkennen und die Restlebensdauer (RUL) schätzen – und zwar nicht in der Cloud, sondern **auf dem Mikrocontroller direkt am Motor**.
 
 ## Die Merkmale kommen aus der Physik
 

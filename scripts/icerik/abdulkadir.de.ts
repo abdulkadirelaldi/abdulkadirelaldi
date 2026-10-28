@@ -550,8 +550,8 @@ Die Maschinen in der Fabrik zeigten ihre Produktionszähler nur auf dem Bediener
     slug: 'predictive-edge-vorausschauende-wartung',
     title: 'Predictive-Edge – Vorausschauende Wartung auf dem Mikrocontroller',
     summary:
-      'TinyML-System, das Lagerschäden an Industriemotoren frühzeitig erkennt und die Restlebensdauer (RUL) schätzt: ein Modell mit 289 Parametern (~1,1 KB), das auf einen STM32H7 passt. Abschlussarbeit.',
-    tags: ['TinyML', 'Signalverarbeitung', 'Abschlussarbeit'],
+      'TinyML-System, das Lagerschäden an Industriemotoren frühzeitig erkennt und die Restlebensdauer (RUL) schätzt: ein Modell mit 289 Parametern (~1,1 KB), das auf einen STM32H7 passt.',
+    tags: ['TinyML', 'Signalverarbeitung', 'Vorausschauende Wartung'],
     stack: ['Python', 'NumPy', 'scikit-learn', 'STM32H7', 'Flask', 'Chart.js'],
     featured: true,
     content: `## Ansatz
