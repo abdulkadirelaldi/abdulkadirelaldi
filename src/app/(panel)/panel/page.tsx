@@ -14,6 +14,7 @@ import type { ReactNode } from 'react';
 import { ANTRENMAN_TURU, olcuBicim } from '@/components/panel/kisisel-etiketler';
 import { paraBicim } from '@/components/panel/para-bicim';
 import { Topbar } from '@/components/panel/topbar';
+import { cn } from '@/lib/utils/cn';
 import { appToday } from '@/server/services/_shared';
 import { fetchContactMessages } from '@/server/services/contact-message';
 import { fetchCuzdan } from '@/server/services/cuzdan';
@@ -131,6 +132,7 @@ export default async function BugunPage() {
           <OzetKart
             href="/panel/cuzdan"
             ikon={Wallet}
+            renk="yesil"
             baslik="Net varlık"
             deger={paraBicim(cuzdan.ozet.netTl, 'TRY')}
             alt={`Ay sonunda kalan ${paraBicim(cuzdan.ozet.aylikKalanTl, 'TRY')}`}
@@ -140,6 +142,7 @@ export default async function BugunPage() {
             <OzetKart
               href="/panel/saglik"
               ikon={Activity}
+              renk="pembe"
               baslik="Son tartı"
               deger={sonOlcum ? olcuBicim(sonOlcum.weightKg, 'kg') : '—'}
               alt={sonOlcum ? sonOlcum.date : 'Henüz ölçüm yok'}
@@ -147,6 +150,7 @@ export default async function BugunPage() {
             <OzetKart
               href="/panel/spor"
               ikon={Dumbbell}
+              renk="turuncu"
               baslik="Son antrenman"
               deger={sonAntrenman ? ANTRENMAN_TURU[sonAntrenman.type] : '—'}
               alt={
@@ -161,6 +165,7 @@ export default async function BugunPage() {
             <OzetKart
               href="/panel/mesajlar?gorunum=okunmamis"
               ikon={Mail}
+              renk="mavi"
               baslik="Okunmamış mesaj"
               deger={String(mesajlar.unreadCount)}
               alt="Siteden gelen iletişim formları"
@@ -173,15 +178,25 @@ export default async function BugunPage() {
 }
 
 /** Dokunulabilir özet kartı — tamamı bağlantı, en az 44 px dokunma alanı. */
+/** Bölüm renkleri — simge rozetinde; iki temada da okunur (beyaz simge). */
+const ROZET = {
+  yesil: 'from-emerald-500 to-teal-500',
+  pembe: 'from-rose-500 to-pink-500',
+  turuncu: 'from-orange-500 to-amber-500',
+  mavi: 'from-sky-500 to-blue-600',
+} as const;
+
 function OzetKart({
   href,
   ikon: Ikon,
+  renk,
   baslik,
   deger,
   alt,
 }: {
   href: string;
   ikon: LucideIcon;
+  renk: keyof typeof ROZET;
   baslik: string;
   deger: ReactNode;
   alt: string;
@@ -189,13 +204,22 @@ function OzetKart({
   return (
     <Link
       href={href}
-      className="focus-ring rounded-card border-line bg-surface flex flex-col gap-2 border p-4 transition-transform active:scale-[0.98]"
+      className="focus-ring rounded-card border-line bg-surface flex flex-col gap-2.5 border p-4 transition-transform active:scale-[0.98]"
     >
-      <span className="text-muted flex items-center gap-1.5 text-xs font-medium">
-        <Ikon className="size-4" aria-hidden="true" />
+      <span className="text-muted flex items-center gap-2 text-xs font-medium">
+        <span
+          className={cn(
+            'flex size-7 items-center justify-center rounded-[0.6rem] bg-linear-to-br text-white shadow-sm',
+            ROZET[renk],
+          )}
+        >
+          <Ikon className="size-4" aria-hidden="true" />
+        </span>
         {baslik}
       </span>
-      <span className="tabular text-primary truncate text-xl font-semibold">{deger}</span>
+      <span className="tabular text-primary truncate text-[1.375rem] font-semibold tracking-tight">
+        {deger}
+      </span>
       <span className="tabular text-muted truncate text-xs">{alt}</span>
     </Link>
   );

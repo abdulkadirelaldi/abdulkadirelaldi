@@ -17,7 +17,7 @@ export function DahaDugmesi() {
       aria-expanded={acik}
       aria-controls="panel-menu"
       aria-label="Daha"
-      className="focus-ring rounded-btn text-body hover:bg-elevated flex size-10 items-center justify-center lg:hidden"
+      className="focus-ring bg-surface text-body hover:text-primary flex size-10 items-center justify-center rounded-full shadow-[var(--golge-kart)] lg:hidden"
     >
       <Menu className="size-5" aria-hidden="true" />
     </button>
