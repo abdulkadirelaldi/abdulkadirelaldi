@@ -30,7 +30,7 @@ export function AltSekmeler() {
     <nav
       aria-label="Ana sekmeler"
       data-yazdirmada-gizle
-      className="border-line bg-surface/92 fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.5rem)] z-40 rounded-[1.75rem] border shadow-[0_8px_32px_-8px_rgb(0_0_0/0.25)] backdrop-blur-2xl backdrop-saturate-150 lg:hidden"
+      className="border-line bg-surface/92 fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.5rem)] z-40 rounded-[1.75rem] border shadow-[0_8px_32px_-8px_rgb(0_0_0/0.25)] backdrop-blur-md lg:hidden"
     >
       <ul className="grid grid-cols-5 px-1">
         {ALT_SEKMELER.map((sekme) => {

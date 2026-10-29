@@ -58,6 +58,14 @@ const gunMs = (gun: string): number => Date.parse(`${gun}T00:00:00Z`);
 /** Ekran gösterimi: `82.50` → `82,50`. */
 const tr = (deger: string): string => deger.replace('.', ',');
 
+const KISA_TARIH = new Intl.DateTimeFormat('tr-TR', {
+  day: 'numeric',
+  month: 'short',
+  timeZone: 'UTC',
+});
+/** `2026-08-04` → `4 Ağu` — eksen ve başlıkta; tabloda tam gün kalır. */
+const kisaTarih = (gun: string): string => KISA_TARIH.format(new Date(gunMs(gun)));
+
 function eksenAdimlari(min: number, max: number): number[] {
   if (min === max) return [min];
   const aralik = max - min;
@@ -79,13 +87,18 @@ export function TrendGrafigi({
   baslik,
   birim,
   noktalar,
+  renk = 'var(--color-accent)',
 }: {
   baslik: string;
   /** `kg`, `sa`, `bpm`… — etikete eklenir. */
   birim: string;
   noktalar: readonly TrendNoktasi[];
+  /** Çizgi ve dolgu rengi — iki temada da okunan doygun bir ton. */
+  renk?: string;
 }) {
   const kimlik = useId();
+  // `useId` iki nokta üst üste içerir; `url(#…)` içinde güvenli olsun diye atılır.
+  const dolguId = `dolgu${kimlik.replace(/[^a-zA-Z0-9]/g, '')}`;
   const [secili, setSecili] = useState<number | null>(null);
 
   const geometri = useMemo(() => {
@@ -117,6 +130,7 @@ export function TrendGrafigi({
     return {
       konumlar,
       yol,
+      alan: `${yol}L${(konumlar.at(-1)?.x ?? 0).toFixed(1)},${YUK - PAD.alt}L${(konumlar[0]?.x ?? 0).toFixed(1)},${YUK - PAD.alt}Z`,
       adimlar: eksenAdimlari(min + pay, max - pay).map((v) => ({ v, y: y(v) })),
     };
   }, [noktalar]);
@@ -126,7 +140,7 @@ export function TrendGrafigi({
 
   if (!geometri || !son || !ilk) {
     return (
-      <figure className="border-line rounded-card flex flex-col gap-2 border p-4">
+      <figure className="border-line bg-surface rounded-card flex flex-col gap-2 border p-4">
         <figcaption className="text-primary text-sm font-medium">{baslik}</figcaption>
         <p className="text-muted text-sm">Bu aralıkta ölçüm yok.</p>
       </figure>
@@ -158,26 +172,34 @@ export function TrendGrafigi({
   const fark = Number(son.deger) - Number(ilk.deger);
 
   return (
-    <figure className="border-line rounded-card flex flex-col gap-3 border p-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <figcaption className="text-primary text-sm font-medium">{baslik}</figcaption>
-        <p className="text-body text-sm">
-          <span className="tabular text-primary text-base font-semibold">{tr(son.deger)}</span>{' '}
-          <span className="text-muted">{birim}</span>
-          <span className="text-muted tabular ml-2 text-xs">· {son.gun}</span>
-          {noktalar.length > 1 && (
-            <span className="text-muted tabular ml-2 text-xs">
-              {fark > 0 ? '+' : ''}
-              {tr(String(Number(fark.toFixed(2))))} ilk ölçümden beri
-            </span>
-          )}
-        </p>
+    <figure className="border-line bg-surface rounded-card flex flex-col gap-3 border p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 flex-col gap-0.5">
+          <figcaption className="text-muted flex items-center gap-2 text-xs font-medium">
+            <span aria-hidden="true" className="size-2 rounded-full" style={{ background: renk }} />
+            {baslik}
+          </figcaption>
+          <p className="text-primary">
+            <span className="tabular text-2xl font-semibold tracking-tight">{tr(son.deger)}</span>{' '}
+            <span className="text-muted text-sm">{birim}</span>
+          </p>
+          <p className="text-muted text-xs">{kisaTarih(son.gun)}</p>
+        </div>
+        {noktalar.length > 1 && (
+          <span
+            className="tabular bg-elevated text-primary shrink-0 rounded-full px-2.5 py-1 text-xs font-medium"
+            title="İlk ölçümden bu yana"
+          >
+            {fark > 0 ? '↑ +' : fark < 0 ? '↓ ' : ''}
+            {tr(String(Number(fark.toFixed(2))))}
+          </span>
+        )}
       </div>
 
       <div className="relative">
         <svg
           viewBox={`0 0 ${GEN} ${YUK}`}
-          className="focus-ring h-auto w-full touch-none overflow-visible rounded-sm"
+          className="focus-ring h-auto w-full touch-pan-y overflow-visible rounded-sm"
           role="img"
           aria-label={`${baslik}: ${noktalar.length} ölçüm, son değer ${tr(son.deger)} ${birim}. Ok tuşlarıyla noktalar arasında gezinebilirsin.`}
           aria-describedby={`${kimlik}-tablo`}
@@ -187,6 +209,13 @@ export function TrendGrafigi({
           onKeyDown={klavye}
           onBlur={() => setSecili(null)}
         >
+          <defs>
+            <linearGradient id={dolguId} x1="0" x2="0" y1="0" y2="1">
+              <stop offset="0%" stopColor={renk} stopOpacity={0.28} />
+              <stop offset="100%" stopColor={renk} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+
           {geometri.adimlar.map((a) => (
             <g key={a.v}>
               <line
@@ -196,6 +225,7 @@ export function TrendGrafigi({
                 y2={a.y}
                 stroke="var(--color-line)"
                 strokeWidth={1}
+                strokeDasharray="3 4"
                 vectorEffect="non-scaling-stroke"
               />
               <text
@@ -212,7 +242,7 @@ export function TrendGrafigi({
           ))}
 
           <text x={PAD.sol} y={YUK - 6} fill="var(--color-muted)" fontSize={14}>
-            {ilk.gun}
+            {kisaTarih(ilk.gun)}
           </text>
           <text
             x={GEN - PAD.sag}
@@ -221,14 +251,19 @@ export function TrendGrafigi({
             fill="var(--color-muted)"
             fontSize={14}
           >
-            {son.gun}
+            {kisaTarih(son.gun)}
           </text>
 
+          {noktalar.length > 1 && (
+            <path d={geometri.alan} fill={`url(#${dolguId})`} className="grafik-dolgu" />
+          )}
           <path
             d={geometri.yol}
+            pathLength={1}
+            className="grafik-cizgi"
             fill="none"
-            stroke="var(--color-accent)"
-            strokeWidth={2}
+            stroke={renk}
+            strokeWidth={2.5}
             strokeLinejoin="round"
             strokeLinecap="round"
             vectorEffect="non-scaling-stroke"
@@ -241,7 +276,7 @@ export function TrendGrafigi({
                 cx={k.x}
                 cy={k.y}
                 r={3}
-                fill="var(--color-accent)"
+                fill={renk}
                 stroke="var(--color-surface)"
                 strokeWidth={2}
                 vectorEffect="non-scaling-stroke"
@@ -263,7 +298,7 @@ export function TrendGrafigi({
                 cx={seciliKonum.x}
                 cy={seciliKonum.y}
                 r={5}
-                fill="var(--color-accent)"
+                fill={renk}
                 stroke="var(--color-surface)"
                 strokeWidth={2}
                 vectorEffect="non-scaling-stroke"
