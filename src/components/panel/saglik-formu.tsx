@@ -25,6 +25,7 @@ import {
   updateHealthLogAction,
 } from '@/server/actions/health-log';
 import type { HealthLogDto } from '@/server/services/health-log';
+import type { TartiOnerisi } from '@/server/services/saglik-ai';
 
 /**
  * SAĞLIK KAYDI FORMU — §4.2 `/panel/saglik`, T-113. Yeni ve düzenleme tek bileşen.
@@ -49,8 +50,16 @@ import type { HealthLogDto } from '@/server/services/health-log';
 
 type SaglikFormGirdi = z.input<typeof createHealthLogSchema>;
 
-function baslangic(kayit: HealthLogDto | undefined, gun: string): SaglikFormGirdi {
-  if (!kayit) return { date: gun };
+function baslangic(
+  kayit: HealthLogDto | undefined,
+  gun: string,
+  oneri?: TartiOnerisi,
+): SaglikFormGirdi {
+  if (!kayit) {
+    // Tartı görselinden okunan değerler — kullanıcı bakıp onaylar.
+    const { tarih, ...degerler } = oneri ?? { tarih: null };
+    return { date: tarih ?? gun, ...degerler };
+  }
   return {
     date: kayit.date,
     weightKg: kayit.weightKg ?? undefined,
@@ -61,13 +70,43 @@ function baslangic(kayit: HealthLogDto | undefined, gun: string): SaglikFormGird
     steps: kayit.steps ?? undefined,
     mood: kayit.mood ?? undefined,
     note: kayit.note ?? undefined,
+    bmi: kayit.bmi ?? undefined,
+    waterPct: kayit.waterPct ?? undefined,
+    muscleKg: kayit.muscleKg ?? undefined,
+    boneKg: kayit.boneKg ?? undefined,
+    proteinPct: kayit.proteinPct ?? undefined,
+    visceralFat: kayit.visceralFat ?? undefined,
+    subcutaneousFatPct: kayit.subcutaneousFatPct ?? undefined,
+    skeletalMusclePct: kayit.skeletalMusclePct ?? undefined,
+    bmrKcal: kayit.bmrKcal ?? undefined,
+    metabolicAge: kayit.metabolicAge ?? undefined,
   };
 }
+
+/** Akıllı tartı alanları — sıra ekrandaki gibi. */
+const TARTI_ONDALIK = [
+  ['bmi', 'BMI', '27,6'],
+  ['waterPct', 'Vücut suyu (%)', '52'],
+  ['muscleKg', 'Kas (kg)', '60,5'],
+  ['skeletalMusclePct', 'İskelet kası (%)', '45'],
+  ['visceralFat', 'İç yağ', '13,5'],
+  ['subcutaneousFatPct', 'Deri altı yağ (%)', '23'],
+  ['proteinPct', 'Protein (%)', '16'],
+  ['boneKg', 'Kemik (kg)', '3,2'],
+] as const;
 
 /** `"82.50"` → `"82,50"` — düzenlemede kullanıcının yazım alışkanlığıyla göster. */
 const virgullu = (deger: string | undefined) => deger?.replace('.', ',');
 
-export function SaglikFormu({ kayit, gun }: { kayit?: HealthLogDto; gun: string }) {
+export function SaglikFormu({
+  kayit,
+  gun,
+  oneri,
+}: {
+  kayit?: HealthLogDto;
+  gun: string;
+  oneri?: TartiOnerisi;
+}) {
   const router = useRouter();
   const duzenleme = kayit !== undefined;
   const [mevcutId, setMevcutId] = useState<string | null>(null);
@@ -85,6 +124,16 @@ export function SaglikFormu({ kayit, gun }: { kayit?: HealthLogDto; gun: string 
             'steps',
             'mood',
             'note',
+            'bmi',
+            'waterPct',
+            'muscleKg',
+            'boneKg',
+            'proteinPct',
+            'visceralFat',
+            'subcutaneousFatPct',
+            'skeletalMusclePct',
+            'bmrKcal',
+            'metabolicAge',
           ]),
           id: kayit.id,
         })
@@ -100,7 +149,7 @@ export function SaglikFormu({ kayit, gun }: { kayit?: HealthLogDto; gun: string 
     return sonuc;
   };
 
-  const varsayilan = baslangic(kayit, gun);
+  const varsayilan = baslangic(kayit, gun, oneri);
   const { form, durum, formHatasi, gonder } = usePanelForm<SaglikFormGirdi>({
     sema: createHealthLogSchema,
     varsayilanDegerler: {
@@ -108,6 +157,7 @@ export function SaglikFormu({ kayit, gun }: { kayit?: HealthLogDto; gun: string 
       weightKg: virgullu(varsayilan.weightKg),
       bodyFatPct: virgullu(varsayilan.bodyFatPct),
       sleepHours: virgullu(varsayilan.sleepHours),
+      ...Object.fromEntries(TARTI_ONDALIK.map(([k]) => [k, virgullu(varsayilan[k])])),
     },
     kaydet,
   });
@@ -210,6 +260,49 @@ export function SaglikFormu({ kayit, gun }: { kayit?: HealthLogDto; gun: string 
                   className="tabular"
                   {...b}
                   {...register('restingHr', SAYI_YA_DA_YOK)}
+                />
+              )}
+            </Alan>
+          </fieldset>
+
+          <fieldset className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <legend className="text-primary mb-2 text-sm font-medium">Akıllı tartı</legend>
+            {TARTI_ONDALIK.map(([alan, etiket, ornek]) => (
+              <Alan key={alan} id={alan} etiket={etiket} hata={errors[alan]?.message}>
+                {(b) => (
+                  <Input
+                    id={alan}
+                    inputMode="decimal"
+                    className="tabular"
+                    placeholder={ornek}
+                    {...b}
+                    {...register(alan, ONDALIK_YA_DA_YOK)}
+                  />
+                )}
+              </Alan>
+            ))}
+            <Alan id="bmrKcal" etiket="Bazal metab. (kcal)" hata={errors.bmrKcal?.message}>
+              {(b) => (
+                <Input
+                  id="bmrKcal"
+                  type="number"
+                  inputMode="numeric"
+                  className="tabular"
+                  placeholder="1870"
+                  {...b}
+                  {...register('bmrKcal', SAYI_YA_DA_YOK)}
+                />
+              )}
+            </Alan>
+            <Alan id="metabolicAge" etiket="Metabolik yaş" hata={errors.metabolicAge?.message}>
+              {(b) => (
+                <Input
+                  id="metabolicAge"
+                  type="number"
+                  inputMode="numeric"
+                  className="tabular"
+                  {...b}
+                  {...register('metabolicAge', SAYI_YA_DA_YOK)}
                 />
               )}
             </Alan>

@@ -2619,3 +2619,12 @@ Sahibi iş yönetimini Kıyı Medya'nın kendi panelinden yürütüyor; bu panel
 - **Ödeme:** kalanı düşürür, sıfırın altına indirmez, sıfırda borcu kapatır (tek işlem).
 - **Denetim:** her mutasyon `AuditLog`a yazılır ama yalnızca değişen ALAN ADLARI — tutar kişisel finans verisi (sağlık kaydıyla aynı karar).
 - **Sekmeler:** Bugün · Cüzdan · Hayat · Spor · Sağlık; geri kalanı üst çubuktaki "Daha".
+
+### Ek (2026-10-30) — Sağlık: akıllı tartı + yapay zekâ yorumu
+
+- **Şema:** `HealthLog`a tartı alanları (BMI, vücut suyu %, kas kg, kemik kg, protein %, iç yağ, deri altı yağ %, iskelet kası %, bazal metabolizma, metabolik yaş). Göç yalnızca boş olabilen sütun EKLER.
+- **Tartı ekranı:** görüntü tarayıcıda ≤1568 px JPEG'e küçültülür → `claude-opus-5-5` yapılandırılmış çıktıyla (`betaZodOutputFormat`) değerleri okur → her değer kayıt şemasından geçer (geçmeyen düşer) → form DOLU açılır, kayıt kullanıcının onayıyla. Görsel SAKLANMAZ.
+- **Yorum:** "Değerlendir" ile istek üzerine; son 90 günün ölçümleri (serbest NOT gönderilmez) hekim + diyetisyen gözüyle; tanı/ilaç yok, ciddi işarette "doktora danış". Sonuç saklanmaz.
+- **Gizlilik/denetim:** her gönderim istekten ÖNCE `AuditLog`a `EXPORT` (hedef Anthropic, değer yok). Anahtar yoksa hiçbir şey gönderilmez, ekran söyler.
+- **Ret:** sunucu tarafı yedek (`fallbacks: "default"`); `refusal` anlaşılır hata.
+- **Anahtar:** `ANTHROPIC_API_KEY` yalnızca sunucu `.env`'inde (sahibi yazar); compose `uygulama`ya geçirir.
