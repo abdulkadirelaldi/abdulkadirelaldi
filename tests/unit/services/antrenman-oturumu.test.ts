@@ -1,0 +1,202 @@
+import { describe, expect, it, vi } from 'vitest';
+
+import {
+  createSuggestedProgram,
+  fetchProgram,
+  fetchRecentSessions,
+  fetchSession,
+  finishSession,
+  kaloriHesapla,
+  MET,
+  ONERILEN_PROGRAM,
+  OturumHatasi,
+  startSession,
+  VARSAYILAN_KILO,
+} from '@/server/services/antrenman-oturumu';
+
+import { decimal, decimalKalanlar } from '../_helpers/decimal-kacak';
+
+describe('kaloriHesapla — MET × kg × saat', () => {
+  it('60 dk ağırlık, 80 kg → 400 kcal', () => {
+    expect(kaloriHesapla({ dakika: 60, kiloKg: 80, met: MET.GYM })).toBe(400);
+  });
+  it('süre ya da kilo yoksa 0 — eksi değer üretmez', () => {
+    expect(kaloriHesapla({ dakika: 0, kiloKg: 80, met: 5 })).toBe(0);
+    expect(kaloriHesapla({ dakika: -5, kiloKg: 80, met: 5 })).toBe(0);
+  });
+});
+
+describe('ONERILEN_PROGRAM — sahibinin PDF programı', () => {
+  it('5 ağırlık günü + cumartesi kardiyo; pazar dinlenme (gün yok)', () => {
+    expect(ONERILEN_PROGRAM.map((g) => g.haftaGunu)).toEqual([1, 2, 3, 4, 5, 6]);
+    expect(ONERILEN_PROGRAM[0]!.hareketler).toHaveLength(6);
+    // Kol önceliği: Gün 4'te sekiz hareket, çoğu kol.
+    expect(ONERILEN_PROGRAM[3]!.hareketler).toHaveLength(8);
+  });
+});
+
+describe('startSession', () => {
+  it('⚠️ açık oturum varsa YENİSİNİ AÇMAZ, onu döndürür', async () => {
+    const create = vi.fn();
+    const client = {
+      workout: {
+        findFirst: vi.fn().mockResolvedValue({
+          id: 'acik',
+          startedAt: new Date(),
+          programDay: { name: 'İtiş' },
+        }),
+        create,
+      },
+    } as never;
+    expect(await startSession('gun', client)).toEqual({ id: 'acik', yeni: false });
+    expect(create).not.toHaveBeenCalled();
+  });
+
+  it('yalnızca kardiyo hareketleri olan gün CARDIO türünde açılır', async () => {
+    const create = vi.fn().mockResolvedValue({ id: 'yeni' });
+    const client = {
+      workout: { findFirst: vi.fn().mockResolvedValue(null), create },
+      programDay: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: 'g',
+          exercises: [{ exercise: { muscleGroup: 'CARDIO' } }],
+        }),
+      },
+    } as never;
+    const simdi = new Date('2026-10-30T07:00:00Z');
+    expect(await startSession('g', client, '2026-10-30', simdi)).toEqual({
+      id: 'yeni',
+      yeni: true,
+    });
+    expect(create.mock.calls[0]?.[0].data).toMatchObject({ type: 'CARDIO', startedAt: simdi });
+  });
+
+  it('program günü yoksa GUN_YOK', async () => {
+    const client = {
+      workout: { findFirst: vi.fn().mockResolvedValue(null) },
+      programDay: { findUnique: vi.fn().mockResolvedValue(null) },
+    } as never;
+    await expect(startSession('x', client)).rejects.toBeInstanceOf(OturumHatasi);
+  });
+});
+
+describe('finishSession', () => {
+  const istemci = (kilo: unknown, bitmis = false) => {
+    const update = vi.fn();
+    return {
+      client: {
+        workout: {
+          findUnique: vi.fn().mockResolvedValue({
+            startedAt: new Date('2026-10-30T07:00:00Z'),
+            finishedAt: bitmis ? new Date() : null,
+            type: 'GYM',
+          }),
+          update,
+        },
+        healthLog: { findFirst: vi.fn().mockResolvedValue(kilo ? { weightKg: kilo } : null) },
+      } as never,
+      update,
+    };
+  };
+
+  it('süre dakikaya yuvarlanır, kalori SON TARTI kilosuyla', async () => {
+    const { client, update } = istemci(decimal('90.00'));
+    const s = await finishSession('w', client, new Date('2026-10-30T08:00:30Z'));
+    expect(s).toEqual({
+      durationMin: 61,
+      kcal: kaloriHesapla({ dakika: 61, kiloKg: 90, met: 5 }),
+      kiloKg: 90,
+      varsayilanKilo: false,
+    });
+    expect(update.mock.calls[0]?.[0].data).toMatchObject({ durationMin: 61, kcal: s.kcal });
+  });
+
+  it('tartı yoksa varsayılan kilo ve bunu SÖYLER', async () => {
+    const { client } = istemci(null);
+    const s = await finishSession('w', client, new Date('2026-10-30T08:00:00Z'));
+    expect(s).toMatchObject({ kiloKg: VARSAYILAN_KILO, varsayilanKilo: true });
+  });
+
+  it('bitmiş oturum ikinci kez bitirilmez', async () => {
+    const { client } = istemci(null, true);
+    await expect(finishSession('w', client)).rejects.toMatchObject({ sebep: 'BITMIS' });
+  });
+});
+
+describe('createSuggestedProgram', () => {
+  it('program varsa DOKUNMAZ', async () => {
+    const tx = vi.fn();
+    const client = {
+      programDay: { count: vi.fn().mockResolvedValue(3) },
+      $transaction: tx,
+    } as never;
+    expect(await createSuggestedProgram(client)).toBe(0);
+    expect(tx).not.toHaveBeenCalled();
+  });
+});
+
+describe('⚠️ hiçbir DTO yüzeyi `Decimal` sızdırmıyor', () => {
+  const hareket = {
+    id: 'pe1',
+    exerciseId: 'ex1',
+    sets: 4,
+    reps: '6-10',
+    restSec: 105,
+    exercise: { name: 'Bench', tip: null, muscleGroup: 'CHEST' },
+  };
+
+  it('fetchSession — yapılan ve önceki setlerin ağırlığı metin', async () => {
+    const client = {
+      workout: {
+        findUnique: vi.fn().mockResolvedValue({
+          id: 'w',
+          startedAt: new Date('2026-10-30T07:00:00Z'),
+          finishedAt: null,
+          durationMin: null,
+          kcal: null,
+          programDay: { name: 'İtiş', focus: null, exercises: [hareket] },
+          sets: [{ id: 's1', exerciseId: 'ex1', setNo: 1, reps: 8, weightKg: decimal('60.50') }],
+        }),
+      },
+      workoutSet: {
+        findMany: vi
+          .fn()
+          .mockResolvedValue([{ exerciseId: 'ex1', reps: 8, weightKg: decimal('57.50') }]),
+      },
+    } as never;
+    const oturum = await fetchSession('w', client);
+    expect(decimalKalanlar(oturum)).toEqual([]);
+    expect(oturum?.hareketler[0]?.yapilanSetler[0]?.weightKg).toBe('60.50');
+    expect(oturum?.hareketler[0]?.oncekiSet).toEqual({ reps: 8, weightKg: '57.50' });
+  });
+
+  it('fetchProgram ve fetchRecentSessions', async () => {
+    const client = {
+      programDay: {
+        findMany: vi
+          .fn()
+          .mockResolvedValue([
+            { id: 'g', name: 'İtiş', focus: null, weekday: 1, exercises: [hareket] },
+          ]),
+      },
+      workout: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            id: 'w',
+            date: new Date('2026-10-30T00:00:00Z'),
+            durationMin: 60,
+            kcal: 400,
+            startedAt: new Date(),
+            finishedAt: null,
+            programDay: { name: 'İtiş' },
+            _count: { sets: 3 },
+          },
+        ]),
+      },
+    } as never;
+    expect(decimalKalanlar(await fetchProgram(client))).toEqual([]);
+    const sonlar = await fetchRecentSessions(5, client);
+    expect(decimalKalanlar(sonlar)).toEqual([]);
+    expect(sonlar[0]).toMatchObject({ date: '2026-10-30', suruyor: true, setSayisi: 3 });
+  });
+});

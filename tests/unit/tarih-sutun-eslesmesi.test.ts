@@ -165,6 +165,16 @@ const ESLESMELER: Eslesme[] = [
       've 3 saatlik kayma sınıfı burada doğamıyor.',
   },
   {
+    servis: 'src/server/services/antrenman-oturumu.ts',
+    model: 'Workout',
+    alan: 'date',
+    beklenen: 'gun',
+    not:
+      'Oturum başlatırken antrenmanın GÜNÜ İstanbul gününden (`appToday` → ' +
+      '`appDayToDate`) yazılıyor; liste okuması `dateToAppDay`. Başlama/bitiş ANI ' +
+      'ayrı sütunlarda (`startedAt`, `finishedAt` — zaman damgası).',
+  },
+  {
     servis: 'src/server/services/habit-gun.ts',
     model: 'HabitLog',
     alan: 'date',

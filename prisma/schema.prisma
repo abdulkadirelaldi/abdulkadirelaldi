@@ -555,6 +555,8 @@ model Exercise {
   name        String      @unique
   muscleGroup MuscleGroup
   equipment   Equipment   @default(OTHER)
+  /// Form ipucu — antrenman oturumunda hareketin altında gösterilir (2026-10-30).
+  tip         String?
   /// Referans veri: silinmez, arşivlenir (ADR-017).
   isArchived  Boolean     @default(false)
 
@@ -563,6 +565,7 @@ model Exercise {
 
   sets            WorkoutSet[]
   personalRecords PersonalRecord[]
+  programItems    ProgramExercise[]
 
   @@index([muscleGroup, isArchived])
   @@map("exercise")
@@ -572,12 +575,20 @@ model Workout {
   id String @id @default(cuid())
 
   /// Gün semantiği (ADR-016).
-  date        DateTime    @db.Date
-  type        WorkoutType @default(GYM)
-  durationMin Int?
+  date         DateTime    @db.Date
+  type         WorkoutType @default(GYM)
+  durationMin  Int?
   /// 1–5 ölçek — enum yapılmadı (ADR-020).
-  feeling     Int?
-  note        String?
+  feeling      Int?
+  note         String?
+  /// Programdan başlatıldıysa hangi gün (2026-10-30). Gün silinse de antrenman kalır.
+  programDayId String?
+  programDay   ProgramDay? @relation(fields: [programDayId], references: [id], onDelete: SetNull)
+  /// Canlı oturum: başladı ama bitmedi → `finishedAt` boş.
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  /// Tahmini yakılan kalori — MET × kilo × süre (bitişte hesaplanır).
+  kcal         Int?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -586,6 +597,48 @@ model Workout {
 
   @@index([date, type])
   @@map("workout")
+}
+
+/// Antrenman programının bir günü (2026-10-30) — ör. "İtiş (Push)".
+model ProgramDay {
+  id String @id @default(cuid())
+
+  name       String
+  /// "Göğüs / Omuz / Triceps" gibi kısa odak.
+  focus      String?
+  /// Haftanın günü: 1 = pazartesi … 7 = pazar. Boşsa serbest gün.
+  weekday    Int?
+  order      Int     @default(0)
+  isArchived Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  exercises ProgramExercise[]
+  workouts  Workout[]
+
+  @@index([isArchived, order])
+  @@map("program_day")
+}
+
+/// Program gününde bir hareket: kaç set, hangi tekrar aralığı, ne kadar dinlenme.
+model ProgramExercise {
+  id String @id @default(cuid())
+
+  dayId      String
+  day        ProgramDay @relation(fields: [dayId], references: [id], onDelete: Cascade)
+  exerciseId String
+  exercise   Exercise   @relation(fields: [exerciseId], references: [id], onDelete: Restrict)
+
+  order   Int    @default(0)
+  sets    Int
+  /// Serbest metin: "6-10", "10-12 / kol", "yetmezliğe kadar", "15-20 dk".
+  reps    String
+  /// Setler arası dinlenme (saniye).
+  restSec Int    @default(90)
+
+  @@index([dayId, order])
+  @@map("program_exercise")
 }
 
 model WorkoutSet {

@@ -213,10 +213,20 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     kanit: [],
     not: "T-113 ile eklendi. Okuma `fetchHealthLogById` TEK KAYIT; yoksa 404. Yazma `updateHealthLogAction` + `deleteHealthLogAction`. Silme onayı değerlerin HİÇBİR YERDE kalmadığını söylüyor — T-110 kararı (denetim kaydına yalnızca gün yazılıyor); `deneyim`deki 'denetim kaydında görünmeye devam eder' metni burada yalan olurdu, bu yüzden onay metni çağırandan geliyor (`kalici-sil-dugmesi.tsx`). ÖLÇÜLMEYEN: (1) BOŞALTMAK SİLİYOR (önceden silmiyordu): temizlenebilir sütunlar güncellemede `null` kabul ediyor ve form dolu iken boşaltılan alanı `null`a çeviriyor (`bosaltilanlariNullYap`) — ÖLÇÜLÜYOR, `panel-kisisel.spec.ts`: kilo boşaltılıp kaydediliyor, yenilemeden sonra boş, uyku yerinde; mutasyonla eski kusur geri üretildi. (2) Tarihi başka bir kayda ait güne çekmek CONFLICT veriyor; mesajın alan altına düştüğü arayüzden denenmedi.",
   },
+  '/panel/spor/gecmis': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: "2026-10-30: eski antrenman listesi `/panel/spor`dan buraya taşındı (sayfa 25, `fetchWorkouts`); `/panel/spor` artık program + 'Başlat' ekranı. ÖLÇÜLMEYEN: e2e'de gezilmiyor.",
+  },
+  '/panel/spor/oturum/[id]': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: "2026-10-30 canlı antrenman oturumu. `cuidSchema` dışı kimlik 404; okuma `fetchSession` (yapılan setler + hareketin önceki seti). Set yazma mevcut `createWorkoutSetAction` (rekor hesabı orada), bitiş `finishSessionAction` (süre + MET × son tartı × süre). Servis `tests/unit/services/antrenman-oturumu.test.ts`te (açık oturum yeniden kullanılır, bitmiş ikinci kez bitmez, Decimal sızmaz). ÖLÇÜLMEYEN: oturum ekranının akışı (set → dinlenme → sonraki hareket) e2e'de yok; dinlenme sayacı yalnızca istemcide.",
+  },
   '/panel/spor': {
     kapilar: ['e2e'],
     kanit: ["'/panel/spor',"],
-    not: "2026-10-29: CSP paketi (`csp.spec.ts`) panel listesinde geziyor — sayfa yükleniyor, CSP ihlali yok, betikler nonce'lu. İÇERİK ölçülmüyor. Önceki not: T-114 ile eklendi. `(panel)` kimlik zinciri + §8.1 2FA kapısı; `robots: noindex/nofollow/nocache`. Okuma `fetchWorkouts` (ham, önbelleksiz; sıra gün AZALAN + `createdAt` AZALAN — `date` `@unique` değil). Yazma YOK — silme bilinçli olarak detayda (cascade + rekor hesabı satırdaki küçük bir düğmeye sığmıyor). Sayfa `workoutFilterSchema`'dan geçiyor (ADR-032). `SporSekmeleri` kütüphane ve rekorlara tek giriş noktası. ÖLÇÜLMEYEN: (1) Sayfa boyutu SABİT 20. (2) `setCount`un doğruluğu servis testlerinde, arayüzden ölçülmedi. (3) `type`/`from`/`to` süzgeçleri şemada var ama arayüzde yok.",
+    not: "2026-10-30: program ekranı — bugünün program günü üstte, 'Başlat' (`startSessionAction`, açık oturum varsa ona gider), program yoksa `createSuggestedProgramAction`; altta son 5 antrenman (`fetchRecentSessions`). CSP paketi (`csp.spec.ts`) geziyor — yükleniyor, ihlal yok. İÇERİK e2e'de ölçülmüyor. Eski liste `/panel/spor/gecmis`te.",
   },
   '/panel/spor/yeni': {
     kapilar: ['e2e'],
