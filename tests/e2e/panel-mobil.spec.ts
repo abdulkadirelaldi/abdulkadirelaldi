@@ -32,6 +32,8 @@ import { applySessionCookie } from './_helpers/session';
 
 /** `lg` kırılma noktası (Tailwind varsayılanı) — alt sekmeler bunun altında var. */
 const LG_ESIGI = 1024;
+/** Tailwind `sm` — kırıntı yolunun göründüğü en dar genişlik. */
+const SM_ESIGI = 640;
 
 async function panelOturumu(page: Page, baseURL: string | undefined): Promise<void> {
   const { email } = adminCredentials();
@@ -125,12 +127,25 @@ test.describe('§9/7 · panel mobil gezinmesi', () => {
     }
 
     /* ---- HER İKİ GÖRÜNÜM: nerede olduğum görünüyor mu -------------- */
+    /*
+     * 2026-10-30: telefonda (`sm` altı) kırıntı yolu GİZLİ — dar çubukta kayıt
+     * kimliğini kesip okunmaz kılıyordu; yer bilgisini sayfa başlığı (`h1`) ve
+     * alt sekmedeki etkin öğe veriyor. `sm` ve üstünde kırıntı yolu var.
+     */
     const kirinti = page.getByRole('navigation', { name: 'Neredeyim' });
-    await expect(kirinti, 'kırıntı yolu her görünümde olmalı').toBeVisible();
-    await expect(
-      kirinti.locator('[aria-current="page"]'),
-      'kırıntı yolunun son öğesi aria-current taşımalı',
-    ).toHaveCount(1);
+    if (genislik < SM_ESIGI) {
+      await expect(kirinti, 'telefonda kırıntı yolu gizli').toBeHidden();
+      await expect(
+        page.getByRole('heading', { level: 1 }),
+        'sayfa başlığı görünmeli',
+      ).toBeVisible();
+    } else {
+      await expect(kirinti, 'kırıntı yolu geniş görünümde olmalı').toBeVisible();
+      await expect(
+        kirinti.locator('[aria-current="page"]'),
+        'kırıntı yolunun son öğesi aria-current taşımalı',
+      ).toHaveCount(1);
+    }
 
     /* ---- HER İKİ GÖRÜNÜM: tablo sayfayı taşırmıyor ----------------- */
     await page.goto('/panel/icerik/projeler');
