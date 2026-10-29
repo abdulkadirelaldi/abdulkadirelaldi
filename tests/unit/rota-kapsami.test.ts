@@ -214,9 +214,9 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     not: "T-113 ile eklendi. Okuma `fetchHealthLogById` TEK KAYIT; yoksa 404. Yazma `updateHealthLogAction` + `deleteHealthLogAction`. Silme onayı değerlerin HİÇBİR YERDE kalmadığını söylüyor — T-110 kararı (denetim kaydına yalnızca gün yazılıyor); `deneyim`deki 'denetim kaydında görünmeye devam eder' metni burada yalan olurdu, bu yüzden onay metni çağırandan geliyor (`kalici-sil-dugmesi.tsx`). ÖLÇÜLMEYEN: (1) BOŞALTMAK SİLİYOR (önceden silmiyordu): temizlenebilir sütunlar güncellemede `null` kabul ediyor ve form dolu iken boşaltılan alanı `null`a çeviriyor (`bosaltilanlariNullYap`) — ÖLÇÜLÜYOR, `panel-kisisel.spec.ts`: kilo boşaltılıp kaydediliyor, yenilemeden sonra boş, uyku yerinde; mutasyonla eski kusur geri üretildi. (2) Tarihi başka bir kayda ait güne çekmek CONFLICT veriyor; mesajın alan altına düştüğü arayüzden denenmedi.",
   },
   '/panel/spor': {
-    kapilar: ['kapsanmiyor'],
-    kanit: [],
-    not: "T-114 ile eklendi. `(panel)` kimlik zinciri + §8.1 2FA kapısı; `robots: noindex/nofollow/nocache`. Okuma `fetchWorkouts` (ham, önbelleksiz; sıra gün AZALAN + `createdAt` AZALAN — `date` `@unique` değil). Yazma YOK — silme bilinçli olarak detayda (cascade + rekor hesabı satırdaki küçük bir düğmeye sığmıyor). Sayfa `workoutFilterSchema`'dan geçiyor (ADR-032). `SporSekmeleri` kütüphane ve rekorlara tek giriş noktası. ÖLÇÜLMEYEN: (1) Sayfa boyutu SABİT 20. (2) `setCount`un doğruluğu servis testlerinde, arayüzden ölçülmedi. (3) `type`/`from`/`to` süzgeçleri şemada var ama arayüzde yok.",
+    kapilar: ['e2e'],
+    kanit: ["'/panel/spor',"],
+    not: "2026-10-29: CSP paketi (`csp.spec.ts`) panel listesinde geziyor — sayfa yükleniyor, CSP ihlali yok, betikler nonce'lu. İÇERİK ölçülmüyor. Önceki not: T-114 ile eklendi. `(panel)` kimlik zinciri + §8.1 2FA kapısı; `robots: noindex/nofollow/nocache`. Okuma `fetchWorkouts` (ham, önbelleksiz; sıra gün AZALAN + `createdAt` AZALAN — `date` `@unique` değil). Yazma YOK — silme bilinçli olarak detayda (cascade + rekor hesabı satırdaki küçük bir düğmeye sığmıyor). Sayfa `workoutFilterSchema`'dan geçiyor (ADR-032). `SporSekmeleri` kütüphane ve rekorlara tek giriş noktası. ÖLÇÜLMEYEN: (1) Sayfa boyutu SABİT 20. (2) `setCount`un doğruluğu servis testlerinde, arayüzden ölçülmedi. (3) `type`/`from`/`to` süzgeçleri şemada var ama arayüzde yok.",
   },
   '/panel/spor/yeni': {
     kapilar: ['e2e'],
