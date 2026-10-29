@@ -6,7 +6,7 @@ import type { ReactNode } from 'react';
 import { HESAP_TURU, miktarBicim, SIKLIK, tlBicim } from '@/components/panel/cuzdan-bicim';
 import { paraBicim } from '@/components/panel/para-bicim';
 import { Topbar } from '@/components/panel/topbar';
-import { fetchCuzdan, type AkisDto } from '@/server/services/cuzdan';
+import { fetchCuzdan, type AkisDto, type HesapDto } from '@/server/services/cuzdan';
 import { cn } from '@/lib/utils/cn';
 
 export const metadata: Metadata = {
@@ -63,6 +63,8 @@ export default async function CuzdanPage() {
             </div>
             {eksi && <span className="text-xs opacity-90">Borçların varlıklarından fazla.</span>}
           </section>
+
+          <Dagilim hesaplar={c.hesaplar} />
 
           {/* ── BU AY ─────────────────────────────────────────────────── */}
           <section className="rounded-card border-line bg-surface grid grid-cols-2 gap-3 border p-4 text-sm">
@@ -274,5 +276,55 @@ function AkisBolumu({
         ))
       )}
     </Bolum>
+  );
+}
+
+const DAGILIM_RENK = ['#6d4aff', '#10b981', '#f59e0b', '#0ea5e9', '#f43f5e', '#8b5cf6'];
+
+/**
+ * VARLIK DAĞILIMI — hesapların TL karşılığına göre tek şerit + açıklama.
+ * Oran yalnızca GÖSTERİM (yüzde, tam sayı); tutarlar yine metin ve kayıpsız.
+ * Kuru olmayan ya da sıfır/eksi bakiyeli hesap şeride girmez.
+ */
+function Dagilim({ hesaplar }: { hesaplar: HesapDto[] }) {
+  const kalemler = hesaplar
+    .map((h) => ({ ad: h.name, tl: h.tl === null ? 0 : Number(h.tl) }))
+    .filter((k) => k.tl > 0)
+    .sort((a, b) => b.tl - a.tl);
+  const toplam = kalemler.reduce((t, k) => t + k.tl, 0);
+  if (kalemler.length < 2 || toplam <= 0) return null;
+
+  return (
+    <section
+      aria-label="Varlık dağılımı"
+      className="rounded-card border-line bg-surface flex flex-col gap-3 border p-4"
+    >
+      <span className="text-muted text-xs font-medium">Varlık dağılımı</span>
+      <div className="flex h-2.5 gap-0.5 overflow-hidden rounded-full">
+        {kalemler.map((k, i) => (
+          <span
+            key={k.ad}
+            className="h-full first:rounded-l-full last:rounded-r-full"
+            style={{
+              width: `${(k.tl / toplam) * 100}%`,
+              background: DAGILIM_RENK[i % DAGILIM_RENK.length],
+            }}
+          />
+        ))}
+      </div>
+      <ul className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+        {kalemler.map((k, i) => (
+          <li key={k.ad} className="flex min-w-0 items-center gap-2">
+            <span
+              aria-hidden="true"
+              className="size-2 shrink-0 rounded-full"
+              style={{ background: DAGILIM_RENK[i % DAGILIM_RENK.length] }}
+            />
+            <span className="text-body truncate">{k.ad}</span>
+            <span className="tabular text-muted ml-auto">%{Math.round((k.tl / toplam) * 100)}</span>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

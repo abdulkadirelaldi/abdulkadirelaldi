@@ -90,14 +90,43 @@ export default async function SaglikPage({ searchParams }: SayfaProps) {
   ]);
 
   const grafikler = [
-    { baslik: 'Kilo', birim: 'kg', noktalar: seri(trend, (k) => k.weightKg) },
-    { baslik: 'Vücut yağı', tarti: true, birim: '%', noktalar: seri(trend, (k) => k.bodyFatPct) },
-    { baslik: 'İç yağ', tarti: true, birim: '', noktalar: seri(trend, (k) => k.visceralFat) },
-    { baslik: 'Kas', tarti: true, birim: 'kg', noktalar: seri(trend, (k) => k.muscleKg) },
-    { baslik: 'Vücut suyu', tarti: true, birim: '%', noktalar: seri(trend, (k) => k.waterPct) },
-    { baslik: 'Uyku', birim: 'sa', noktalar: seri(trend, (k) => k.sleepHours) },
-    { baslik: 'Dinlenik nabız', birim: 'bpm', noktalar: seri(trend, (k) => k.restingHr) },
-    { baslik: 'Adım', birim: 'adım', noktalar: seri(trend, (k) => k.steps) },
+    { baslik: 'Kilo', renk: '#6d4aff', birim: 'kg', noktalar: seri(trend, (k) => k.weightKg) },
+    {
+      baslik: 'Vücut yağı',
+      renk: '#f43f5e',
+      tarti: true,
+      birim: '%',
+      noktalar: seri(trend, (k) => k.bodyFatPct),
+    },
+    {
+      baslik: 'İç yağ',
+      renk: '#f97316',
+      tarti: true,
+      birim: '',
+      noktalar: seri(trend, (k) => k.visceralFat),
+    },
+    {
+      baslik: 'Kas',
+      renk: '#10b981',
+      tarti: true,
+      birim: 'kg',
+      noktalar: seri(trend, (k) => k.muscleKg),
+    },
+    {
+      baslik: 'Vücut suyu',
+      renk: '#0ea5e9',
+      tarti: true,
+      birim: '%',
+      noktalar: seri(trend, (k) => k.waterPct),
+    },
+    { baslik: 'Uyku', renk: '#6366f1', birim: 'sa', noktalar: seri(trend, (k) => k.sleepHours) },
+    {
+      baslik: 'Dinlenik nabız',
+      renk: '#ef4444',
+      birim: 'bpm',
+      noktalar: seri(trend, (k) => k.restingHr),
+    },
+    { baslik: 'Adım', renk: '#f59e0b', birim: 'adım', noktalar: seri(trend, (k) => k.steps) },
   ];
 
   return (
@@ -166,6 +195,7 @@ export default async function SaglikPage({ searchParams }: SayfaProps) {
                     baslik={g.baslik}
                     birim={g.birim}
                     noktalar={g.noktalar}
+                    renk={g.renk}
                   />
                 ))}
             </div>

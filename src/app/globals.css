@@ -749,3 +749,62 @@ a {
   border-color: var(--border-hover);
   box-shadow: none;
 }
+
+/* Panel hareketleri (2026-10-30) — YALNIZCA opacity/transform ve stroke:
+   GPU'da koşar, düzeni yeniden hesaplatmaz; eski iPhone'da da akıcı.
+   "Hareketi azalt" açıksa hepsi kapanır. */
+@keyframes panel-giris {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes cizgi-ciz {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes gezinme {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(0.85);
+  }
+}
+
+.panel-modern #panel-icerik > * {
+  animation: panel-giris 0.32s var(--ease-brand) both;
+}
+.panel-modern .grafik-cizgi {
+  stroke-dasharray: 1;
+  animation: cizgi-ciz 0.9s var(--ease-brand) both;
+}
+.panel-modern .grafik-dolgu {
+  animation: panel-giris 0.6s ease 0.25s both;
+}
+.panel-modern .gezinme-cizgisi {
+  position: fixed;
+  inset: env(safe-area-inset-top) 0 auto 0;
+  z-index: 60;
+  height: 2.5px;
+  background: var(--gradient-accent);
+  transform-origin: left;
+  animation: gezinme 1.2s var(--ease-brand) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .panel-modern :is(#panel-icerik > *, .grafik-cizgi, .grafik-dolgu, .gezinme-cizgisi) {
+    animation: none;
+  }
+  .panel-modern .grafik-cizgi {
+    stroke-dasharray: none;
+  }
+}

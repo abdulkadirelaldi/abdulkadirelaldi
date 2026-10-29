@@ -27,7 +27,7 @@ export function Topbar({ title, actions }: { title: string; actions?: ReactNode 
     */
     <header
       data-yazdirmada-gizle
-      className="border-line/60 bg-canvas/75 sticky top-0 z-40 border-b pt-[env(safe-area-inset-top)] backdrop-blur-2xl backdrop-saturate-150"
+      className="border-line/60 bg-canvas/90 sticky top-0 z-40 border-b pt-[env(safe-area-inset-top)] backdrop-blur-md"
     >
       <div className="flex h-16 items-center gap-3 px-4 lg:px-6">
         <div className="flex min-w-0 flex-col">

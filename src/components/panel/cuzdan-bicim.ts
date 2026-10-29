@@ -73,12 +73,17 @@ export function tlBicim(tl: string | null): string {
 
 /**
  * Kullanıcının yazdığı tutar → sunucu biçimi (`"1250.50"`).
- * "1.250,50" · "1250,5" · "1250.50" · " 3 " hepsi kabul; geçersizse `null`.
+ * "1.250,50" · "1250,5" · "1250.50" · "42.500" · " 3 " hepsi kabul; geçersizse `null`.
+ *
+ * ⚠️ VİRGÜLSÜZ NOKTA: Türkçede "42.500" kırk iki BİN beş yüz demek. Noktadan
+ * sonra tam üç haneli gruplar varsa ("42.500", "1.250.000") nokta binlik
+ * ayırıcıdır; bir-iki hane ("12.5", "1250.50") ondalıktır.
  */
 export function tutarOku(metin: string): string | null {
   let t = metin.trim().replace(/\s/g, '');
   if (!t) return null;
   if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.');
+  else if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
   if (!/^\d{1,10}(\.\d{1,2})?$/.test(t)) return null;
   return t;
 }
