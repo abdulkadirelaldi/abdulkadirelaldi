@@ -3,6 +3,7 @@ import type {
   HealthLogFilterInput,
   UpdateHealthLogInput,
 } from '@/lib/schemas';
+import { TARTI_ALANLARI } from '@/lib/schemas/health-log';
 import { db } from '@/server/db';
 
 import {
@@ -92,6 +93,16 @@ export interface HealthLogDto {
   /** 1–5 ölçek (ADR-020: kategori değil, enum yapılmadı). */
   mood: number | null;
   note: string | null;
+  bmi: string | null;
+  waterPct: string | null;
+  muscleKg: string | null;
+  boneKg: string | null;
+  proteinPct: string | null;
+  visceralFat: string | null;
+  subcutaneousFatPct: string | null;
+  skeletalMusclePct: string | null;
+  bmrKcal: number | null;
+  metabolicAge: number | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -107,6 +118,16 @@ const HEALTH_SELECT = {
   steps: true,
   mood: true,
   note: true,
+  bmi: true,
+  waterPct: true,
+  muscleKg: true,
+  boneKg: true,
+  proteinPct: true,
+  visceralFat: true,
+  subcutaneousFatPct: true,
+  skeletalMusclePct: true,
+  bmrKcal: true,
+  metabolicAge: true,
   createdAt: true,
   updatedAt: true,
 } as const;
@@ -122,6 +143,16 @@ interface HealthLogRow {
   steps: number | null;
   mood: number | null;
   note: string | null;
+  bmi: DecimalLike | null;
+  waterPct: DecimalLike | null;
+  muscleKg: DecimalLike | null;
+  boneKg: DecimalLike | null;
+  proteinPct: DecimalLike | null;
+  visceralFat: DecimalLike | null;
+  subcutaneousFatPct: DecimalLike | null;
+  skeletalMusclePct: DecimalLike | null;
+  bmrKcal: number | null;
+  metabolicAge: number | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -155,6 +186,16 @@ export interface HealthLogClient {
         steps: number | null;
         mood: number | null;
         note: string | null;
+        bmi: string | null;
+        waterPct: string | null;
+        muscleKg: string | null;
+        boneKg: string | null;
+        proteinPct: string | null;
+        visceralFat: string | null;
+        subcutaneousFatPct: string | null;
+        skeletalMusclePct: string | null;
+        bmrKcal: number | null;
+        metabolicAge: number | null;
       };
       select: typeof HEALTH_SELECT;
     }): Promise<HealthLogRow>;
@@ -184,6 +225,16 @@ function toDto(row: HealthLogRow): HealthLogDto {
     steps: row.steps,
     mood: row.mood,
     note: row.note,
+    bmi: toMeasureString(row.bmi, 1),
+    waterPct: toMeasureString(row.waterPct, 1),
+    muscleKg: toMeasureString(row.muscleKg, 2),
+    boneKg: toMeasureString(row.boneKg, 2),
+    proteinPct: toMeasureString(row.proteinPct, 1),
+    visceralFat: toMeasureString(row.visceralFat, 1),
+    subcutaneousFatPct: toMeasureString(row.subcutaneousFatPct, 1),
+    skeletalMusclePct: toMeasureString(row.skeletalMusclePct, 1),
+    bmrKcal: row.bmrKcal,
+    metabolicAge: row.metabolicAge,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -316,6 +367,16 @@ export async function createHealthLog(
       steps: input.steps ?? null,
       mood: input.mood ?? null,
       note: bosaNull(input.note),
+      bmi: input.bmi ?? null,
+      waterPct: input.waterPct ?? null,
+      muscleKg: input.muscleKg ?? null,
+      boneKg: input.boneKg ?? null,
+      proteinPct: input.proteinPct ?? null,
+      visceralFat: input.visceralFat ?? null,
+      subcutaneousFatPct: input.subcutaneousFatPct ?? null,
+      skeletalMusclePct: input.skeletalMusclePct ?? null,
+      bmrKcal: input.bmrKcal ?? null,
+      metabolicAge: input.metabolicAge ?? null,
     },
     select: HEALTH_SELECT,
   });
@@ -330,6 +391,13 @@ export async function createHealthLog(
  * aitse `date @unique` ihlal olur. P2002 yakalanıyor ve eylem CONFLICT'e
  * çeviriyor — sessizce başarısız olmuyor.
  */
+/** Tartı alanlarından yalnızca VERİLENLER (`null` = boşalt, `undefined` = dokunma). */
+function tartiGuncellemesi(fields: Partial<UpdateHealthLogInput>): Record<string, unknown> {
+  return Object.fromEntries(
+    TARTI_ALANLARI.flatMap((k) => (fields[k] !== undefined ? [[k, fields[k]]] : [])),
+  );
+}
+
 export async function updateHealthLog(
   input: UpdateHealthLogInput,
   client: HealthLogClient = db,
@@ -348,6 +416,7 @@ export async function updateHealthLog(
       ...(fields.steps !== undefined ? { steps: fields.steps } : {}),
       ...(fields.mood !== undefined ? { mood: fields.mood } : {}),
       ...(fields.note !== undefined ? { note: bosaNull(fields.note) } : {}),
+      ...tartiGuncellemesi(fields),
     },
     select: HEALTH_SELECT,
   });

@@ -70,6 +70,8 @@ services:
       CONTACT_FROM_EMAIL: ${CONTACT_FROM_EMAIL:-}
       UMAMI_URL: ${UMAMI_URL:-}
       UMAMI_SITE_ID: ${UMAMI_SITE_ID:-}
+      # Sağlık · tartı görseli okuma ve yorum (Claude API). Boşsa özellik kapalı.
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       # V8 yığını konteyner sınırının altında kalsın: sınıra çarpan süreç
       # ÇEKİRDEK tarafından öldürülür, yığın sınırı ise önce çöp toplamayı zorlar.
       NODE_OPTIONS: --max-old-space-size=320

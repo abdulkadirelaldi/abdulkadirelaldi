@@ -542,6 +542,18 @@ model HealthLog {
   mood       Int?
   note       String?
 
+  /// Akıllı tartı (2026-10-30) — ekran görüntüsünden okunur, kullanıcı onaylar.
+  bmi                Decimal? @db.Decimal(4, 1)
+  waterPct           Decimal? @db.Decimal(4, 1)
+  muscleKg           Decimal? @db.Decimal(5, 2)
+  boneKg             Decimal? @db.Decimal(4, 2)
+  proteinPct         Decimal? @db.Decimal(4, 1)
+  visceralFat        Decimal? @db.Decimal(4, 1)
+  subcutaneousFatPct Decimal? @db.Decimal(4, 1)
+  skeletalMusclePct  Decimal? @db.Decimal(4, 1)
+  bmrKcal            Int?
+  metabolicAge       Int?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

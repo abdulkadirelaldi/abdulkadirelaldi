@@ -2,6 +2,7 @@ import { Pencil, Plus } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+import { SaglikDegerlendirmesiKarti } from '@/components/panel/saglik-degerlendirmesi';
 import { SaglikEkrani } from '@/components/panel/saglik-ekrani';
 import { Sayfalama } from '@/components/panel/sayfalama';
 import { Topbar } from '@/components/panel/topbar';
@@ -90,6 +91,10 @@ export default async function SaglikPage({ searchParams }: SayfaProps) {
 
   const grafikler = [
     { baslik: 'Kilo', birim: 'kg', noktalar: seri(trend, (k) => k.weightKg) },
+    { baslik: 'Vücut yağı', tarti: true, birim: '%', noktalar: seri(trend, (k) => k.bodyFatPct) },
+    { baslik: 'İç yağ', tarti: true, birim: '', noktalar: seri(trend, (k) => k.visceralFat) },
+    { baslik: 'Kas', tarti: true, birim: 'kg', noktalar: seri(trend, (k) => k.muscleKg) },
+    { baslik: 'Vücut suyu', tarti: true, birim: '%', noktalar: seri(trend, (k) => k.waterPct) },
     { baslik: 'Uyku', birim: 'sa', noktalar: seri(trend, (k) => k.sleepHours) },
     { baslik: 'Dinlenik nabız', birim: 'bpm', noktalar: seri(trend, (k) => k.restingHr) },
     { baslik: 'Adım', birim: 'adım', noktalar: seri(trend, (k) => k.steps) },
@@ -119,6 +124,8 @@ export default async function SaglikPage({ searchParams }: SayfaProps) {
 
       <main id="panel-icerik" className="flex-1 p-4 lg:p-6">
         <div className="flex max-w-5xl flex-col gap-6">
+          <SaglikDegerlendirmesiKarti />
+
           <section aria-labelledby="trend-baslik" className="flex flex-col gap-3">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 id="trend-baslik" className="text-primary text-base font-semibold">
@@ -150,14 +157,17 @@ export default async function SaglikPage({ searchParams }: SayfaProps) {
             </div>
 
             <div className="grid gap-3 md:grid-cols-2">
-              {grafikler.map((g) => (
-                <TrendGrafigi
-                  key={g.baslik}
-                  baslik={g.baslik}
-                  birim={g.birim}
-                  noktalar={g.noktalar}
-                />
-              ))}
+              {grafikler
+                // Tartı grafikleri yalnızca verisi varken; temel dördü boş durumuyla hep görünür.
+                .filter((g) => !('tarti' in g) || g.noktalar.length > 0)
+                .map((g) => (
+                  <TrendGrafigi
+                    key={g.baslik}
+                    baslik={g.baslik}
+                    birim={g.birim}
+                    noktalar={g.noktalar}
+                  />
+                ))}
             </div>
           </section>
 
