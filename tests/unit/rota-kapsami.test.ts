@@ -223,6 +223,31 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     kanit: [],
     not: "2026-10-30 canlı antrenman oturumu. `cuidSchema` dışı kimlik 404; okuma `fetchSession` (yapılan setler + hareketin önceki seti). Set yazma mevcut `createWorkoutSetAction` (rekor hesabı orada), bitiş `finishSessionAction` (süre + MET × son tartı × süre). Servis `tests/unit/services/antrenman-oturumu.test.ts`te (açık oturum yeniden kullanılır, bitmiş ikinci kez bitmez, Decimal sızmaz). ÖLÇÜLMEYEN: oturum ekranının akışı (set → dinlenme → sonraki hareket) e2e'de yok; dinlenme sayacı yalnızca istemcide.",
   },
+  '/panel/cuzdan': {
+    kapilar: ['e2e'],
+    kanit: ["'/panel/cuzdan',"],
+    not: "2026-10-30 Cüzdan (muhasebenin yerine): net varlık, bu ayın hesabı, hesaplar/borçlar/gelirler/giderler. Okuma `fetchCuzdan` (kurlar `fetchKurlar`: Truncgil → 10 dk bellek → `PriceQuote` son bilinen, 'bayat' uyarısıyla). CSP paketi geziyor — yükleniyor, ihlal yok. Hesap kuralları `tests/unit/services/cuzdan.test.ts`te (kursuz kalem toplama girmez, borç SATIŞ kuruyla, ödeme kalanı sıfırın altına indirmez). ÖLÇÜLMEYEN: içerik ve canlı kaynak e2e'de yok.",
+  },
+  '/panel/cuzdan/yeni': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: '2026-10-30. `?tur=hesap|borc|gelir|gider` hangi formun açılacağını seçer (bilinmeyen → hesap). Yazma `createWalletAccountAction` / `createWalletDebtAction` / `createWalletFlowAction`; tutar `tutarOku` ile "1.250,50" → "1250.50". ÖLÇÜLMEYEN: formlar e2e\'de doldurulmuyor.',
+  },
+  '/panel/cuzdan/hesap/[id]': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: '2026-10-30. `cuidSchema` dışı ya da arşivli kimlik 404. Okuma `fetchWalletAccountById`; yazma `updateWalletAccountAction`, `archiveWalletAccountAction` (iki dokunuşlu onay). ÖLÇÜLMEYEN: e2e yok.',
+  },
+  '/panel/cuzdan/borc/[id]': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: '2026-10-30. Okuma `fetchWalletDebtById` + `fetchDebtPayments`; ödeme `addDebtPaymentAction` (kalanı düşürür, sıfırda borcu kapatır — servis testinde), düzenleme `updateWalletDebtAction`, silme `deleteWalletDebtAction`. ÖLÇÜLMEYEN: e2e yok.',
+  },
+  '/panel/cuzdan/akis/[id]': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: '2026-10-30. Gelir/gider düzenleme: `fetchWalletFlowById`, `updateWalletFlowAction`, `deleteWalletFlowAction`. ÖLÇÜLMEYEN: e2e yok.',
+  },
   '/panel/spor': {
     kapilar: ['e2e'],
     kanit: ["'/panel/spor',"],

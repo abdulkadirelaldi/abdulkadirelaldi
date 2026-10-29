@@ -124,6 +124,7 @@ test.describe('§8.13 · panel', () => {
     '/panel',
     '/panel/saglik',
     '/panel/spor',
+    '/panel/cuzdan',
     '/panel/icerik/blog/yeni',
     '/panel/hayat',
     '/panel/hayat/rapor',

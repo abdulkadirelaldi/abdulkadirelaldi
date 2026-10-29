@@ -1,12 +1,22 @@
-import { Activity, ChevronRight, Dumbbell, Mail, Sparkles, type LucideIcon } from 'lucide-react';
+import {
+  Activity,
+  ChevronRight,
+  Dumbbell,
+  Mail,
+  Sparkles,
+  Wallet,
+  type LucideIcon,
+} from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { ANTRENMAN_TURU, olcuBicim } from '@/components/panel/kisisel-etiketler';
+import { paraBicim } from '@/components/panel/para-bicim';
 import { Topbar } from '@/components/panel/topbar';
 import { appToday } from '@/server/services/_shared';
 import { fetchContactMessages } from '@/server/services/contact-message';
+import { fetchCuzdan } from '@/server/services/cuzdan';
 import { fetchHabitWeek, isDayComplete } from '@/server/services/habit';
 import { fetchHealthLogs } from '@/server/services/health-log';
 import { fetchWorkouts } from '@/server/services/workout';
@@ -36,19 +46,21 @@ function selamlama(simdi: Date): string {
  * İş, müşteri ve muhasebe kartları modüllerle birlikte kaldırıldı. Ekran,
  * telefonda açıldığında "bugün ne durumdayım" sorusunu tek bakışta yanıtlıyor:
  * alışkanlık ilerlemesi en üstte (her gün işaretlenen tek şey), altında son
- * ölçüm, son antrenman ve okunmamış mesaj. Her kart kendi bölümüne gider.
+ * ölçüm, son antrenman, net varlık (Cüzdan) ve okunmamış mesaj. Her kart kendi
+ * bölümüne gider.
  *
  * "Bugün" İstanbul gününe göre (`appToday`, ADR-016).
  */
 export default async function BugunPage() {
   const bugun = appToday();
-  const [aliskanlik, olcumler, antrenmanlar, mesajlar] = await Promise.all([
+  const [aliskanlik, olcumler, antrenmanlar, mesajlar, cuzdan] = await Promise.all([
     fetchHabitWeek(bugun),
     /* EN SON kayıt, pencere yok: kilo yavaş değişir ve ölçümün günü yanında yazılı. */
     fetchHealthLogs({ page: 1, perPage: 1 }),
     fetchWorkouts({ page: 1, perPage: 1 }),
     /* `unreadCount` filtreden bağımsız (T-038) — satır gerekmiyor. */
     fetchContactMessages({ page: 1, perPage: 1 }),
+    fetchCuzdan(),
   ]);
 
   const sonOlcum = olcumler.items[0];
@@ -115,6 +127,14 @@ export default async function BugunPage() {
               <p className="text-muted text-sm">Henüz alışkanlık yok — eklemek için dokun.</p>
             )}
           </Link>
+
+          <OzetKart
+            href="/panel/cuzdan"
+            ikon={Wallet}
+            baslik="Net varlık"
+            deger={paraBicim(cuzdan.ozet.netTl, 'TRY')}
+            alt={`Ay sonunda kalan ${paraBicim(cuzdan.ozet.aylikKalanTl, 'TRY')}`}
+          />
 
           <div className="grid grid-cols-2 gap-3">
             <OzetKart

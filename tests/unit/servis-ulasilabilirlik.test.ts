@@ -169,11 +169,6 @@ const BILDIRIM: UlasilmazBildirim[] = [
     not: 'Cüzdan · döviz/altın varlık ve borçların TL karşılığı (tutar × kur) kayıpsız hesaplanacak.',
   },
   {
-    anahtar: '_shared/money.ts → subtractMoney',
-    sebep: 'bekleyen',
-    not: 'Cüzdan · kalan borç = toplam borç − ödenen; net varlık = varlıklar − borçlar.',
-  },
-  {
     anahtar: '_shared/app-date.ts → addAppYears',
     sebep: 'bekleyen',
     not: 'Cüzdan · borç bitiş tarihi (taksit sayısından) ve yıllık hedef sınırı.',

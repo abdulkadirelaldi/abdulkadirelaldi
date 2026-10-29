@@ -30,6 +30,10 @@ export {
   GoalStatus,
   MuscleGroup,
   SkillCategory,
+  WalletAccountKind,
+  WalletFlowKind,
+  WalletFrequency,
+  WalletUnit,
   WorkoutType,
 } from '@/server/generated/prisma/enums';
 

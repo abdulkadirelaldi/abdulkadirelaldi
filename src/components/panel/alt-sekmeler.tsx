@@ -1,10 +1,8 @@
 'use client';
 
-import { Ellipsis } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-import { useMenuDurumu } from '@/components/panel/panel-kabuk';
 import { ALT_SEKMELER } from '@/components/panel/panel-rotalar';
 import { cn } from '@/lib/utils/cn';
 
@@ -12,9 +10,9 @@ import { cn } from '@/lib/utils/cn';
  * TELEFON ALT SEKME ÇUBUĞU — 2026-10-29.
  *
  * Panel çoğunlukla iPhone'dan, "Ana Ekrana Ekle" ile tam ekran kullanılıyor.
- * iOS uygulamalarındaki sekme çubuğu: başparmağın eriştiği yerde dört ana
- * bölüm + "Daha" (geri kalan her şey, mevcut çekmecede). Masaüstünde
- * (`lg`) yok — orada yan menü var.
+ * iOS uygulamalarındaki sekme çubuğu: başparmağın eriştiği yerde beş kişisel
+ * bölüm. Geri kalan her şey üst çubuktaki "Daha" düğmesinde (`daha-dugmesi.tsx`).
+ * Masaüstünde (`lg`) yok — orada yan menü var.
  *
  * GÜVENLİ ALAN: `pb-[env(safe-area-inset-bottom)]` — ana ekran çubuğu
  * (home indicator) sekmelerin üstüne binmesin. Sayfa içeriği aynı payı
@@ -24,10 +22,8 @@ import { cn } from '@/lib/utils/cn';
  */
 export function AltSekmeler() {
   const pathname = usePathname();
-  const { ac, acik } = useMenuDurumu();
   const aktifMi = (href: string) =>
     href === '/panel' ? pathname === '/panel' : pathname.startsWith(href);
-  const dahaAktif = !acik && !ALT_SEKMELER.some((s) => aktifMi(s.href));
 
   return (
     <nav
@@ -55,21 +51,6 @@ export function AltSekmeler() {
             </li>
           );
         })}
-        <li>
-          <button
-            type="button"
-            onClick={ac}
-            aria-expanded={acik}
-            aria-controls="panel-menu"
-            className={cn(
-              'focus-ring flex min-h-14 w-full flex-col items-center justify-center gap-1 text-[0.6875rem] font-medium transition-colors active:opacity-60',
-              acik || dahaAktif ? 'text-accent' : 'text-muted',
-            )}
-          >
-            <Ellipsis className="size-6" aria-hidden="true" />
-            Daha
-          </button>
-        </li>
       </ul>
     </nav>
   );

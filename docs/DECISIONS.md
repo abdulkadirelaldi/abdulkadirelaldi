@@ -2609,3 +2609,13 @@ Sahibi iş yönetimini Kıyı Medya'nın kendi panelinden yürütüyor; bu panel
 - **Oturum:** tek açık oturum (başlat → açık varsa ona gider). Setler mevcut `createWorkoutSetAction` ile yazılır — kişisel rekor hesabı tek yerde kalır. Dinlenme sayacı yalnızca istemcide (kaybolması zararsız).
 - **Kalori:** `MET × son tartı kilosu × saat` (ağırlık 5,0 · kardiyo 8,0). Tartı yoksa 80 kg ve ekranda söylenir; Decimal kilo metin üzerinden sayıya çevrilir (ADR-014/D). Tahmin — nabız verisi yok.
 - **Telefon:** kırıntı yolu dar ekranda gizli (kayıt kimliği okunmuyordu).
+
+### Ek (2026-10-30) — Cüzdan (muhasebenin yerine)
+
+- **Şema:** `WalletAccount` (banka/nakit/yatırım; birim TRY, döviz ya da altın/gümüş türü), `WalletDebt` (toplam, GÜNCEL kalan, aylık taksit, ödeme günü, bitiş) + `WalletDebtPayment`, `WalletFlow` (gelir/gider: kimden/kime, sıklık, gün ya da tarih), `PriceQuote` (son bilinen kur). Tutarlar `Decimal(12,2)`, her yerde metin (ADR-014/D).
+- **Kur:** Truncgil (`finans.truncgil.com/v4/today.json`) — anahtarsız, döviz VE altın türleri tek yanıtta (TCMB altın vermiyor). 10 dk bellek; kaynak 5 sn'de yanıt vermezse `PriceQuote`taki son bilinen kur "bayat" uyarısıyla. Kuru olmayan kalem toplama GİRMEZ ve ekranda sayılır — sıfır ya da uydurma kur yok.
+- **Değerleme:** varlık ALIŞ (bozdurunca eline geçen), borç SATIŞ (kapatmak için ödeyeceğin) — ihtiyatlı net.
+- **Bu ay:** gelir − gider − borç taksitleri; haftalık ×52/12, yıllık ÷12, tek seferlik aylığa girmez.
+- **Ödeme:** kalanı düşürür, sıfırın altına indirmez, sıfırda borcu kapatır (tek işlem).
+- **Denetim:** her mutasyon `AuditLog`a yazılır ama yalnızca değişen ALAN ADLARI — tutar kişisel finans verisi (sağlık kaydıyla aynı karar).
+- **Sekmeler:** Bugün · Cüzdan · Hayat · Spor · Sağlık; geri kalanı üst çubuktaki "Daha".

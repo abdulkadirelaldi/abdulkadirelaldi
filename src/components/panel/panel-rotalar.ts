@@ -11,6 +11,7 @@ import {
   Settings,
   Sparkles,
   UserRound,
+  Wallet,
   Wrench,
 } from 'lucide-react';
 import type { ComponentType } from 'react';
@@ -51,6 +52,7 @@ export const PANEL_GRUPLARI: ReadonlyArray<{
     title: 'Kişisel',
     items: [
       { href: '/panel', label: 'Bugün', icon: LayoutDashboard, hazir: true },
+      { href: '/panel/cuzdan', label: 'Cüzdan', icon: Wallet, hazir: true },
       { href: '/panel/hayat', label: 'Hayat', icon: Sparkles, hazir: true },
       { href: '/panel/spor', label: 'Spor', icon: Dumbbell, hazir: true },
       { href: '/panel/saglik', label: 'Sağlık', icon: Activity, hazir: true },
@@ -79,8 +81,9 @@ export const PANEL_GRUPLARI: ReadonlyArray<{
 
 /**
  * TELEFONDAKİ ALT SEKME ÇUBUĞU (2026-10-29) — panel çoğunlukla iPhone'dan
- * kullanılıyor. En sık dört bölüm + "Daha" (geri kalan her şey, çekmecede).
- * Sıra kullanım sıklığına göre; masaüstünde bunun yerine yan menü var.
+ * kullanılıyor. Beş kişisel bölüm (iOS'un önerdiği üst sınır); geri kalan her
+ * şey üst çubuktaki "Daha" düğmesinin açtığı çekmecede (2026-10-30, Cüzdan
+ * gelince altıncı sekme yerine). Masaüstünde bunun yerine yan menü var.
  */
 export const ALT_SEKMELER: readonly PanelRotasi[] = PANEL_GRUPLARI[0]!.items;
 
@@ -100,6 +103,10 @@ const EK_ETIKETLER: Record<string, string> = {
   '/panel/spor/egzersizler': 'Egzersizler',
   '/panel/spor/rekorlar': 'Rekorlar',
   '/panel/spor/gecmis': 'Geçmiş',
+  '/panel/cuzdan/yeni': 'Yeni',
+  '/panel/cuzdan/hesap': 'Hesap',
+  '/panel/cuzdan/borc': 'Borç',
+  '/panel/cuzdan/akis': 'Gelir / gider',
   '/panel/spor/oturum': 'Antrenman',
   '/panel/hayat/aliskanliklar': 'Alışkanlıklar',
   '/panel/hayat/hedefler': 'Hedefler',
@@ -117,6 +124,7 @@ const HAZIR_EK_YOLLAR: ReadonlySet<string> = new Set([
   '/panel/spor/egzersizler',
   '/panel/spor/rekorlar',
   '/panel/spor/gecmis',
+  '/panel/cuzdan/yeni',
   '/panel/hayat/aliskanliklar',
   '/panel/hayat/hedefler',
   '/panel/hayat/gunluk',

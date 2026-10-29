@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
+import { DahaDugmesi } from '@/components/panel/daha-dugmesi';
 import { KirintiYolu } from '@/components/panel/kirinti-yolu';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 
@@ -48,6 +49,7 @@ export function Topbar({ title, actions }: { title: string; actions?: ReactNode 
           </Link>
 
           <ThemeToggle />
+          <DahaDugmesi />
         </div>
       </div>
     </header>
