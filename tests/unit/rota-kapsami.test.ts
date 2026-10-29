@@ -214,9 +214,9 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     not: "T-113 ile eklendi. Okuma `fetchHealthLogById` TEK KAYIT; yoksa 404. Yazma `updateHealthLogAction` + `deleteHealthLogAction`. Silme onayı değerlerin HİÇBİR YERDE kalmadığını söylüyor — T-110 kararı (denetim kaydına yalnızca gün yazılıyor); `deneyim`deki 'denetim kaydında görünmeye devam eder' metni burada yalan olurdu, bu yüzden onay metni çağırandan geliyor (`kalici-sil-dugmesi.tsx`). ÖLÇÜLMEYEN: (1) BOŞALTMAK SİLİYOR (önceden silmiyordu): temizlenebilir sütunlar güncellemede `null` kabul ediyor ve form dolu iken boşaltılan alanı `null`a çeviriyor (`bosaltilanlariNullYap`) — ÖLÇÜLÜYOR, `panel-kisisel.spec.ts`: kilo boşaltılıp kaydediliyor, yenilemeden sonra boş, uyku yerinde; mutasyonla eski kusur geri üretildi. (2) Tarihi başka bir kayda ait güne çekmek CONFLICT veriyor; mesajın alan altına düştüğü arayüzden denenmedi.",
   },
   '/panel/spor/gecmis': {
-    kapilar: ['kapsanmiyor'],
-    kanit: [],
-    not: "2026-10-30: eski antrenman listesi `/panel/spor`dan buraya taşındı (sayfa 25, `fetchWorkouts`); `/panel/spor` artık program + 'Başlat' ekranı. ÖLÇÜLMEYEN: e2e'de gezilmiyor.",
+    kapilar: ['e2e'],
+    kanit: ['spor\\/gecmis$/'],
+    not: "2026-10-30: eski antrenman listesi `/panel/spor`dan buraya taşındı (sayfa 25, `fetchWorkouts`); `/panel/spor` artık program + 'Başlat' ekranı. ÖLÇÜLÜYOR: `panel-kisisel.spec.ts` antrenman silindikten sonra buraya dönüldüğünü bekliyor. İÇERİK ölçülmüyor.",
   },
   '/panel/spor/oturum/[id]': {
     kapilar: ['kapsanmiyor'],
