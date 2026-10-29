@@ -174,21 +174,6 @@ const BILDIRIM: UlasilmazBildirim[] = [
     not: 'Cüzdan · kalan borç = toplam borç − ödenen; net varlık = varlıklar − borçlar.',
   },
   {
-    anahtar: '_shared/app-date.ts → appMonthRange',
-    sebep: 'bekleyen',
-    not: 'Hayat · aylık hedeflerin ve aylık alışkanlık raporunun dönem penceresi.',
-  },
-  {
-    anahtar: '_shared/app-date.ts → appYearRange',
-    sebep: 'bekleyen',
-    not: 'Hayat · yıllık hedeflerin dönem penceresi.',
-  },
-  {
-    anahtar: '_shared/app-date.ts → appIsoWeek',
-    sebep: 'bekleyen',
-    not: 'Hayat · haftalık hedeflerin dönem anahtarı (ISO hafta).',
-  },
-  {
     anahtar: '_shared/app-date.ts → addAppYears',
     sebep: 'bekleyen',
     not: 'Cüzdan · borç bitiş tarihi (taksit sayısından) ve yıllık hedef sınırı.',

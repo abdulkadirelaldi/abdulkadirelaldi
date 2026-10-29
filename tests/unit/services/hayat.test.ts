@@ -228,10 +228,15 @@ describe('alışkanlık yönetimi', () => {
     return { client, findMany, update, create };
   }
 
-  it('⚠️ liste sırası ad + id — `name` @unique DEĞİL, sayfalama tekrar etmesin', async () => {
+  it('⚠️ liste sırası order + ad + id — `name` @unique DEĞİL, sayfalama tekrar etmesin', async () => {
     const { client, findMany } = yonetimIstemci();
     await fetchHabits(habitFilterSchema.parse({}), client);
-    expect(findMany.mock.calls[0]?.[0].orderBy).toEqual([{ name: 'asc' }, { id: 'asc' }]);
+    // 2026-10-29: önce sahibinin sırası (`order`), sonra ad + id.
+    expect(findMany.mock.calls[0]?.[0].orderBy).toEqual([
+      { order: 'asc' },
+      { name: 'asc' },
+      { id: 'asc' },
+    ]);
   });
 
   it('olmayan kayıt `null`', async () => {
@@ -248,6 +253,7 @@ describe('alışkanlık yönetimi', () => {
       targetPerDay: 8,
       color: null,
       icon: null,
+      order: 0,
       isActive: true,
     });
   });
@@ -425,7 +431,8 @@ describe('setHabitDayCount', () => {
   it('pozitif sayı `upsert` ile yazılıyor — yarışta P2002 yok', async () => {
     const { client, upsert } = logIstemci({ targetPerDay: 8, isArchived: false }, null);
     expect((await setHabitDayCount({ ...GIRDI, count: 6 }, client)).count).toBe(6);
-    expect(upsert.mock.calls[0]?.[0].update).toEqual({ count: 6 });
+    // Sayı yazmak açık "yapmadım" işaretini kaldırır (2026-10-29).
+    expect(upsert.mock.calls[0]?.[0].update).toEqual({ count: 6, missed: false });
   });
 });
 

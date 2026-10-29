@@ -1,265 +1,218 @@
-import { BookOpen, ChevronLeft, ChevronRight, Plus, Target } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Settings2 } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
-import { AliskanlikPanosu } from '@/components/panel/aliskanlik-panosu';
+import { GunlukListe } from '@/components/panel/gunluk-liste';
 import { HayatAltMenu } from '@/components/panel/hayat-alt-menu';
-import { gunAyYil, haftaAraligi, hayatYolu, kalanGunMetni } from '@/components/panel/hayat-bicim';
-import { HedefIlerleme } from '@/components/panel/hedef-ilerleme';
-import { HEDEF_KATEGORISI, RUH_HALI } from '@/components/panel/kisisel-etiketler';
+import { OnerilenAliskanliklar } from '@/components/panel/onerilen-aliskanliklar';
 import { Topbar } from '@/components/panel/topbar';
-import { Badge } from '@/components/ui/badge';
 import { buttonClasses } from '@/components/ui/button';
-import { EmptyState } from '@/components/ui/empty-state';
 import { dayDateSchema } from '@/lib/schemas/common';
-import { addAppDays, appToday, startOfAppWeek } from '@/server/services/_shared';
-import { fetchGoals } from '@/server/services/goal';
-import { fetchHabitWeek } from '@/server/services/habit';
-import { fetchJournalEntries } from '@/server/services/journal-entry';
+import { addAppDays, appToday } from '@/server/services/_shared';
+import { fetchHabitDay, type GunlukListeDto } from '@/server/services/habit-gun';
+import { cn } from '@/lib/utils/cn';
 
 export const metadata: Metadata = {
   title: 'Hayat',
   robots: { index: false, follow: false, nocache: true },
 };
 
-/** Genel bakıştaki kısa listelerin boyu — tam liste kendi sayfasında. */
-const KISA_LISTE = 5;
-
 type SayfaProps = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 const tek = (ham: string | string[] | undefined): string =>
   (Array.isArray(ham) ? ham[0] : ham) ?? '';
 
+function gunEtiketi(gun: string, bugun: string): string {
+  if (gun === bugun) return 'Bugün';
+  if (gun === addAppDays(bugun, -1)) return 'Dün';
+  return new Intl.DateTimeFormat('tr-TR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    timeZone: 'UTC',
+  }).format(new Date(`${gun}T00:00:00Z`));
+}
+
 /**
- * `/panel/hayat` — §4.2 "alışkanlık takibi, hedefler, günlük" GENEL BAKIŞI.
+ * HAYAT · BUGÜN (2026-10-29, telefon öncelikli yeniden yazım).
  *
- * ═══════════════════════════════════════════════════════════════════════════
- * `?hafta=` KULLANICI GİRDİSİ — DOĞRULANIYOR VE GELECEĞE TAŞAMIYOR
- * ═══════════════════════════════════════════════════════════════════════════
- *
- * Adres çubuğu kullanıcı girdisidir (ADR-032): `dayDateSchema`dan geçmeyen
- * değer BUGÜNE düşüyor. Geçerli ama GELECEKTEKİ bir gün de bugüne çekiliyor:
- * gelecek haftanın panosu yalnızca devre dışı hücrelerden oluşurdu — hata
- * değil ama işe yaramayan bir ekran. Servis zaten herhangi bir günü kabul
- * edip o günün PAZARTESİ başlangıçlı haftasını döndürüyor; adres her gün
- * olabilir, bağlantılar yine de hep pazartesiyi yazıyor (tek kanonik adres).
- *
- * ÜÇ BAĞIMSIZ OKUMA, PARALEL: pano (`fetchHabitWeek`), aktif hedefler
- * (`fetchGoals`, ilk 5) ve son günlükler (`fetchJournalEntries`, ilk 5 — liste
- * DTO'su, tam metin TAŞIMIYOR). Biri diğerinin girdisi değil.
+ * Sahibi alışkanlıklarını her gün SIRAYLA işaretliyor: yaptım ya da yapmadım.
+ * Ekran o akış için: gün seçici (geçmiş günler düzeltilebilir, gelecek yok),
+ * ilerleme, sıralı liste ve "günün raporu" — hangisini yapmadın, hangisi eksik
+ * kaldı, hangisini hiç işaretlemedin.
  */
 export default async function HayatPage({ searchParams }: SayfaProps) {
   const parametreler = await searchParams;
   const bugun = appToday();
-
-  const istenen = dayDateSchema.safeParse(tek(parametreler.hafta));
+  const istenen = dayDateSchema.safeParse(tek(parametreler.gun));
   const gun = istenen.success && istenen.data <= bugun ? istenen.data : bugun;
 
-  const [hafta, hedefler, gunlukler] = await Promise.all([
-    fetchHabitWeek(gun),
-    fetchGoals({ status: 'ACTIVE', page: 1, perPage: KISA_LISTE }),
-    fetchJournalEntries({ page: 1, perPage: KISA_LISTE }),
-  ]);
-
-  const haftaBasi = startOfAppWeek(gun);
-  const buHafta = haftaBasi === startOfAppWeek(bugun);
-  const oncekiHafta = addAppDays(haftaBasi, -7);
-  const sonrakiHafta = addAppDays(haftaBasi, 7);
-  const ilkGun = hafta.days[0] ?? haftaBasi;
-  const sonGun = hafta.days[6] ?? addAppDays(haftaBasi, 6);
+  const liste = await fetchHabitDay(gun, undefined, bugun);
+  const { ozet } = liste;
+  const oran = ozet.toplam === 0 ? 0 : Math.round((ozet.yapildi / ozet.toplam) * 100);
+  const etiket = gunEtiketi(gun, bugun);
 
   return (
     <>
       <Topbar
         title="Hayat"
         actions={
-          <Link href="/panel/hayat/gunluk/yeni" className={buttonClasses({ size: 'sm' })}>
-            <Plus className="size-4" aria-hidden="true" />
-            Günlük yaz
+          <Link
+            href="/panel/hayat/aliskanliklar"
+            className={buttonClasses({ variant: 'ghost', size: 'sm' })}
+          >
+            <Settings2 className="size-4" aria-hidden="true" />
+            <span className="hidden sm:inline">Alışkanlıkları düzenle</span>
+            <span className="sr-only sm:hidden">Alışkanlıkları düzenle</span>
           </Link>
         }
       />
 
-      <main id="panel-icerik" className="flex-1 p-4 lg:p-6">
-        <div className="flex max-w-5xl min-w-0 flex-col gap-8">
+      <main id="panel-icerik" className="flex-1 px-4 py-4 lg:p-6">
+        <div className="mx-auto flex max-w-2xl flex-col gap-4">
           <HayatAltMenu aktif="genel" />
 
-          {/* ── Alışkanlık panosu ─────────────────────────────────────── */}
-          <section aria-labelledby="pano-baslik" className="flex min-w-0 flex-col gap-3">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 id="pano-baslik" className="text-primary text-base font-semibold">
-                  Alışkanlıklar
-                </h2>
-                <p className="tabular text-muted text-sm">{haftaAraligi(ilkGun, sonGun)}</p>
-              </div>
-
-              <nav aria-label="Hafta gezinmesi" className="flex flex-wrap items-center gap-1.5">
-                <Link
-                  href={hayatYolu(oncekiHafta)}
-                  className={buttonClasses({ variant: 'secondary', size: 'sm' })}
-                >
-                  <ChevronLeft className="size-4" aria-hidden="true" />
-                  Önceki
-                </Link>
-                {buHafta ? (
-                  <span
-                    aria-current="page"
-                    className="rounded-btn border-accent/40 bg-accent/12 text-accent-soft border px-3 py-1.5 text-sm"
-                  >
-                    Bu hafta
-                  </span>
-                ) : (
-                  <>
-                    <Link
-                      href={hayatYolu()}
-                      className={buttonClasses({ variant: 'secondary', size: 'sm' })}
-                    >
-                      Bu hafta
-                    </Link>
-                    {/*
-                      "Sonraki" yalnızca GEÇMİŞ bir haftadayken: bu haftadan
-                      ileriye gitmek tamamen devre dışı bir pano gösterirdi.
-                    */}
-                    <Link
-                      href={hayatYolu(sonrakiHafta)}
-                      className={buttonClasses({ variant: 'secondary', size: 'sm' })}
-                    >
-                      Sonraki
-                      <ChevronRight className="size-4" aria-hidden="true" />
-                    </Link>
-                  </>
-                )}
-              </nav>
-            </div>
-
-            <AliskanlikPanosu hafta={hafta} />
-
+          {/* ── GÜN SEÇİCİ ─────────────────────────────────────────────── */}
+          <div className="flex items-center justify-between gap-2">
             <Link
-              href="/panel/hayat/aliskanliklar"
-              className="focus-ring rounded-btn text-body hover:text-primary self-start text-sm underline underline-offset-4"
+              href={`/panel/hayat?gun=${addAppDays(gun, -1)}`}
+              aria-label="Önceki gün"
+              className="focus-ring rounded-btn text-body hover:bg-elevated flex size-11 items-center justify-center"
             >
-              Alışkanlıkları yönet
+              <ChevronLeft className="size-5" aria-hidden="true" />
             </Link>
-          </section>
-
-          <div className="grid min-w-0 gap-8 lg:grid-cols-2">
-            {/* ── Aktif hedefler ────────────────────────────────────────── */}
-            <section aria-labelledby="hedef-baslik" className="flex min-w-0 flex-col gap-3">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h2 id="hedef-baslik" className="text-primary text-base font-semibold">
-                  Aktif hedefler
-                </h2>
-                {hedefler.total > 0 && (
-                  <Link
-                    href="/panel/hayat/hedefler?gorunum=aktif"
-                    className="focus-ring rounded-btn text-body hover:text-primary text-sm underline underline-offset-4"
-                  >
-                    Tümü (<span className="tabular">{hedefler.total}</span>)
-                  </Link>
-                )}
-              </div>
-
-              {hedefler.items.length === 0 ? (
-                <EmptyState
-                  icon={Target}
-                  title="Aktif hedef yok"
-                  description="Bir hedef tanımla; ilerlemesini ve hedef tarihe kalan günü burada izlersin."
-                  action={
-                    <Link
-                      href="/panel/hayat/hedefler/yeni"
-                      className={buttonClasses({ size: 'sm' })}
-                    >
-                      <Plus className="size-4" aria-hidden="true" />
-                      Hedef ekle
-                    </Link>
-                  }
-                />
-              ) : (
-                <ul className="border-line bg-surface rounded-card divide-line divide-y border">
-                  {hedefler.items.map((h) => {
-                    const kalan = kalanGunMetni(h.daysLeft);
-                    return (
-                      <li key={h.id} className="flex flex-col gap-2 px-4 py-3">
-                        <div className="flex flex-wrap items-start justify-between gap-2">
-                          <Link
-                            href={`/panel/hayat/hedefler/${h.id}`}
-                            className="focus-ring rounded-btn text-primary -m-1 min-w-0 p-1 font-medium break-words"
-                          >
-                            {h.title}
-                          </Link>
-                          {kalan && <Badge variant={kalan.ton}>{kalan.metin}</Badge>}
-                        </div>
-                        <HedefIlerleme baslik={`${h.title} ilerlemesi`} ilerleme={h.progress} />
-                        <p className="text-muted text-xs">
-                          {HEDEF_KATEGORISI[h.category]}
-                          {h.targetDate && (
-                            <>
-                              {' · '}
-                              <span className="tabular">{gunAyYil(h.targetDate)}</span>
-                            </>
-                          )}
-                        </p>
-                      </li>
-                    );
-                  })}
-                </ul>
+            <div className="flex flex-col items-center">
+              <span className="text-primary text-lg font-semibold capitalize">{etiket}</span>
+              {gun !== bugun && (
+                <Link href="/panel/hayat" className="text-accent text-xs font-medium">
+                  Bugüne dön
+                </Link>
               )}
-            </section>
-
-            {/* ── Son günlükler ─────────────────────────────────────────── */}
-            <section aria-labelledby="gunluk-baslik" className="flex min-w-0 flex-col gap-3">
-              <div className="flex flex-wrap items-baseline justify-between gap-2">
-                <h2 id="gunluk-baslik" className="text-primary text-base font-semibold">
-                  Son günlükler
-                </h2>
-                {gunlukler.total > 0 && (
-                  <Link
-                    href="/panel/hayat/gunluk"
-                    className="focus-ring rounded-btn text-body hover:text-primary text-sm underline underline-offset-4"
-                  >
-                    Tümü (<span className="tabular">{gunlukler.total}</span>)
-                  </Link>
-                )}
-              </div>
-
-              {gunlukler.items.length === 0 ? (
-                <EmptyState
-                  icon={BookOpen}
-                  title="Henüz günlük yok"
-                  description="Günün nasıl geçtiğini birkaç cümleyle yaz. Yalnızca panelde görünür; içerik denetim kaydına yazılmaz."
-                  action={
-                    <Link href="/panel/hayat/gunluk/yeni" className={buttonClasses({ size: 'sm' })}>
-                      <Plus className="size-4" aria-hidden="true" />
-                      İlk günlüğü yaz
-                    </Link>
-                  }
-                />
-              ) : (
-                <ul className="border-line bg-surface rounded-card divide-line divide-y border">
-                  {gunlukler.items.map((g) => (
-                    <li key={g.id} className="flex flex-col gap-1 px-4 py-3">
-                      <div className="flex flex-wrap items-baseline justify-between gap-2">
-                        <Link
-                          href={`/panel/hayat/gunluk/${g.id}`}
-                          className="focus-ring rounded-btn text-primary -m-1 min-w-0 p-1 font-medium break-words"
-                        >
-                          {g.title ?? gunAyYil(g.date)}
-                        </Link>
-                        <span className="tabular text-muted text-xs">
-                          {g.title ? gunAyYil(g.date) : null}
-                          {g.mood ? `${g.title ? ' · ' : ''}${RUH_HALI[g.mood]}` : null}
-                        </span>
-                      </div>
-                      <p className="text-body line-clamp-2 text-sm break-words">{g.excerpt}</p>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </section>
+            </div>
+            {gun < bugun ? (
+              <Link
+                href={`/panel/hayat?gun=${addAppDays(gun, 1)}`}
+                aria-label="Sonraki gün"
+                className="focus-ring rounded-btn text-body hover:bg-elevated flex size-11 items-center justify-center"
+              >
+                <ChevronRight className="size-5" aria-hidden="true" />
+              </Link>
+            ) : (
+              <span className="size-11" aria-hidden="true" />
+            )}
           </div>
+
+          {ozet.toplam === 0 ? (
+            <section className="rounded-card border-line bg-surface flex flex-col items-center gap-4 border p-6 text-center">
+              <p className="text-primary font-semibold">Henüz alışkanlık yok</p>
+              <p className="text-muted text-sm">
+                Her gün işaretleyeceğin listeyi tek dokunuşla ekleyebilir ya da kendin
+                oluşturabilirsin.
+              </p>
+              <OnerilenAliskanliklar />
+              <Link
+                href="/panel/hayat/aliskanliklar/yeni"
+                className="text-accent text-sm font-medium"
+              >
+                Kendim ekleyeceğim
+              </Link>
+            </section>
+          ) : (
+            <>
+              {/* ── İLERLEME ───────────────────────────────────────────── */}
+              <div className="flex flex-col gap-2">
+                <div className="flex items-baseline justify-between">
+                  <span className="text-muted text-sm">İlerleme</span>
+                  <span className="tabular text-primary text-sm font-semibold">
+                    {ozet.yapildi} / {ozet.toplam} · %{oran}
+                  </span>
+                </div>
+                <div
+                  role="progressbar"
+                  aria-valuenow={oran}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label={`${etiket} ilerleme`}
+                  className="bg-elevated h-2.5 overflow-hidden rounded-full"
+                >
+                  <div
+                    className={cn(
+                      'h-full rounded-full transition-[width] duration-500',
+                      oran === 100 ? 'bg-success' : 'bg-accent',
+                    )}
+                    style={{ width: `${oran}%` }}
+                  />
+                </div>
+              </div>
+
+              <GunlukListe gun={gun} items={liste.items} />
+
+              <GunRaporu liste={liste} etiket={etiket} />
+            </>
+          )}
         </div>
       </main>
     </>
+  );
+}
+
+/**
+ * "Günün raporu" — sahibinin istediği dil: "bugün bunu yapmadın, bunu eksik
+ * yaptın". İşaretlenmemişler AYRI: "yapmadın" demek, söylenmemiş bir şeyi
+ * iddia etmek olurdu.
+ */
+function GunRaporu({ liste, etiket }: { liste: GunlukListeDto; etiket: string }) {
+  const { items, ozet } = liste;
+  const yapilmadi = items.filter((i) => i.durum === 'YAPILMADI');
+  const eksik = items.filter((i) => i.durum === 'EKSIK');
+  const isaretsiz = items.filter((i) => i.durum === 'ISARETSIZ');
+  const gecmis = liste.gun < liste.bugun;
+  const zaman = etiket === 'Bugün' ? 'bugün' : etiket === 'Dün' ? 'dün' : 'o gün';
+
+  return (
+    <section
+      aria-labelledby="gun-raporu"
+      className="rounded-card border-line bg-surface flex flex-col gap-3 border p-4"
+    >
+      <h2 id="gun-raporu" className="text-primary text-base font-semibold">
+        Günün raporu
+      </h2>
+
+      {ozet.yapildi === ozet.toplam ? (
+        <p className="text-success text-sm font-medium">
+          Tebrikler — {zaman} hepsini tamamladın. 🎉
+        </p>
+      ) : (
+        <ul className="text-body flex flex-col gap-2 text-sm">
+          {yapilmadi.length > 0 && (
+            <li>
+              <span className="text-danger font-medium">Yapmadın: </span>
+              {yapilmadi.map((i) => i.name).join(', ')}
+            </li>
+          )}
+          {eksik.length > 0 && (
+            <li>
+              <span className="text-warning font-medium">Eksik kaldı: </span>
+              {eksik.map((i) => `${i.name} (${i.count}/${i.targetPerDay})`).join(', ')}
+            </li>
+          )}
+          {isaretsiz.length > 0 && (
+            <li>
+              <span className="text-muted font-medium">
+                {gecmis ? 'İşaretlenmedi: ' : 'Sırada: '}
+              </span>
+              {isaretsiz.map((i) => i.name).join(', ')}
+            </li>
+          )}
+          {ozet.yapildi > 0 && (
+            <li className="text-muted">{ozet.yapildi} alışkanlığı tamamladın.</li>
+          )}
+        </ul>
+      )}
+
+      <Link href="/panel/hayat/rapor" className="text-accent w-fit text-sm font-medium">
+        Haftalık / aylık rapor →
+      </Link>
+    </section>
   );
 }

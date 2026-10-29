@@ -251,7 +251,7 @@ const KAPSAM: Record<string, KapsamBeyani> = {
   '/panel/hayat': {
     kapilar: ['e2e'],
     kanit: ["page.goto('/panel/hayat'"],
-    not: "ÖLÇÜLÜYOR (T-116): bugünün hücresi `aria-pressed` false→true, YENİLEMEDEN SONRA da true (kalıcı yazma, iyimser değil); ikinci tık false ve o da kalıcı; ızgara 360 px'te sayfayı taşırmıyor (T-116'da 252 px taşıyordu — kaydırma kabında `relative` eksikti). T-115 ile eklendi (ADR-036). Kimlik zinciri `(panel)` düzeni + ara katman + §8.1 2FA kapısı; `robots: noindex/nofollow/nocache`. ÜÇ PARALEL OKUMA: `fetchHabitWeek(gün)` (pazartesi başlangıçlı 7 gün + bugünden geriye 400 günlük seri penceresi), `fetchGoals({status:'ACTIVE', perPage:5})`, `fetchJournalEntries({perPage:5})` — liste DTO'su, `content` TAŞIMIYOR. `?hafta=` `dayDateSchema.safeParse` ile doğrulanıyor; geçersiz ya da GELECEKTEKİ gün `appToday()`ye düşüyor (ADR-032). Yazma panodaki hücrelerden `toggleHabitDayAction` (aç/kapa ya da +1) ve `setHabitDayCountAction` (sayaçlı alışkanlıkta −1 düzeltme). Hücre İYİMSER güncelleniyor, sunucunun döndürdüğü `count` ile kesinleşiyor, hatada geri dönüyor + `FormAlert`; seri iyimser HESAPLANMIYOR, başarıdan sonra `router.refresh()`. Gelecek günler devre dışı. İstekteki hücre kilitli (aynı sekmede çift tık yarışı kapalı). ÖLÇÜLMEYEN: (1) İyimser güncellemenin GERİ ALMA dalı tarayıcıda denenmedi. (2) Başka sekmeden gelen eşzamanlı artırma yarışı (servis kabul etti) arayüzden denenmedi. (3) Ekran okuyucu duyurusu (`aria-pressed`) gerçek bir okuyucuyla denenmedi. (4) Gece 00:00–03:00 'bugün' sınırı arayüzden denenmedi.",
+    not: "2026-10-29'da günlük listeye çevrildi (ADR-048 eki). ÖLÇÜLÜYOR (e2e, panel-kisisel): '<ad>: yaptım' `aria-pressed` false→true ve YENİLEMEDEN SONRA da true; 'yapmadım' 'yaptım'ı kaldırıyor ve kalıcı; yeniden dokunuş temizliyor; 360 px'te yatay taşma yok. Okuma `fetchHabitDay(gün)` (sahibinin sırası, eklendiği günden önceki alışkanlık yok); `?gun=` `dayDateSchema` ile doğrulanıyor, gelecek gün bugüne düşüyor. Yazma `setHabitDayStatusAction` (YAPTIM/YAPMADIM/TEMIZLE) ve sayılıda `setHabitDayCountAction`; iyimser, hatada geri dönüyor. Boş listede `createSuggestedHabitsAction`. ÖLÇÜLMEYEN: (1) sayaç (−/+) arayüzden denenmedi. (2) iyimser geri alma dalı tarayıcıda denenmedi. (3) gece 00:00–03:00 'bugün' sınırı.",
   },
   '/panel/hayat/aliskanliklar': {
     kapilar: ['e2e'],
@@ -271,7 +271,12 @@ const KAPSAM: Record<string, KapsamBeyani> = {
   '/panel/hayat/hedefler': {
     kapilar: ['kapsanmiyor'],
     kanit: [],
-    not: "T-115 ile eklendi. Okuma `fetchGoals` (sayfa boyutu SABİT 25); filtre `goalFilterSchema`dan geçiyor — durum sekmeleri KAPALI KÜME, `?q=` düz GET formu. Şema reddederse aramasız listeye düşülüyor ve ekranda SÖYLENİYOR. Kalan gün rozeti yalnızca ACTIVE/PAUSED hedefte (kapalı hedefte 'gecikti' yanlış alarm olurdu). Yazma satırdan `deleteGoalAction` (GERÇEK silme, FK yok). ÖLÇÜLMEYEN: (1) `kalanGunMetni` metin dönüşümü birim testinde değil. (2) Arama Türkçe İ/ı davranışı denenmedi.",
+    not: "2026-10-29'da yeniden yazıldı: haftalık/aylık/yıllık sekmeler (`?donem=`, `?anahtar=`), dönem anahtarı `donemAnahtariGecerliMi` ile süzülüyor — geçersizse bugünün dönemi. Hızlı ekleme `createGoalAction` (dönem + anahtar), tamamlama `updateGoalAction` (ACHIEVED/100), silme iki dokunuşla `deleteGoalAction`. Uzun vadeli sekme eski liste (`uzunVadeli` filtresi). Dönem hesabı `tests/unit/services/donem.test.ts`te. ÖLÇÜLMEYEN: arayüz akışı e2e'de yok.",
+  },
+  '/panel/hayat/rapor': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: "2026-10-29'da eklendi. Okuma `fetchHabitReport` (son 7/30 gün, `?aralik=30`); dört durum (yapıldı/eksik/yapılmadı/işaretlenmedi) ve 'alışkanlık eklendiği günden önce sayılmaz' kuralı `tests/unit/services/habit-gun.test.ts`te. Yazma yok. ÖLÇÜLMEYEN: ekran e2e'de yok.",
   },
   '/panel/hayat/hedefler/yeni': {
     kapilar: ['kapsanmiyor'],

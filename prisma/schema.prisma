@@ -114,6 +114,14 @@ enum GoalStatus {
 
 /// Hedef kategorisi — Backend önerisi (ADR-020, T-010 sözleşmesi).
 /// Panel modülleriyle (§1.B) hizalı seçildi.
+/// Hedefin dönemi (2026-10-29). Boşsa uzun vadeli hedef (eski davranış).
+/// Günlük hedefler AYRI bir kavram değil: her gün tekrarlanan şey alışkanlıktır.
+enum GoalPeriod {
+  WEEKLY
+  MONTHLY
+  YEARLY
+}
+
 enum GoalCategory {
   CAREER
   FINANCE
@@ -649,6 +657,8 @@ model Habit {
   targetPerDay  Int?
   color         String?
   icon          String?
+  /// Günlük listedeki sıra (küçük önce) — sahibi "sırasıyla" işaretliyor.
+  order         Int     @default(0)
   isActive      Boolean @default(true)
   /// Referans veri: silinmez, arşivlenir (ADR-017).
   isArchived    Boolean @default(false)
@@ -671,8 +681,11 @@ model HabitLog {
   habit   Habit  @relation(fields: [habitId], references: [id], onDelete: Cascade)
 
   /// Gün semantiği (ADR-016). Streak hesabı zaman dilimi yardımcısından geçer.
-  date  DateTime @db.Date
-  count Int      @default(1)
+  date   DateTime @db.Date
+  count  Int      @default(1)
+  /// AÇIK "yapmadım" işareti (2026-10-29). `count = 0` + `missed = true`:
+  /// kullanıcı o gün yapmadığını SÖYLEDİ — satır yoksa "işaretlenmemiş".
+  missed Boolean  @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -694,12 +707,17 @@ model Goal {
   /// 0–100. Zod ile `min(0).max(100)` bağlanır (T-011).
   progress    Int          @default(0)
   status      GoalStatus   @default(ACTIVE)
+  /// Dönemli hedef (haftalık/aylık/yıllık) — boşsa uzun vadeli.
+  period      GoalPeriod?
+  /// Dönem anahtarı: `2026-W44` · `2026-10` · `2026`. `period` ile birlikte dolu.
+  periodKey   String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([status, targetDate])
   @@index([category])
+  @@index([period, periodKey])
   @@map("goal")
 }
 

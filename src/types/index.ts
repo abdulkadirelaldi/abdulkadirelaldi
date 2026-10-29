@@ -26,6 +26,7 @@ export {
   Equipment,
   ExperienceType,
   GoalCategory,
+  GoalPeriod,
   GoalStatus,
   MuscleGroup,
   SkillCategory,

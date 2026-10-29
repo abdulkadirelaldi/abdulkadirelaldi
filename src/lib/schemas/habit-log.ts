@@ -30,6 +30,17 @@ export const toggleHabitLogSchema = z.object({
   date: dayDateSchema,
 });
 
+/**
+ * Günlük listedeki tek dokunuş (2026-10-29): YAPTIM (sayılı alışkanlıkta
+ * hedefe tamamlar), YAPMADIM (açık işaret — satır kalır), TEMİZLE (işareti
+ * kaldırır).
+ */
+export const setHabitDayStatusSchema = z.object({
+  habitId: cuidSchema,
+  date: dayDateSchema,
+  durum: z.enum(['YAPTIM', 'YAPMADIM', 'TEMIZLE'], { error: 'Geçersiz işaret.' }),
+});
+
 export const habitLogFilterSchema = paginationSchema.extend({
   habitId: cuidSchema.optional(),
   from: dayDateSchema.optional(),
@@ -40,3 +51,4 @@ export type CreateHabitLogInput = z.infer<typeof createHabitLogSchema>;
 export type UpdateHabitLogInput = z.infer<typeof updateHabitLogSchema>;
 export type ToggleHabitLogInput = z.infer<typeof toggleHabitLogSchema>;
 export type HabitLogFilterInput = z.infer<typeof habitLogFilterSchema>;
+export type SetHabitDayStatusInput = z.infer<typeof setHabitDayStatusSchema>;

@@ -32,6 +32,8 @@ const habitBase = z.object({
     .regex(/^#[0-9a-fA-F]{6}$/, { error: 'Renk #RRGGBB biçiminde olmalıdır.' })
     .optional(),
   icon: shortTextSchema.optional(),
+  /** Günlük listedeki sıra — küçük önce (2026-10-29). */
+  order: z.number().int().min(0).max(999).default(0),
   isActive: z.boolean().default(true),
 });
 
@@ -64,3 +66,11 @@ export type CreateHabitInput = z.infer<typeof createHabitSchema>;
 export type UpdateHabitInput = z.infer<typeof updateHabitSchema>;
 export type ArchiveHabitInput = z.infer<typeof archiveHabitSchema>;
 export type HabitFilterInput = z.infer<typeof habitFilterSchema>;
+
+/** Listede bir basamak yukarı/aşağı taşı — sıralamayı elle numara yazmadan değiştirir. */
+export const moveHabitSchema = z.object({
+  id: cuidSchema,
+  yon: z.enum(['yukari', 'asagi']),
+});
+
+export type MoveHabitInput = z.infer<typeof moveHabitSchema>;
