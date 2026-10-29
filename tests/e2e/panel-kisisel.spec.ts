@@ -185,7 +185,8 @@ test.describe('F5 · spor', () => {
     await page.goto(antrenmanAdresi);
     await page.getByRole('button', { name: 'Sil', exact: true }).click();
     await page.getByRole('button', { name: 'Evet, sil' }).click();
-    await page.waitForURL(/\/panel\/spor$/);
+    // 2026-10-30: silme sonrası eski liste `/panel/spor/gecmis`te.
+    await page.waitForURL(/\/panel\/spor\/gecmis$/);
 
     await page.goto('/panel/spor/rekorlar');
     await expect(page.getByRole('row').filter({ hasText: hareket })).toHaveCount(0);
