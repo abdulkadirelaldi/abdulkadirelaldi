@@ -1,34 +1,19 @@
 'use client';
 
-import {
-  Archive,
-  ArchiveRestore,
-  Briefcase,
-  Check,
-  Copy,
-  Mail,
-  MailOpen,
-  ShieldAlert,
-  ShieldCheck,
-} from 'lucide-react';
+import { Archive, ArchiveRestore, Mail, MailOpen, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, type ReactNode } from 'react';
 
-import { Alan } from '@/components/panel/alan';
-import { FormKabugu, usePanelForm } from '@/components/panel/panel-form';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { FormAlert } from '@/components/ui/form-error';
-import { Input } from '@/components/ui/input';
-import { convertMessageToJobSchema, type ConvertMessageToJobInput } from '@/lib/schemas/job';
 import {
   archiveContactMessageAction,
   markContactMessageReadAction,
   markContactMessageSpamAction,
   unarchiveContactMessageAction,
 } from '@/server/actions/contact-message';
-import { convertMessageToJobAction } from '@/server/actions/job';
 import type { ContactMessageDto } from '@/server/services/contact-message';
 import type { ApiResponse } from '@/types';
 
@@ -128,7 +113,6 @@ export function MesajDetay({ mesaj }: { mesaj: ContactMessageDto }) {
               {mesaj.isSpam && <Badge variant="danger">Spam</Badge>}
               {mesaj.honeypotHit && <Badge variant="warning">Tuzak alanı dolduruldu</Badge>}
               {mesaj.archivedAt && <Badge variant="neutral">Arşivlenmiş</Badge>}
-              {mesaj.convertedJobId && <Badge variant="success">İşe dönüştü</Badge>}
             </div>
           </div>
 
@@ -231,7 +215,6 @@ export function MesajDetay({ mesaj }: { mesaj: ContactMessageDto }) {
       </Card>
 
       <SpamOlcumu mesaj={mesaj} />
-      <IseDonustur mesaj={mesaj} />
     </div>
   );
 }
@@ -328,180 +311,5 @@ function SpamOlcumu({ mesaj }: { mesaj: ContactMessageDto }) {
         </div>
       </CardContent>
     </Card>
-  );
-}
-
-/**
- * İŞE DÖNÜŞTÜRME — §6'nın kritik ilişkisinin görünen yüzü.
- *
- * ═══════════════════════════════════════════════════════════════════════════
- * İKİ SONUÇ, İKİ AYRI CÜMLE
- * ═══════════════════════════════════════════════════════════════════════════
- *
- * `client.created` müşterinin bu çağrıda mı açıldığını söylüyor. İki durumu
- * tek cümleyle bildirmek ("müşteriye bağlandı") en önemli bilgiyi yutardı:
- * MEVCUT bir kayda bağlanıldığında kullanıcı, beklemediği bir müşteriye
- * bağlandığını fark edebilmeli — e-posta eşleşmesi üzerinden bağlanıyor ve
- * aynı kişinin iki farklı işi olabilir.
- *
- * ═══════════════════════════════════════════════════════════════════════════
- * "İŞİ GÖSTER" BAĞLANTISI YOK — KİMLİK VAR
- * ═══════════════════════════════════════════════════════════════════════════
- *
- * İş ekranları F4'te gelecek; `/panel/isler` henüz `hazir` değil. Oraya
- * bağlantı koymak, tıklanınca 404 veren bir düğme olurdu (T-018'in dersi).
- * Bunun yerine iş kimliği kopyalanabilir olarak gösteriliyor — kopyalama
- * GERÇEKTEN çalışan bir eylem ve kimliği elinde olan kullanıcı kaydı bulabilir.
- * `fields.jobId` böylece yutulmadan kullanılmış oluyor. F4'te bu blok
- * bağlantıya dönüşecek; metin de o zamana kadar söz vermiyor.
- */
-function IseDonustur({ mesaj }: { mesaj: ContactMessageDto }) {
-  const router = useRouter();
-  const [sonucMetni, setSonucMetni] = useState<string | null>(null);
-  const [catismaMetni, setCatismaMetni] = useState<string | null>(null);
-  const [isKimligi, setIsKimligi] = useState<string | null>(mesaj.convertedJobId);
-
-  const kaydet = async (degerler: ConvertMessageToJobInput) => {
-    const sonuc = await convertMessageToJobAction(degerler);
-
-    if (sonuc.ok) {
-      const { job, client } = sonuc.data;
-      setIsKimligi(job.id);
-      setSonucMetni(
-        client.created
-          ? `“${job.title}” işi açıldı ve ${client.name} için YENİ bir müşteri kaydı oluşturuldu.`
-          : `“${job.title}” işi açıldı ve MEVCUT müşteri kaydına bağlandı: ${client.name}${
-              client.email ? ` (${client.email})` : ''
-            }. Beklediğin kayıt bu değilse e-posta eşleşmesini kontrol et.`,
-      );
-      router.refresh();
-    } else if (sonuc.error.code === 'CONFLICT') {
-      /*
-       * ÇATIŞMA MESAJI ELLE BASILIYOR — ÖLÇÜMLE EKLENDİ.
-       *
-       * `usePanelForm` sunucunun `fields` anahtarlarını forma basıyor ve
-       * Backend burada `contactMessageId` gönderiyor. O alan formda VAR ama
-       * GİZLİ (`<input type="hidden">`), yani hata "basıldı" sayılıp form
-       * düzeyindeki uyarı hiç gösterilmiyordu: iki sekmeli yarış denemesinde
-       * kullanıcı başlığı yazıp düğmeye basıyor, aşağıda bir kutu beliriyor ve
-       * NEDEN belirdiğini söyleyen tek cümle ekranda olmuyordu.
-       *
-       * Kabuk suçlu değil — görünmez bir alana hata basmak onun bilebileceği
-       * bir şey değil. Çözüm bu ekranın kendi sorumluluğu: çatışmayı ayrı bir
-       * bildirimle söylüyoruz.
-       */
-      setCatismaMetni(sonuc.error.message);
-
-      /* `fields.jobId` — Backend bunu "işi göster" kurabilelim diye koyuyor. */
-      const kimlik = sonuc.error.fields?.jobId;
-      if (kimlik) setIsKimligi(kimlik);
-
-      router.refresh();
-    }
-
-    return sonuc;
-  };
-
-  const { form, durum, formHatasi, gonder } = usePanelForm<ConvertMessageToJobInput>({
-    sema: convertMessageToJobSchema,
-    varsayilanDegerler: { contactMessageId: mesaj.id, title: mesaj.subject ?? '' },
-    kaydet,
-  });
-
-  const {
-    register,
-    formState: { errors },
-  } = form;
-
-  return (
-    <Card>
-      <CardContent className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1">
-          <CardTitle seviye="h2">İşe dönüştür</CardTitle>
-          <p className="text-muted text-sm">
-            Mesajdan bir iş kartı açar ve göndereni müşteri kaydına bağlar. Bir mesaj yalnızca bir
-            işe dönüşebilir.
-          </p>
-        </div>
-
-        {sonucMetni && (
-          <p
-            role="status"
-            className="rounded-input border-success/40 bg-success/8 text-success border px-3 py-2.5 text-sm"
-          >
-            {sonucMetni}
-          </p>
-        )}
-
-        {catismaMetni && <FormAlert>{catismaMetni}</FormAlert>}
-
-        {isKimligi && <IsKimligi kimlik={isKimligi} />}
-
-        {!isKimligi && (
-          <FormKabugu
-            gonder={gonder}
-            durum={durum}
-            formHatasi={formHatasi}
-            basariMetni="İş kartı oluşturuldu."
-            gonderEtiketi="İş kartı oluştur"
-          >
-            <input type="hidden" {...register('contactMessageId')} />
-
-            <Alan
-              id="title"
-              etiket="İş başlığı"
-              hata={errors.title?.message}
-              yardim="Mesajın konusu önerildi; istediğin gibi değiştirebilirsin."
-            >
-              {(b) => <Input id="title" {...b} {...register('title')} />}
-            </Alan>
-          </FormKabugu>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-/** İş kimliği — kopyalanabilir. Bağlantı DEĞİL (yukarıdaki nota bakınız). */
-function IsKimligi({ kimlik }: { kimlik: string }) {
-  const [kopyalandi, setKopyalandi] = useState(false);
-
-  return (
-    <div className="border-line bg-elevated/40 rounded-card flex flex-wrap items-center gap-3 border p-4">
-      <Briefcase className="text-muted size-5 shrink-0" aria-hidden="true" />
-
-      <div className="flex min-w-0 flex-col gap-0.5">
-        <p className="text-primary text-sm font-medium">Bu mesaj bir iş kartına dönüştürülmüş</p>
-        <p className="tabular text-muted text-xs break-all">{kimlik}</p>
-      </div>
-
-      <Button
-        variant="ghost"
-        size="sm"
-        className="ml-auto"
-        onClick={() => {
-          void navigator.clipboard.writeText(kimlik).then(
-            () => {
-              setKopyalandi(true);
-              setTimeout(() => setKopyalandi(false), 2000);
-            },
-            () => setKopyalandi(false),
-          );
-        }}
-      >
-        {kopyalandi ? (
-          <Check className="size-4" aria-hidden="true" />
-        ) : (
-          <Copy className="size-4" aria-hidden="true" />
-        )}
-        {kopyalandi ? 'Kopyalandı' : 'Kimliği kopyala'}
-      </Button>
-
-      {/* İş ekranı F4'te gelecek — buraya bağlantı koymak 404 üretirdi. */}
-      <p className="text-muted basis-full text-xs">
-        İş kartı ekranı henüz yok (F4). Kart açıldı ve duruyor; görüntülemek için gereken ekran
-        geldiğinde bu kutu bağlantıya dönüşecek.
-      </p>
-    </div>
   );
 }

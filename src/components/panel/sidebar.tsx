@@ -117,7 +117,7 @@ export function Sidebar() {
           />
 
           {/*
-            `id="panel-menu"` — BULGU-021. `MenuDugmesi`
+            `id="panel-menu"` — BULGU-021. Alt sekmelerdeki "Daha" düğmesi (eskiden `MenuDugmesi`)
             `aria-controls="panel-menu"` ilan ediyordu ama o kimlik HİÇBİR
             YERDE yoktu: ekran okuyucu çözülmeyen bir ilişki duyuruyordu.
             Kimlik ÇEKMECENİN KENDİSİNDE, çünkü düğmenin açtığı şey bu.
@@ -134,7 +134,7 @@ export function Sidebar() {
             role="dialog"
             aria-modal="true"
             aria-label="Panel menüsü"
-            className="border-line bg-surface absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col gap-6 overflow-y-auto border-r p-4"
+            className="border-line bg-surface absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col gap-6 overflow-y-auto border-r p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]"
           >
             <div className="flex items-center justify-between">
               <Link
@@ -155,6 +155,14 @@ export function Sidebar() {
             </div>
 
             <MenuIcerigi pathname={pathname} />
+
+            {/* Telefonda üst çubukta "Siteye dön" yok (yer darlığı) — burada. */}
+            <Link
+              href="/"
+              className="focus-ring rounded-btn border-line text-body hover:text-primary mt-auto border px-3 py-2.5 text-center text-sm"
+            >
+              Siteye dön
+            </Link>
           </div>
         </div>
       )}

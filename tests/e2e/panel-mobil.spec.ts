@@ -30,7 +30,7 @@ import { applySessionCookie } from './_helpers/session';
  * ulaşılıyor mu, nerede olduğum görünüyor mu, tablo sayfayı taşırıyor mu.
  */
 
-/** `lg` kırılma noktası (Tailwind varsayılanı) — menü düğmesi bunun altında var. */
+/** `lg` kırılma noktası (Tailwind varsayılanı) — alt sekmeler bunun altında var. */
 const LG_ESIGI = 1024;
 
 async function panelOturumu(page: Page, baseURL: string | undefined): Promise<void> {
@@ -54,12 +54,19 @@ test.describe('§9/7 · panel mobil gezinmesi', () => {
 
     await page.goto('/panel/icerik/projeler');
 
-    const menuDugmesi = page.getByRole('button', { name: 'Menüyü aç' });
+    /*
+     * 2026-10-29 (ADR-048): telefonda hamburger yerine ALT SEKME ÇUBUĞU var;
+     * çekmeceyi sekmelerdeki "Daha" düğmesi açıyor. Aynı ölçümler (aria-expanded,
+     * aria-controls hedefi, gezinince kapanma) o düğme üzerinden.
+     */
+    const menuDugmesi = page.getByRole('button', { name: 'Daha', exact: true });
+    const altSekmeler = page.getByRole('navigation', { name: 'Ana sekmeler' });
     const kenarCubugu = page.getByRole('navigation', { name: 'Panel menüsü' });
 
     if (mobil) {
       /* ---- MOBİL: menüye ulaşılabiliyor mu -------------------------- */
-      await expect(menuDugmesi, 'mobilde menü düğmesi görünmeli').toBeVisible();
+      await expect(altSekmeler, 'mobilde alt sekme çubuğu görünmeli').toBeVisible();
+      await expect(menuDugmesi, 'mobilde "Daha" düğmesi görünmeli').toBeVisible();
       await expect(menuDugmesi).toHaveAttribute('aria-expanded', 'false');
 
       await menuDugmesi.click();
@@ -111,7 +118,7 @@ test.describe('§9/7 · panel mobil gezinmesi', () => {
       await expect(cekmece, 'gezinince çekmece kapanmalı').toBeHidden();
     } else {
       /* ---- MASAÜSTÜ: düğme YOK, kenar çubuğu zaten duruyor ---------- */
-      await expect(menuDugmesi, 'masaüstünde menü düğmesi gizli olmalı (lg:hidden)').toBeHidden();
+      await expect(altSekmeler, 'masaüstünde alt sekmeler gizli olmalı (lg:hidden)').toBeHidden();
       await expect(kenarCubugu.first(), 'masaüstünde kenar çubuğu görünür olmalı').toBeVisible();
 
       await page.goto('/panel/mesajlar');

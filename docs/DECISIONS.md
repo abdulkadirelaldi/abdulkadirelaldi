@@ -2584,3 +2584,20 @@ Sahibi ADR-045 dilini "çok şablon gibi, yapmacık" buldu ve "daha kurumsal, pr
 ### Ek (2026-10-28) — ölçülü hareket
 
 Sahibi "hiç animasyon yok, biraz dinamik olsun" dedi. Eklenenler: hero öğelerinin 60–300 ms arayla belirmesi (LCP `<h1>` yalnızca kayar, opaklık yok); bölüm başlıkları ve kartların ekrana girerken kademeli belirmesi (`BolumGiris`); kart, düğme ve çiplerde üzerine gelme geçişleri; menü alt çizgisinin soldan dolması; istatistiklerin ekrana girince sayması (`sayac.tsx`, framer-motion yok, sunucu son değeri basar); "Şu an" noktasının nabzı; kaydırmaya bağlı okuma ilerleme çubuğu (saf CSS). Hepsi `prefers-reduced-motion`a tabi.
+
+---
+
+## ADR-048 — Panel Kişisel ve Telefon Öncelikli: İş/Müşteri/Muhasebe Kaldırıldı
+
+**Durum:** Kabul edildi · 2026-10-29 · **Kapsar:** panel (`src/app/(panel)`, `components/panel`, servisler, şema) · **Değiştirir:** ADR-017 (iş/müşteri), ADR-014/015/040'ın muhasebe uygulamaları, T-117 (müşteri logosu)
+
+### Bağlam
+
+Sahibi iş yönetimini Kıyı Medya'nın kendi panelinden yürütüyor; bu panelin kişisel olmasını ve "genelde telefondan" (iPhone 13 Pro Max) kullanılacağı için uygulama gibi olmasını istedi. Planlanan bölümler: Cüzdan (muhasebenin yerine), Sağlık (tartı görüntüsü + Claude API yorumu), Spor (program + antrenman oturumu), Hayat (alışkanlık + dönemsel hedefler).
+
+### Karar
+
+1. **Kaldırıldı:** İşler, Müşteriler, Muhasebe (işlem, kategori, tekrarlayan, rapor, CSV dışa aktarma), mesajı işe dönüştürme, müşteri logosu şeridi. Göç `20261029120000_is_modullerini_kaldir` beş tabloyu ve dört enum'u düşürür — üretimde tablolar BOŞTU (sayıldı).
+2. **Korundu:** `money.ts` (Cüzdan), ay/yıl/hafta tarih yardımcıları (Hayat hedefleri) — `servis-ulasilabilirlik` kapısında "bekleyen" olarak bildirildi.
+3. **Telefon kabuğu:** alt sekme çubuğu (Bugün · Hayat · Spor · Sağlık · Daha), "Daha" mevcut çekmeceyi açar; masaüstünde yan menü. `viewportFit: cover` + güvenli alan payları; "Ana Ekrana Ekle" için `/ae-panel.webmanifest` (adı `/panel` ile başlamaz — middleware oturuma bağlardı) ve `appleWebApp`. Dokunmatik ekranda form alanları ≥16 px (iOS yakınlaştırması).
+4. **Ana ekran "Bugün":** alışkanlık ilerlemesi, son tartı, son antrenman, okunmamış mesaj.

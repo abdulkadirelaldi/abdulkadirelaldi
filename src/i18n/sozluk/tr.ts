@@ -61,9 +61,6 @@ export const tr = {
     cv: 'CV',
     cta: 'Benimle çalış',
   },
-  seritler: {
-    ekipler: 'Birlikte çalıştığım ekipler',
-  },
   hakkimdaBolum: {
     baslik: 'Hakkımda',
     devam: 'Hikâyemin devamı',
@@ -251,7 +248,6 @@ export const tr = {
     sayfayiAc: 'CV sayfasını aç',
   },
   hizmetlerSayfa: {
-    ekipler: 'Birlikte çalıştığım ekipler',
     kiyiBaslik: 'Ticari işler Kıyı Medya üzerinden',
     kiyiAciklama:
       'Teklif, sözleşme ve faturalandırma Kıyı Medya çatısı altında yürüyor. Aklındaki iş ticari bir işse oradan başlamak en hızlısı; kişisel bir soru ya da fikir alışverişiyse doğrudan bana yazabilirsin.',

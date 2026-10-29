@@ -34,7 +34,6 @@ const SATIR = {
   repliedAt: null,
   archivedAt: null,
   createdAt: AN,
-  convertedJob: null as { id: string } | null,
 };
 
 function istemci(satirlar = [SATIR], sayilar = [1, 1]) {
@@ -177,20 +176,6 @@ describe('fetchContactMessages', () => {
     const { client } = istemci([{ ...SATIR, message: 'Kısa\n\nmesaj' }]);
     const sayfa = await fetchContactMessages(filtre(), client);
     expect(sayfa.items[0]?.preview).toBe('Kısa mesaj');
-  });
-
-  it('convertedJob ilişkisi DÜZLEŞTİRİLİYOR — Frontend iki seviye kontrol etmesin', async () => {
-    const { client } = istemci([{ ...SATIR, convertedJob: { id: 'is_1' } }]);
-    const sayfa = await fetchContactMessages(filtre(), client);
-
-    expect(sayfa.items[0]?.convertedJobId).toBe('is_1');
-    expect(sayfa.items[0]).not.toHaveProperty('convertedJob');
-  });
-
-  it('dönüştürülmemiş mesajda convertedJobId null', async () => {
-    const { client } = istemci();
-    const sayfa = await fetchContactMessages(filtre(), client);
-    expect(sayfa.items[0]?.convertedJobId).toBeNull();
   });
 
   it('unreadCount FİLTREDEN BAĞIMSIZ hesaplanıyor', async () => {

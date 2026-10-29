@@ -4,10 +4,8 @@ import {
   createProjectSchema,
   updateExperienceSchema,
   updateGoalSchema,
-  updateJobSchema,
   updatePostSchema,
   updateProjectSchema,
-  updateRecurringTransactionSchema,
 } from '@/lib/schemas';
 
 /**
@@ -20,32 +18,6 @@ import {
  */
 
 const ID = 'clx0000000000000000000001';
-
-describe('updateJobSchema — kur ve tarih', () => {
-  it('yalnızca para birimi gönderilirse kural ATLANIR (kur bilinmiyor)', () => {
-    expect(updateJobSchema.safeParse({ id: ID, currency: 'USD' }).success).toBe(true);
-  });
-
-  it('yalnızca kur gönderilirse kural ATLANIR (para birimi bilinmiyor)', () => {
-    expect(updateJobSchema.safeParse({ id: ID, fxRate: '34.5' }).success).toBe(true);
-  });
-
-  it('ikisi birlikte tutarsızsa REDDEDİLİR', () => {
-    expect(updateJobSchema.safeParse({ id: ID, currency: 'TRY', fxRate: '34.5' }).success).toBe(
-      false,
-    );
-  });
-
-  it('yalnızca teslim tarihi gönderilirse kural atlanır', () => {
-    expect(updateJobSchema.safeParse({ id: ID, dueDate: '2026-01-01' }).success).toBe(true);
-  });
-
-  it('iki tarih birlikte ters ise reddedilir', () => {
-    expect(
-      updateJobSchema.safeParse({ id: ID, startDate: '2026-09-01', dueDate: '2026-08-01' }).success,
-    ).toBe(false);
-  });
-});
 
 describe('updateProjectSchema / updatePostSchema — SCHEDULED', () => {
   it('SCHEDULED + tarih yok → reddedilir', () => {
@@ -116,24 +88,6 @@ describe('updateGoalSchema — ACHIEVED ↔ progress', () => {
   });
 });
 
-describe('updateRecurringTransactionSchema — tarih sırası', () => {
-  it('yalnızca bitiş gönderilirse atlanır', () => {
-    expect(
-      updateRecurringTransactionSchema.safeParse({ id: ID, endDate: '2026-01-01' }).success,
-    ).toBe(true);
-  });
-
-  it('ters aralık reddedilir', () => {
-    expect(
-      updateRecurringTransactionSchema.safeParse({
-        id: ID,
-        startDate: '2026-09-01',
-        endDate: '2026-01-01',
-      }).success,
-    ).toBe(false);
-  });
-});
-
 describe('REGRESYON: kısmi güncelleme varsayılan ENJEKTE ETMEZ', () => {
   it('updateProjectSchema yalnızca gönderilen alanları döndürür', () => {
     // Düzeltmeden önce bu çıktı `status: 'DRAFT'`, `tags: []`, `featured: false`,
@@ -146,11 +100,6 @@ describe('REGRESYON: kısmi güncelleme varsayılan ENJEKTE ETMEZ', () => {
   it('updateGoalSchema yalnızca gönderilen alanları döndürür', () => {
     const parsed = updateGoalSchema.parse({ id: ID, title: 'Yeni hedef' });
     expect(parsed).toEqual({ id: ID, title: 'Yeni hedef' });
-  });
-
-  it('updateJobSchema yalnızca gönderilen alanları döndürür', () => {
-    const parsed = updateJobSchema.parse({ id: ID, title: 'Yeni iş' });
-    expect(parsed).toEqual({ id: ID, title: 'Yeni iş' });
   });
 
   it('create şemalarında varsayılanlar HÂLÂ uygulanır', () => {

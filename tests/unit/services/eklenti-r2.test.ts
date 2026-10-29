@@ -278,8 +278,6 @@ describe('⚠️ buildAttachmentKey', () => {
   it('⚠️ UZANTI DOĞRULANMIŞ MIME`DAN, istemciden DEĞİL', () => {
     // İstemci `.html` isterse diye bir yol yok: uzantı eşlemeden geliyor.
     expect(buildAttachmentKey('POST', 'p1', 'image/webp', 'r')).toBe('post/p1/r.webp');
-    expect(buildAttachmentKey('CLIENT', 'c1', 'application/pdf', 'r')).toBe('client/c1/r.pdf');
-    expect(buildAttachmentKey('JOB', 'j1', 'image/jpeg', 'r')).toBe('job/j1/r.jpg');
   });
 
   it('⚠️ YOL KAÇIŞI İMKÂNSIZ — anahtarın her parçası bizim', () => {

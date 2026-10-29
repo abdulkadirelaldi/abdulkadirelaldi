@@ -110,23 +110,6 @@ interface Eslesme {
 
 const ESLESMELER: Eslesme[] = [
   {
-    servis: 'src/server/services/report.ts',
-    model: 'Transaction',
-    alan: 'date',
-    beklenen: 'gun',
-    not:
-      'Dönem raporları takvim gününe göre süzülüyor. Sütun `@db.Date` olduğu sürece ' +
-      '`appDayToDate` doğru araç; zaman damgasına çevrilirse pencere 3 saat kayar ve ' +
-      'ayın ilk/son günü yanlış kovaya düşer.',
-  },
-  {
-    servis: 'src/server/services/job.ts',
-    model: 'Job',
-    alan: 'dueDate',
-    beklenen: 'gun',
-    not: '`dueDate` bir TERMİN GÜNÜ — saati yok. Aynı kural.',
-  },
-  {
     servis: 'src/server/services/health-log.ts',
     model: 'HealthLog',
     alan: 'date',
@@ -213,29 +196,6 @@ const ESLESMELER: Eslesme[] = [
       '`createdAt` ZORUNLU ve o bir `timestamp`, gün dönüşümünden geçmiyor.',
   },
   {
-    servis: 'src/server/services/recurring-transaction.ts',
-    model: 'RecurringTransaction',
-    alan: 'startDate',
-    beklenen: 'gun',
-    not:
-      'ADR-040 · oluşum takvimi `startDate` ÇAPASINDAN hesaplanıyor ve üretilen ' +
-      '`Transaction.date` yazılıyor. ÜÇÜ DE `@db.Date` (`startDate`, `endDate`, ' +
-      '`date`) — yani `appDayToDate`. ⚠️ `nextRunAt` ve `lastGeneratedAt` ise ' +
-      '`timestamp`: onlar bir AN bildiriyor ve gün dönüşümünden GEÇMİYOR, ' +
-      'doğrudan `Date` olarak yazılıyor. Aynı dosyada iki sütun ailesi var ve ' +
-      'ayrımı sütun tipi belirliyor (T-102 kuralı).',
-  },
-  {
-    servis: 'src/server/services/transaction.ts',
-    model: 'Transaction',
-    alan: 'date',
-    beklenen: 'gun',
-    not:
-      'İşlem listesi tarih aralığıyla süzülüyor. Dosyanın kendi yorumu öncülü ZATEN ' +
-      'yazıyor ("`date` bir `@db.Date` — yani `appDayToDate`"); bu satır o öncülü ' +
-      'ŞEMADAN doğruluyor, yoruma güvenmiyor.',
-  },
-  {
     servis: 'src/server/services/experience.ts',
     model: 'Experience',
     alan: 'startDate',
@@ -307,7 +267,7 @@ describe('ADR-037 — tarih kararının ÖNCÜLÜ: sütun tipi', () => {
     // Ayıklama bozulursa `takvimGunuMu(null)` hiç çağrılmaz ve aşağıdaki
     // iddialar "satır yok" diye yanlış sebeple kırılır/geçer.
     expect(SEMA.length).toBeGreaterThan(1000);
-    expect(alanSatiri(SEMA, 'Transaction', 'date'), 'Transaction.date bulunamadı').toBeTruthy();
+    expect(alanSatiri(SEMA, 'HealthLog', 'date'), 'HealthLog.date bulunamadı').toBeTruthy();
     expect(alanSatiri(SEMA, 'AuditLog', 'createdAt'), 'AuditLog.createdAt bulunamadı').toBeTruthy();
   });
 

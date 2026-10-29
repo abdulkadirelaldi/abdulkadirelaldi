@@ -88,7 +88,6 @@ export function MesajListesi({
           {m.isSpam && <Badge variant="danger">Spam</Badge>}
           {m.honeypotHit && <Badge variant="warning">Tuzak</Badge>}
           {m.archivedAt && <Badge variant="neutral">Arşiv</Badge>}
-          {m.convertedJobId && <Badge variant="success">İşe dönüştü</Badge>}
           {m.repliedAt && <Badge variant="info">Yanıtlandı</Badge>}
         </div>
       ),

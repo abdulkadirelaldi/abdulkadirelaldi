@@ -1,6 +1,7 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 
+import { AltSekmeler } from '@/components/panel/alt-sekmeler';
 import { PanelKabuk } from '@/components/panel/panel-kabuk';
 import { Sidebar } from '@/components/panel/sidebar';
 
@@ -15,7 +16,21 @@ import { Sidebar } from '@/components/panel/sidebar';
  */
 export const metadata: Metadata = {
   robots: { index: false, follow: false, nocache: true },
+  /*
+   * 2026-10-29 — panel iPhone'dan "Ana Ekrana Ekle" ile TAM EKRAN kullanılıyor.
+   * Bildirim dosyasının adı `/panel` ile BAŞLAMIYOR: middleware `/panel/*`ı
+   * oturuma bağlıyor, oturumsuz istek bildirimi alamazdı.
+   */
+  manifest: '/ae-panel.webmanifest',
+  appleWebApp: { capable: true, title: 'AE Panel', statusBarStyle: 'black-translucent' },
 };
+
+/**
+ * `viewportFit: 'cover'` — içerik çentiğin ve ana ekran çubuğunun altına
+ * uzanır, `env(safe-area-inset-*)` değerleri dolu gelir. Üst çubuk ve alt
+ * sekmeler bu payı kendileri bırakıyor.
+ */
+export const viewport: Viewport = { viewportFit: 'cover' };
 
 /**
  * `PanelKabuk` yalnızca MOBİL ÇEKMECENİN durumunu tutar (tek boolean). Kenar
@@ -36,7 +51,12 @@ export default function PanelLayout({ children }: { children: ReactNode }) {
 
         <Sidebar />
 
-        <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+        {/* Telefonda alt sekme çubuğu kadar pay (56 px + ana ekran çubuğu). */}
+        <div className="flex min-w-0 flex-1 flex-col pb-[calc(3.5rem+env(safe-area-inset-bottom))] lg:pb-0">
+          {children}
+        </div>
+
+        <AltSekmeler />
       </div>
     </PanelKabuk>
   );

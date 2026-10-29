@@ -1,4 +1,5 @@
-import type { Currency } from '@/types';
+/** Gösterilebilen para birimleri (Cüzdan'ın döviz kalemleri de bunlardan). */
+export type Currency = 'TRY' | 'USD' | 'EUR' | 'GBP';
 
 /**
  * PARA BİÇİMLENDİRME — ADR-014/D, KAYIPSIZ.
@@ -65,8 +66,7 @@ export function kurBicim(kur: string): string {
 /**
  * Tutar YOKSA ne yazılacağı — tek yerde.
  *
- * `agreedAmount` opsiyonel: anlaşma tutarı girilmemiş bir iş olabilir (aday
- * aşamasında normal). Boş hücre "tutar yok" ile "okunamadı"yı ayırmaz.
+ * Opsiyonel tutar alanlarında boş hücre "tutar yok" ile "okunamadı"yı ayırmaz.
  */
 export const TUTAR_YOK = '—';
 

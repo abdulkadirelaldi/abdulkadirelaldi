@@ -281,9 +281,11 @@ describe('ADR-014/3 — `Decimal` taşıyan her servis yüzeyi ölçülüyor', (
   const dogrudanKapali = dogrudanKapaliOlanlar(testler, tumYuzeyAdlari);
 
   it('önkoşul — şemadan `Decimal` modelleri türetildi', () => {
-    expect(modeller, 'şemada Decimal sütunu olan model bulunamadı').toEqual(
-      expect.arrayContaining(['Job', 'Transaction']),
-    );
+    /*
+     * 2026-10-29: para modelleri (Job, Transaction…) iş/muhasebe modülüyle
+     * kaldırıldı; Cüzdan geldiğinde onun modelleri buraya eklenecek. Bugün
+     * Decimal taşıyanlar sağlık/spor modelleri.
+     */
     /*
      * ⚠️ BU İDDİA KAPININ F5 KAPSAMINI KİLİTLİYOR. `Decimal` yalnızca para
      * değil; sağlık/spor modelleri de taşıyor. Buradan düşerse kapı sessizce
@@ -307,34 +309,33 @@ describe('ADR-014/3 — `Decimal` taşıyan her servis yüzeyi ölçülüyor', (
      * Ders, T-055g'dekinin tekrarı: çapa, zincirin HER halkasına gerekir;
      * biri ölçülmeden kalırsa kapı o halkada sessizce boşa koşar.
      */
-    const jobYuzeyleri = dtoYuzeyleri(kod(`${SERVIS_DIZIN}/job.ts`));
+    const saglikYuzeyleri = dtoYuzeyleri(kod(`${SERVIS_DIZIN}/health-log.ts`));
 
-    expect(jobYuzeyleri.length, 'job.ts içinde DTO yüzeyi bulunamadı').toBeGreaterThan(5);
-    expect(jobYuzeyleri).toEqual(
-      expect.arrayContaining(['fetchJobForPanel', 'createJob', 'updateJob', 'changeJobStatus']),
+    expect(saglikYuzeyleri.length, 'health-log.ts içinde DTO yüzeyi bulunamadı').toBeGreaterThan(3);
+    expect(saglikYuzeyleri).toEqual(
+      expect.arrayContaining(['fetchHealthLogs', 'createHealthLog', 'updateHealthLog']),
     );
   });
 
   it('önkoşul — `Decimal` modellerine dokunan servisler ve iddialar bulundu', () => {
     expect(servisler.map((s) => s.yol)).toEqual(
-      expect.arrayContaining([`${SERVIS_DIZIN}/job.ts`, `${SERVIS_DIZIN}/transaction.ts`]),
+      expect.arrayContaining([`${SERVIS_DIZIN}/health-log.ts`, `${SERVIS_DIZIN}/workout.ts`]),
     );
     // İddia kümesi boşsa her yüzey "ölçülmeyen" çıkar ve kapı yanlış sebeple
     // kırmızı olur; boş DEĞİL olduğu ayrıca ölçülüyor.
     expect(dogrudanKapali.size, '`decimalKalanlar` iddiası hiç bulunamadı').toBeGreaterThan(3);
-    expect(dogrudanKapali).toContain('fetchJobForPanel');
+    expect(dogrudanKapali).toContain('fetchHealthLogs');
 
     /*
-     * ⚠️ ASİMETRİNİN ÇAPASI (T-109g). Bu ad, fiil ön ek listesinin kör
-     * noktasını açığa çıkaran vakaydı: enumerasyon onu "ölçülmeli" diye
-     * buluyordu ama tanıma yarısı `process` fiilini bilmediği için yazılmış
-     * iddiayı GÖREMİYORDU. Liste kaldırıldı ve iki yarı aynı kaynağı
-     * kullanıyor; bu iddia düzeltmenin GERÇEKTEN çalıştığını kilitliyor.
+     * ⚠️ ASİMETRİNİN ÇAPASI (T-109g): fiil ön ek listesinin kör noktası
+     * `process…` adıyla açığa çıkmıştı; o servis 2026-10-29'da kaldırıldı.
+     * Çapa artık `to…` ile başlayan bir yüzeyde — ön ek listesi geri gelirse
+     * yine kırılır.
      */
     expect(
       dogrudanKapali,
       'fiil ön ek listesi geri gelmiş olabilir — tanıma yarısı enumerasyonu kullanmıyor',
-    ).toContain('processDueRecurringTransactions');
+    ).toContain('toWorkoutSetDto');
   });
 
   /**
@@ -350,45 +351,7 @@ describe('ADR-014/3 — `Decimal` taşıyan her servis yüzeyi ölçülüyor', (
    * muafiyet yazan kişi DTO'yu okumak ve neden para taşımadığını yazmak
    * zorunda, ve aşağıdaki iddialar gerekçeyi mekanik olarak da sınıyor.
    */
-  const MUAFIYETLER: { yuzey: string; dto: string; gerekce: string }[] = [
-    {
-      yuzey: 'convertMessageToJob',
-      dto: 'JobConversionDto',
-      gerekce:
-        'DTO hiç para alanı taşımıyor: `job` yalnızca id/title/status/createdAt, `client` ise ' +
-        '`ClientRefDto` (id/name/email/yeni-mi) — okundu, o da para taşımıyor. İşlev `Job` ' +
-        "satırını YAZARKEN `agreedAmount`/`fxRate`e dokunuyor ama bu değerleri DTO'ya " +
-        "KOYMUYOR, yani serileştirme sınırına `Decimal` çıkmıyor. KALDIRMA KOŞULU: DTO'ya " +
-        'bir tutar alanı eklenirse bu satır silinir ve yüzey iddiaya bağlanır.',
-    },
-    {
-      yuzey: 'fetchAttachmentsForEntity',
-      dto: 'AttachmentDto',
-      gerekce:
-        '`attachment.ts` Decimal modellerine (`transaction`, `job`) YALNIZCA `count()` ile ' +
-        "dokunuyor — ADR-044'te servise taşınan `attachmentTargetExists`, polimorfik hedefin " +
-        'VARLIĞINI soruyor, satırı okumuyor. DTO dosya meta verisi (anahtar, mime, boyut, ölçü, ' +
-        "sağlama) — okundu, para alanı yok. KALDIRMA KOŞULU: eklenti DTO'suna bir tutar girerse.",
-    },
-    {
-      yuzey: 'fetchAttachmentById',
-      dto: 'AttachmentDto',
-      gerekce:
-        '`attachment.ts` Decimal modellerine (`transaction`, `job`) YALNIZCA `count()` ile ' +
-        "dokunuyor — ADR-044'te servise taşınan `attachmentTargetExists`, polimorfik hedefin " +
-        'VARLIĞINI soruyor, satırı okumuyor. DTO dosya meta verisi (anahtar, mime, boyut, ölçü, ' +
-        "sağlama) — okundu, para alanı yok. KALDIRMA KOŞULU: eklenti DTO'suna bir tutar girerse.",
-    },
-    {
-      yuzey: 'fetchAttachmentForServing',
-      dto: 'AttachmentServeDto',
-      gerekce:
-        '`attachment.ts` Decimal modellerine (`transaction`, `job`) YALNIZCA `count()` ile ' +
-        "dokunuyor — ADR-044'te servise taşınan `attachmentTargetExists`, polimorfik hedefin " +
-        'VARLIĞINI soruyor, satırı okumuyor. DTO dosya meta verisi (anahtar, mime, boyut, ölçü, ' +
-        "sağlama) — okundu, para alanı yok. KALDIRMA KOŞULU: eklenti DTO'suna bir tutar girerse.",
-    },
-  ];
+  const MUAFIYETLER: { yuzey: string; dto: string; gerekce: string }[] = [];
 
   it('muafiyet ÖLÜ SATIR taşımıyor ve gerekçesi MEKANİK olarak sınanıyor', () => {
     /*
@@ -410,7 +373,7 @@ describe('ADR-014/3 — `Decimal` taşıyan her servis yüzeyi ölçülüyor', (
     ].filter(Boolean);
 
     expect(decimalAlanAdlari, 'şemadan Decimal alan adları çıkarılamadı').toEqual(
-      expect.arrayContaining(['amount', 'fxrate', 'baseamount']),
+      expect.arrayContaining(['weightkg', 'bodyfatpct', 'sleephours']),
     );
 
     for (const muaf of MUAFIYETLER) {

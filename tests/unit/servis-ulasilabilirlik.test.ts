@@ -158,15 +158,40 @@ const BILDIRIM: UlasilmazBildirim[] = [
    * ⚠️ `health-log.ts` ÜÇ SATIRI (`fetchHealthLogs`, `fetchHealthLogById`,
    * `fetchHealthTrend`) T-113'TE SİLİNDİ — `/panel/saglik` ekranı bağladı.
    */
+  /*
+   * 2026-10-29 — iş/muhasebe modülü kaldırıldı; `period-key.ts` silindi ve
+   * aşağıdaki yardımcıların TEK tüketicisi raporlar/işlemlerdi. Silinmediler,
+   * çünkü sıradaki iki aşamanın görevi belli:
+   */
   {
-    anahtar: '_shared/period-key.ts → periodKeyForInstant',
+    anahtar: '_shared/money.ts → deriveBaseAmount',
     sebep: 'bekleyen',
-    not: 'ADR-015 · tekrarlayan işlem üretimi cron anından dönem anahtarı türetecek (F6 gece işi).',
+    not: 'Cüzdan · döviz/altın varlık ve borçların TL karşılığı (tutar × kur) kayıpsız hesaplanacak.',
   },
   {
-    anahtar: '_shared/period-key.ts → isValidPeriodKey',
+    anahtar: '_shared/money.ts → subtractMoney',
     sebep: 'bekleyen',
-    not: 'ADR-015 · dışarıdan gelen dönem anahtarının doğrulanması; şu an anahtarları yalnızca biz üretiyoruz.',
+    not: 'Cüzdan · kalan borç = toplam borç − ödenen; net varlık = varlıklar − borçlar.',
+  },
+  {
+    anahtar: '_shared/app-date.ts → appMonthRange',
+    sebep: 'bekleyen',
+    not: 'Hayat · aylık hedeflerin ve aylık alışkanlık raporunun dönem penceresi.',
+  },
+  {
+    anahtar: '_shared/app-date.ts → appYearRange',
+    sebep: 'bekleyen',
+    not: 'Hayat · yıllık hedeflerin dönem penceresi.',
+  },
+  {
+    anahtar: '_shared/app-date.ts → appIsoWeek',
+    sebep: 'bekleyen',
+    not: 'Hayat · haftalık hedeflerin dönem anahtarı (ISO hafta).',
+  },
+  {
+    anahtar: '_shared/app-date.ts → addAppYears',
+    sebep: 'bekleyen',
+    not: 'Cüzdan · borç bitiş tarihi (taksit sayısından) ve yıllık hedef sınırı.',
   },
   /*
    * ⚠️ `_shared/personal-record.ts → recalculatePersonalRecords` SATIRI
@@ -235,7 +260,7 @@ describe('ADR-037 — ulaşılamayan servis ihraçları BİLDİRİLİYOR', () =>
      */
     expect(servisIhraclari.length, 'servis ihracı bulunamadı').toBeGreaterThan(100);
     expect(
-      servisIhraclari.some((i) => i.ad === 'fetchMonthlyReport'),
+      servisIhraclari.some((i) => i.ad === 'fetchHealthLogs'),
       'bilinen bir ihraç taramada yok — desen bozuk',
     ).toBe(true);
   });

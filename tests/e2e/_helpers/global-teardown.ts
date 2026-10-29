@@ -64,7 +64,7 @@ export default async function globalTeardown(): Promise<void> {
       `[e2e] temizlik: ${silinenProje} proje + ${silinenMesaj} mesaj SİLİNDİ · ` +
         `KALAN test izi: ${kalinti.toplam} ` +
         `(proje ${kalinti.proje}, mesaj ${kalinti.mesaj}, denetim ${kalinti.denetim}, ` +
-        `işlem ${kalinti.islem}, kişisel ${kalinti.kisisel}).\n`,
+        `kişisel ${kalinti.kisisel}).\n`,
     );
 
     /*

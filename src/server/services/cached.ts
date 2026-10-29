@@ -18,7 +18,6 @@ import {
 import { fetchServices } from './service';
 import { fetchSkills } from './skill';
 import { fetchSiteStats } from './stats';
-import { fetchSiteClientLogos } from './client';
 
 /**
  * ÖNBELLEK KATMANI — public sayfaların çağırdığı okumalar (ADR-011).
@@ -301,14 +300,4 @@ export const getPostSitemapEntries: (locale?: string) => Promise<SitemapEntryDto
     keyParts: ['sitemap', 'posts', locale],
     tags: [entityTag('post'), localeTag('post', locale)],
   }),
-);
-
-/**
- * Müşteri logoları şeridi — T-117. Locale yok (ad ve logo dilden bağımsız);
- * tek etiket `content:client`, her müşteri mutasyonunda düşüyor
- * (`actions/client.ts`).
- */
-export const getSiteClientLogos = cachedRead(
-  () => fetchSiteClientLogos(),
-  () => ({ keyParts: ['client-logos'], tags: [entityTag('client')] }),
 );

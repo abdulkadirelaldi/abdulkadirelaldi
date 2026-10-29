@@ -37,12 +37,9 @@ const svc = vi.hoisted(() => ({
   fetchContactMessageById: vi.fn(),
   fetchContactMessages: vi.fn(),
   updateContactMessageStatus: vi.fn(),
-  convertMessageToJob: vi.fn(),
-  findJobByContactMessageId: vi.fn(),
 }));
 
 vi.mock('@/server/services/contact-message', () => svc);
-vi.mock('@/server/services/job', () => svc);
 
 const ID = 'clx0000000000000000000001';
 
@@ -62,7 +59,6 @@ const MESAJ = {
   repliedAt: '2026-09-01T10:00:00.000Z',
   archivedAt: null,
   createdAt: '2026-09-09T12:00:00.000Z',
-  convertedJobId: null,
   ip: '203.0.113.7',
   userAgent: 'UA',
 };
@@ -81,7 +77,6 @@ beforeEach(() => {
   auditCreate.mockResolvedValue({});
   svc.fetchContactMessageById.mockResolvedValue(MESAJ);
   svc.updateContactMessageStatus.mockResolvedValue({ ...MESAJ, isRead: true });
-  svc.findJobByContactMessageId.mockResolvedValue(null);
 });
 
 afterEach(() => {
@@ -89,13 +84,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-const eylemler = async () => {
-  const [mesaj, is] = await Promise.all([
-    import('@/server/actions/contact-message'),
-    import('@/server/actions/job'),
-  ]);
-  return { ...mesaj, ...is };
-};
+const eylemler = async () => ({ ...(await import('@/server/actions/contact-message')) });
 
 /* ===========================================================================
  * §8.6 — HER ACTION TEK TEK
@@ -125,23 +114,13 @@ describe('§8.6 — yetkisiz erişim', () => {
     expect((await archiveContactMessageAction({ id: ID })).ok).toBe(false);
   });
 
-  it('sekiz eylemin tamamı listede — kapsam eksiksiz', async () => {
+  it('dört eylemin tamamı listede — kapsam eksiksiz', async () => {
     /*
-     * 4 mesaj kutusu + 1 dönüşüm + 3 F4 iş eylemi (T-100: `createJobAction`,
-     * `updateJobAction`, `changeJobStatusAction`).
-     *
-     * ⚠️ BU SAYI T-100'DE KIRILDI VE TASARLANDIĞI GİBİ KIRILDI. T-038 sabiti
-     * tam bunun için koymuştu: `actions/job.ts`e yeni bir eylem eklendiğinde
-     * §8.6 kapsamının unutulmaması. Yukarıdaki döngü üç yeni eylemi de
-     * OTOMATİK olarak sınadı ve üçü de `UNAUTHORIZED` döndü — yani kapı
-     * yalnızca haber vermekle kalmadı, kapsamı da genişletti.
-     *
-     * `createClientAction` ve kardeşleri BU SAYIDA YOK: onlar
-     * `actions/client.ts`te ve kendi dosyasında (`is-musteri-actions.test.ts`)
-     * aynı döngüyle sınanıyor. İki dosyayı burada birleştirmek, mesaj kutusu
-     * testini F4'ün tamamının bekçisi yapardı.
+     * 4 mesaj kutusu eylemi. Mesajı işe dönüştürme ve iş eylemleri 2026-10-29'da
+     * iş modülüyle kaldırıldı (8 → 4). Sayı, yeni bir eylem eklendiğinde §8.6
+     * kapsamının unutulmaması için duruyor (T-038).
      */
-    expect(Object.keys(await eylemler())).toHaveLength(8);
+    expect(Object.keys(await eylemler())).toHaveLength(4);
   });
 
   it('OKUMALAR bu dosyadan İHRAÇ EDİLMİYOR — §7.1', async () => {
@@ -280,150 +259,5 @@ describe('ADR-029 — mesaj kutusu public’te görünmüyor', () => {
      * ölü kod olurdu ve "mesaj kutusu önbelleklidir" diye yanlış bilgi verirdi.
      */
     expect(revalidateTag).not.toHaveBeenCalled();
-  });
-
-  it('dönüşüm de etiket düşürmüyor — Job ve Client da public değil', async () => {
-    svc.convertMessageToJob.mockResolvedValue({
-      job: { id: 'is_1', title: 'X', status: 'LEAD', createdAt: MESAJ.createdAt },
-      client: { id: 'musteri_1', name: 'A', email: 'a@b.com', created: true, isArchived: false },
-    });
-
-    const { convertMessageToJobAction } = await import('@/server/actions/job');
-    await convertMessageToJobAction({ contactMessageId: ID, title: 'X' });
-
-    expect(revalidateTag).not.toHaveBeenCalled();
-  });
-});
-
-/* ===========================================================================
- * §6 DÖNÜŞÜMÜ
- * ======================================================================== */
-
-describe('convertMessageToJobAction — §6 kritik ilişki', () => {
-  const BASARILI = {
-    job: { id: 'is_1', title: 'Kurumsal site', status: 'LEAD', createdAt: MESAJ.createdAt },
-    client: {
-      id: 'musteri_1',
-      name: 'Ayşe Yılmaz',
-      email: 'ayse@ornek.com',
-      created: true,
-      isArchived: false,
-    },
-  };
-
-  it('mesajın GÖNDEREN bilgisini servise taşıyor', async () => {
-    svc.convertMessageToJob.mockResolvedValue(BASARILI);
-    const { convertMessageToJobAction } = await import('@/server/actions/job');
-    const sonuc = await convertMessageToJobAction({
-      contactMessageId: ID,
-      title: 'Kurumsal site',
-    });
-
-    expect(sonuc.ok).toBe(true);
-    expect(svc.convertMessageToJob).toHaveBeenCalledWith({
-      contactMessageId: ID,
-      title: 'Kurumsal site',
-      contact: { name: 'Ayşe Yılmaz', email: 'ayse@ornek.com', phone: '+90 555 000 00 00' },
-    });
-  });
-
-  it('sonuç hem işi hem MÜŞTERİNİN yeni mi olduğunu bildiriyor', async () => {
-    svc.convertMessageToJob.mockResolvedValue(BASARILI);
-    const { convertMessageToJobAction } = await import('@/server/actions/job');
-    const sonuc = await convertMessageToJobAction({ contactMessageId: ID, title: 'X' });
-
-    if (!sonuc.ok) throw new Error('beklenmedik hata');
-    expect(sonuc.data.job.id).toBe('is_1');
-    // Kullanıcıya söylenecek şey iki parçalı: iş açıldı VE müşteri yeni mi.
-    expect(sonuc.data.client.created).toBe(true);
-  });
-
-  it('AuditLog CREATE / Job yazıyor, clientCreated bilgisiyle', async () => {
-    svc.convertMessageToJob.mockResolvedValue(BASARILI);
-    const { convertMessageToJobAction } = await import('@/server/actions/job');
-    await convertMessageToJobAction({ contactMessageId: ID, title: 'Kurumsal site' });
-
-    const kayit = denetimKaydi();
-    expect(kayit).toMatchObject({ action: 'CREATE', entity: 'Job', entityId: 'is_1' });
-    expect(kayit.diff).toMatchObject({
-      contactMessageId: ID,
-      clientId: 'musteri_1',
-      clientCreated: true,
-    });
-  });
-
-  it('§8.20 — dönüşüm denetim kaydında gönderenin adı/e-postası YOK', async () => {
-    svc.convertMessageToJob.mockResolvedValue(BASARILI);
-    const { convertMessageToJobAction } = await import('@/server/actions/job');
-    await convertMessageToJobAction({ contactMessageId: ID, title: 'X' });
-
-    const yazilan = JSON.stringify(denetimKaydi());
-    expect(yazilan).not.toContain('ayse@ornek.com');
-    expect(yazilan).not.toContain('Ayşe Yılmaz');
-  });
-
-  it('mesaj yoksa NOT_FOUND', async () => {
-    svc.fetchContactMessageById.mockResolvedValue(null);
-    const { convertMessageToJobAction } = await import('@/server/actions/job');
-    const sonuc = await convertMessageToJobAction({ contactMessageId: ID, title: 'X' });
-
-    expect(sonuc.ok).toBe(false);
-    expect(svc.convertMessageToJob).not.toHaveBeenCalled();
-  });
-
-  it('başlıksız istek → VALIDATION_ERROR', async () => {
-    const { convertMessageToJobAction } = await import('@/server/actions/job');
-    const sonuc = await convertMessageToJobAction({ contactMessageId: ID, title: '' });
-
-    expect(sonuc.ok).toBe(false);
-    if (sonuc.ok) throw new Error('beklenmedik başarı');
-    expect(sonuc.error.code).toBe('VALIDATION_ERROR');
-    expect(sonuc.error.fields?.title).toBeTruthy();
-  });
-
-  /* ======================= ÇİFT DÖNÜŞÜM — İKİ KATMAN ===================== */
-
-  it('ÖN KONTROL: zaten dönüştürülmüşse CONFLICT ve İŞİN KİMLİĞİ dönüyor', async () => {
-    svc.findJobByContactMessageId.mockResolvedValue({ id: 'is_eski', title: 'Önceki iş' });
-    const { convertMessageToJobAction } = await import('@/server/actions/job');
-    const sonuc = await convertMessageToJobAction({ contactMessageId: ID, title: 'Yeni' });
-
-    expect(sonuc.ok).toBe(false);
-    if (sonuc.ok) throw new Error('beklenmedik başarı');
-    expect(sonuc.error.code).toBe('CONFLICT');
-    expect(sonuc.error.message).toContain('yalnızca bir işe');
-    // Frontend "işi göster" bağlantısı kurabilsin.
-    expect(sonuc.error.fields?.jobId).toBe('is_eski');
-    expect(svc.convertMessageToJob).not.toHaveBeenCalled();
-  });
-
-  /**
-   * YARIŞ DURUMU: iki eşzamanlı istek ön kontrolü birlikte geçebilir.
-   * `Job.contactMessageId @unique` (ADR-017) gerçek güvencedir ve P2002 verir.
-   */
-  it('YARIŞ: P2002 de aynı CONFLICT metnini veriyor — slug mesajı DEĞİL', async () => {
-    svc.convertMessageToJob.mockRejectedValue(
-      Object.assign(new Error('unique violation'), { code: 'P2002' }),
-    );
-    const { convertMessageToJobAction } = await import('@/server/actions/job');
-    const sonuc = await convertMessageToJobAction({ contactMessageId: ID, title: 'X' });
-
-    expect(sonuc.ok).toBe(false);
-    if (sonuc.ok) throw new Error('beklenmedik başarı');
-    expect(sonuc.error.code).toBe('CONFLICT');
-    // Varsayılan P2002 metni slug'a özeldi ve burada anlamsız olurdu.
-    expect(sonuc.error.message).not.toContain('slug');
-    expect(sonuc.error.message).toContain('yalnızca bir işe');
-  });
-
-  it('beklenmeyen hata → INTERNAL_ERROR, ayrıntı SIZMIYOR (§8.20)', async () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    svc.convertMessageToJob.mockRejectedValue(new Error('connect ECONNREFUSED 127.0.0.1:5433'));
-
-    const { convertMessageToJobAction } = await import('@/server/actions/job');
-    const sonuc = await convertMessageToJobAction({ contactMessageId: ID, title: 'X' });
-
-    expect(JSON.stringify(sonuc)).not.toContain('ECONNREFUSED');
-    expect(JSON.stringify(sonuc)).not.toContain('5433');
   });
 });

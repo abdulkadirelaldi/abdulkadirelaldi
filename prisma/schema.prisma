@@ -75,37 +75,6 @@ enum SkillCategory {
   OTHER
 }
 
-/// İş durumu. Panoda BEŞİ DE kolondur; eşleme katmanı yoktur (ADR-017).
-/// Aday → Teklif → Aktif → Teslim → İptal
-enum JobStatus {
-  LEAD
-  PROPOSAL
-  ACTIVE
-  DELIVERED
-  CANCELLED
-}
-
-enum TransactionType {
-  INCOME
-  EXPENSE
-}
-
-enum PaymentMethod {
-  CASH
-  BANK_TRANSFER
-  CREDIT_CARD
-  OTHER
-}
-
-/// Para birimi. Serbest metin bırakılmadı (ADR-020) — yazım hatası tüm
-/// raporlamayı sessizce bozardı. TRY dışındaki her işlemde `fxRate` zorunlu.
-enum Currency {
-  TRY
-  USD
-  EUR
-  GBP
-}
-
 enum WorkoutType {
   GYM
   CARDIO
@@ -174,9 +143,6 @@ enum AttachmentEntity {
   PROJECT
   POST
   PROFILE
-  TRANSACTION
-  JOB
-  CLIENT
 }
 
 // =============================================================================
@@ -317,7 +283,6 @@ model Attachment {
   coverOfPosts    Post[]    @relation("PostCover")
   avatarOfProfile Profile[] @relation("ProfileAvatar")
   cvOfProfile     Profile[] @relation("ProfileCv")
-  logoOfClients   Client[]  @relation("ClientLogo")
 
   /// Galeri sorgusunun taşıyıcı indeksi.
   @@index([entity, entityId, order])
@@ -505,8 +470,7 @@ model Service {
   @@map("service")
 }
 
-/// İletişim formu mesajı. `convertedJobId` BİLEREK YOK (ADR-017) — tek yön
-/// `Job.contactMessageId @unique` üzerinden kurulur.
+/// İletişim formu mesajı. (Mesajı işe dönüştürme 2026-10-29'da iş modülüyle kaldırıldı.)
 model ContactMessage {
   id String @id @default(cuid())
 
@@ -536,9 +500,6 @@ model ContactMessage {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  /// Ters yön: bu mesajdan açılan iş (varsa).
-  convertedJob Job?
-
   @@index([isRead, createdAt])
   @@index([isSpam, createdAt])
   /// §8.15 — "IP başına saatte 3" sayacının okuduğu tam desen. Bu indeks
@@ -551,191 +512,6 @@ model ContactMessage {
 // =============================================================================
 // İŞ & MUHASEBE
 // =============================================================================
-
-model Client {
-  id String @id @default(cuid())
-
-  name    String
-  company String?
-  /// @unique — mesajdan otomatik müşteri açma `upsert` ile çalışır (ADR-017).
-  /// Olmasaydı aynı kişi her mesajda yeniden oluşur, müşteri bazlı muhasebe bozulurdu.
-  email   String? @unique
-  phone   String?
-  notes   String?
-
-  isKiyiMedya Boolean @default(false)
-  /// Referans veri: silinmez, arşivlenir (ADR-017).
-  isArchived  Boolean @default(false)
-
-  /// Sitede (müşteri logoları şeridi) gösterilsin mi — T-117.
-  /// VARSAYILAN KAPALI: hiçbir müşteri kendiliğinden herkese açılmaz. Açıksa
-  /// public tarafa YALNIZCA `name` ve logo çıkar; e-posta/telefon/not ASLA.
-  showOnSite       Boolean     @default(false)
-  /// Logo — `Attachment` (entity CLIENT). `Restrict`: kullanımdaki logo silinemez
-  /// (kapak/avatar/CV ile aynı kural, ADR-018).
-  logoAttachmentId String?
-  logo             Attachment? @relation("ClientLogo", fields: [logoAttachmentId], references: [id], onDelete: Restrict)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  jobs         Job[]
-  transactions Transaction[]
-
-  @@index([isArchived, name])
-  @@index([showOnSite, isArchived])
-  @@map("client")
-}
-
-model Job {
-  id String @id @default(cuid())
-
-  title       String
-  description String?
-  status      JobStatus @default(LEAD)
-
-  clientId String?
-  client   Client? @relation(fields: [clientId], references: [id], onDelete: Restrict)
-
-  /// Tek yönlü bağ (ADR-017). Bir mesajdan en fazla bir iş açılır.
-  contactMessageId String?         @unique
-  contactMessage   ContactMessage? @relation(fields: [contactMessageId], references: [id], onDelete: SetNull)
-
-  /// Gün semantiği (ADR-016).
-  startDate   DateTime? @db.Date
-  dueDate     DateTime? @db.Date
-  /// An bildirir — DateTime kalır.
-  deliveredAt DateTime?
-
-  /// BRÜT anlaşma tutarı. KDV/stopaj v1 kapsamı dışı (ADR-014).
-  agreedAmount Decimal? @db.Decimal(12, 2)
-  currency     Currency @default(TRY)
-  /// İşlem anındaki kur, TRY bazlı. TRY'de 1.0 (ADR-014).
-  fxRate       Decimal  @default(1.0) @db.Decimal(18, 8)
-  /// TRY karşılığı. TÜM toplama ve raporlama BU alan üzerinden yapılır.
-  baseAmount   Decimal? @db.Decimal(12, 2)
-
-  /// Tahsil edilen ve kalan bakiye SÜTUN DEĞİLDİR (ADR-014) — bağlı
-  /// `Transaction` toplamından türetilir. Tek doğruluk kaynağı korunur.
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  transactions Transaction[]
-
-  @@index([status, dueDate])
-  @@index([clientId])
-  @@map("job")
-}
-
-model TransactionCategory {
-  id String @id @default(cuid())
-
-  name       String
-  type       TransactionType
-  color      String?
-  icon       String?
-  /// Referans veri: silinmez, arşivlenir (ADR-017).
-  isArchived Boolean         @default(false)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  transactions          Transaction[]
-  recurringTransactions RecurringTransaction[]
-
-  @@unique([name, type])
-  @@index([type, isArchived])
-  @@map("transaction_category")
-}
-
-/// Gerçekleşmiş para hareketi (olay).
-/// `isRecurring` ve `recurrenceRule` BİLEREK YOK — şablon ayrı modelde (ADR-015).
-/// `attachmentId` BİLEREK YOK — ekler polimorfik `Attachment` üzerinden (ADR-018).
-model Transaction {
-  id String @id @default(cuid())
-
-  type       TransactionType
-  amount     Decimal         @db.Decimal(12, 2)
-  currency   Currency        @default(TRY)
-  /// İşlem anındaki kur, TRY bazlı. TRY'de 1.0 (ADR-014).
-  fxRate     Decimal         @default(1.0) @db.Decimal(18, 8)
-  /// TRY karşılığı — TÜM toplama, raporlama ve grafik BU alan üzerinden.
-  baseAmount Decimal         @db.Decimal(12, 2)
-
-  /// Gün semantiği (ADR-016). Saat bilgisi anlamsız; UTC kayması ay sınırında
-  /// toplamı bozardı.
-  date DateTime @db.Date
-
-  categoryId String
-  category   TransactionCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-
-  jobId String?
-  job   Job?    @relation(fields: [jobId], references: [id], onDelete: Restrict)
-
-  clientId String?
-  client   Client? @relation(fields: [clientId], references: [id], onDelete: Restrict)
-
-  description String?
-  method      PaymentMethod @default(BANK_TRANSFER)
-  isPaid      Boolean       @default(true)
-  /// An bildirir — DateTime kalır.
-  paidAt      DateTime?
-  invoiceNo   String?
-
-  // --- Tekrarlayan üretim izi (ADR-015) ---
-  sourceRecurringId String?
-  sourceRecurring   RecurringTransaction? @relation(fields: [sourceRecurringId], references: [id], onDelete: SetNull)
-  /// Üretim dönemini temsil eden deterministik dize (örn. "2026-08").
-  /// Aşağıdaki unique ile birlikte cron'un çift üretimini VERİTABANI DÜZEYİNDE
-  /// engeller — uygulama mantığına güvenilmez.
-  periodKey         String?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([sourceRecurringId, periodKey])
-  @@index([date, type])
-  @@index([jobId])
-  @@index([categoryId])
-  @@index([clientId])
-  @@map("transaction")
-}
-
-/// Tekrarlayan işlem ŞABLONU (kural) — üretilen kayıttan ayrıdır (ADR-015).
-/// Şablonu düzenlemek geçmiş kayıtları etkilemez: geçen ayın kirası değişmez.
-model RecurringTransaction {
-  id String @id @default(cuid())
-
-  type     TransactionType
-  amount   Decimal         @db.Decimal(12, 2)
-  currency Currency        @default(TRY)
-
-  categoryId String
-  category   TransactionCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
-
-  description String?
-  method      PaymentMethod @default(BANK_TRANSFER)
-
-  /// Tekrar kuralı (RRULE benzeri dize). Yorumlanması servis katmanında.
-  recurrenceRule String
-  /// Gün semantiği (ADR-016).
-  startDate      DateTime  @db.Date
-  endDate        DateTime? @db.Date
-
-  /// Bir sonraki üretim anı. Bir dönem bilerek atlanacaksa ileri alınır.
-  nextRunAt       DateTime?
-  lastGeneratedAt DateTime?
-  isActive        Boolean   @default(true)
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  generated Transaction[]
-
-  @@index([isActive, nextRunAt])
-  @@map("recurring_transaction")
-}
 
 // =============================================================================
 // SAĞLIK & SPOR

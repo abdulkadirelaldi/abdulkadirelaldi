@@ -123,7 +123,7 @@ test.describe('§8.13 · panel', () => {
   for (const yol of [
     '/panel',
     '/panel/saglik',
-    '/panel/muhasebe/raporlar',
+    '/panel/spor',
     '/panel/icerik/blog/yeni',
     '/panel/hayat',
   ]) {

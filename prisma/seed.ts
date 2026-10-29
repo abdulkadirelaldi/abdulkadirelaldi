@@ -1,25 +1,19 @@
 import process from 'node:process';
 
 import {
-  createClientSchema,
   createExerciseSchema,
   createExperienceSchema,
-  createGeneratedTransactionSchema,
   createGoalSchema,
   createHabitLogSchema,
   createHabitSchema,
   createHealthLogSchema,
-  createJobSchema,
   createJournalEntrySchema,
   createPersonalRecordSchema,
   createPostSchema,
   createProfileSchema,
   createProjectSchema,
-  createRecurringTransactionSchema,
   createServiceSchema,
   createSkillSchema,
-  createTransactionCategorySchema,
-  createTransactionSchema,
   createWorkoutSchema,
   createWorkoutSetSchema,
 } from '@/lib/schemas';
@@ -28,7 +22,6 @@ import { closeDatabase, db } from '@/server/db';
 // BULGU-012: barrel yerine DOĞRUDAN modül — seed düz Node ile koşar, bkz.
 // `_shared/index.ts` başlığı. Saf barrel de güvenli; doğrudan import zinciri
 // en kısa tutuyor.
-import { computeBaseAmount, deriveBaseAmount } from '@/server/services/_shared/money';
 import { calculateReadingMinutes } from '@/server/services/_shared/reading-time';
 
 /**
@@ -73,34 +66,6 @@ function print(line = ''): void {
 function toDbDate(isoDay: string): Date {
   return new Date(`${isoDay}T00:00:00.000Z`);
 }
-
-/* ===========================================================================
- * ⚠️ YEREL `computeBaseAmount` SİLİNDİ — ÖNCÜLÜ BAYATTI (T-101, ADR-037)
- * ===========================================================================
- *
- * Burada ADR-014'ün çarpımını yapan yerel bir kopya vardı ve yorumu şöyle
- * diyordu: *"Bu yardımcı seed'e özeldir. Üretimdeki karşılığı T-015'te servis
- * katmanında yazılacak."*
- *
- * T-015 YAZILDI. `_shared/money.ts` tam o işlevi taşıyor, HİÇ `import`
- * içermiyor (ölçüldü — tamamen saf, düz Node ile yüklenir) ve bu dosya zaten
- * yukarıda `_shared/reading-time`'dan doğrudan içe aktarıyor, yani yol
- * çalışıyor. Çiftlenmenin kalan gerekçesi yoktu; yorum, yazıldığı gün doğru
- * olan bir öncülü kimse geri dönmediği için yanlış taşıyordu.
- *
- * VE SAPMA TAM BURADAN DOĞUYORDU: yerel kopya `null → null` kuralını
- * bilmiyordu, bu yüzden çağrı noktaları `?? '0'` yazmak zorunda kalmıştı ve
- * tutarı bilinmeyen bir `LEAD` işi için `baseAmount = 0.00` üretiyordu —
- * "bedava iş". ADR-030 seed'i ölçüm sözleşmesi saydığı için bu, servisin
- * ÜRETEMEYECEĞİ bir fikstür demekti.
- *
- * Kopya ayrıca `money.ts`in iki güvencesini de taşımıyordu: girdi biçimi
- * doğrulaması yok, ve negatif tutarda işaret yönetimi yok.
- *
- * Bu, bu depoda aynı sınıfın ÜÇÜNCÜ örneği (`MDX_OPTIONS` T-047→T-053,
- * `SESSION_MAX_AGE_SECONDS` T-048g→T-051, bu). Çiftlenmenin GERİ GELMESİNİ
- * `tests/unit/services/para-tek-tanim.test.ts` engelliyor.
- * ======================================================================== */
 
 /* ===========================================================================
  * BAĞLANTI
@@ -455,270 +420,7 @@ async function seedPosts(): Promise<number> {
 }
 
 /* ===========================================================================
- * 3. İŞ & MUHASEBE — §6 kritik ilişkisi
- * ======================================================================== */
-
-async function seedCategories(): Promise<Map<string, string>> {
-  const categories = [
-    { name: 'Proje Geliri', type: 'INCOME', color: '#34d399', icon: 'briefcase' },
-    { name: 'Danışmanlık', type: 'INCOME', color: '#60a5fa', icon: 'message-circle' },
-    { name: 'Sunucu & Altyapı', type: 'EXPENSE', color: '#f87171', icon: 'server' },
-    { name: 'Yazılım Aboneliği', type: 'EXPENSE', color: '#fbbf24', icon: 'credit-card' },
-    { name: 'Eğitim', type: 'EXPENSE', color: '#a78bfa', icon: 'book' },
-    { name: 'Vergi & Resmî', type: 'EXPENSE', color: '#8383a0', icon: 'file-text' },
-  ];
-
-  const ids = new Map<string, string>();
-
-  for (const raw of categories) {
-    const input = createTransactionCategorySchema.parse(raw);
-    const row = await db.transactionCategory.upsert({
-      where: { name_type: { name: input.name, type: input.type } },
-      update: { ...input, isArchived: false },
-      create: { ...input, isArchived: false },
-    });
-    ids.set(input.name, row.id);
-  }
-
-  return ids;
-}
-
-async function seedClientsAndJobs(categories: Map<string, string>): Promise<{
-  clients: number;
-  jobs: number;
-  transactions: number;
-}> {
-  // --- Müşteri (ADR-017: email @unique, upsert ile dedupe) ------------------
-  const kiyiInput = createClientSchema.parse({
-    name: 'Kıyı Medya',
-    company: 'Kıyı Medya',
-    email: 'info@kiyimedya.com',
-    isKiyiMedya: true,
-  });
-  const kiyi = await db.client.upsert({
-    where: { email: kiyiInput.email ?? '' },
-    update: kiyiInput,
-    create: kiyiInput,
-  });
-
-  const abroadInput = createClientSchema.parse({
-    name: 'Northwind Studio',
-    company: 'Northwind Studio LLC',
-    email: 'hello@northwind.example',
-    notes: 'Yurt dışı müşteri — ödemeler USD.',
-  });
-  const abroad = await db.client.upsert({
-    where: { email: abroadInput.email ?? '' },
-    update: abroadInput,
-    create: abroadInput,
-  });
-
-  // --- İş 1: TRY, teslim edilmiş -------------------------------------------
-  const job1Input = createJobSchema.parse({
-    title: 'Kurumsal site yenileme',
-    description: 'Tasarım, geliştirme ve içerik aktarımı dahil.',
-    status: 'DELIVERED',
-    clientId: kiyi.id,
-    startDate: '2026-02-01',
-    dueDate: '2026-03-10',
-    deliveredAt: '2026-03-08T16:00:00.000Z',
-    agreedAmount: '85000.00',
-    currency: 'TRY',
-    fxRate: '1',
-  });
-  const job1Data = {
-    ...job1Input,
-    startDate: job1Input.startDate ? toDbDate(job1Input.startDate) : null,
-    dueDate: job1Input.dueDate ? toDbDate(job1Input.dueDate) : null,
-    deliveredAt: job1Input.deliveredAt ? new Date(job1Input.deliveredAt) : null,
-    baseAmount: deriveBaseAmount(job1Input.agreedAmount ?? null, job1Input.fxRate),
-  };
-  await db.job.upsert({
-    where: { id: 'seed_job_kurumsal' },
-    update: job1Data,
-    create: { id: 'seed_job_kurumsal', ...job1Data },
-  });
-
-  // --- İş 2: USD, aktif — ADR-014 kur snapshot'ı ---------------------------
-  const job2Input = createJobSchema.parse({
-    title: 'Landing page tasarımı ve geliştirmesi',
-    status: 'ACTIVE',
-    clientId: abroad.id,
-    startDate: '2026-07-01',
-    dueDate: '2026-08-15',
-    agreedAmount: '2500.00',
-    currency: 'USD',
-    fxRate: '34.25000000',
-  });
-  const job2Data = {
-    ...job2Input,
-    startDate: job2Input.startDate ? toDbDate(job2Input.startDate) : null,
-    dueDate: job2Input.dueDate ? toDbDate(job2Input.dueDate) : null,
-    baseAmount: deriveBaseAmount(job2Input.agreedAmount ?? null, job2Input.fxRate),
-  };
-  await db.job.upsert({
-    where: { id: 'seed_job_landing' },
-    update: job2Data,
-    create: { id: 'seed_job_landing', ...job2Data },
-  });
-
-  // --- İşlemler: §6 "işe ödeme girilince gelir tablosuna düşer" ------------
-  const transactions = [
-    {
-      id: 'seed_tx_kurumsal_1',
-      type: 'INCOME',
-      amount: '42500.00',
-      currency: 'TRY',
-      fxRate: '1',
-      date: '2026-02-05',
-      categoryId: categories.get('Proje Geliri') ?? '',
-      jobId: 'seed_job_kurumsal',
-      clientId: kiyi.id,
-      description: 'Kurumsal site — ön ödeme (%50)',
-      method: 'BANK_TRANSFER',
-      isPaid: true,
-      paidAt: '2026-02-05T11:00:00.000Z',
-      invoiceNo: 'F-2026-0012',
-    },
-    {
-      id: 'seed_tx_kurumsal_2',
-      type: 'INCOME',
-      amount: '42500.00',
-      currency: 'TRY',
-      fxRate: '1',
-      date: '2026-03-09',
-      categoryId: categories.get('Proje Geliri') ?? '',
-      jobId: 'seed_job_kurumsal',
-      clientId: kiyi.id,
-      description: 'Kurumsal site — teslim ödemesi (%50)',
-      method: 'BANK_TRANSFER',
-      isPaid: true,
-      paidAt: '2026-03-09T10:30:00.000Z',
-      invoiceNo: 'F-2026-0018',
-    },
-    {
-      // TRY DIŞI işlem — baseAmount = 1250.00 × 34.25 = 42812.50
-      id: 'seed_tx_landing_1',
-      type: 'INCOME',
-      amount: '1250.00',
-      currency: 'USD',
-      fxRate: '34.25000000',
-      date: '2026-07-03',
-      categoryId: categories.get('Proje Geliri') ?? '',
-      jobId: 'seed_job_landing',
-      clientId: abroad.id,
-      description: 'Landing page — ön ödeme',
-      method: 'BANK_TRANSFER',
-      isPaid: true,
-      paidAt: '2026-07-03T14:00:00.000Z',
-    },
-    {
-      id: 'seed_tx_sunucu',
-      type: 'EXPENSE',
-      amount: '1450.00',
-      currency: 'TRY',
-      fxRate: '1',
-      date: '2026-07-01',
-      categoryId: categories.get('Sunucu & Altyapı') ?? '',
-      description: 'VPS ve yedekleme',
-      method: 'CREDIT_CARD',
-      isPaid: true,
-    },
-    {
-      id: 'seed_tx_egitim',
-      type: 'EXPENSE',
-      amount: '2400.00',
-      currency: 'TRY',
-      fxRate: '1',
-      date: '2026-06-18',
-      categoryId: categories.get('Eğitim') ?? '',
-      description: 'Teknik kurs',
-      method: 'CREDIT_CARD',
-      isPaid: true,
-    },
-  ];
-
-  for (const { id, ...raw } of transactions) {
-    const input = createTransactionSchema.parse(raw);
-    const data = {
-      ...input,
-      date: toDbDate(input.date),
-      paidAt: input.paidAt ? new Date(input.paidAt) : null,
-      baseAmount: computeBaseAmount(input.amount, input.fxRate),
-    };
-    await db.transaction.upsert({ where: { id }, update: data, create: { id, ...data } });
-  }
-
-  return { clients: 2, jobs: 2, transactions: transactions.length };
-}
-
-/** ADR-015 — şablon + ondan üretilmiş kayıt (idempotanslık `periodKey` ile). */
-async function seedRecurring(categories: Map<string, string>): Promise<number> {
-  const templateInput = createRecurringTransactionSchema.parse({
-    type: 'EXPENSE',
-    amount: '890.00',
-    currency: 'TRY',
-    categoryId: categories.get('Yazılım Aboneliği') ?? '',
-    description: 'Tasarım ve geliştirme araçları aboneliği',
-    method: 'CREDIT_CARD',
-    recurrenceRule: 'MONTHLY',
-    startDate: '2026-01-01',
-    isActive: true,
-  });
-
-  const templateData = {
-    ...templateInput,
-    startDate: toDbDate(templateInput.startDate),
-    endDate: templateInput.endDate ? toDbDate(templateInput.endDate) : null,
-    nextRunAt: new Date('2026-09-01T03:00:00.000Z'),
-    lastGeneratedAt: new Date('2026-08-01T03:00:00.000Z'),
-  };
-
-  const template = await db.recurringTransaction.upsert({
-    where: { id: 'seed_recurring_abonelik' },
-    update: templateData,
-    create: { id: 'seed_recurring_abonelik', ...templateData },
-  });
-
-  // Şablondan üretilmiş işlem. `@@unique([sourceRecurringId, periodKey])`
-  // cron'un ikinci çalıştırmasında çift kayıt üretmesini DB düzeyinde engeller.
-  const generatedInput = createGeneratedTransactionSchema.parse({
-    type: templateInput.type,
-    amount: templateInput.amount,
-    currency: templateInput.currency,
-    fxRate: '1',
-    date: '2026-08-01',
-    categoryId: templateInput.categoryId,
-    description: templateInput.description,
-    method: templateInput.method,
-    isPaid: true,
-    sourceRecurringId: template.id,
-    periodKey: '2026-08',
-  });
-
-  const generatedData = {
-    ...generatedInput,
-    date: toDbDate(generatedInput.date),
-    paidAt: null,
-    baseAmount: computeBaseAmount(generatedInput.amount, generatedInput.fxRate),
-  };
-
-  await db.transaction.upsert({
-    where: {
-      sourceRecurringId_periodKey: {
-        sourceRecurringId: template.id,
-        periodKey: generatedInput.periodKey,
-      },
-    },
-    update: generatedData,
-    create: generatedData,
-  });
-
-  return 1;
-}
-
-/* ===========================================================================
- * 4. SAĞLIK & SPOR
+ * 3. SAĞLIK & SPOR
  * ======================================================================== */
 
 async function seedHealthAndSport(): Promise<{
@@ -856,7 +558,7 @@ async function seedHealthAndSport(): Promise<{
 }
 
 /* ===========================================================================
- * 5. HAYAT
+ * 4. HAYAT
  * ======================================================================== */
 
 async function seedLife(): Promise<{
@@ -999,10 +701,6 @@ async function main(): Promise<void> {
   const projects = await seedProjects();
   const posts = await seedPosts();
 
-  const categories = await seedCategories();
-  const business = await seedClientsAndJobs(categories);
-  const recurring = await seedRecurring(categories);
-
   const fitness = await seedHealthAndSport();
   const life = await seedLife();
 
@@ -1015,11 +713,6 @@ async function main(): Promise<void> {
   print(`  Deneyim              ${experience}`);
   print(`  Proje                ${projects}`);
   print(`  Yazı                 ${posts} (1 taslak)`);
-  print(`  İşlem kategorisi     ${categories.size}`);
-  print(`  Müşteri              ${business.clients}`);
-  print(`  İş                   ${business.jobs} (1 TRY, 1 USD)`);
-  print(`  İşlem                ${business.transactions + recurring}`);
-  print(`  Tekrarlayan şablon   ${recurring}`);
   print(`  Sağlık kaydı         ${fitness.healthLogs}`);
   print(`  Egzersiz             ${fitness.exercises}`);
   print(`  Antrenman / set      ${fitness.workouts} / ${fitness.sets}`);

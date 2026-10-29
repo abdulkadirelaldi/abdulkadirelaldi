@@ -13,35 +13,24 @@
  * çalışma zamanı sızmaz.
  *
  * Her enum hem DEĞER hem TİP olarak dışa aktarılır:
- *   import { JobStatus } from '@/types';
- *   JobStatus.ACTIVE                          // değer
- *   const s: JobStatus = JobStatus.ACTIVE;    // tip
- *   Object.values(JobStatus)                  // kanban kolonları, select seçenekleri
+ *   import { GoalStatus } from '@/types';
+ *   GoalStatus.ACTIVE                         // değer
+ *   const s: GoalStatus = GoalStatus.ACTIVE;  // tip
+ *   Object.values(GoalStatus)                 // select seçenekleri
  * ------------------------------------------------------------------------- */
 
 export {
   AttachmentEntity,
   AuditAction,
   ContentStatus,
-  Currency,
   Equipment,
   ExperienceType,
   GoalCategory,
   GoalStatus,
-  JobStatus,
   MuscleGroup,
-  PaymentMethod,
   SkillCategory,
-  TransactionType,
   WorkoutType,
 } from '@/server/generated/prisma/enums';
-
-/**
- * §4.2 / ADR-017 — kanban kolon sırası.
- * Enum değeri kolonun kendisidir; eşleme katmanı YOKTUR. Bu dizi yalnızca
- * SIRAYI tanımlar (Aday → Teklif → Aktif → Teslim → İptal), yeni bir kavram değil.
- */
-export const JOB_STATUS_ORDER = ['LEAD', 'PROPOSAL', 'ACTIVE', 'DELIVERED', 'CANCELLED'] as const;
 
 /** §7.2 — route handler hata kodları. */
 export type ApiErrorCode =

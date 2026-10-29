@@ -1,6 +1,5 @@
 import {
   Activity,
-  Briefcase,
   Dumbbell,
   FileText,
   LayoutDashboard,
@@ -11,9 +10,7 @@ import {
   Newspaper,
   Settings,
   Sparkles,
-  Users,
   UserRound,
-  Wallet,
   Wrench,
 } from 'lucide-react';
 import type { ComponentType } from 'react';
@@ -51,42 +48,41 @@ export const PANEL_GRUPLARI: ReadonlyArray<{
   items: readonly PanelRotasi[];
 }> = [
   {
-    title: 'Genel',
-    items: [
-      { href: '/panel', label: 'Panel', icon: LayoutDashboard, hazir: true },
-      { href: '/panel/desenler', label: 'Desenler', icon: LayoutTemplate, hazir: true },
-    ],
-  },
-  {
-    title: 'İş',
-    items: [
-      { href: '/panel/muhasebe', label: 'Muhasebe', icon: Wallet, hazir: true },
-      { href: '/panel/isler', label: 'İşler', icon: Briefcase, hazir: true },
-      { href: '/panel/musteriler', label: 'Müşteriler', icon: Users, hazir: true },
-      { href: '/panel/mesajlar', label: 'Mesajlar', icon: Mail, hazir: true },
-    ],
-  },
-  {
     title: 'Kişisel',
     items: [
-      { href: '/panel/saglik', label: 'Sağlık', icon: Activity, hazir: true },
-      { href: '/panel/spor', label: 'Spor', icon: Dumbbell, hazir: true },
+      { href: '/panel', label: 'Bugün', icon: LayoutDashboard, hazir: true },
       { href: '/panel/hayat', label: 'Hayat', icon: Sparkles, hazir: true },
+      { href: '/panel/spor', label: 'Spor', icon: Dumbbell, hazir: true },
+      { href: '/panel/saglik', label: 'Sağlık', icon: Activity, hazir: true },
     ],
   },
   {
     title: 'Site',
     items: [
+      { href: '/panel/mesajlar', label: 'Mesajlar', icon: Mail, hazir: true },
       { href: '/panel/icerik/profil', label: 'Profil', icon: UserRound, hazir: true },
       { href: '/panel/icerik/projeler', label: 'Projeler', icon: FileText, hazir: true },
       { href: '/panel/icerik/blog', label: 'Blog', icon: Newspaper, hazir: true },
       { href: '/panel/icerik/deneyim', label: 'Deneyim', icon: GraduationCap, hazir: true },
       { href: '/panel/icerik/yetenekler', label: 'Yetenekler', icon: Wrench, hazir: true },
       { href: '/panel/icerik/hizmetler', label: 'Hizmetler', icon: Handshake, hazir: true },
+    ],
+  },
+  {
+    title: 'Sistem',
+    items: [
       { href: '/panel/ayarlar', label: 'Ayarlar', icon: Settings, hazir: true },
+      { href: '/panel/desenler', label: 'Desenler', icon: LayoutTemplate, hazir: true },
     ],
   },
 ] as const;
+
+/**
+ * TELEFONDAKİ ALT SEKME ÇUBUĞU (2026-10-29) — panel çoğunlukla iPhone'dan
+ * kullanılıyor. En sık dört bölüm + "Daha" (geri kalan her şey, çekmecede).
+ * Sıra kullanım sıklığına göre; masaüstünde bunun yerine yan menü var.
+ */
+export const ALT_SEKMELER: readonly PanelRotasi[] = PANEL_GRUPLARI[0]!.items;
 
 /**
  * Menüde tanımlı olmayan ama kırıntıda görünen alt yollar.
@@ -101,8 +97,6 @@ const EK_ETIKETLER: Record<string, string> = {
   '/panel/ayarlar/guvenlik': 'Güvenlik',
   '/panel/ayarlar/sifre': 'Şifre',
   '/panel/ayarlar/denetim': 'Denetim kaydı',
-  '/panel/muhasebe/kategoriler': 'Kategoriler',
-  '/panel/muhasebe/raporlar': 'Raporlar',
   '/panel/spor/egzersizler': 'Egzersizler',
   '/panel/spor/rekorlar': 'Rekorlar',
   '/panel/hayat/aliskanliklar': 'Alışkanlıklar',
@@ -117,8 +111,6 @@ const HAZIR_EK_YOLLAR: ReadonlySet<string> = new Set([
   '/panel/ayarlar/guvenlik',
   '/panel/ayarlar/sifre',
   '/panel/ayarlar/denetim',
-  '/panel/muhasebe/kategoriler',
-  '/panel/muhasebe/raporlar',
   '/panel/spor/egzersizler',
   '/panel/spor/rekorlar',
   '/panel/hayat/aliskanliklar',
