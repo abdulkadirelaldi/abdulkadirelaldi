@@ -52,9 +52,6 @@ export const en: Sozluk = {
     cv: 'CV',
     cta: 'Work with me',
   },
-  seritler: {
-    ekipler: "Teams I've worked with",
-  },
   hakkimdaBolum: {
     baslik: 'About',
     devam: 'Read my full story',
@@ -237,7 +234,6 @@ export const en: Sozluk = {
     sayfayiAc: 'Open CV page',
   },
   hizmetlerSayfa: {
-    ekipler: "Teams I've worked with",
     kiyiBaslik: 'Commercial work runs through Kıyı Medya',
     kiyiAciklama:
       'Quotes, contracts and invoicing are handled under Kıyı Medya. If your project is a commercial one, starting there is fastest; for a personal question or an exchange of ideas, feel free to write to me directly.',

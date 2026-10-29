@@ -76,7 +76,6 @@ describe('ADR-037 — para kuralları TEK TANIM', () => {
      */
     expect(dosyalar.length).toBeGreaterThan(50);
     expect(dosyalar).toContain(KANONIK);
-    expect(dosyalar).toContain('prisma/seed.ts');
   });
 
   it('kanonik modül DÖRT işlevi de ihraç ediyor', () => {
@@ -124,37 +123,5 @@ describe('ADR-037 — para kuralları TEK TANIM', () => {
     expect(desen.test(silinenKopya)).toBe(true);
     expect(desen.test('const x = computeBaseAmount(a, b);')).toBe(false);
     expect(desen.test("import { computeBaseAmount } from '@/x';")).toBe(false);
-  });
-});
-
-describe('prisma/seed.ts — kanonik modülü kullanıyor', () => {
-  const SEED = kod('prisma/seed.ts');
-
-  it('tarama vakum değil', () => {
-    expect(SEED).toContain('createJobSchema');
-    expect(SEED).toContain('baseAmount');
-  });
-
-  it('para yardımcıları İÇE AKTARILIYOR', () => {
-    expect(SEED).toMatch(
-      /import\s*\{[^}]*computeBaseAmount[^}]*\}\s*from\s*'@\/server\/services\/_shared\/money'/s,
-    );
-    expect(SEED).toMatch(/deriveBaseAmount/);
-  });
-
-  it('⚠️ `?? \x270\x27` SAPMASI KALMADI — tutar bilinmiyorsa `baseAmount` null', () => {
-    /*
-     * Sapmanın tam biçimi: `computeBaseAmount(x.agreedAmount ?? '0', x.fxRate)`.
-     * `agreedAmount` null olan bir işte `0.00` üretiyordu — "bedava iş".
-     */
-    expect(SEED).not.toMatch(/agreedAmount\s*\?\?\s*'0'/);
-    // Yerine `?? null` + `deriveBaseAmount` geçti.
-    expect(SEED).toMatch(/deriveBaseAmount\([^)]*agreedAmount\s*\?\?\s*null/);
-  });
-
-  it('`Transaction` tarafı `computeBaseAmount` kullanıyor — `amount` ZORUNLU', () => {
-    // `Transaction.amount` nullable değil, dolayısıyla null kuralı gerekmiyor
-    // ve `deriveBaseAmount` kullanmak yanıltıcı olurdu.
-    expect(SEED).toMatch(/baseAmount:\s*computeBaseAmount\(input\.amount,\s*input\.fxRate\)/);
   });
 });

@@ -481,6 +481,25 @@
   }
 }
 
+/* iOS, 16 px altındaki form alanına dokununca SAYFAYI YAKINLAŞTIRIYOR ve geri
+   bırakmıyor (2026-10-29: panel çoğunlukla iPhone'dan kullanılıyor). Dokunmatik
+   ekranda bütün form alanları en az 16 px. Katmansız kural: Tailwind'in
+   `text-sm` yardımcısı katman içinde, bu onu ezer — masaüstünde dokunulmuyor. */
+@media (pointer: coarse) {
+  input,
+  select,
+  textarea {
+    font-size: max(16px, 1em);
+  }
+}
+
+/* Panelde iOS'un dokunma vurgusu (gri kutu) ve uzun basma menüsü düğmelerde
+   uygulama hissini bozuyor; odak halkası klavye için duruyor. */
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* Tema değişirken renk geçişleri "yayılma" etkisi yapmasın diye ThemeProvider
    bu sınıfı bir kare boyunca <html>'e ekler. */
 .theme-switching,

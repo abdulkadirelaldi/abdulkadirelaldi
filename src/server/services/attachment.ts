@@ -347,12 +347,6 @@ export async function attachmentTargetExists(
       return (await db.post.count({ where: { id: entityId } })) > 0;
     case 'PROFILE':
       return (await db.profile.count({ where: { id: entityId } })) > 0;
-    case 'TRANSACTION':
-      return (await db.transaction.count({ where: { id: entityId } })) > 0;
-    case 'JOB':
-      return (await db.job.count({ where: { id: entityId } })) > 0;
-    case 'CLIENT':
-      return (await db.client.count({ where: { id: entityId } })) > 0;
   }
 }
 
@@ -431,7 +425,6 @@ export interface AttachmentServeDto {
   size: number;
   checksum: string;
   entity: AttachmentEntity;
-  /** CLIENT logosu istisnası sahip kimliğini istiyor (T-117). */
   entityId: string;
 }
 
@@ -514,9 +507,5 @@ export async function attachmentOwnerCacheTargets(
       const p = await db.profile.findUnique({ where: { id: entityId }, select: { locale: true } });
       return p ? { contentEntity: 'profile', locales: [p.locale], slugs: [] } : null;
     }
-    case 'TRANSACTION':
-    case 'JOB':
-    case 'CLIENT':
-      return null;
   }
 }

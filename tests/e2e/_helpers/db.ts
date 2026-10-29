@@ -215,8 +215,6 @@ export interface E2EKalintisi {
   proje: number;
   mesaj: number;
   denetim: number;
-  /** §9/5 senaryosunun yazdığı işlemler — T-107c'de eklendi. */
-  islem: number;
   /** F5 egzersiz + alışkanlık izleri — T-116'da eklendi. */
   kisisel: number;
   toplam: number;
@@ -226,43 +224,11 @@ export async function e2eKalintisi(): Promise<E2EKalintisi> {
   return runTask<E2EKalintisi>('e2eKalintisi');
 }
 
-/** Arşivli bağ fikstürü — gerekçe `db-task.ts` → `arsivliBagSondasi`. */
-export interface ArsivliBagSondasi {
-  musteriId: string;
-  musteriAdi: string;
-  isId: string;
-  isBasligi: string;
-  kategoriId: string;
-  kategoriAdi: string;
-  islemId: string;
-}
-
-export async function arsivliBagSondasi(onek: string): Promise<ArsivliBagSondasi> {
-  return runTask<ArsivliBagSondasi>('arsivliBagSondasi', JSON.stringify({ onek }));
-}
-
-export async function arsivliBagSondasiSil(onek: string): Promise<number> {
-  const { silinen } = await runTask<{ silinen: number }>(
-    'arsivliBagSondasiSil',
-    JSON.stringify({ onek }),
-  );
-  return silinen;
-}
-
 /** F5 izlerini siler — gerekçe `db-task.ts` → `kisiselSondaSil`. */
 export async function kisiselSondaSil(onek: string, gun: string): Promise<number> {
   const { silinen } = await runTask<{ silinen: number }>(
     'kisiselSondaSil',
     JSON.stringify({ onek, gun }),
-  );
-  return silinen;
-}
-
-/** §9/5 işlem izlerini siler (açıklama önekine göre). */
-export async function islemSondasiSil(aciklamaOneki: string): Promise<number> {
-  const { silinen } = await runTask<{ silinen: number }>(
-    'islemSondasiSil',
-    JSON.stringify({ aciklamaOneki }),
   );
   return silinen;
 }

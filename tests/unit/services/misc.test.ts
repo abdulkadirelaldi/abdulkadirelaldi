@@ -1,18 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import * as z from 'zod';
 
-import { createTransactionSchema, createProjectSchema } from '@/lib/schemas';
+import { createProjectSchema } from '@/lib/schemas';
 import {
-  buildPeriodKey,
   calculateReadingMinutes,
   countWords,
   fail,
   internalError,
-  isValidPeriodKey,
   notFound,
   ok,
   parseOrFail,
-  periodKeyForInstant,
   toMeasureString,
   toMoneyString,
   toRateString,
@@ -22,69 +19,6 @@ import {
 } from '@/server/services/_shared';
 
 /* ============================ periodKey — ADR-015 ======================== */
-
-describe('buildPeriodKey — dört biçim', () => {
-  it('DAILY → YYYY-MM-DD', () => {
-    expect(buildPeriodKey('DAILY', '2026-08-05')).toBe('2026-08-05');
-  });
-  it('WEEKLY → YYYY-Www', () => {
-    expect(buildPeriodKey('WEEKLY', '2026-08-05')).toBe('2026-W32');
-  });
-  it('MONTHLY → YYYY-MM', () => {
-    expect(buildPeriodKey('MONTHLY', '2026-08-05')).toBe('2026-08');
-  });
-  it('YEARLY → YYYY', () => {
-    expect(buildPeriodKey('YEARLY', '2026-08-05')).toBe('2026');
-  });
-
-  it('hafta numarası tek haneliyse sıfırla doldurulur', () => {
-    expect(buildPeriodKey('WEEKLY', '2026-01-05')).toMatch(/^\d{4}-W0\d$/);
-  });
-
-  it('YIL SINIRI: haftalık anahtar ISO yılını kullanır', () => {
-    // 1 Ocak 2027 → ISO haftası 2026-W53; takvim yılı yazılsaydı 2027-W53 olurdu
-    // ve aynı hafta iki farklı anahtar üretirdi.
-    expect(buildPeriodKey('WEEKLY', '2027-01-01')).toBe('2026-W53');
-  });
-
-  it('üretilen dört anahtar da geçerli biçimde', () => {
-    for (const freq of ['DAILY', 'WEEKLY', 'MONTHLY', 'YEARLY'] as const) {
-      expect(isValidPeriodKey(buildPeriodKey(freq, '2026-08-05')), freq).toBe(true);
-    }
-  });
-
-  it('DETERMİNİSTİK — aynı gün daima aynı anahtar', () => {
-    expect(buildPeriodKey('MONTHLY', '2026-08-05')).toBe(buildPeriodKey('MONTHLY', '2026-08-05'));
-  });
-});
-
-describe('periodKeyForInstant — ADR-016 zaman dilimi yardımcısını kullanır', () => {
-  it('UTC 21:00’de ERTESİ günün anahtarını üretir', () => {
-    // Cron UTC'de koşuyor. Yerel saat kullanılsaydı 31 Temmuz 21:00'de
-    // "2026-07" üretilir ve ağustos kaydı temmuza yazılırdı.
-    expect(periodKeyForInstant('MONTHLY', new Date('2026-07-31T21:00:00Z'))).toBe('2026-08');
-    expect(periodKeyForInstant('DAILY', new Date('2026-07-31T21:00:00Z'))).toBe('2026-08-01');
-  });
-
-  it('YIL SINIRI: 31 Aralık 21:00 UTC → sonraki yıl', () => {
-    expect(periodKeyForInstant('YEARLY', new Date('2026-12-31T21:00:00Z'))).toBe('2027');
-  });
-});
-
-describe('isValidPeriodKey', () => {
-  it('geçerli biçimler', () => {
-    for (const key of ['2026', '2026-08', '2026-W32', '2026-08-05']) {
-      expect(isValidPeriodKey(key), key).toBe(true);
-    }
-  });
-  it('geçersiz biçimler', () => {
-    for (const key of ['2026-13', '2026-W54', '26-08', '2026-8', '2026-08-32']) {
-      expect(isValidPeriodKey(key), key).toBe(false);
-    }
-  });
-});
-
-/* ========================= readingMinutes — ADR-019 ====================== */
 
 describe('calculateReadingMinutes', () => {
   it('en az 1 dakika döner — "0 dakika" anlamsız', () => {
@@ -201,23 +135,6 @@ describe('toValidationFailure — §7.2 fields eşlemesi', () => {
     expect(failure.error.code).toBe('VALIDATION_ERROR');
     expect(failure.error.fields?.slug).toBeDefined();
     expect(failure.error.fields?.title).toBeDefined();
-  });
-
-  it('fields ANAHTARLARI form alan adlarıyla birebir aynı', () => {
-    const result = createTransactionSchema.safeParse({
-      type: 'INCOME',
-      amount: '100.00',
-      currency: 'USD',
-      fxRate: '1', // çapraz kural ihlali → path: ['fxRate']
-      date: '2026-08-05',
-      categoryId: 'clx0000000000000000000001',
-    });
-    expect(result.success).toBe(false);
-    if (result.success) return;
-
-    const failure = toValidationFailure(result.error);
-    expect(Object.keys(failure.error.fields ?? {})).toContain('fxRate');
-    expect(failure.error.fields?.fxRate).toContain('Kur');
   });
 
   it('alan başına YALNIZCA İLK mesaj taşınır', () => {

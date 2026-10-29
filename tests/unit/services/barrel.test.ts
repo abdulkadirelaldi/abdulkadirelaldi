@@ -25,9 +25,6 @@ describe('@/server/services — sekiz yardımcı dışa açık', () => {
     'computeBaseAmount',
     'sumMoney',
     'subtractMoney',
-    // 4. periodKey
-    'buildPeriodKey',
-    'periodKeyForInstant',
     // 5. okuma süresi
     'calculateReadingMinutes',
     // 6. denetim kaydı + redaksiyon

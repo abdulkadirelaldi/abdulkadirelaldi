@@ -14,7 +14,7 @@ import { describe, expect, it } from 'vitest';
  * kullanıyor:
  *
  *   T-035 · MDX yığını  (~109 kB)  → `dynamic(() => import('./mdx-onizleme'))`
- *   T-108 · Recharts    (~109,5 kB) → `dynamic(() => import('./yillik-grafik'))`
+ *   T-108 · Recharts    (~109,5 kB) → (2026-10-29: tüketicisi silindi, liste dışı)
  *
  * İkisinin de ölçümü yapıldı, ikisi de doğru kuruldu ve **ikisi de korumasızdı**:
  * `dynamic`i statik `import`a çevirmek tek satırlık bir düzenleme ve sonucu
@@ -106,13 +106,11 @@ const AGIR_YIGINLAR: AgirYigin[] = [
    * birlikte silindi (2026-10-21). Projenin en pahalı yığınıydı (BULGU-018:
    * TBT 80 ms → 9 990 ms); geri gelirse buraya ölçümüyle dönmeli.
    */
-  {
-    paket: 'recharts',
-    bilesen: 'src/components/panel/yillik-grafik.tsx',
-    tembelSinir: 'src/components/panel/yillik-grafik-lazy.tsx',
-    tekIceAktaran: true,
-    olcum: '~109,5 kB · T-108 (Frontend chunk listesiyle ölçtü: /raporlar → 6311 iniyor)',
-  },
+  /*
+   * `recharts` (~109,5 kB · T-108) BU LİSTEDEYDİ — tek tüketicisi muhasebe
+   * raporlarının yıllık grafiğiydi ve 2026-10-29'da modülle silindi. Sağlık
+   * grafikleri geldiğinde buraya ÖLÇÜMÜYLE ve tembel sınırıyla dönmeli.
+   */
   {
     paket: 'next-mdx-remote',
     bilesen: 'src/components/panel/mdx-onizleme.tsx',

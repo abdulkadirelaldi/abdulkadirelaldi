@@ -5,14 +5,13 @@ import Link from 'next/link';
 import { HizmetListesi } from '@/components/public/hizmetler';
 import { BirincilDisBaglanti, ikincilSiniflari } from '@/components/public/tasarim/dugmeler';
 import { SayfaBasligi } from '@/components/public/tasarim/sayfa-basligi';
-import { LOGO_ESIGI, LogoSeridi } from '@/components/public/vitrin-seritleri';
 import { buttonClasses } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import type { Dil } from '@/i18n/diller';
 import { dilAlternatifleri } from '@/i18n/meta';
 import { yol } from '@/i18n/rotalar';
 import { sozluk } from '@/i18n/sozluk';
-import { getServices, getSiteClientLogos } from '@/server/services';
+import { getServices } from '@/server/services';
 
 export function hizmetlerMetadata(dil: Dil): Metadata {
   const m = sozluk(dil).sayfaBaslik.hizmetler;
@@ -33,16 +32,13 @@ const KIYI_MEDYA_URL = process.env.NEXT_PUBLIC_KIYI_MEDYA_URL ?? 'https://kiyime
  * hizmet hem ana sayfada hem burada CTA üretiyor; kaynağı ayırmadan hangi
  * sayfanın dönüştürdüğü ölçülemezdi. Sonradan eklemek zor, şimdi ücretsiz.
  *
- * LOGO ŞERİDİ (T-117) — YALNIZCA GERÇEK VERİYLE. T-026'da bu sayfada YOKTU:
- * veri yoktu ve uydurma logo ADR-027'nin yasakladığı uydurma istatistikle aynı
- * şey olurdu. Artık veri `showOnSite` işaretli müşterilerden geliyor
- * (ad + logo, başka hiçbir alan). Eşik `LOGO_ESIGI` (vitrin-seritleri.tsx):
- * altındaysa bölüm HİÇ çizilmiyor. Sıra sabit, JS yok.
+ * Müşteri logo şeridi 2026-10-29'da kaldırıldı: müşteri kayıtları panelden
+ * çıktı (iş yönetimi Kıyı Medya panelinde).
  */
 export async function HizmetlerSayfasi({ dil }: { dil: Dil }) {
   const s = sozluk(dil);
   const h = s.hizmetlerSayfa;
-  const [hizmetler, logolar] = await Promise.all([getServices(dil), getSiteClientLogos()]);
+  const hizmetler = await getServices(dil);
   const sirali = [...hizmetler].sort((a, b) => a.order - b.order);
 
   return (
@@ -51,15 +47,6 @@ export async function HizmetlerSayfasi({ dil }: { dil: Dil }) {
         baslik={s.sayfaBaslik.hizmetler.baslik}
         aciklama={s.sayfaBaslik.hizmetler.aciklama}
       />
-
-      {logolar.length >= LOGO_ESIGI && (
-        <section aria-labelledby="logolar-baslik" className="flex flex-col gap-6 pb-16">
-          <h2 id="logolar-baslik" className="text-muted text-center text-sm font-medium">
-            {h.ekipler}
-          </h2>
-          <LogoSeridi logolar={logolar} etiket={h.ekipler} />
-        </section>
-      )}
 
       <section className="bg-surface border-line border-t">
         <div className="mx-auto max-w-6xl px-4 py-16 md:px-8 md:py-20">

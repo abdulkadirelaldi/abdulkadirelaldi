@@ -56,9 +56,6 @@ export const de: Sozluk = {
     cv: 'Lebenslauf',
     cta: 'Zusammenarbeiten',
   },
-  seritler: {
-    ekipler: 'Teams, mit denen ich gearbeitet habe',
-  },
   hakkimdaBolum: {
     baslik: 'Über mich',
     devam: 'Meine ganze Geschichte',
@@ -249,7 +246,6 @@ export const de: Sozluk = {
     sayfayiAc: 'Lebenslauf öffnen',
   },
   hizmetlerSayfa: {
-    ekipler: 'Teams, mit denen ich gearbeitet habe',
     kiyiBaslik: 'Kommerzielle Aufträge über Kıyı Medya',
     kiyiAciklama:
       'Angebot, Vertrag und Rechnungsstellung laufen über Kıyı Medya. Bei einem kommerziellen Vorhaben ist das der schnellste Weg; bei einer persönlichen Frage oder für einen fachlichen Austausch schreiben Sie mir gern direkt.',

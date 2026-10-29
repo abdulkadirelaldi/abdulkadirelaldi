@@ -3,7 +3,6 @@ import {
   PUBLIC_ATTACHMENT_ENTITIES,
   fetchAttachmentForServing,
 } from '@/server/services/attachment';
-import { isPublicClientLogo } from '@/server/services/client';
 import { getObjectBytes } from '@/server/storage/r2';
 import { guvenliHata } from '@/lib/security/guvenli-log';
 
@@ -20,12 +19,10 @@ import { guvenliHata } from '@/lib/security/guvenli-log';
  *
  *   PROJECT · POST · PROFILE → herkese açık, `public, immutable` (içerik
  *     DEĞİŞMEZ: yeni dosya yeni kimlik; önbellek asla bayatlamaz)
- *   diğerleri (makbuz, iş, müşteri) → YALNIZCA OTURUMLA, `private, no-store`
+ *   diğerleri (kişisel kayıtlar) → YALNIZCA OTURUMLA, `private, no-store`
  *
- *   TEK İSTİSNA (T-117): `CLIENT` eklentisi, vitrindeki (`showOnSite`, arşivde
- *     değil) BİR MÜŞTERİNİN KENDİ LOGOSU ise herkese açık. Müşterinin başka bir
- *     eklentisi (sözleşme, fatura) bu sorudan geçemez — eşleşme logo alanı VE
- *     sahip kimliği üzerinden (`isPublicClientLogo`).
+ *   T-117'nin müşteri logosu istisnası 2026-10-29'da müşteri modülüyle
+ *   birlikte kaldırıldı.
  *
  * ⚠️ Oturumsuz istek özel bir dosya için 404 alıyor, 401 DEĞİL: 401 dosyanın
  * VAR OLDUĞUNU söylerdi. Kimlik tahmin edilemez (cuid) ama ikinci bir kat.
@@ -35,7 +32,6 @@ import { guvenliHata } from '@/lib/security/guvenli-log';
  */
 
 const BIR_YIL = 31_536_000;
-const BIR_SAAT = 3_600;
 
 /**
  * Kimlik karakter kümesi — DAR. `cuidSchema` bilerek gevşek (1–64 uzunluk;
@@ -63,26 +59,13 @@ export async function GET(
     const dosya = await fetchAttachmentForServing(id);
     if (!dosya) return bulunamadi();
 
-    const icerikGorseli = PUBLIC_ATTACHMENT_ENTITIES.has(dosya.entity);
-    const vitrinLogosu =
-      !icerikGorseli && dosya.entity === 'CLIENT' && (await isPublicClientLogo(id, dosya.entityId));
-    const herkeseAcik = icerikGorseli || vitrinLogosu;
+    const herkeseAcik = PUBLIC_ATTACHMENT_ENTITIES.has(dosya.entity);
     if (!herkeseAcik) {
       const oturum = await auth();
       if (!oturum?.user?.id) return bulunamadi();
     }
 
-    /*
-     * ⚠️ VİTRİN LOGOSU `immutable` DEĞİL (T-117): içerik değişmese de İZİN
-     * değişebilir — "sitede göster" kapatılabilir. Bir yıllık önbellek, iznini
-     * geri çeken bir müşterinin logosunu tarayıcılarda ve ara önbelleklerde
-     * bir yıl daha yaşatırdı. Bir saat: şerit akıcı, geri çekme bir saatte iner.
-     */
-    const onbellek = icerikGorseli
-      ? `public, max-age=${BIR_YIL}, immutable`
-      : vitrinLogosu
-        ? `public, max-age=${BIR_SAAT}`
-        : 'private, no-store';
+    const onbellek = herkeseAcik ? `public, max-age=${BIR_YIL}, immutable` : 'private, no-store';
     const etag = `"${dosya.checksum}"`;
 
     if (request.headers.get('if-none-match') === etag) {

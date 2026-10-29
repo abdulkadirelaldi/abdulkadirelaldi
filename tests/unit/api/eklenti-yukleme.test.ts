@@ -42,9 +42,6 @@ const { authMock, writesRevokedMock, r2Mock, dbMock, revalidateTagMock } = vi.ho
       project: { count: vi.fn(), findUnique: vi.fn() },
       post: { count: vi.fn().mockResolvedValue(1) },
       profile: { count: vi.fn().mockResolvedValue(1) },
-      transaction: { count: vi.fn().mockResolvedValue(1) },
-      job: { count: vi.fn().mockResolvedValue(1) },
-      client: { count: vi.fn().mockResolvedValue(1) },
       auditLog: { create: vi.fn(), count: vi.fn() },
     },
   };
@@ -282,7 +279,7 @@ function dosyaVar(entity: string) {
     size: 24,
     checksum: 'a'.repeat(64),
     entity,
-    entityId: 'ckclient00000000000000001',
+    entityId: 'ckentity00000000000000001',
   });
 }
 
@@ -298,39 +295,20 @@ describe('⚠️ sunum — kim görebilir', () => {
     expect(new Uint8Array(await yanit.arrayBuffer())).toEqual(png());
   });
 
-  it.each(['TRANSACTION', 'JOB'])(
-    '⚠️ %s eklentisi OTURUMSUZ 404 — 401 DEĞİL (varlığını da söylemiyor) ve R2 OKUNMUYOR',
-    async (entity) => {
-      authMock.mockResolvedValue(null);
-      dosyaVar(entity);
-      expect((await sun()).status).toBe(404);
-      expect(r2Mock.getObjectBytes).not.toHaveBeenCalled();
-    },
-  );
-
-  it('⚠️ CLIENT eklentisi vitrin logosu DEĞİLSE oturumsuz 404 — sözleşme/fatura açılmaz', async () => {
+  /*
+   * Kişisel (herkese açık listede OLMAYAN) her eklenti türü oturuma bağlı.
+   * 2026-10-29'a kadar örnekler TRANSACTION/JOB idi; o türler modülleriyle
+   * silindi. Mekanizma türden bağımsız — `OZEL` public listede olmayan bir tür.
+   */
+  it('⚠️ kişisel eklenti OTURUMSUZ 404 — 401 DEĞİL (varlığını da söylemiyor) ve R2 OKUNMUYOR', async () => {
     authMock.mockResolvedValue(null);
-    dosyaVar('CLIENT');
-    dbMock.client.count.mockResolvedValue(0);
+    dosyaVar('OZEL');
     expect((await sun()).status).toBe(404);
     expect(r2Mock.getObjectBytes).not.toHaveBeenCalled();
   });
 
-  it('⚠️ CLIENT eklentisi vitrindeki müşterinin KENDİ logosuysa herkese açık (T-117)', async () => {
-    authMock.mockResolvedValue(null);
-    dosyaVar('CLIENT');
-    dbMock.client.count.mockResolvedValue(1);
-    const yanit = await sun();
-    expect(yanit.status).toBe(200);
-    // ⚠️ `immutable` DEĞİL: vitrin izni geri alınabilir, logo bir yıl önbellekte kalmasın.
-    expect(yanit.headers.get('cache-control')).toBe('public, max-age=3600');
-    // Sorgu SAHİBİ de soruyor — logo alanına yazılmış yabancı eklenti geçemez.
-    const where = dbMock.client.count.mock.calls.at(-1)?.[0].where;
-    expect(where).toMatchObject({ id: 'ckclient00000000000000001', logoAttachmentId: DOSYA_ID });
-  });
-
-  it('makbuz OTURUMLA 200 ama `private, no-store` ve noindex', async () => {
-    dosyaVar('TRANSACTION');
+  it('kişisel eklenti OTURUMLA 200 ama `private, no-store` ve noindex', async () => {
+    dosyaVar('OZEL');
     const yanit = await sun();
     expect(yanit.status).toBe(200);
     expect(yanit.headers.get('cache-control')).toBe('private, no-store');

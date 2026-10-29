@@ -122,24 +122,6 @@ export * from './contact-message';
 export * from './audit-log';
 
 // F4 §4.2/§6 — iş & müşteri (T-100). Para kuralları ADR-014, `_shared/money.ts`.
-export * from './client';
-export * from './job';
-
-// F4 §6 — muhasebe (T-101). "Aynı veri iki yere girilmez": tek yazma yolu
-// `createTransaction`, gelir tablosu o satırlar üzerinde bir OKUMA.
-export * from './transaction';
-export * from './transaction-category';
-
-// F4 §4.2 — rapor hesaplayıcıları (T-102). İki ESAS ayrı döner: alan adları
-// `collected`/`invoiced` hangisi olduğunu söylüyor.
-export * from './report';
-
-// §4.2 CSV dışa aktarım (T-106). Kodlama kararları `_shared/csv.ts`te ölçülü.
-export * from './export';
-
-// ADR-040 — tekrarlayan işlem üretimi. Tetikleyici ELLE; F7'de cron AYNI
-// eylemi çağırır. İdempotanslık `@@unique([sourceRecurringId, periodKey])`.
-export * from './recurring-transaction';
 
 // F5 §4.2 — sağlık kaydı (T-110). ⚠️ Sağlık DEĞERLERİ denetim kaydına
 // yazılmıyor; gerekçe `actions/health-log.ts`in başında (T-100'den FARKLI karar).

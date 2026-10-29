@@ -2,13 +2,12 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { KirintiYolu } from '@/components/panel/kirinti-yolu';
-import { MenuDugmesi } from '@/components/panel/menu-dugmesi';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 /**
  * Panel üst çubuğu — SUNUCU BİLEŞENİ, iki istemci yaprağıyla.
  *
- * `MenuDugmesi` ve `KirintiYolu` istemci; ikisi de küçük ve uçta. Topbar'ın
+ * `KirintiYolu` istemci; küçük ve uçta (telefonda çekmeceyi alt sekmelerdeki "Daha" açıyor). Topbar'ın
  * kendisini istemciye çevirmek, her panel sayfasının başlığını istemci
  * paketine taşımak olurdu — T-023'ün ölçtüğü şey tam olarak bunun bedeliydi.
  *
@@ -27,11 +26,9 @@ export function Topbar({ title, actions }: { title: string; actions?: ReactNode 
     */
     <header
       data-yazdirmada-gizle
-      className="border-line bg-canvas/85 sticky top-0 z-40 border-b backdrop-blur-md"
+      className="border-line bg-canvas/85 sticky top-0 z-40 border-b pt-[env(safe-area-inset-top)] backdrop-blur-md"
     >
-      <div className="flex h-16 items-center gap-3 px-4 lg:px-6">
-        <MenuDugmesi />
-
+      <div className="flex h-14 items-center gap-3 px-4 lg:h-16 lg:px-6">
         <div className="flex min-w-0 flex-col">
           <KirintiYolu />
           <h1 className="truncate text-lg">{title}</h1>

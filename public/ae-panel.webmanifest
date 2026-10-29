@@ -1,0 +1,16 @@
+{
+  "name": "AE Panel",
+  "short_name": "AE Panel",
+  "description": "Abdulkadir Elaldı — kişisel panel",
+  "start_url": "/panel",
+  "scope": "/panel",
+  "display": "standalone",
+  "orientation": "portrait",
+  "lang": "tr",
+  "background_color": "#0A0A12",
+  "theme_color": "#0A0A12",
+  "icons": [
+    { "src": "/icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/apple-icon.png", "sizes": "180x180", "type": "image/png", "purpose": "any" }
+  ]
+}

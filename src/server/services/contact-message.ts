@@ -191,8 +191,6 @@ export interface ContactMessageListItemDto {
   repliedAt: string | null;
   archivedAt: string | null;
   createdAt: string;
-  /** Bu mesajdan iş açıldıysa onun kimliği — §6 dönüşümü (ADR-017 tek yön). */
-  convertedJobId: string | null;
 }
 
 export interface ContactMessageDto extends ContactMessageListItemDto {
@@ -242,7 +240,6 @@ interface ContactMessageListRow {
   repliedAt: Date | null;
   archivedAt: Date | null;
   createdAt: Date;
-  convertedJob: { id: string } | null;
 }
 
 /** DETAY satırı — §8/KVKK alanları burada. */
@@ -267,9 +264,6 @@ function toListDto(row: ContactMessageListRow): ContactMessageListItemDto {
     repliedAt: row.repliedAt?.toISOString() ?? null,
     archivedAt: row.archivedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
-    // İlişki DÜZLEŞTİRİLİYOR: DTO'ya iç içe bir `{ convertedJob: { id } }`
-    // koymak, Frontend'i "var mı yok mu" için iki seviye kontrole zorlardı.
-    convertedJobId: row.convertedJob?.id ?? null,
   };
 }
 
@@ -324,7 +318,6 @@ const LIST_SELECT = {
   repliedAt: true,
   archivedAt: true,
   createdAt: true,
-  convertedJob: { select: { id: true } },
 } as const;
 
 /**

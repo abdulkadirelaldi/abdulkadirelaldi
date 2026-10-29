@@ -15,7 +15,6 @@ import {
 /**
  * `ContactMessage` (§4.1 /iletisim, ADR-020).
  *
- * `convertedJobId` YOKTUR — tek yön `Job.contactMessageId` (ADR-017).
  * `ip`, `isSpam`, `spamScore`, `honeypotHit` istemciden ALINMAZ; sunucuda
  * belirlenir. Bu yüzden public form şeması ile panel şeması AYRIDIR.
  */
