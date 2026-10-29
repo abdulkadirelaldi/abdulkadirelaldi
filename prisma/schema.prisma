@@ -791,3 +791,142 @@ model JournalEntry {
   @@index([date])
   @@map("journal_entry")
 }
+
+// =============================================================================
+// CÜZDAN (2026-10-30) — muhasebenin yerine KİŞİSEL varlık/borç/akış takibi
+// =============================================================================
+
+/// Bakiye/borç/akış birimi. Altın ve döviz TL karşılığı canlı kurdan (PriceQuote).
+enum WalletUnit {
+  TRY
+  USD
+  EUR
+  GBP
+  GOLD_GRAM
+  GOLD_HAS
+  GOLD_QUARTER
+  GOLD_HALF
+  GOLD_FULL
+  GOLD_REPUBLIC
+  GOLD_ATA
+  GOLD_BANGLE_22
+  SILVER_GRAM
+}
+
+enum WalletAccountKind {
+  BANK
+  CASH
+  INVESTMENT
+  OTHER
+}
+
+enum WalletFlowKind {
+  INCOME
+  EXPENSE
+}
+
+enum WalletFrequency {
+  MONTHLY
+  WEEKLY
+  YEARLY
+  ONCE
+}
+
+/// Hesap: banka, nakit ya da yatırım. Altın/döviz de bir hesaptır (birimiyle).
+model WalletAccount {
+  id String @id @default(cuid())
+
+  name       String
+  kind       WalletAccountKind @default(BANK)
+  unit       WalletUnit        @default(TRY)
+  balance    Decimal           @default(0) @db.Decimal(14, 2)
+  order      Int               @default(0)
+  isArchived Boolean           @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isArchived, order])
+  @@map("wallet_account")
+}
+
+/// Borç: kredi, kart, kişiye borç — TL ya da altın/döviz birimiyle.
+model WalletDebt {
+  id String @id @default(cuid())
+
+  name            String
+  /// Kime borçlu (banka, kişi).
+  lender          String?
+  unit            WalletUnit @default(TRY)
+  totalAmount     Decimal    @db.Decimal(14, 2)
+  remainingAmount Decimal    @db.Decimal(14, 2)
+  monthlyPayment  Decimal?   @db.Decimal(14, 2)
+  /// Ayın kaçında ödeniyor (1–31).
+  paymentDay      Int?
+  /// Gün semantiği (ADR-016).
+  endDate         DateTime?  @db.Date
+  note            String?
+  isClosed        Boolean    @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  payments WalletDebtPayment[]
+
+  @@index([isClosed])
+  @@map("wallet_debt")
+}
+
+/// Borç ödemesi — yazılınca `remainingAmount` aynı işlemde düşer.
+model WalletDebtPayment {
+  id String @id @default(cuid())
+
+  debtId String
+  debt   WalletDebt @relation(fields: [debtId], references: [id], onDelete: Cascade)
+  date   DateTime   @db.Date
+  amount Decimal    @db.Decimal(14, 2)
+  note   String?
+
+  createdAt DateTime @default(now())
+
+  @@index([debtId, date])
+  @@map("wallet_debt_payment")
+}
+
+/// Düzenli (ya da tek seferlik) gelir/gider — borç taksitleri HARİÇ (borçta).
+model WalletFlow {
+  id String @id @default(cuid())
+
+  kind         WalletFlowKind
+  name         String
+  /// Kimden (gelir) / kime (gider).
+  counterparty String?
+  unit         WalletUnit      @default(TRY)
+  amount       Decimal         @db.Decimal(14, 2)
+  frequency    WalletFrequency @default(MONTHLY)
+  /// Aylıkta ayın günü, haftalıkta 1–7 (pzt–paz); yıllık/tek seferde `date`.
+  day          Int?
+  date         DateTime?       @db.Date
+  category     String?
+  note         String?
+  isActive     Boolean         @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([kind, isActive])
+  @@map("wallet_flow")
+}
+
+/// Son bilinen kur — canlı kaynak düşerse bu gösterilir (zamanıyla).
+model PriceQuote {
+  unit      WalletUnit @id
+  /// Alış (bozdurma) — varlık değerlemesi.
+  buying    Decimal    @db.Decimal(18, 4)
+  /// Satış — borç (altın/döviz) değerlemesi: kapatmak için ödenecek.
+  selling   Decimal    @db.Decimal(18, 4)
+  source    String
+  fetchedAt DateTime
+
+  @@map("price_quote")
+}

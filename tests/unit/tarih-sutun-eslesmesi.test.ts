@@ -175,6 +175,30 @@ const ESLESMELER: Eslesme[] = [
       'ayrı sütunlarda (`startedAt`, `finishedAt` — zaman damgası).',
   },
   {
+    servis: 'src/server/services/cuzdan.ts',
+    model: 'WalletDebt',
+    alan: 'endDate',
+    beklenen: 'gun',
+    not:
+      'Cüzdan (2026-10-30). Borç bitişi, akış tarihi ve ödeme tarihi üçü de ' +
+      '`@db.Date` → `appDayToDate`/`dateToAppDay`. "Kaç ay kaldı" GÜN farkından ' +
+      '(`differenceInAppDays`) — anlık yardımcı gece girilen ödemeyi önceki güne yazardı.',
+  },
+  {
+    servis: 'src/server/services/cuzdan.ts',
+    model: 'WalletFlow',
+    alan: 'date',
+    beklenen: 'gun',
+    not: 'Tek seferlik gelir/gider günü — takvim günü, saat yok.',
+  },
+  {
+    servis: 'src/server/services/cuzdan.ts',
+    model: 'WalletDebtPayment',
+    alan: 'date',
+    beklenen: 'gun',
+    not: 'Borç ödemesinin günü — takvim günü, saat yok.',
+  },
+  {
     servis: 'src/server/services/habit-gun.ts',
     model: 'HabitLog',
     alan: 'date',

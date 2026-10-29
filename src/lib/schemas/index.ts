@@ -42,4 +42,5 @@ export * from './personal-record';
 export * from './habit';
 export * from './habit-log';
 export * from './goal';
+export * from './wallet';
 export * from './journal-entry';
