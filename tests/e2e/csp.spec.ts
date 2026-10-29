@@ -126,6 +126,7 @@ test.describe('§8.13 · panel', () => {
     '/panel/spor',
     '/panel/icerik/blog/yeni',
     '/panel/hayat',
+    '/panel/hayat/rapor',
   ]) {
     test(`${yol} — ihlal yok, betikler nonce'lu`, async ({ page }) => {
       await denetle(page, yol);

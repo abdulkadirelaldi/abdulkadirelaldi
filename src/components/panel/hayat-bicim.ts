@@ -1,5 +1,4 @@
 import type { BadgeVariant } from '@/components/ui/badge';
-import type { HabitStreak } from '@/server/services/habit';
 import type { GoalStatus } from '@/types';
 
 /**
@@ -51,34 +50,6 @@ export function gunAyYil(gun: string): string {
 }
 
 /**
- * Hafta aralığı — `20 – 26 Ekim 2026`; ay ya da yıl değişiyorsa iki uç da tam.
- */
-export function haftaAraligi(bas: string, bit: string): string {
-  if (bas.slice(0, 4) !== bit.slice(0, 4)) return `${gunAyYil(bas)} – ${gunAyYil(bit)}`;
-  if (bas.slice(5, 7) !== bit.slice(5, 7)) return `${gunAy(bas)} – ${gunAyYil(bit)}`;
-  return `${Number(bas.slice(8, 10))} – ${gunAyYil(bit)}`;
-}
-
-/**
- * Seri metni — `12 gün`, `3 hafta`, `400+ gün`.
- *
- * `atLeast` SESSİZCE DÜŞÜRÜLMÜYOR: servis seriyi 400 günlük pencereyle
- * sınırlıyor ve pencereye dayanan seri "en az" demek. Kesin sayı gibi
- * yazmak, gerçek değeri bilinmeyen bir sayıyı ölçülmüş gibi göstermek olurdu.
- * Ekran okuyucu için `aciklama` "en az" kelimesini açıkça söylüyor; "+"
- * işareti sesli okumada kayboluyor.
- */
-export function seriMetni(seri: HabitStreak): { metin: string; aciklama: string } {
-  const birim = seri.unit === 'day' ? 'gün' : 'hafta';
-  const metin = `${seri.value}${seri.atLeast ? '+' : ''} ${birim}`;
-  const aciklama =
-    seri.value === 0
-      ? 'Seri yok'
-      : `Seri: ${seri.atLeast ? 'en az ' : ''}${seri.value} ${birim} üst üste`;
-  return { metin, aciklama };
-}
-
-/**
  * Hedef tarihe kalan gün — `daysLeft` NEGATİFSE gecikmiş (servis sözleşmesi).
  * `ton` rozet rengi için: gecikme uyarı, bugün/yakın vurgu.
  */
@@ -126,33 +97,11 @@ function sorgulu(taban: string, p: URLSearchParams): string {
   return sorgu ? `${taban}?${sorgu}` : taban;
 }
 
-export function hayatYolu(hafta?: string): string {
-  const p = new URLSearchParams();
-  if (hafta) p.set('hafta', hafta);
-  return sorgulu('/panel/hayat', p);
-}
-
 export function aliskanliklarYolu({ gorunum, sayfa }: { gorunum: string; sayfa?: number }) {
   const p = new URLSearchParams();
   if (gorunum && gorunum !== 'hepsi') p.set('gorunum', gorunum);
   if (sayfa && sayfa > 1) p.set('sayfa', String(sayfa));
   return sorgulu('/panel/hayat/aliskanliklar', p);
-}
-
-export function hedeflerYolu({
-  gorunum,
-  q,
-  sayfa,
-}: {
-  gorunum: string;
-  q?: string;
-  sayfa?: number;
-}): string {
-  const p = new URLSearchParams();
-  if (gorunum && gorunum !== 'hepsi') p.set('gorunum', gorunum);
-  if (q) p.set('q', q);
-  if (sayfa && sayfa > 1) p.set('sayfa', String(sayfa));
-  return sorgulu('/panel/hayat/hedefler', p);
 }
 
 export function gunlukYolu({

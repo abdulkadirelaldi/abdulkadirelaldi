@@ -1,6 +1,6 @@
 'use client';
 
-import { ArchiveRestore, Pencil, Plus, Repeat } from 'lucide-react';
+import { ArchiveRestore, ArrowDown, ArrowUp, Pencil, Plus, Repeat } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button, buttonClasses } from '@/components/ui/button';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FormAlert } from '@/components/ui/form-error';
-import { archiveHabitAction } from '@/server/actions/habit';
+import { archiveHabitAction, moveHabitAction } from '@/server/actions/habit';
 import type { HabitDto } from '@/server/services/habit';
 
 /**
@@ -60,6 +60,21 @@ export function AliskanlikListesi({
       }
     } catch {
       setHata('İşlem tamamlanamadı — bağlantı kurulamadı. Kayıt olduğu gibi duruyor.');
+    } finally {
+      setCalisan(null);
+    }
+  };
+
+  /** Günlük listedeki sırayı bir basamak taşır (2026-10-29). */
+  const tasi = async (h: HabitDto, yon: 'yukari' | 'asagi') => {
+    setCalisan(h.id);
+    setHata(null);
+    try {
+      const sonuc = await moveHabitAction({ id: h.id, yon });
+      if (sonuc.ok) router.refresh();
+      else setHata(sonuc.error.message);
+    } catch {
+      setHata('Sıra değiştirilemedi — bağlantı kurulamadı.');
     } finally {
       setCalisan(null);
     }
@@ -114,6 +129,28 @@ export function AliskanlikListesi({
       baslik: 'İşlem',
       deger: (h) => (
         <div className="flex flex-wrap items-start justify-end gap-1">
+          {!h.isArchived && (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={calisan !== null}
+                onClick={() => tasi(h, 'yukari')}
+                aria-label={`${h.name}: yukarı taşı`}
+              >
+                <ArrowUp className="size-3.5" aria-hidden="true" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                disabled={calisan !== null}
+                onClick={() => tasi(h, 'asagi')}
+                aria-label={`${h.name}: aşağı taşı`}
+              >
+                <ArrowDown className="size-3.5" aria-hidden="true" />
+              </Button>
+            </>
+          )}
           <Link
             href={`/panel/hayat/aliskanliklar/${h.id}`}
             className={buttonClasses({ variant: 'ghost', size: 'sm' })}

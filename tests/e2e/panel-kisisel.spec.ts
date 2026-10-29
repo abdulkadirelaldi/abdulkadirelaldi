@@ -185,7 +185,8 @@ test.describe('F5 · spor', () => {
     await page.goto(antrenmanAdresi);
     await page.getByRole('button', { name: 'Sil', exact: true }).click();
     await page.getByRole('button', { name: 'Evet, sil' }).click();
-    await page.waitForURL(/\/panel\/spor$/);
+    // 2026-10-30: silme sonrası eski liste `/panel/spor/gecmis`te.
+    await page.waitForURL(/\/panel\/spor\/gecmis$/);
 
     await page.goto('/panel/spor/rekorlar');
     await expect(page.getByRole('row').filter({ hasText: hareket })).toHaveCount(0);
@@ -213,38 +214,39 @@ test.describe('F5 · hayat', () => {
     await page.getByRole('button', { name: 'Ekle' }).click();
     await page.waitForURL(/\/panel\/hayat\/aliskanliklar$/);
 
-    /* Bugünün hücresi: geleceğe ait günler devre dışı, son ETKİN hücre bugün. */
-    await page.goto('/panel/hayat');
-
     /*
-     * Bugünün hücresi: gelecek günler devre dışı, son ETKİN hücre bugün. Etiketi
-     * BİR KEZ okunup sabitleniyor — istek sürerken hücre devre dışı kalıyor ve
-     * `:not([disabled])` o anda DÜNE kayardı.
+     * 2026-10-29 — günlük liste: her alışkanlıkta "yaptım" (✓) ve "yapmadım"
+     * (✗) düğmeleri, `aria-pressed` ile. Önce "yaptım" kalıcı mı, sonra
+     * "yapmadım" ona geçiyor mu (ikisi aynı anda doğru olamaz), sonra temizle.
      */
-    const etiket = await page
-      .locator(`button[aria-label^="${ad}, "]:not([disabled])`)
-      .last()
-      .getAttribute('aria-label');
-    const bugun = page.getByRole('button', { name: etiket ?? '', exact: true });
+    await page.goto('/panel/hayat');
+    const yaptim = page.getByRole('button', { name: `${ad}: yaptım`, exact: true });
+    const yapmadim = page.getByRole('button', { name: `${ad}: yapmadım`, exact: true });
 
     /* Tık + yazmanın BİTMESİ (düğme yeniden etkin) — iyimser hâl yetmez. */
-    const isaretle = async (beklenen: 'true' | 'false') => {
-      await bugun.click();
-      await expect(bugun).toHaveAttribute('aria-pressed', beklenen);
-      await expect(bugun).toBeEnabled();
+    const dokun = async (dugme: typeof yaptim) => {
+      await dugme.click();
+      await expect(dugme).toBeEnabled();
     };
 
-    await expect(bugun).toHaveAttribute('aria-pressed', 'false');
-    await isaretle('true');
+    await expect(yaptim).toHaveAttribute('aria-pressed', 'false');
+    await dokun(yaptim);
+    await expect(yaptim).toHaveAttribute('aria-pressed', 'true');
 
     /* (4) iyimser değil, KALICI */
     await page.reload();
-    await expect(bugun).toHaveAttribute('aria-pressed', 'true');
+    await expect(yaptim).toHaveAttribute('aria-pressed', 'true');
 
-    /* Geri al — aç/kapa, satır silinmeli */
-    await isaretle('false');
+    /* "Yapmadım" "yaptım"ı KALDIRIR ve o da kalıcı */
+    await dokun(yapmadim);
     await page.reload();
-    await expect(bugun).toHaveAttribute('aria-pressed', 'false');
+    await expect(yapmadim).toHaveAttribute('aria-pressed', 'true');
+    await expect(yaptim).toHaveAttribute('aria-pressed', 'false');
+
+    /* Yeniden dokunmak işareti temizler */
+    await dokun(yapmadim);
+    await page.reload();
+    await expect(yapmadim).toHaveAttribute('aria-pressed', 'false');
     await yatayTasmaYok(page);
 
     /* Temizlik: arşivle (silinemez — `HabitLog` cascade geçmişi götürürdü) */

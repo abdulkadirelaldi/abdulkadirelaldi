@@ -1,12 +1,14 @@
 import type { CreateGoalInput, GoalFilterInput, UpdateGoalInput } from '@/lib/schemas';
 import { db } from '@/server/db';
-import type { GoalCategory, GoalStatus } from '@/types';
+import type { GoalCategory, GoalPeriod, GoalStatus } from '@/types';
 
 import {
   appDayToDate,
   appToday,
   dateToAppDay,
   differenceInAppDays,
+  donemAnahtari,
+  donemAnahtariGecerliMi,
   panelSkipTake,
   toPagedResult,
   type AppDay,
@@ -54,6 +56,10 @@ export interface GoalDto {
   targetDate: string | null;
   progress: number;
   status: GoalStatus;
+  /** Dönemli hedef (2026-10-29) — boşsa uzun vadeli. */
+  period: GoalPeriod | null;
+  /** `2026-W44` · `2026-10` · `2026`. */
+  periodKey: string | null;
   /**
    * Hedef tarihe kalan gün (`targetDate - bugün`); geçmişse NEGATİF.
    * `targetDate` yoksa `null`. Okuma anında türetilir, saklanmaz.
@@ -71,6 +77,8 @@ const GOAL_SELECT = {
   targetDate: true,
   progress: true,
   status: true,
+  period: true,
+  periodKey: true,
   createdAt: true,
   updatedAt: true,
 } as const;
@@ -83,6 +91,8 @@ interface GoalRow {
   targetDate: Date | null;
   progress: number;
   status: string;
+  period: string | null;
+  periodKey: string | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -109,6 +119,8 @@ export interface GoalClient {
         targetDate: Date | null;
         progress: number;
         status: GoalStatus;
+        period: GoalPeriod | null;
+        periodKey: string | null;
       };
       select: typeof GOAL_SELECT;
     }): Promise<GoalRow>;
@@ -136,6 +148,8 @@ function toDto(row: GoalRow, today: AppDay): GoalDto {
     targetDate,
     progress: row.progress,
     status: row.status as GoalStatus,
+    period: row.period as GoalPeriod | null,
+    periodKey: row.periodKey,
     daysLeft: targetDate ? differenceInAppDays(today, targetDate) : null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -194,6 +208,9 @@ export function buildGoalWhere(filter: GoalFilterInput): Record<string, unknown>
 
   if (filter.status) where.status = filter.status;
   if (filter.category) where.category = filter.category;
+  if (filter.period) where.period = filter.period;
+  if (filter.periodKey) where.periodKey = filter.periodKey;
+  if (filter.uzunVadeli) where.period = null;
   if (filter.q) {
     where.OR = [
       { title: { contains: filter.q, mode: 'insensitive' } },
@@ -267,11 +284,28 @@ export async function createGoal(
       targetDate: input.targetDate ? appDayToDate(input.targetDate) : null,
       progress: input.progress,
       status: input.status,
+      ...donemAlanlari(input.period, input.periodKey, today),
     },
     select: GOAL_SELECT,
   });
 
   return toDto(row, today);
+}
+
+/**
+ * Dönem + anahtar. Anahtar verilmezse BUGÜNÜN dönemi; verilirse dönemine
+ * uymalı (Zod biçimi kabaca süzüyor, dönemle eşleşme burada).
+ */
+function donemAlanlari(
+  period: GoalPeriod | undefined,
+  periodKey: string | undefined,
+  today: AppDay,
+): { period: GoalPeriod | null; periodKey: string | null } {
+  if (!period) return { period: null, periodKey: null };
+  if (periodKey && !donemAnahtariGecerliMi(period, periodKey)) {
+    throw new Error(`Dönem anahtarı dönemine uymuyor: ${period} / ${periodKey}`);
+  }
+  return { period, periodKey: periodKey ?? donemAnahtari(period, today) };
 }
 
 /**

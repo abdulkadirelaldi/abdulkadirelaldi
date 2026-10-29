@@ -28,6 +28,7 @@ export * from './contact-policy';
 export * from './file-type';
 export * from './content-query';
 export * from './decimal';
+export * from './donem';
 export * from './money';
 export * from './notification';
 export * from './panel-query';

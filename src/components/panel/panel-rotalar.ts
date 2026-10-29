@@ -99,9 +99,12 @@ const EK_ETIKETLER: Record<string, string> = {
   '/panel/ayarlar/denetim': 'Denetim kaydı',
   '/panel/spor/egzersizler': 'Egzersizler',
   '/panel/spor/rekorlar': 'Rekorlar',
+  '/panel/spor/gecmis': 'Geçmiş',
+  '/panel/spor/oturum': 'Antrenman',
   '/panel/hayat/aliskanliklar': 'Alışkanlıklar',
   '/panel/hayat/hedefler': 'Hedefler',
   '/panel/hayat/gunluk': 'Günlük',
+  '/panel/hayat/rapor': 'Rapor',
   /* `/panel/icerik` bir sayfa DEĞİL, yalnızca kırıntı yolundaki ara segment. */
   '/panel/icerik': 'İçerik',
 };
@@ -113,9 +116,11 @@ const HAZIR_EK_YOLLAR: ReadonlySet<string> = new Set([
   '/panel/ayarlar/denetim',
   '/panel/spor/egzersizler',
   '/panel/spor/rekorlar',
+  '/panel/spor/gecmis',
   '/panel/hayat/aliskanliklar',
   '/panel/hayat/hedefler',
   '/panel/hayat/gunluk',
+  '/panel/hayat/rapor',
 ]);
 
 const ETIKETLER: Record<string, string> = {

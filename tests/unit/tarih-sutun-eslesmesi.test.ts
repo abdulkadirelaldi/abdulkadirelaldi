@@ -165,6 +165,26 @@ const ESLESMELER: Eslesme[] = [
       've 3 saatlik kayma sınıfı burada doğamıyor.',
   },
   {
+    servis: 'src/server/services/antrenman-oturumu.ts',
+    model: 'Workout',
+    alan: 'date',
+    beklenen: 'gun',
+    not:
+      'Oturum başlatırken antrenmanın GÜNÜ İstanbul gününden (`appToday` → ' +
+      '`appDayToDate`) yazılıyor; liste okuması `dateToAppDay`. Başlama/bitiş ANI ' +
+      'ayrı sütunlarda (`startedAt`, `finishedAt` — zaman damgası).',
+  },
+  {
+    servis: 'src/server/services/habit-gun.ts',
+    model: 'HabitLog',
+    alan: 'date',
+    beklenen: 'gun',
+    not:
+      'Günlük liste ve rapor okuması (2026-10-29). Tek gün `date = appDayToDate(gün)` ' +
+      'ile EŞİTLİK, rapor `gte/lte` gün aralığı — ikisi de takvim günü. Anlık ' +
+      'yardımcı 3 saat kaydırıp gece yapılan işareti önceki güne gösterirdi.',
+  },
+  {
     servis: 'src/server/services/habit-log.ts',
     model: 'HabitLog',
     alan: 'date',
@@ -231,6 +251,13 @@ const ESLESMELER: Eslesme[] = [
  * kapsamını sessizce daraltır — kapının kendi mekanizması bunu yakaladı.
  */
 const MUAF_DOSYALAR: { yol: string; gerekce: string }[] = [
+  {
+    yol: 'src/server/services/_shared/donem.ts',
+    gerekce:
+      'Dönem anahtarı/aralığı hesabı (2026-10-29): `appDayToDate` yalnızca ISO hafta ' +
+      'için 4 Ocakın HAFTA GÜNÜNÜ okuyor. Hiçbir sütunu süzmüyor; sorgu `goal.periodKey` ' +
+      'üzerinden metin eşitliğiyle yapılıyor.',
+  },
   {
     yol: 'src/server/services/_shared/app-date.ts',
     gerekce:

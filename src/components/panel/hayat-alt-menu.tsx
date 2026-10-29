@@ -16,10 +16,11 @@ import { cn } from '@/lib/utils/cn';
  */
 
 const OGELER = [
-  { anahtar: 'genel', etiket: 'Genel bakış', href: '/panel/hayat' },
-  { anahtar: 'aliskanliklar', etiket: 'Alışkanlıklar', href: '/panel/hayat/aliskanliklar' },
+  { anahtar: 'genel', etiket: 'Bugün', href: '/panel/hayat' },
   { anahtar: 'hedefler', etiket: 'Hedefler', href: '/panel/hayat/hedefler' },
+  { anahtar: 'rapor', etiket: 'Rapor', href: '/panel/hayat/rapor' },
   { anahtar: 'gunluk', etiket: 'Günlük', href: '/panel/hayat/gunluk' },
+  { anahtar: 'aliskanliklar', etiket: 'Alışkanlıklar', href: '/panel/hayat/aliskanliklar' },
 ] as const;
 
 export type HayatBolumu = (typeof OGELER)[number]['anahtar'];

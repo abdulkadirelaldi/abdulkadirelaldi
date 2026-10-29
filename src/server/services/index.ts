@@ -141,6 +141,7 @@ export * from './workout-set';
 // `goal.ts`te; günlük İÇERİĞİ denetim kaydına girmiyor (`actions/journal-entry.ts`).
 export * from './goal';
 export * from './habit';
+export * from './habit-gun';
 export * from './habit-log';
 export * from './journal-entry';
 

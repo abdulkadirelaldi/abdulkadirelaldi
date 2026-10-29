@@ -213,10 +213,20 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     kanit: [],
     not: "T-113 ile eklendi. Okuma `fetchHealthLogById` TEK KAYIT; yoksa 404. Yazma `updateHealthLogAction` + `deleteHealthLogAction`. Silme onayı değerlerin HİÇBİR YERDE kalmadığını söylüyor — T-110 kararı (denetim kaydına yalnızca gün yazılıyor); `deneyim`deki 'denetim kaydında görünmeye devam eder' metni burada yalan olurdu, bu yüzden onay metni çağırandan geliyor (`kalici-sil-dugmesi.tsx`). ÖLÇÜLMEYEN: (1) BOŞALTMAK SİLİYOR (önceden silmiyordu): temizlenebilir sütunlar güncellemede `null` kabul ediyor ve form dolu iken boşaltılan alanı `null`a çeviriyor (`bosaltilanlariNullYap`) — ÖLÇÜLÜYOR, `panel-kisisel.spec.ts`: kilo boşaltılıp kaydediliyor, yenilemeden sonra boş, uyku yerinde; mutasyonla eski kusur geri üretildi. (2) Tarihi başka bir kayda ait güne çekmek CONFLICT veriyor; mesajın alan altına düştüğü arayüzden denenmedi.",
   },
+  '/panel/spor/gecmis': {
+    kapilar: ['e2e'],
+    kanit: ['spor\\/gecmis$/'],
+    not: "2026-10-30: eski antrenman listesi `/panel/spor`dan buraya taşındı (sayfa 25, `fetchWorkouts`); `/panel/spor` artık program + 'Başlat' ekranı. ÖLÇÜLÜYOR: `panel-kisisel.spec.ts` antrenman silindikten sonra buraya dönüldüğünü bekliyor. İÇERİK ölçülmüyor.",
+  },
+  '/panel/spor/oturum/[id]': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: "2026-10-30 canlı antrenman oturumu. `cuidSchema` dışı kimlik 404; okuma `fetchSession` (yapılan setler + hareketin önceki seti). Set yazma mevcut `createWorkoutSetAction` (rekor hesabı orada), bitiş `finishSessionAction` (süre + MET × son tartı × süre). Servis `tests/unit/services/antrenman-oturumu.test.ts`te (açık oturum yeniden kullanılır, bitmiş ikinci kez bitmez, Decimal sızmaz). ÖLÇÜLMEYEN: oturum ekranının akışı (set → dinlenme → sonraki hareket) e2e'de yok; dinlenme sayacı yalnızca istemcide.",
+  },
   '/panel/spor': {
     kapilar: ['e2e'],
     kanit: ["'/panel/spor',"],
-    not: "2026-10-29: CSP paketi (`csp.spec.ts`) panel listesinde geziyor — sayfa yükleniyor, CSP ihlali yok, betikler nonce'lu. İÇERİK ölçülmüyor. Önceki not: T-114 ile eklendi. `(panel)` kimlik zinciri + §8.1 2FA kapısı; `robots: noindex/nofollow/nocache`. Okuma `fetchWorkouts` (ham, önbelleksiz; sıra gün AZALAN + `createdAt` AZALAN — `date` `@unique` değil). Yazma YOK — silme bilinçli olarak detayda (cascade + rekor hesabı satırdaki küçük bir düğmeye sığmıyor). Sayfa `workoutFilterSchema`'dan geçiyor (ADR-032). `SporSekmeleri` kütüphane ve rekorlara tek giriş noktası. ÖLÇÜLMEYEN: (1) Sayfa boyutu SABİT 20. (2) `setCount`un doğruluğu servis testlerinde, arayüzden ölçülmedi. (3) `type`/`from`/`to` süzgeçleri şemada var ama arayüzde yok.",
+    not: "2026-10-30: program ekranı — bugünün program günü üstte, 'Başlat' (`startSessionAction`, açık oturum varsa ona gider), program yoksa `createSuggestedProgramAction`; altta son 5 antrenman (`fetchRecentSessions`). CSP paketi (`csp.spec.ts`) geziyor — yükleniyor, ihlal yok. İÇERİK e2e'de ölçülmüyor. Eski liste `/panel/spor/gecmis`te.",
   },
   '/panel/spor/yeni': {
     kapilar: ['e2e'],
@@ -251,7 +261,7 @@ const KAPSAM: Record<string, KapsamBeyani> = {
   '/panel/hayat': {
     kapilar: ['e2e'],
     kanit: ["page.goto('/panel/hayat'"],
-    not: "ÖLÇÜLÜYOR (T-116): bugünün hücresi `aria-pressed` false→true, YENİLEMEDEN SONRA da true (kalıcı yazma, iyimser değil); ikinci tık false ve o da kalıcı; ızgara 360 px'te sayfayı taşırmıyor (T-116'da 252 px taşıyordu — kaydırma kabında `relative` eksikti). T-115 ile eklendi (ADR-036). Kimlik zinciri `(panel)` düzeni + ara katman + §8.1 2FA kapısı; `robots: noindex/nofollow/nocache`. ÜÇ PARALEL OKUMA: `fetchHabitWeek(gün)` (pazartesi başlangıçlı 7 gün + bugünden geriye 400 günlük seri penceresi), `fetchGoals({status:'ACTIVE', perPage:5})`, `fetchJournalEntries({perPage:5})` — liste DTO'su, `content` TAŞIMIYOR. `?hafta=` `dayDateSchema.safeParse` ile doğrulanıyor; geçersiz ya da GELECEKTEKİ gün `appToday()`ye düşüyor (ADR-032). Yazma panodaki hücrelerden `toggleHabitDayAction` (aç/kapa ya da +1) ve `setHabitDayCountAction` (sayaçlı alışkanlıkta −1 düzeltme). Hücre İYİMSER güncelleniyor, sunucunun döndürdüğü `count` ile kesinleşiyor, hatada geri dönüyor + `FormAlert`; seri iyimser HESAPLANMIYOR, başarıdan sonra `router.refresh()`. Gelecek günler devre dışı. İstekteki hücre kilitli (aynı sekmede çift tık yarışı kapalı). ÖLÇÜLMEYEN: (1) İyimser güncellemenin GERİ ALMA dalı tarayıcıda denenmedi. (2) Başka sekmeden gelen eşzamanlı artırma yarışı (servis kabul etti) arayüzden denenmedi. (3) Ekran okuyucu duyurusu (`aria-pressed`) gerçek bir okuyucuyla denenmedi. (4) Gece 00:00–03:00 'bugün' sınırı arayüzden denenmedi.",
+    not: "2026-10-29'da günlük listeye çevrildi (ADR-048 eki). ÖLÇÜLÜYOR (e2e, panel-kisisel): '<ad>: yaptım' `aria-pressed` false→true ve YENİLEMEDEN SONRA da true; 'yapmadım' 'yaptım'ı kaldırıyor ve kalıcı; yeniden dokunuş temizliyor; 360 px'te yatay taşma yok. Okuma `fetchHabitDay(gün)` (sahibinin sırası, eklendiği günden önceki alışkanlık yok); `?gun=` `dayDateSchema` ile doğrulanıyor, gelecek gün bugüne düşüyor. Yazma `setHabitDayStatusAction` (YAPTIM/YAPMADIM/TEMIZLE) ve sayılıda `setHabitDayCountAction`; iyimser, hatada geri dönüyor. Boş listede `createSuggestedHabitsAction`. ÖLÇÜLMEYEN: (1) sayaç (−/+) arayüzden denenmedi. (2) iyimser geri alma dalı tarayıcıda denenmedi. (3) gece 00:00–03:00 'bugün' sınırı.",
   },
   '/panel/hayat/aliskanliklar': {
     kapilar: ['e2e'],
@@ -271,7 +281,12 @@ const KAPSAM: Record<string, KapsamBeyani> = {
   '/panel/hayat/hedefler': {
     kapilar: ['kapsanmiyor'],
     kanit: [],
-    not: "T-115 ile eklendi. Okuma `fetchGoals` (sayfa boyutu SABİT 25); filtre `goalFilterSchema`dan geçiyor — durum sekmeleri KAPALI KÜME, `?q=` düz GET formu. Şema reddederse aramasız listeye düşülüyor ve ekranda SÖYLENİYOR. Kalan gün rozeti yalnızca ACTIVE/PAUSED hedefte (kapalı hedefte 'gecikti' yanlış alarm olurdu). Yazma satırdan `deleteGoalAction` (GERÇEK silme, FK yok). ÖLÇÜLMEYEN: (1) `kalanGunMetni` metin dönüşümü birim testinde değil. (2) Arama Türkçe İ/ı davranışı denenmedi.",
+    not: "2026-10-29'da yeniden yazıldı: haftalık/aylık/yıllık sekmeler (`?donem=`, `?anahtar=`), dönem anahtarı `donemAnahtariGecerliMi` ile süzülüyor — geçersizse bugünün dönemi. Hızlı ekleme `createGoalAction` (dönem + anahtar), tamamlama `updateGoalAction` (ACHIEVED/100), silme iki dokunuşla `deleteGoalAction`. Uzun vadeli sekme eski liste (`uzunVadeli` filtresi). Dönem hesabı `tests/unit/services/donem.test.ts`te. ÖLÇÜLMEYEN: arayüz akışı e2e'de yok.",
+  },
+  '/panel/hayat/rapor': {
+    kapilar: ['e2e'],
+    kanit: ["'/panel/hayat/rapor',"],
+    not: "CSP paketi (`csp.spec.ts`) geziyor — yükleniyor, ihlal yok. 2026-10-29'da eklendi. Okuma `fetchHabitReport` (son 7/30 gün, `?aralik=30`); dört durum (yapıldı/eksik/yapılmadı/işaretlenmedi) ve 'alışkanlık eklendiği günden önce sayılmaz' kuralı `tests/unit/services/habit-gun.test.ts`te. Yazma yok. ÖLÇÜLMEYEN: ekran e2e'de yok.",
   },
   '/panel/hayat/hedefler/yeni': {
     kapilar: ['kapsanmiyor'],

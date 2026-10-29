@@ -1,149 +1,174 @@
-import { Search } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
-import { HayatAltMenu, HayatGorunumSekmeleri } from '@/components/panel/hayat-alt-menu';
-import { hedeflerYolu } from '@/components/panel/hayat-bicim';
-import { HEDEF_GORUNUMLERI, hedefGorunumuBul } from '@/components/panel/hedef-gorunumleri';
+import { DonemHedefleri } from '@/components/panel/donem-hedefleri';
+import { HayatAltMenu } from '@/components/panel/hayat-alt-menu';
 import { HedefListesi } from '@/components/panel/hedef-listesi';
-import { Sayfalama } from '@/components/panel/sayfalama';
 import { Topbar } from '@/components/panel/topbar';
 import { buttonClasses } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { goalFilterSchema } from '@/lib/schemas/goal';
+import {
+  appToday,
+  donemAnahtari,
+  donemAnahtariGecerliMi,
+  donemAraligi,
+  komsuDonem,
+  type Donem,
+} from '@/server/services/_shared';
 import { fetchGoals } from '@/server/services/goal';
+import { cn } from '@/lib/utils/cn';
 
 export const metadata: Metadata = {
   title: 'Hedefler',
   robots: { index: false, follow: false, nocache: true },
 };
 
-const SAYFA_BOYUTU = 25;
-
 type SayfaProps = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 const tek = (ham: string | string[] | undefined): string =>
   (Array.isArray(ham) ? ham[0] : ham) ?? '';
 
-function sayfaNumarasi(ham: string | string[] | undefined): number {
-  const sayi = Number(tek(ham));
-  return Number.isInteger(sayi) && sayi > 0 ? sayi : 1;
+const SEKMELER = [
+  { anahtar: 'haftalik', etiket: 'Haftalık', donem: 'WEEKLY' },
+  { anahtar: 'aylik', etiket: 'Aylık', donem: 'MONTHLY' },
+  { anahtar: 'yillik', etiket: 'Yıllık', donem: 'YEARLY' },
+  { anahtar: 'uzun', etiket: 'Uzun vadeli', donem: null },
+] as const;
+
+const AY = new Intl.DateTimeFormat('tr-TR', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+const GUN_AY = new Intl.DateTimeFormat('tr-TR', {
+  day: 'numeric',
+  month: 'short',
+  timeZone: 'UTC',
+});
+const tarih = (gun: string) => new Date(`${gun}T00:00:00Z`);
+
+/** Dönemin insan okunur adı: "26 Eki – 1 Kas" · "Ekim 2026" · "2026". */
+function donemAdi(donem: Donem, anahtar: string): string {
+  if (donem === 'YEARLY') return anahtar;
+  const { from, to } = donemAraligi(donem, anahtar);
+  if (donem === 'MONTHLY') return AY.format(tarih(from));
+  return `${GUN_AY.format(tarih(from))} – ${GUN_AY.format(tarih(to))}`;
 }
 
 /**
- * `/panel/hayat/hedefler` — §4.2 hedef listesi.
+ * HAYAT · HEDEFLER (2026-10-29) — haftalık, aylık, yıllık ve uzun vadeli.
  *
- * ARAMA BİR GET FORMU, İSTEMCİ BİLEŞENİ DEĞİL: `?q=` zaten adresin parçası ve
- * sunucu süzüyor; düz `<form method="get">` JS yüklenmeden de çalışıyor.
- * Görünüm anahtarı formda GİZLİ alanla taşınıyor — aramak sekmeyi sıfırlamasın.
- *
- * ⚠️ `goalFilterSchema` 120 karakterden uzun aramayı REDDEDİYOR; o durumda
- * aramasız görünüme düşülüyor ve kullanıcıya bu SÖYLENİYOR — sessizce
- * süzülmemiş liste göstermek "arama sonuç verdi" yalanı olurdu.
+ * Dönemli sekmelerde ‹ › ile önceki/sonraki döneme geçilir; varsayılan bugünün
+ * dönemi. Uzun vadeli hedefler eski liste görünümünde (ilerleme yüzdesiyle).
  */
 export default async function HedeflerPage({ searchParams }: SayfaProps) {
   const parametreler = await searchParams;
-  const gorunum = hedefGorunumuBul(tek(parametreler.gorunum) || 'hepsi');
-  const arama = tek(parametreler.q).trim();
-  const sayfa = sayfaNumarasi(parametreler.sayfa);
-
-  const cozum = goalFilterSchema.safeParse({
-    ...(gorunum.status ? { status: gorunum.status } : {}),
-    page: sayfa,
-    perPage: SAYFA_BOYUTU,
-    ...(arama ? { q: arama } : {}),
-  });
-
-  const liste = await fetchGoals(
-    cozum.success
-      ? cozum.data
-      : {
-          ...(gorunum.status ? { status: gorunum.status } : {}),
-          page: 1,
-          perPage: SAYFA_BOYUTU,
-        },
-  );
-  const etkinArama = cozum.success ? (cozum.data.q ?? '') : '';
+  const sekme = SEKMELER.find((s) => s.anahtar === tek(parametreler.donem)) ?? SEKMELER[0];
+  const bugun = appToday();
 
   return (
     <>
-      <Topbar title="Hedefler" />
+      <Topbar
+        title="Hedefler"
+        actions={
+          <Link href="/panel/hayat/hedefler/yeni" className={buttonClasses({ size: 'sm' })}>
+            <Plus className="size-4" aria-hidden="true" />
+            <span className="hidden sm:inline">Ayrıntılı hedef</span>
+            <span className="sr-only sm:hidden">Ayrıntılı hedef</span>
+          </Link>
+        }
+      />
 
-      <main id="panel-icerik" className="flex-1 p-4 lg:p-6">
-        <div className="flex max-w-5xl min-w-0 flex-col gap-6">
+      <main id="panel-icerik" className="flex-1 px-4 py-4 lg:p-6">
+        <div className="mx-auto flex max-w-2xl flex-col gap-4">
           <HayatAltMenu aktif="hedefler" />
 
-          <HayatGorunumSekmeleri
-            etiket="Hedef durumları"
-            gorunumler={HEDEF_GORUNUMLERI}
-            aktif={gorunum.anahtar}
-            yol={(anahtar) => hedeflerYolu({ gorunum: anahtar, q: etkinArama || undefined })}
-          />
-
-          <form
-            role="search"
-            method="get"
-            action="/panel/hayat/hedefler"
-            className="flex flex-wrap items-center gap-2"
-          >
-            {gorunum.anahtar !== 'hepsi' && (
-              <input type="hidden" name="gorunum" value={gorunum.anahtar} />
-            )}
-            <div className="relative min-w-0 flex-1">
-              <Search
-                className="text-muted pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2"
-                aria-hidden="true"
-              />
-              <Input
-                type="search"
-                name="q"
-                defaultValue={arama}
-                maxLength={120}
-                placeholder="Başlık veya açıklamada ara"
-                aria-label="Hedeflerde ara"
-                className="pl-9"
-              />
-            </div>
-            <button type="submit" className={buttonClasses({ variant: 'secondary', size: 'sm' })}>
-              Ara
-            </button>
-            {arama && (
+          <div className="bg-elevated grid grid-cols-4 gap-1 rounded-full p-1">
+            {SEKMELER.map((s) => (
               <Link
-                href={hedeflerYolu({ gorunum: gorunum.anahtar })}
-                className={buttonClasses({ variant: 'ghost', size: 'sm' })}
+                key={s.anahtar}
+                href={`/panel/hayat/hedefler?donem=${s.anahtar}`}
+                aria-current={s.anahtar === sekme.anahtar ? 'page' : undefined}
+                className={cn(
+                  'focus-ring rounded-full py-2 text-center text-xs font-medium transition-colors sm:text-sm',
+                  s.anahtar === sekme.anahtar ? 'bg-canvas text-primary shadow-sm' : 'text-muted',
+                )}
               >
-                Aramayı temizle
+                {s.etiket}
               </Link>
-            )}
-          </form>
+            ))}
+          </div>
 
-          {arama && !cozum.success && (
-            <p role="status" className="text-warning text-sm">
-              Arama terimi geçersiz (en fazla 120 karakter) — aramasız liste gösteriliyor.
-            </p>
+          {sekme.donem === null ? (
+            <UzunVadeli />
+          ) : (
+            <Donemli
+              sekme={sekme.anahtar}
+              donem={sekme.donem}
+              istenen={tek(parametreler.anahtar)}
+              bugun={bugun}
+            />
           )}
-
-          <HedefListesi
-            hedefler={liste.items}
-            toplam={liste.total}
-            bosBaslik={etkinArama ? 'Arama sonuç vermedi' : gorunum.bosBaslik}
-            bosAciklama={
-              etkinArama
-                ? `“${etkinArama}” için bu görünümde eşleşen hedef yok.`
-                : gorunum.bosAciklama
-            }
-          />
-
-          <Sayfalama
-            sayfa={liste.page}
-            perPage={liste.perPage}
-            toplam={liste.total}
-            yol={(s) =>
-              hedeflerYolu({ gorunum: gorunum.anahtar, q: etkinArama || undefined, sayfa: s })
-            }
-          />
         </div>
       </main>
     </>
+  );
+}
+
+async function Donemli({
+  sekme,
+  donem,
+  istenen,
+  bugun,
+}: {
+  sekme: string;
+  donem: Donem;
+  istenen: string;
+  bugun: string;
+}) {
+  const simdiki = donemAnahtari(donem, bugun);
+  const anahtar = donemAnahtariGecerliMi(donem, istenen) ? istenen : simdiki;
+  const liste = await fetchGoals({ period: donem, periodKey: anahtar, page: 1, perPage: 100 });
+  const yol = (a: string) => `/panel/hayat/hedefler?donem=${sekme}&anahtar=${a}`;
+
+  return (
+    <>
+      <div className="flex items-center justify-between gap-2">
+        <Link
+          href={yol(komsuDonem(donem, anahtar, -1))}
+          aria-label="Önceki dönem"
+          className="focus-ring rounded-btn text-body hover:bg-elevated flex size-11 items-center justify-center"
+        >
+          <ChevronLeft className="size-5" aria-hidden="true" />
+        </Link>
+        <div className="flex flex-col items-center">
+          <span className="text-primary text-lg font-semibold capitalize">
+            {donemAdi(donem, anahtar)}
+          </span>
+          {anahtar !== simdiki && (
+            <Link href={yol(simdiki)} className="text-accent text-xs font-medium">
+              Bu döneme dön
+            </Link>
+          )}
+        </div>
+        <Link
+          href={yol(komsuDonem(donem, anahtar, 1))}
+          aria-label="Sonraki dönem"
+          className="focus-ring rounded-btn text-body hover:bg-elevated flex size-11 items-center justify-center"
+        >
+          <ChevronRight className="size-5" aria-hidden="true" />
+        </Link>
+      </div>
+
+      <DonemHedefleri hedefler={liste.items} period={donem} periodKey={anahtar} />
+    </>
+  );
+}
+
+async function UzunVadeli() {
+  const liste = await fetchGoals({ uzunVadeli: true, page: 1, perPage: 100 });
+  return (
+    <HedefListesi
+      hedefler={liste.items}
+      toplam={liste.total}
+      bosBaslik="Uzun vadeli hedef yok"
+      bosAciklama="Tarihli, ilerlemesi yüzdeyle izlenen hedefler burada. Sağ üstten ekleyebilirsin."
+    />
   );
 }

@@ -57,6 +57,8 @@ export interface HabitDto {
   targetPerDay: number | null;
   color: string | null;
   icon: string | null;
+  /** Günlük listedeki sıra — küçük önce (2026-10-29). */
+  order: number;
   isActive: boolean;
   isArchived: boolean;
   createdAt: string;
@@ -70,6 +72,7 @@ const HABIT_SELECT = {
   targetPerDay: true,
   color: true,
   icon: true,
+  order: true,
   isActive: true,
   isArchived: true,
   createdAt: true,
@@ -83,6 +86,7 @@ interface HabitRow {
   targetPerDay: number | null;
   color: string | null;
   icon: string | null;
+  order: number;
   isActive: boolean;
   isArchived: boolean;
   createdAt: Date;
@@ -116,6 +120,7 @@ export interface HabitClient {
         targetPerDay: number | null;
         color: string | null;
         icon: string | null;
+        order: number;
         isActive: boolean;
       };
       select: typeof HABIT_SELECT;
@@ -146,6 +151,7 @@ function toDto(row: HabitRow): HabitDto {
     targetPerDay: row.targetPerDay,
     color: row.color,
     icon: row.icon,
+    order: row.order,
     isActive: row.isActive,
     isArchived: row.isArchived,
     createdAt: row.createdAt.toISOString(),
@@ -291,7 +297,7 @@ export async function fetchHabits(
     client.habit.findMany({
       where,
       select: HABIT_SELECT,
-      orderBy: [{ name: 'asc' }, { id: 'asc' }],
+      orderBy: [{ order: 'asc' }, { name: 'asc' }, { id: 'asc' }],
       skip,
       take,
     }),
@@ -353,7 +359,7 @@ export async function fetchHabitWeek(
   const habits = await client.habit.findMany({
     where: { isActive: true, isArchived: false },
     select: HABIT_SELECT,
-    orderBy: [{ name: 'asc' }, { id: 'asc' }],
+    orderBy: [{ order: 'asc' }, { name: 'asc' }, { id: 'asc' }],
   });
 
   if (habits.length === 0) return { days, today, habits: [] };
@@ -425,6 +431,7 @@ export async function createHabit(
       targetPerDay: input.targetPerDay ?? null,
       color: input.color ?? null,
       icon: input.icon?.trim() ? input.icon : null,
+      order: input.order,
       isActive: input.isActive,
     },
     select: HABIT_SELECT,

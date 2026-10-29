@@ -1,6 +1,6 @@
 import * as z from 'zod';
 
-import { GoalCategory, GoalStatus } from '@/types';
+import { GoalCategory, GoalPeriod, GoalStatus } from '@/types';
 
 import {
   cuidSchema,
@@ -21,6 +21,12 @@ const goalBase = z.object({
   targetDate: dayDateSchema.optional(),
   progress: percentSchema.default(0),
   status: z.enum(GoalStatus, { error: 'Geçersiz hedef durumu.' }).default('ACTIVE'),
+  /** Haftalık/aylık/yıllık — boşsa uzun vadeli. Anahtar verilmezse servis bugünden türetir. */
+  period: z.enum(GoalPeriod, { error: 'Geçersiz dönem.' }).optional(),
+  periodKey: z
+    .string()
+    .regex(/^\d{4}(-W\d{2}|-\d{2})?$/, { error: 'Geçersiz dönem anahtarı.' })
+    .optional(),
 });
 
 /**
@@ -58,6 +64,10 @@ export const updateGoalSchema = partialWithoutDefaults(goalBase)
 
 export const goalFilterSchema = paginationSchema.extend({
   status: z.enum(GoalStatus).optional(),
+  period: z.enum(GoalPeriod).optional(),
+  periodKey: z.string().max(10).optional(),
+  /** Yalnızca dönemsiz (uzun vadeli) hedefler. */
+  uzunVadeli: z.boolean().optional(),
   category: z.enum(GoalCategory).optional(),
   q: searchSchema.optional(),
 });

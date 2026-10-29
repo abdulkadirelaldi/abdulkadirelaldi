@@ -17,7 +17,8 @@ import { cn } from '@/lib/utils/cn';
  */
 
 const SEKMELER = [
-  { anahtar: 'antrenmanlar', etiket: 'Antrenmanlar', href: '/panel/spor' },
+  { anahtar: 'program', etiket: 'Program', href: '/panel/spor' },
+  { anahtar: 'antrenmanlar', etiket: 'Geçmiş', href: '/panel/spor/gecmis' },
   { anahtar: 'egzersizler', etiket: 'Egzersizler', href: '/panel/spor/egzersizler' },
   { anahtar: 'rekorlar', etiket: 'Rekorlar', href: '/panel/spor/rekorlar' },
 ] as const;

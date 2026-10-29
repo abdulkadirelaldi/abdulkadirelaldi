@@ -120,7 +120,7 @@ export function AntrenmanFormu({
               sil={async () => {
                 const sonuc = await deleteWorkoutAction({ id: antrenman.id });
                 if (sonuc.ok) {
-                  router.push('/panel/spor');
+                  router.push('/panel/spor/gecmis');
                   router.refresh();
                 }
                 return sonuc;

@@ -2601,3 +2601,11 @@ Sahibi iş yönetimini Kıyı Medya'nın kendi panelinden yürütüyor; bu panel
 2. **Korundu:** `money.ts` (Cüzdan), ay/yıl/hafta tarih yardımcıları (Hayat hedefleri) — `servis-ulasilabilirlik` kapısında "bekleyen" olarak bildirildi.
 3. **Telefon kabuğu:** alt sekme çubuğu (Bugün · Hayat · Spor · Sağlık · Daha), "Daha" mevcut çekmeceyi açar; masaüstünde yan menü. `viewportFit: cover` + güvenli alan payları; "Ana Ekrana Ekle" için `/ae-panel.webmanifest` (adı `/panel` ile başlamaz — middleware oturuma bağlardı) ve `appleWebApp`. Dokunmatik ekranda form alanları ≥16 px (iOS yakınlaştırması).
 4. **Ana ekran "Bugün":** alışkanlık ilerlemesi, son tartı, son antrenman, okunmamış mesaj.
+
+### ADR-048 eki (2026-10-30) — Spor: program ve canlı oturum
+
+- **Şema:** `ProgramDay` (ad, odak, haftanın günü, sıra) + `ProgramExercise` (set, tekrar metni, dinlenme sn); `Workout` ← `programDayId`, `startedAt`, `finishedAt`, `kcal`; `Exercise.tip` (form ipucu). Göç yalnızca EKLEME.
+- **Program:** sahibinin PDF'teki 5 günlük kol ağırlıklı programı + cumartesi yüzme/koşu tek dokunuşla yüklenir (`ONERILEN_PROGRAM`); hareketler ADA göre bulunur ya da açılır.
+- **Oturum:** tek açık oturum (başlat → açık varsa ona gider). Setler mevcut `createWorkoutSetAction` ile yazılır — kişisel rekor hesabı tek yerde kalır. Dinlenme sayacı yalnızca istemcide (kaybolması zararsız).
+- **Kalori:** `MET × son tartı kilosu × saat` (ağırlık 5,0 · kardiyo 8,0). Tartı yoksa 80 kg ve ekranda söylenir; Decimal kilo metin üzerinden sayıya çevrilir (ADR-014/D). Tahmin — nabız verisi yok.
+- **Telefon:** kırıntı yolu dar ekranda gizli (kayıt kimliği okunmuyordu).

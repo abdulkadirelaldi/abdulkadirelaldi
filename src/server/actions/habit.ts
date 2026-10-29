@@ -4,14 +4,18 @@ import {
   archiveHabitSchema,
   createHabitLogSchema,
   createHabitSchema,
+  moveHabitSchema,
+  setHabitDayStatusSchema,
   toggleHabitLogSchema,
   updateHabitSchema,
 } from '@/lib/schemas';
 import { db } from '@/server/db';
 import { archiveHabit, createHabit, updateHabit, type HabitDto } from '@/server/services/habit';
+import { createSuggestedHabits, moveHabit } from '@/server/services/habit-gun';
 import {
   HabitWriteBlockedError,
   setHabitDayCount,
+  setHabitDayStatus,
   toggleHabitDay,
   type HabitDayResult,
 } from '@/server/services/habit-log';
@@ -196,5 +200,68 @@ export async function setHabitDayCountAction(raw: unknown): Promise<ApiResponse<
   } catch (error) {
     if (error instanceof HabitWriteBlockedError) return blockedFailure(error);
     return toFailure('habitLog:set', error);
+  }
+}
+
+/** Günlük listedeki tek dokunuş — YAPTIM / YAPMADIM / TEMIZLE (2026-10-29). */
+export async function setHabitDayStatusAction(raw: unknown): Promise<ApiResponse<HabitDayResult>> {
+  const actorId = await currentActorId();
+  if (!actorId) return unauthorized();
+
+  const parsed = parseOrFail(setHabitDayStatusSchema, raw);
+  if (!parsed.ok) return parsed.failure;
+
+  try {
+    const sonuc = await setHabitDayStatus(parsed.data);
+    await writeDayAudit(actorId, sonuc);
+    return ok(sonuc);
+  } catch (error) {
+    if (error instanceof HabitWriteBlockedError) return blockedFailure(error);
+    return toFailure('habitLog:status', error);
+  }
+}
+
+/** Boş panelde sahibinin kendi alışkanlık listesini ekler (varsa dokunmaz). */
+export async function createSuggestedHabitsAction(): Promise<ApiResponse<{ eklenen: number }>> {
+  const actorId = await currentActorId();
+  if (!actorId) return unauthorized();
+
+  try {
+    const eklenen = await createSuggestedHabits();
+    if (eklenen > 0) {
+      await writeAuditLog(
+        { actorId, action: 'CREATE', entity: 'Habit', entityId: 'onerilen', diff: { eklenen } },
+        db,
+      );
+    }
+    return ok({ eklenen });
+  } catch (error) {
+    return toFailure('habit:suggested', error);
+  }
+}
+
+/** Listede bir basamak yukarı/aşağı. */
+export async function moveHabitAction(raw: unknown): Promise<ApiResponse<{ id: string }>> {
+  const actorId = await currentActorId();
+  if (!actorId) return unauthorized();
+
+  const parsed = parseOrFail(moveHabitSchema, raw);
+  if (!parsed.ok) return parsed.failure;
+
+  try {
+    await moveHabit(parsed.data);
+    await writeAuditLog(
+      {
+        actorId,
+        action: 'UPDATE',
+        entity: 'Habit',
+        entityId: parsed.data.id,
+        diff: { order: parsed.data.yon },
+      },
+      db,
+    );
+    return ok({ id: parsed.data.id });
+  } catch (error) {
+    return toFailure('habit:move', error);
   }
 }

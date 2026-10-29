@@ -30,7 +30,10 @@ export function Topbar({ title, actions }: { title: string; actions?: ReactNode 
     >
       <div className="flex h-14 items-center gap-3 px-4 lg:h-16 lg:px-6">
         <div className="flex min-w-0 flex-col">
-          <KirintiYolu />
+          {/* Telefonda kırıntı yolu yok: yer dar ve kayıt kimliği (cuid) okunmuyor; başlık yeterli. */}
+          <div className="hidden sm:block">
+            <KirintiYolu />
+          </div>
           <h1 className="truncate text-lg">{title}</h1>
         </div>
 

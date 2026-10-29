@@ -1,4 +1,8 @@
-import type { CreateHabitLogInput, ToggleHabitLogInput } from '@/lib/schemas';
+import type {
+  CreateHabitLogInput,
+  SetHabitDayStatusInput,
+  ToggleHabitLogInput,
+} from '@/lib/schemas';
 import { db } from '@/server/db';
 
 import { appDayToDate, type AppDay } from './_shared';
@@ -36,8 +40,10 @@ export const HABIT_LOG_MAX_COUNT = 100;
 export interface HabitDayResult {
   habitId: string;
   date: AppDay;
-  /** Yazmadan sonraki sayaç. `0` → satır yok (silindi ya da hiç yoktu). */
+  /** Yazmadan sonraki sayaç. `0` ve `missed: false` → satır yok. */
   count: number;
+  /** Açık "yapmadım" işareti (2026-10-29) — `count` 0 iken satır kalır. */
+  missed: boolean;
 }
 
 /** Hedef alışkanlık neden yazılamadı — eylem bunu kullanıcı metnine çevirir. */
@@ -64,10 +70,10 @@ export interface HabitLogClient {
     }): Promise<{ count: number } | null>;
     upsert(args: {
       where: { habitId_date: { habitId: string; date: Date } };
-      create: { habitId: string; date: Date; count: number };
-      update: { count: number };
-      select: { count: true };
-    }): Promise<{ count: number }>;
+      create: { habitId: string; date: Date; count: number; missed: boolean };
+      update: { count: number; missed: boolean };
+      select: { count: true; missed: true };
+    }): Promise<{ count: number; missed: boolean }>;
     deleteMany(args: { where: { habitId: string; date: Date } }): Promise<{ count: number }>;
   };
 }
@@ -102,17 +108,18 @@ async function writeCount(
   if (count <= 0) {
     // `deleteMany`: satır zaten yoksa hata değil — "sıfırla" idempotent.
     await client.habitLog.deleteMany({ where: { habitId, date } });
-    return { habitId, date: day, count: 0 };
+    return { habitId, date: day, count: 0, missed: false };
   }
 
+  // Sayı yazmak "yapmadım" işaretini KALDIRIR — ikisi aynı anda doğru olamaz.
   const row = await client.habitLog.upsert({
     where: { habitId_date: { habitId, date } },
-    create: { habitId, date, count },
-    update: { count },
-    select: { count: true },
+    create: { habitId, date, count, missed: false },
+    update: { count, missed: false },
+    select: { count: true, missed: true },
   });
 
-  return { habitId, date: day, count: row.count };
+  return { habitId, date: day, count: row.count, missed: row.missed };
 }
 
 /**
@@ -160,4 +167,35 @@ export async function setHabitDayCount(
 ): Promise<HabitDayResult> {
   await requireWritableHabit(input.habitId, client);
   return writeCount(input.habitId, input.date, input.count, client);
+}
+
+/**
+ * Günlük listedeki tek dokunuş (2026-10-29).
+ *
+ *   YAPTIM   → hedefe tamamla (sayısız alışkanlıkta 1, sayılıda `targetPerDay`)
+ *   YAPMADIM → `count = 0, missed = true` — satır KALIR: rapor "işaretlenmemiş"
+ *              ile "yapmadım dedi"yi ayırabilsin
+ *   TEMIZLE  → satır silinir (işaretlenmemiş)
+ */
+export async function setHabitDayStatus(
+  input: SetHabitDayStatusInput,
+  client: HabitLogClient = db,
+): Promise<HabitDayResult> {
+  const habit = await requireWritableHabit(input.habitId, client);
+
+  if (input.durum === 'YAPTIM') {
+    return writeCount(input.habitId, input.date, habit.targetPerDay ?? 1, client);
+  }
+  if (input.durum === 'TEMIZLE') {
+    return writeCount(input.habitId, input.date, 0, client);
+  }
+
+  const date = appDayToDate(input.date);
+  const row = await client.habitLog.upsert({
+    where: { habitId_date: { habitId: input.habitId, date } },
+    create: { habitId: input.habitId, date, count: 0, missed: true },
+    update: { count: 0, missed: true },
+    select: { count: true, missed: true },
+  });
+  return { habitId: input.habitId, date: input.date, count: row.count, missed: row.missed };
 }
