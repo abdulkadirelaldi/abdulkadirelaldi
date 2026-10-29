@@ -274,9 +274,9 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     not: "2026-10-29'da yeniden yazıldı: haftalık/aylık/yıllık sekmeler (`?donem=`, `?anahtar=`), dönem anahtarı `donemAnahtariGecerliMi` ile süzülüyor — geçersizse bugünün dönemi. Hızlı ekleme `createGoalAction` (dönem + anahtar), tamamlama `updateGoalAction` (ACHIEVED/100), silme iki dokunuşla `deleteGoalAction`. Uzun vadeli sekme eski liste (`uzunVadeli` filtresi). Dönem hesabı `tests/unit/services/donem.test.ts`te. ÖLÇÜLMEYEN: arayüz akışı e2e'de yok.",
   },
   '/panel/hayat/rapor': {
-    kapilar: ['kapsanmiyor'],
-    kanit: [],
-    not: "2026-10-29'da eklendi. Okuma `fetchHabitReport` (son 7/30 gün, `?aralik=30`); dört durum (yapıldı/eksik/yapılmadı/işaretlenmedi) ve 'alışkanlık eklendiği günden önce sayılmaz' kuralı `tests/unit/services/habit-gun.test.ts`te. Yazma yok. ÖLÇÜLMEYEN: ekran e2e'de yok.",
+    kapilar: ['e2e'],
+    kanit: ["'/panel/hayat/rapor',"],
+    not: "CSP paketi (`csp.spec.ts`) geziyor — yükleniyor, ihlal yok. 2026-10-29'da eklendi. Okuma `fetchHabitReport` (son 7/30 gün, `?aralik=30`); dört durum (yapıldı/eksik/yapılmadı/işaretlenmedi) ve 'alışkanlık eklendiği günden önce sayılmaz' kuralı `tests/unit/services/habit-gun.test.ts`te. Yazma yok. ÖLÇÜLMEYEN: ekran e2e'de yok.",
   },
   '/panel/hayat/hedefler/yeni': {
     kapilar: ['kapsanmiyor'],
