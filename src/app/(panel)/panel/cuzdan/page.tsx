@@ -41,9 +41,16 @@ export default async function CuzdanPage() {
       <main id="panel-icerik" className="flex-1 px-4 py-4 lg:p-6">
         <div className="mx-auto flex max-w-2xl flex-col gap-5">
           {/* ── NET ───────────────────────────────────────────────────── */}
-          <section className="rounded-card bg-accent flex flex-col gap-3 p-5 text-white">
+          <section className="rounded-card bg-gradient-accent relative isolate flex flex-col gap-3 overflow-hidden p-5 text-white shadow-[0_12px_32px_-12px_var(--accent-glow)]">
+            {/* Dekoratif ışık — içerik değil. */}
+            <span
+              aria-hidden="true"
+              className="absolute -top-16 -right-10 -z-10 size-48 rounded-full bg-white/15 blur-2xl"
+            />
             <span className="text-sm opacity-90">Net varlık</span>
-            <span className="tabular text-3xl font-semibold">{paraBicim(ozet.netTl, 'TRY')}</span>
+            <span className="tabular text-[2.125rem] leading-none font-semibold tracking-tight">
+              {paraBicim(ozet.netTl, 'TRY')}
+            </span>
             <div className="grid grid-cols-2 gap-3 text-sm">
               <div className="flex flex-col">
                 <span className="opacity-80">Varlıklar</span>

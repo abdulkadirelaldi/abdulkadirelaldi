@@ -40,7 +40,7 @@ export const viewport: Viewport = { viewportFit: 'cover' };
 export default function PanelLayout({ children }: { children: ReactNode }) {
   return (
     <PanelKabuk>
-      <div className="flex min-h-dvh">
+      <div className="panel-modern flex min-h-dvh">
         <a
           href="#panel-icerik"
           data-yazdirmada-gizle
@@ -51,8 +51,8 @@ export default function PanelLayout({ children }: { children: ReactNode }) {
 
         <Sidebar />
 
-        {/* Telefonda alt sekme çubuğu kadar pay (56 px + ana ekran çubuğu). */}
-        <div className="flex min-w-0 flex-1 flex-col pb-[calc(3.5rem+env(safe-area-inset-bottom))] lg:pb-0">
+        {/* Telefonda yüzen alt sekme çubuğu kadar pay (64 px + 8 px boşluk + nefes + ana ekran çubuğu). */}
+        <div className="flex min-w-0 flex-1 flex-col pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-0">
           {children}
         </div>
 

@@ -224,9 +224,10 @@
   --spacing: 0.25rem;
 
   /* Köşe yarıçapı — §3.3 */
-  --radius-card: 1rem; /* 16px */
-  --radius-btn: 0.75rem; /* 12px */
-  --radius-input: 0.625rem; /* 10px */
+  /* Kapsamla ezilebilir (panel: `.panel-modern`); varsayılan değerler aynı. */
+  --radius-card: var(--yaricap-kart, 1rem); /* 16px */
+  --radius-btn: var(--yaricap-dugme, 0.75rem); /* 12px */
+  --radius-input: var(--yaricap-girdi, 0.625rem); /* 10px */
   --radius-pill: 999px;
 }
 
@@ -647,4 +648,104 @@ a {
   [aria-busy='true'] {
     height: auto !important;
   }
+}
+
+/* --------------------------------------------------------------------------
+   PANEL — 2026-10-30 modern görünüm (`.panel-modern`, panel düzeninin kabı)
+
+   Sahibinin isteği: "daha modern, profesyonel, şık; çok kurumsal durmasın".
+   Telefonda uygulama gibi kullanılıyor, dil iOS'a yakın:
+   - Zemin gruplu (açıkta #f2f2f7), kartlar beyaz + yumuşak gölge, kenar
+     neredeyse görünmez. Koyuda saf siyaha yakın zemin, kademeli yüzeyler.
+   - Vurgu canlı mor → eflatun; beyaz metin iki uçta da ≥ 4.5:1.
+   - Sayılar MONO DEĞİL: Inter + sekmeli rakam (hizalama korunur, "terminal"
+     havası gider). Başlıklar Inter 600, sıkı aralık.
+   - Simgeler ince çizgi (1.75).
+   - Yarıçaplar büyük (kart 20, düğme 14, girdi 12).
+   Kontrast (AA): muted metin açıkta #6e6e78 beyazda 5.0:1, koyuda #8e8e99
+   #141418 üzerinde 5.9:1; form sınırı (border-strong) iki temada ≥ 3:1.
+   -------------------------------------------------------------------------- */
+.panel-modern {
+  --bg-base: #09090b;
+  --bg-surface: #141418;
+  --bg-elevated: #1c1c22;
+  --border: #22222a;
+  --border-hover: #33333d;
+  --border-strong: #6b6b78;
+  --text-primary: #fafafa;
+  --text-body: #c7c7d0;
+  --text-muted: #8e8e99;
+  --accent: #6d4aff;
+  --accent-hover: #5f3cf2;
+  --accent-soft: #a897ff;
+  --accent-blue: #8b3dff;
+  --accent-glow: rgba(109, 74, 255, 0.3);
+  --gradient-accent: linear-gradient(135deg, #6d4aff 0%, #8b3dff 100%);
+  --golge-kart: 0 0 0 1px rgb(255 255 255 / 0.04);
+  --yaricap-kart: 1.25rem;
+  --yaricap-dugme: 0.875rem;
+  --yaricap-girdi: 0.75rem;
+}
+
+.light .panel-modern,
+.light.panel-modern {
+  --bg-base: #f2f2f7;
+  --bg-surface: #ffffff;
+  --bg-elevated: #ffffff;
+  --border: #e5e5ea;
+  --border-hover: #d1d1d6;
+  --border-strong: #8e8e93;
+  --text-primary: #0a0a0f;
+  --text-body: #3a3a44;
+  --text-muted: #6e6e78;
+  --accent-soft: #5b36f5;
+  --golge-kart: 0 1px 2px rgb(16 16 32 / 0.04), 0 6px 20px -10px rgb(16 16 32 / 0.12);
+}
+
+@media (prefers-color-scheme: light) {
+  html:not(.dark):not(.light) .panel-modern {
+    --bg-base: #f2f2f7;
+    --bg-surface: #ffffff;
+    --bg-elevated: #ffffff;
+    --border: #e5e5ea;
+    --border-hover: #d1d1d6;
+    --border-strong: #8e8e93;
+    --text-primary: #0a0a0f;
+    --text-body: #3a3a44;
+    --text-muted: #6e6e78;
+    --accent-soft: #5b36f5;
+    --golge-kart: 0 1px 2px rgb(16 16 32 / 0.04), 0 6px 20px -10px rgb(16 16 32 / 0.12);
+  }
+}
+
+.panel-modern {
+  background-color: var(--bg-base);
+  color: var(--text-body);
+}
+
+.panel-modern :is(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--font-inter), sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.022em;
+}
+
+.panel-modern .tabular {
+  font-family: inherit;
+  letter-spacing: -0.01em;
+}
+
+.panel-modern svg.lucide {
+  stroke-width: 1.75;
+}
+
+/* Kartlar: kenar yerine gölge (açık) / ince ışık çizgisi (koyu). */
+.panel-modern :is(.surface-card, .rounded-card.border) {
+  border-color: transparent;
+  box-shadow: var(--golge-kart);
+  backdrop-filter: none;
+}
+/* Kesik çizgili boş durum kutuları çizgisini korur. */
+.panel-modern .rounded-card.border-dashed {
+  border-color: var(--border-hover);
+  box-shadow: none;
 }

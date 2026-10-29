@@ -27,15 +27,17 @@ export function Topbar({ title, actions }: { title: string; actions?: ReactNode 
     */
     <header
       data-yazdirmada-gizle
-      className="border-line bg-canvas/85 sticky top-0 z-40 border-b pt-[env(safe-area-inset-top)] backdrop-blur-md"
+      className="border-line/60 bg-canvas/75 sticky top-0 z-40 border-b pt-[env(safe-area-inset-top)] backdrop-blur-2xl backdrop-saturate-150"
     >
-      <div className="flex h-14 items-center gap-3 px-4 lg:h-16 lg:px-6">
+      <div className="flex h-16 items-center gap-3 px-4 lg:px-6">
         <div className="flex min-w-0 flex-col">
           {/* Telefonda kırıntı yolu yok: yer dar ve kayıt kimliği (cuid) okunmuyor; başlık yeterli. */}
           <div className="hidden sm:block">
             <KirintiYolu />
           </div>
-          <h1 className="truncate text-lg">{title}</h1>
+          <h1 className="truncate text-[1.625rem] leading-tight font-semibold tracking-[-0.03em] lg:text-xl">
+            {title}
+          </h1>
         </div>
 
         <div className="ml-auto flex items-center gap-2">
@@ -48,7 +50,7 @@ export function Topbar({ title, actions }: { title: string; actions?: ReactNode 
             Siteye dön
           </Link>
 
-          <ThemeToggle />
+          <ThemeToggle className="rounded-full border-transparent shadow-[var(--golge-kart)]" />
           <DahaDugmesi />
         </div>
       </div>

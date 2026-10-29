@@ -14,11 +14,12 @@ import { cn } from '@/lib/utils/cn';
  * bölüm. Geri kalan her şey üst çubuktaki "Daha" düğmesinde (`daha-dugmesi.tsx`).
  * Masaüstünde (`lg`) yok — orada yan menü var.
  *
- * GÜVENLİ ALAN: `pb-[env(safe-area-inset-bottom)]` — ana ekran çubuğu
- * (home indicator) sekmelerin üstüne binmesin. Sayfa içeriği aynı payı
- * panel düzeninde bırakıyor (layout.tsx).
+ * GÜVENLİ ALAN: çubuk YÜZER — kenarlardan 12 px içeride, ana ekran
+ * çubuğunun (home indicator) 8 px üstünde. Sayfa içeriği aynı payı panel
+ * düzeninde bırakıyor (layout.tsx).
  *
- * DOKUNMA HEDEFİ: her sekme en az 48 px yüksek, ekran genişliğinin beşte biri.
+ * DOKUNMA HEDEFİ: her sekme 64 px yüksek, ekran genişliğinin beşte biri.
+ * Etkin sekmede simgenin arkasında hap (2026-10-30 modern görünüm).
  */
 export function AltSekmeler() {
   const pathname = usePathname();
@@ -29,9 +30,9 @@ export function AltSekmeler() {
     <nav
       aria-label="Ana sekmeler"
       data-yazdirmada-gizle
-      className="border-line bg-canvas/90 fixed inset-x-0 bottom-0 z-40 border-t pb-[env(safe-area-inset-bottom)] backdrop-blur-xl lg:hidden"
+      className="border-line bg-surface/92 fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.5rem)] z-40 rounded-[1.75rem] border shadow-[0_8px_32px_-8px_rgb(0_0_0/0.25)] backdrop-blur-2xl backdrop-saturate-150 lg:hidden"
     >
-      <ul className="grid grid-cols-5">
+      <ul className="grid grid-cols-5 px-1">
         {ALT_SEKMELER.map((sekme) => {
           const Icon = sekme.icon;
           const aktif = aktifMi(sekme.href);
@@ -41,11 +42,18 @@ export function AltSekmeler() {
                 href={sekme.href}
                 aria-current={aktif ? 'page' : undefined}
                 className={cn(
-                  'focus-ring flex min-h-14 flex-col items-center justify-center gap-1 text-[0.6875rem] font-medium transition-colors active:opacity-60',
+                  'focus-ring flex min-h-16 flex-col items-center justify-center gap-0.5 rounded-[1.5rem] text-[0.6875rem] font-medium tracking-tight transition-colors active:scale-95',
                   aktif ? 'text-accent' : 'text-muted',
                 )}
               >
-                <Icon className={cn('size-6 transition-transform', aktif && 'scale-110')} />
+                <span
+                  className={cn(
+                    'ease-brand flex h-8 w-14 items-center justify-center rounded-full transition-all duration-300',
+                    aktif && 'bg-accent/12',
+                  )}
+                >
+                  <Icon className="size-[1.375rem]" />
+                </span>
                 {sekme.label}
               </Link>
             </li>
