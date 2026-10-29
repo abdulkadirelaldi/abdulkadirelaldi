@@ -771,9 +771,12 @@ a {
     stroke-dashoffset: 0;
   }
 }
-@keyframes iskelet-nabiz {
-  50% {
-    opacity: 0.5;
+@keyframes gezinme {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(0.85);
   }
 }
 
@@ -787,13 +790,18 @@ a {
 .panel-modern .grafik-dolgu {
   animation: panel-giris 0.6s ease 0.25s both;
 }
-.panel-modern .iskelet {
-  background-color: var(--bg-elevated);
-  animation: iskelet-nabiz 1.3s ease-in-out infinite;
+.panel-modern .gezinme-cizgisi {
+  position: fixed;
+  inset: env(safe-area-inset-top) 0 auto 0;
+  z-index: 60;
+  height: 2.5px;
+  background: var(--gradient-accent);
+  transform-origin: left;
+  animation: gezinme 1.2s var(--ease-brand) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .panel-modern :is(#panel-icerik > *, .grafik-cizgi, .grafik-dolgu, .iskelet) {
+  .panel-modern :is(#panel-icerik > *, .grafik-cizgi, .grafik-dolgu, .gezinme-cizgisi) {
     animation: none;
   }
   .panel-modern .grafik-cizgi {

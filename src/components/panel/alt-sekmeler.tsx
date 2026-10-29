@@ -1,7 +1,8 @@
 'use client';
 
-import Link from 'next/link';
+import Link, { useLinkStatus } from 'next/link';
 import { usePathname } from 'next/navigation';
+import type { ReactNode } from 'react';
 
 import { ALT_SEKMELER } from '@/components/panel/panel-rotalar';
 import { cn } from '@/lib/utils/cn';
@@ -46,14 +47,9 @@ export function AltSekmeler() {
                   aktif ? 'text-accent' : 'text-muted',
                 )}
               >
-                <span
-                  className={cn(
-                    'ease-brand flex h-8 w-14 items-center justify-center rounded-full transition-all duration-300',
-                    aktif && 'bg-accent/12',
-                  )}
-                >
+                <SekmeSimgesi aktif={aktif}>
                   <Icon className="size-[1.375rem]" />
-                </span>
+                </SekmeSimgesi>
                 {sekme.label}
               </Link>
             </li>
@@ -61,5 +57,33 @@ export function AltSekmeler() {
         })}
       </ul>
     </nav>
+  );
+}
+
+/**
+ * ANINDA TEPKİ (2026-10-30). Panel sayfaları sunucuda üretiliyor; dokunuş ile
+ * yeni sayfa arasında geçen sürede ekran hiç değişmezse telefonda "dondu" gibi
+ * görünüyordu. `useLinkStatus` dokunulan bağlantının beklemede olduğunu söyler:
+ * hap hemen o sekmeye geçer ve üstte ince bir ilerleme çizgisi akar.
+ *
+ * `loading.tsx` DENENDİ ve geri alındı: sayfayı Suspense'e sarıp akışla
+ * gönderiyordu; `router.push` + `router.refresh` yapan kaydet/sil akışları
+ * üretim derlemesinde takılıyordu (CI e2e).
+ */
+function SekmeSimgesi({ aktif, children }: { aktif: boolean; children: ReactNode }) {
+  const { pending } = useLinkStatus();
+  return (
+    <>
+      <span
+        className={cn(
+          'ease-brand flex h-8 w-14 items-center justify-center rounded-full transition-all duration-300',
+          (aktif || pending) && 'bg-accent/12',
+          pending && 'text-accent animate-pulse',
+        )}
+      >
+        {children}
+      </span>
+      {pending && <span aria-hidden="true" className="gezinme-cizgisi" />}
+    </>
   );
 }
