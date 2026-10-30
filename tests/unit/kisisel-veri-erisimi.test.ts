@@ -177,6 +177,10 @@ export function okumaIhraclari(dosya: string, metin: string): string[] {
  * gelir ya da silinirse) kapı onu sildirir.
  */
 const YETKI_ISTISNALARI: Record<string, string> = {
+  'src/server/actions/passkey.ts → passkeyGirisSecenekleriAction':
+    'GİRİŞ ÖNCESİ — oturum YOKKEN çağrılmak zorunda (Face ID ile giriş). Veri okumaz ' +
+    'ya da yazmaz; yalnızca tek kullanımlık, 5 dk ömürlü bir WebAuthn meydan okuması ' +
+    'üretir. Açık meydan okuma tavanı serviste; köken onay listesiyle sınırlı.',
   'src/server/actions/totp.ts → getTotpStatus':
     'OKUMA — mutasyon değil, yetkisizde "kapalı" dönüyor. ADR-035 okumaların iptalini ' +
     'bilerek F6/C`ye bıraktı; yazma iptali okumaya uygulanmaz.',
@@ -269,6 +273,12 @@ export function denetimsizEylemler(dosya: string, metin: string): string[] {
 
 /** Denetim kaydı yazmayan ihraçlar — yalnızca OKUMALAR, gerekçesiyle. */
 const DENETIM_ISTISNALARI: Record<string, string> = {
+  'src/server/actions/passkey.ts → passkeyGirisSecenekleriAction':
+    'GİRİŞ ÖNCESİ meydan okuma — kullanıcı verisi değişmez. Girişin kendisi (başarılı ' +
+    've başarısız) `login_attempt`e yazılıyor, kilit politikası denetim kaydı düşüyor.',
+  'src/server/actions/passkey.ts → passkeyKayitSecenekleriAction':
+    'HAZIRLIK — yalnızca meydan okuma üretir. Passkey EKLENDİĞİNDE `passkeyKaydetAction` ' +
+    'denetim kaydı yazar.',
   'src/server/actions/totp.ts → getTotpStatus':
     'OKUMA — ekranın açılış durumu; mutasyon değil, denetlenecek bir değişiklik yok.',
 };

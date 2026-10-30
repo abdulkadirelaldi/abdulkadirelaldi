@@ -129,6 +129,9 @@ jobs:
       # ve sitemap üretim adresleri gösterir, "bu artifact yayına konabilir"
       # sanısını beslerdi.
       NEXT_PUBLIC_SITE_URL: https://ci-test-only.ornek.test
+      # Face ID e2e'si (passkey.spec.ts) sanal doğrulayıcıyla `localhost`ta koşar:
+      # WebAuthn IP adresini RP kabul etmiyor. YALNIZCA CI — üretimde tanımlı değil.
+      PASSKEY_TEST_KOKENI: http://localhost:3100
 
     steps:
       - name: Depoyu al

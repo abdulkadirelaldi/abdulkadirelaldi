@@ -13,6 +13,7 @@ export const AUTH_ERROR_CODES = [
   'ACCOUNT_LOCKED',
   'TOTP_REQUIRED',
   'INVALID_TOTP',
+  'PASSKEY_FAILED',
 ] as const;
 
 export type AuthErrorCode = (typeof AUTH_ERROR_CODES)[number];
@@ -29,6 +30,7 @@ export const AUTH_ERROR_MESSAGES = {
   INVALID_CREDENTIALS: 'E-posta veya şifre hatalı.',
   ACCOUNT_LOCKED: 'Hesabınız geçici olarak kilitlendi. Lütfen daha sonra deneyin.',
   INVALID_TOTP: 'Doğrulama kodu geçersiz.',
+  PASSKEY_FAILED: 'Face ID ile giriş yapılamadı. Şifrenle dene.',
 } as const satisfies Partial<Record<AuthErrorCode, string>>;
 
 /**
