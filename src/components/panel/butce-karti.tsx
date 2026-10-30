@@ -15,9 +15,10 @@ type Kategori = (typeof HARCAMA_KATEGORILERI)[number];
 
 /** %100 üstü kırmızı, %80 üstü turuncu, altı yeşil. SAF. */
 function ton(yuzde: number | null): string {
+  // Durum belirteçleri METİN kontrastı için koyu; çubukta canlı tonlar.
   if (yuzde === null) return 'bg-accent';
-  if (yuzde > 100) return 'bg-danger';
-  return yuzde >= 80 ? 'bg-warning' : 'bg-success';
+  if (yuzde > 100) return 'bg-rose-500';
+  return yuzde >= 80 ? 'bg-amber-500' : 'bg-emerald-500';
 }
 
 /**

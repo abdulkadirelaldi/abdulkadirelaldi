@@ -42,6 +42,31 @@ export function HizliEkle() {
     };
   }, [acik]);
 
+  /*
+   * Aşağı kaydırırken gizlenir, yukarı kaydırınca döner: düğme satırların sağındaki
+   * tutarların üstüne biniyordu. `passive` + rAF: kaydırmayı yavaşlatmaz; 8 px altı
+   * titreşim sayılmaz. Sayfanın başında ve sonunda hep görünür.
+   */
+  const [gizli, setGizli] = useState(false);
+  useEffect(() => {
+    let onceki = window.scrollY;
+    let bekliyor = false;
+    const kaydir = () => {
+      if (bekliyor) return;
+      bekliyor = true;
+      requestAnimationFrame(() => {
+        bekliyor = false;
+        const y = window.scrollY;
+        const sonda = y + window.innerHeight >= document.documentElement.scrollHeight - 8;
+        if (y < 40 || sonda) setGizli(false);
+        else if (Math.abs(y - onceki) >= 8) setGizli(y > onceki);
+        if (Math.abs(y - onceki) >= 8) onceki = y;
+      });
+    };
+    window.addEventListener('scroll', kaydir, { passive: true });
+    return () => window.removeEventListener('scroll', kaydir);
+  }, []);
+
   const tamam = (mesaj: string) => {
     setBasari(mesaj);
     router.refresh();
@@ -56,7 +81,11 @@ export function HizliEkle() {
         aria-label="Hızlı kayıt"
         aria-haspopup="dialog"
         data-yazdirmada-gizle
-        className="focus-ring bg-gradient-accent fixed right-4 bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-40 flex size-14 items-center justify-center rounded-full text-white shadow-[0_10px_28px_-8px_var(--accent-glow)] transition-transform active:scale-90 lg:right-8 lg:bottom-8"
+        className={cn(
+          'focus-ring bg-gradient-accent ease-brand fixed right-4 bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-40 flex size-14 items-center justify-center rounded-full text-white shadow-[0_10px_28px_-8px_var(--accent-glow)] transition-[transform,opacity] duration-200 active:scale-90 lg:right-8 lg:bottom-8',
+          gizli && 'pointer-events-none translate-y-6 opacity-0',
+        )}
+        tabIndex={gizli ? -1 : undefined}
       >
         <Plus className="size-7" aria-hidden="true" />
       </button>
