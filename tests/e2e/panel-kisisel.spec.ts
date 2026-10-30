@@ -1,5 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
+import { gunAyYil } from '../../src/components/panel/hayat-bicim';
+
 import { adminCredentials, findAdminUser, kisiselSondaSil } from './_helpers/db';
 import { applySessionCookie } from './_helpers/session';
 
@@ -106,7 +108,7 @@ test.describe('F5 · sağlık', () => {
     /* ---- (1) değer NOKTALI kaydedilip VİRGÜLLÜ geri okunuyor ---------- */
     await expect(page).toHaveURL(/\/panel\/saglik\/[a-z0-9]+$/);
     await expect(
-      page.getByRole('heading', { name: `${testGunu(testInfo.project.name)} kaydı` }),
+      page.getByRole('heading', { name: `${gunAyYil(testGunu(testInfo.project.name))} kaydı` }),
     ).toBeVisible();
     await expect(page.getByLabel('Kilo (kg)')).toHaveValue('82,50');
     await expect(page.getByLabel('Uyku (saat)')).toHaveValue('7,50');

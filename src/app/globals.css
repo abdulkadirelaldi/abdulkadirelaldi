@@ -846,3 +846,75 @@ a {
     stroke-dasharray: none;
   }
 }
+
+/* TABLOLAR TELEFONDA KART (2026-10-31) — `VeriTablosu` tek yerden. Yatay
+   kaydırma ve sağda kesilen işlem düğmeleri yerine satır başına kart: ilk sütun
+   başlık, diğerleri "etiket — değer", işlemler altta. Tablo anlamı `role`larla
+   korunur; sıralama başlıkları telefonda gizli (masaüstünde aynı). */
+@media (max-width: 639px) {
+  .veri-tablo,
+  .veri-tablo tbody {
+    display: block;
+  }
+  .veri-tablo thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+  .veri-tablo tbody tr {
+    display: block;
+    padding: 0.875rem 1rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .veri-tablo tbody tr:last-child {
+    border-bottom: 0;
+  }
+  .veri-tablo tbody td:not(.hidden) {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    height: auto;
+    min-height: 1.75rem;
+    padding: 0.125rem 0;
+    text-align: right;
+  }
+  .veri-tablo tbody td:not(.hidden)::before {
+    content: attr(data-baslik);
+    flex-shrink: 0;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+  }
+  .veri-tablo tbody td:first-child:not(.hidden) {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.9375rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: left;
+  }
+  .veri-tablo tbody td:first-child::before,
+  .veri-tablo tbody td[data-eylem]::before {
+    content: none;
+  }
+  .veri-tablo tbody td[data-eylem]:not(.hidden) {
+    justify-content: flex-end;
+    margin-top: 0.375rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid color-mix(in oklab, var(--border) 60%, transparent);
+  }
+
+  /* Üst çubuk eylemleri telefonda yalnızca simge: başlık ezilmesin ("Antrenm…").
+     Erişilebilir ad metinden gelmeye devam eder (`font-size: 0`). */
+  .topbar-eylem :is(a, button) {
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    justify-content: center;
+    gap: 0;
+    border-radius: 999px;
+    font-size: 0;
+  }
+}

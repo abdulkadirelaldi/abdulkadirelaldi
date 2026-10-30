@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
+import { gunAyYil } from '@/components/panel/hayat-bicim';
 import { AntrenmanFormu } from '@/components/panel/antrenman-formu';
 import { SetBolumu, type SetEgzersizi } from '@/components/panel/set-bolumu';
 import { Topbar } from '@/components/panel/topbar';
@@ -60,7 +61,7 @@ export default async function AntrenmanPage({ params }: SayfaProps) {
 
   return (
     <>
-      <Topbar title={`Antrenman · ${antrenman.date}`} />
+      <Topbar title={`Antrenman · ${gunAyYil(antrenman.date)}`} />
       <main id="panel-icerik" className="flex-1 p-4 lg:p-6">
         <div className="flex max-w-4xl flex-col gap-6">
           <AntrenmanFormu

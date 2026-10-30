@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import { gunAyYil } from '@/components/panel/hayat-bicim';
 import { KaliciSilDugmesi } from '@/components/panel/kalici-sil-dugmesi';
 import { RUH_HALI, olcuBicim, tamSayiBicim } from '@/components/panel/kisisel-etiketler';
 import { VeriTablosu, type Sutun } from '@/components/panel/veri-tablosu';
@@ -34,7 +35,7 @@ export function SaglikEkrani({ kayitlar, toplam }: { kayitlar: HealthLogDto[]; t
           href={`/panel/saglik/${k.id}`}
           className="focus-ring rounded-btn text-primary -m-1 p-1 font-medium whitespace-nowrap"
         >
-          {k.date}
+          {gunAyYil(k.date)}
         </Link>
       ),
       siralamaDegeri: (k) => k.date,
@@ -86,15 +87,15 @@ export function SaglikEkrani({ kayitlar, toplam }: { kayitlar: HealthLogDto[]; t
             className={buttonClasses({ variant: 'ghost', size: 'sm' })}
           >
             <Pencil className="size-3.5" aria-hidden="true" />
-            <span className="sr-only">{k.date} kaydını düzenle</span>
+            <span className="sr-only">{gunAyYil(k.date)} kaydını düzenle</span>
           </Link>
           <KaliciSilDugmesi
-            kayitAdi={`${k.date} kaydı`}
+            kayitAdi={`${gunAyYil(k.date)} kaydı`}
             aciklama="Ölçüm değerleri hiçbir yerde saklanmaz."
             sil={async () => {
               const sonuc = await deleteHealthLogAction({ id: k.id });
               if (sonuc.ok) {
-                setBildirim(`${k.date} kaydı silindi.`);
+                setBildirim(`${gunAyYil(k.date)} kaydı silindi.`);
                 router.refresh();
               }
               return sonuc;

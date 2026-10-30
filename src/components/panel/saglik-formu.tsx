@@ -12,6 +12,7 @@ import {
   SAYI_YA_DA_YOK,
   bosaltilanlariNullYap,
 } from '@/components/panel/alan';
+import { gunAyYil } from '@/components/panel/hayat-bicim';
 import { KaliciSilDugmesi } from '@/components/panel/kalici-sil-dugmesi';
 import { RUH_HALI } from '@/components/panel/kisisel-etiketler';
 import { FormKabugu, usePanelForm } from '@/components/panel/panel-form';
@@ -172,12 +173,12 @@ export function SaglikFormu({
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <CardTitle seviye="h2">
-            {duzenleme ? `${kayit.date} kaydı` : 'Yeni sağlık kaydı'}
+            {duzenleme ? `${gunAyYil(kayit.date)} kaydı` : 'Yeni sağlık kaydı'}
           </CardTitle>
 
           {kayit && (
             <KaliciSilDugmesi
-              kayitAdi={`${kayit.date} kaydı`}
+              kayitAdi={`${gunAyYil(kayit.date)} kaydı`}
               aciklama="Ölçüm değerleri hiçbir yerde saklanmaz; denetim kaydında yalnızca günün silindiği görünür."
               etiketGorunsun
               sil={async () => {

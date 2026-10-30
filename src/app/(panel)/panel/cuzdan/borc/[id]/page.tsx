@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
+import { gunAyYil } from '@/components/panel/hayat-bicim';
 import { miktarBicim } from '@/components/panel/cuzdan-bicim';
 import { BorcFormu, OdemeFormu } from '@/components/panel/cuzdan-formlari';
 import { Topbar } from '@/components/panel/topbar';
@@ -54,7 +55,7 @@ export default async function BorcPage({ params }: { params: Promise<{ id: strin
                     key={o.id}
                     className="border-line flex items-center justify-between border-b py-2 text-sm"
                   >
-                    <span className="tabular text-muted">{o.date}</span>
+                    <span className="tabular text-muted">{gunAyYil(o.date)}</span>
                     <span className="tabular text-primary font-medium">
                       {miktarBicim(o.amount, borc.unit)}
                     </span>

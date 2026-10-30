@@ -2,6 +2,7 @@ import { ChevronRight, Flame, Timer } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+import { gunAyYil } from '@/components/panel/hayat-bicim';
 import { BaslatDugmesi, ProgramYukleDugmesi } from '@/components/panel/spor-dugmeleri';
 import { SporSekmeleri } from '@/components/panel/spor-sekmeleri';
 import { Topbar } from '@/components/panel/topbar';
@@ -147,7 +148,7 @@ export default async function SporPage() {
                           {w.suruyor && <span className="text-accent"> · sürüyor</span>}
                         </span>
                         <span className="tabular text-muted text-xs">
-                          {w.date} · {w.setSayisi} set
+                          {gunAyYil(w.date)} · {w.setSayisi} set
                         </span>
                       </span>
                       <span className="tabular text-muted flex shrink-0 items-center gap-3 text-xs">

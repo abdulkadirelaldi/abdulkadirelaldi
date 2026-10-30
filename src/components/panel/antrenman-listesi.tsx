@@ -3,6 +3,7 @@
 import { Dumbbell, Pencil, Plus } from 'lucide-react';
 import Link from 'next/link';
 
+import { gunAyYil } from '@/components/panel/hayat-bicim';
 import { ANTRENMAN_TURU, RUH_HALI } from '@/components/panel/kisisel-etiketler';
 import { VeriTablosu, type Sutun } from '@/components/panel/veri-tablosu';
 import { buttonClasses } from '@/components/ui/button';
@@ -40,7 +41,7 @@ export function AntrenmanListesi({
           href={`/panel/spor/${a.id}`}
           className="focus-ring rounded-btn text-primary -m-1 p-1 font-medium whitespace-nowrap"
         >
-          {a.date}
+          {gunAyYil(a.date)}
         </Link>
       ),
       siralamaDegeri: (a) => a.date,
@@ -83,7 +84,7 @@ export function AntrenmanListesi({
             className={buttonClasses({ variant: 'ghost', size: 'sm' })}
           >
             <Pencil className="size-3.5" aria-hidden="true" />
-            <span className="sr-only">{a.date} antrenmanını aç</span>
+            <span className="sr-only">{gunAyYil(a.date)} antrenmanını aç</span>
           </Link>
         </div>
       ),

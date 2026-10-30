@@ -3,6 +3,7 @@
 import { Plus, Trophy } from 'lucide-react';
 import Link from 'next/link';
 
+import { gunAyYil } from '@/components/panel/hayat-bicim';
 import { KAS_GRUBU, olcuBicim } from '@/components/panel/kisisel-etiketler';
 import { VeriTablosu, type Sutun } from '@/components/panel/veri-tablosu';
 import { Badge } from '@/components/ui/badge';
@@ -100,7 +101,7 @@ export function RekorTablosu({
       deger: (r) => (
         <span className="inline-flex flex-wrap items-center justify-end gap-1.5 whitespace-nowrap">
           {r.workoutSetId === null && <Badge variant="warning">kaynaksız</Badge>}
-          {r.date}
+          {gunAyYil(r.date)}
         </span>
       ),
       siralamaDegeri: (r) => r.date,

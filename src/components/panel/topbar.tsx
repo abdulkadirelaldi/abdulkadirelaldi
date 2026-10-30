@@ -41,7 +41,7 @@ export function Topbar({ title, actions }: { title: string; actions?: ReactNode 
         </div>
 
         <div className="ml-auto flex items-center gap-2">
-          {actions}
+          {actions && <div className="topbar-eylem flex items-center gap-2">{actions}</div>}
 
           <Link
             href="/"
