@@ -81,6 +81,9 @@ export default defineConfig({
     // sayı biçimlendirmesi üretimdekiyle aynı yoldan geçsin.
     locale: 'tr-TR',
     timezoneId: 'Europe/Istanbul',
+    // Panel service worker'ı gezinmelere girer; Playwright'ın yanıt/yol kesme
+    // ölçümleri bozulmasın. Çevrimdışı e2e'si (`cevrimdisi.spec.ts`) kendisi açar.
+    serviceWorkers: 'block',
   },
 
   projects: [

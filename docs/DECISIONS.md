@@ -2650,3 +2650,11 @@ Sahibi iş yönetimini Kıyı Medya'nın kendi panelinden yürütüyor; bu panel
 - **Tekrar önleme:** (tür, anahtar, gün) veritabanında eşsiz; yeniden başlatma aynı bildirimi ikinci kez gönderemez. Kayıtlar 30 gün tutulur.
 - **SSRF önlemi:** abonelik uç noktası yalnızca Apple/Google/Mozilla/Microsoft push kökenleri; sona eren abonelik (404/410) silinir.
 - **Derleme dersi:** `instrumentation.ts` içinde erken dönüşlü (`!== 'nodejs' return`) dinamik içe aktarma Edge paketinden ATILMADI ve `web-push` derlemeyi kırdı. Belgelenen kalıp: `if (NEXT_RUNTIME === 'nodejs') await import('./instrumentation-node')`.
+
+### Ek (2026-10-31) — Çevrimdışı çalışma
+
+- **Service worker:** yalnızca `/panel` gezinmeleri, ağ önce; ağ yoksa statik "Bağlantı yok" sayfası. Panel sayfaları ÖNBELLEĞE ALINMAZ — kişisel finans ve sağlık verisi cihazda birikmesin. Yani çevrimdışıyken eski veriler GÖRÜNMEZ.
+- **Kuyruk:** hızlı kayıtlar (harcama, kilo, su) ağ hatasında `localStorage`da bekler, bağlantı gelince girildiği günün tarihiyle gönderilir, gönderilince silinir. Sunucu gelecek ve 30 günden eski günü bugüne çeker.
+- **Tekrar önleme:** her kayıt tek kullanımlık anahtar taşır (`islem_anahtari`); anahtar işle aynı işlemde yazılır. Yanıtı kaybolan istek yeniden gelince ikinci kez yazılmaz.
+- **Kapsam dışı:** hızlı kayıt dışındaki formlar (ör. hesap ekleme) kuyruğa girmez.
+- **Ders:** bağlantı yokken `router.refresh()` tam yeniden yükleme yapıyor ve kullanıcıyı çevrimdışı ekranına atıyordu; kuyruk yolunda yenileme yok.
