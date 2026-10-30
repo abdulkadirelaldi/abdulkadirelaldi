@@ -151,7 +151,8 @@ export default async function CuzdanPage() {
           </Bolum>
 
           <AkisBolumu baslik="Gelirler" tur="gelir" akislar={c.gelirler} />
-          <AkisBolumu baslik="Giderler" tur="gider" akislar={c.giderler} />
+          <AkisBolumu baslik="Düzenli giderler" tur="gider" akislar={c.giderler} />
+          <Harcamalar harcamalar={c.harcamalar} />
         </div>
       </main>
     </>
@@ -324,6 +325,46 @@ function Dagilim({ hesaplar }: { hesaplar: HesapDto[] }) {
             <span className="tabular text-muted ml-auto">%{Math.round((k.tl / toplam) * 100)}</span>
           </li>
         ))}
+      </ul>
+    </section>
+  );
+}
+
+const GUN = new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+
+/**
+ * BU AYIN HARCAMALARI (2026-10-30) — tek seferlik giderler; çoğu "+" düğmesinden
+ * gelir. Toplam bu ayın gider hesabına zaten dahil (`aylikGiderTl`).
+ */
+function Harcamalar({ harcamalar }: { harcamalar: AkisDto[] }) {
+  const toplam = harcamalar.reduce((t, h) => t + (h.aylikTl === null ? 0 : Number(h.aylikTl)), 0);
+  return (
+    <section className="flex flex-col gap-2">
+      <div className="flex items-baseline justify-between">
+        <h2 className="text-primary text-base font-semibold">Bu ayın harcamaları</h2>
+        {harcamalar.length > 0 && (
+          <span className="tabular text-danger text-sm font-semibold">
+            {paraBicim(toplam.toFixed(2), 'TRY')}
+          </span>
+        )}
+      </div>
+      <ul className="flex flex-col gap-2">
+        {harcamalar.length === 0 ? (
+          <Bos>Market, yemek, ulaşım… sağ alttaki + ile saniyeler içinde eklenir.</Bos>
+        ) : (
+          harcamalar.map((h) => (
+            <Kalem
+              key={h.id}
+              href={`/panel/cuzdan/akis/${h.id}`}
+              baslik={h.name}
+              alt={[h.category, h.date ? GUN.format(new Date(`${h.date}T00:00:00Z`)) : null]
+                .filter(Boolean)
+                .join(' · ')}
+              deger={miktarBicim(h.amount, h.unit)}
+              ton="text-danger"
+            />
+          ))
+        )}
       </ul>
     </section>
   );

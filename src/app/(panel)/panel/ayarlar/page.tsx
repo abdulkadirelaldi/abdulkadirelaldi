@@ -2,6 +2,7 @@ import {
   Bell,
   Bug,
   DatabaseBackup,
+  Download,
   KeyRound,
   Palette,
   ScrollText,
@@ -74,6 +75,32 @@ export default function AyarlarPage() {
               baslik="Tema"
               aciklama="Koyu, aydınlık ya da sistem tercihini izle. Seçimin cookie'de tutulur ve tüm cihazlarda değil, bu tarayıcıda geçerlidir."
               eylem={<ThemeToggle />}
+            />
+
+            <SettingsSection
+              icon={Download}
+              baslik="Verini dışa aktar"
+              aciklama="Cüzdan, sağlık ve alışkanlık kayıtların Excel'de açılan CSV olarak. Her indirme denetim kaydına yazılır."
+              eylem={
+                <div className="flex flex-wrap gap-2">
+                  {(
+                    [
+                      ['cuzdan', 'Cüzdan'],
+                      ['saglik', 'Sağlık'],
+                      ['aliskanlik', 'Alışkanlık'],
+                    ] as const
+                  ).map(([tur, ad]) => (
+                    <a
+                      key={tur}
+                      href={`/api/v1/panel/disa-aktar?tur=${tur}`}
+                      download
+                      className="focus-ring rounded-btn border-line text-primary hover:border-line-hover inline-flex min-h-10 items-center border px-3 text-sm font-medium"
+                    >
+                      {ad}
+                    </a>
+                  ))}
+                </div>
+              }
             />
 
             <SettingsSection

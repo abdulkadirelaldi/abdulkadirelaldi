@@ -238,3 +238,75 @@ export async function moveHabit(input: MoveHabitInput, client: GunClient = db): 
     yeni.map((id, k) => client.habit.update({ where: { id }, data: { order: (k + 1) * 10 } })),
   );
 }
+
+/* ===========================================================================
+ * YILLIK ISI HARİTASI (2026-10-30) — GitHub katkı grafiği gibi
+ * ======================================================================== */
+
+export interface IsiHucresi {
+  gun: AppDay;
+  /** O gün TAMAMLANAN / o gün var olan alışkanlık; alışkanlık yoksa `null`. */
+  oran: number | null;
+}
+
+/** Haritanın genişliği — 53 hafta, bugünün haftası dahil. */
+export const ISI_HAFTA = 53;
+
+/**
+ * Hücreler: haftalar sütun (pazartesi başlar), en eski solda; bugünden
+ * sonraki günler dizide YOK. SAF.
+ */
+export function isiHaritasi(
+  aliskanliklar: { id: string; olusturma: AppDay; targetPerDay: number | null }[],
+  isaretler: { habitId: string; gun: AppDay; count: number }[],
+  bugun: AppDay,
+): IsiHucresi[] {
+  const haftaGunu = (g: AppDay) => {
+    const d = new Date(`${g}T00:00:00Z`).getUTCDay();
+    return d === 0 ? 7 : d;
+  };
+  const bas = addAppDays(bugun, -(haftaGunu(bugun) - 1) - (ISI_HAFTA - 1) * 7);
+  const hedef = new Map(aliskanliklar.map((a) => [a.id, a.targetPerDay ?? 1]));
+  const tamam = new Map<AppDay, number>();
+  for (const i of isaretler) {
+    const h = hedef.get(i.habitId);
+    if (h !== undefined && i.count >= h) tamam.set(i.gun, (tamam.get(i.gun) ?? 0) + 1);
+  }
+
+  const hucreler: IsiHucresi[] = [];
+  for (let g = bas; g <= bugun; g = addAppDays(g, 1)) {
+    const varOlan = aliskanliklar.filter((a) => a.olusturma <= g).length;
+    hucreler.push({
+      gun: g,
+      oran: varOlan === 0 ? null : Math.min(1, (tamam.get(g) ?? 0) / varOlan),
+    });
+  }
+  return hucreler;
+}
+
+export async function fetchIsiHaritasi(
+  client: GunClient = db,
+  bugun: AppDay = appToday(),
+): Promise<IsiHucresi[]> {
+  const bas = addAppDays(bugun, -(ISI_HAFTA * 7));
+  const [aliskanliklar, isaretler] = await Promise.all([
+    client.habit.findMany({
+      where: AKTIF,
+      select: { id: true, createdAt: true, targetPerDay: true },
+    }),
+    client.habitLog.findMany({
+      where: { date: { gte: appDayToDate(bas), lte: appDayToDate(bugun) }, missed: false },
+      select: { habitId: true, date: true, count: true },
+    }),
+  ]);
+  return isiHaritasi(
+    aliskanliklar.map((a) => ({
+      id: a.id,
+      // Oluşturma bir AN; günü İstanbul saatiyle — gece eklenen alışkanlık o güne sayılır.
+      olusturma: appToday(a.createdAt),
+      targetPerDay: a.targetPerDay,
+    })),
+    isaretler.map((i) => ({ habitId: i.habitId, gun: dateToAppDay(i.date), count: i.count })),
+    bugun,
+  );
+}
