@@ -164,6 +164,11 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     kanit: ['TWO_FACTOR_SETUP_PATH'],
     not: 'Adres e2e içinde düz metin değil, `src/lib/security/two-factor` sabitinden geliyor; sabitin bu rotaya çözüldüğü aşağıda ayrıca doğrulanıyor.',
   },
+  '/panel/ayarlar/bildirimler': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: "2026-10-30 push bildirimleri: abone ol/ayrıl (`bildirimAboneOlAction` — uç nokta yalnızca Apple/Google/Mozilla/Microsoft push kökenleri, SSRF yok), tür anahtarları (`bildirimTercihAction`), test. Planlayıcı `tests/unit/services/bildirim.test.ts`te (saat pencereleri, ay sonu ödeme günü, su hedefi). ÖLÇÜLMEYEN: gerçek push teslimi (Apple/Google sunucuları) ve service worker e2e'de yok.",
+  },
   '/panel/ayarlar/sifre': {
     kapilar: ['kapsanmiyor'],
     kanit: [],

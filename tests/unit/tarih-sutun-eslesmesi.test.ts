@@ -199,6 +199,16 @@ const ESLESMELER: Eslesme[] = [
     not: 'Borç ödemesinin günü — takvim günü, saat yok.',
   },
   {
+    servis: 'src/server/services/bildirim.ts',
+    model: 'BildirimKaydi',
+    alan: 'gun',
+    beklenen: 'gun',
+    not:
+      'Bildirim tekrar önleme (2026-10-30): (tür, anahtar, GÜN) eşsiz; `gun` `@db.Date` → ' +
+      '`appDayToDate(appToday())`. Anlık yardımcı gece yarısından sonra 3 saat boyunca ' +
+      'dünü yazar ve sabahki su hatırlatmasını "zaten gönderildi" sanardı.',
+  },
+  {
     servis: 'src/server/services/habit-gun.ts',
     model: 'HabitLog',
     alan: 'date',

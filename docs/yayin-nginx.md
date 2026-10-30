@@ -87,6 +87,20 @@ unset ADMIN_PASSWORD
 Sonra `https://abdulkadirelaldi.com/giris` → e-posta + şifre → panel 2FA
 kurulumunu zorunlu açar; **kurtarma kodlarını kaydet**.
 
+### Bildirimleri (web push) açmak
+
+Bir kez, sunucuda — anahtar ekrana basılmaz, doğrudan `.env`'e eklenir:
+
+```sh
+cd /opt/aelaldi
+grep -q '^VAPID_PUBLIC_KEY=.' .env || docker compose exec -T araclar node scripts/vapid-uret.mjs >> .env
+docker compose up -d uygulama
+```
+
+`grep` koruması var olan anahtarın üstüne yazmayı önler — yeniden üretmek tüm
+cihaz aboneliklerini geçersiz kılar. Sonra telefonda panel → Ayarlar →
+Bildirimler → "Bildirimleri aç" (iPhone'da panel ana ekrandan açılmış olmalı).
+
 ### Şifreyi unuttum
 
 `uretim-baslat.ts` var olan hesabın şifresine dokunmaz; sıfırlama ayrı betik:

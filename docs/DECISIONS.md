@@ -2640,3 +2640,13 @@ Sahibi iş yönetimini Kıyı Medya'nın kendi panelinden yürütüyor; bu panel
 - **Ekleme/silme:** Ayarlar → Güvenlik; oturum + yazma kapısı + denetim kaydı.
 - **Permissions-Policy:** `publickey-credentials-get=()` → `(self)`. Kapalıyken giriş sayfasında WebAuthn tarayıcıda engelleniyordu (e2e ile yakalandı).
 - **Test:** Chromium sanal doğrulayıcısıyla gerçek kriptografili e2e (`passkey.spec.ts`).
+
+### Ek (2026-10-30) — Bildirimler (web push)
+
+- **Ne:** ödeme günü (2 gün önce + gününde, 09:00), kalan alışkanlıklar (21:00), su (11/15/18, 3,5 L altındaysa).
+- **Kanal:** web push (`web-push` + VAPID). iPhone'da yalnızca ana ekrana eklenmiş panelde (iOS 16.4+). Service worker `/ae-sw.js`; adı `/panel` ile başlamıyor (ara katman). Önbellek yok.
+- **Zamanlayıcı:** uygulama sürecinin içinde (`instrumentation-node.ts`), 5 dakikada bir. Ayrı cron yok.
+- **Planlama:** `planla()` saf; saat pencereleri sayesinde geç kalkan sunucu eski hatırlatmaları yığmaz.
+- **Tekrar önleme:** (tür, anahtar, gün) veritabanında eşsiz; yeniden başlatma aynı bildirimi ikinci kez gönderemez. Kayıtlar 30 gün tutulur.
+- **SSRF önlemi:** abonelik uç noktası yalnızca Apple/Google/Mozilla/Microsoft push kökenleri; sona eren abonelik (404/410) silinir.
+- **Derleme dersi:** `instrumentation.ts` içinde erken dönüşlü (`!== 'nodejs' return`) dinamik içe aktarma Edge paketinden ATILMADI ve `web-push` derlemeyi kırdı. Belgelenen kalıp: `if (NEXT_RUNTIME === 'nodejs') await import('./instrumentation-node')`.

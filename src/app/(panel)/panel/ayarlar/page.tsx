@@ -1,4 +1,4 @@
-import { DatabaseBackup, KeyRound, Palette, ScrollText, ShieldCheck } from 'lucide-react';
+import { Bell, DatabaseBackup, KeyRound, Palette, ScrollText, ShieldCheck } from 'lucide-react';
 import type { Metadata } from 'next';
 
 import { SettingsSection } from '@/components/panel/settings-section';
@@ -52,6 +52,13 @@ export default function AyarlarPage() {
               baslik="İki adımlı doğrulama"
               aciklama="Girişte telefonundaki uygulamadan kod iste. Kurtarma kodlarını buradan yönetirsin."
               href="/panel/ayarlar/guvenlik"
+            />
+
+            <SettingsSection
+              icon={Bell}
+              baslik="Bildirimler"
+              aciklama="Ödeme günleri, kalan alışkanlıklar ve su hatırlatmaları telefonuna gelsin."
+              href="/panel/ayarlar/bildirimler"
             />
 
             <SettingsSection

@@ -72,6 +72,10 @@ services:
       UMAMI_SITE_ID: ${UMAMI_SITE_ID:-}
       # Sağlık · tartı görseli okuma ve yorum (Claude API). Boşsa özellik kapalı.
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # Bildirimler (web push). Boşsa özellik kapalı. Üretmek: docs/yayin-nginx.md.
+      VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
+      VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
+      VAPID_SUBJECT: ${VAPID_SUBJECT:-}
       # V8 yığını konteyner sınırının altında kalsın: sınıra çarpan süreç
       # ÇEKİRDEK tarafından öldürülür, yığın sınırı ise önce çöp toplamayı zorlar.
       NODE_OPTIONS: --max-old-space-size=320
