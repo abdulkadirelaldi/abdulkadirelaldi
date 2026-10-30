@@ -261,3 +261,12 @@ export async function hizliSondaSil(onek: string): Promise<number> {
   const { silinen } = await runTask<{ silinen: number }>('hizliSondaSil', JSON.stringify({ onek }));
   return silinen;
 }
+
+/** Face ID e2e izlerini siler — gerekçe `db-task.ts` → `passkeySondaSil`. */
+export async function passkeySondaSil(kimlikler: string[]): Promise<number> {
+  const { silinen } = await runTask<{ silinen: number }>(
+    'passkeySondaSil',
+    JSON.stringify({ kimlikler }),
+  );
+  return silinen;
+}

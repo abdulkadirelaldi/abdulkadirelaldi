@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { SessionProvider } from 'next-auth/react';
 
+import { PasskeyYonetimi } from '@/components/auth/passkey-yonetimi';
 import { SignOutButton } from '@/components/auth/sign-out-button';
 import { TotpSetup } from '@/components/auth/totp-setup';
 import { Topbar } from '@/components/panel/topbar';
@@ -11,6 +12,7 @@ import {
   startTotpSetup,
 } from '@/server/actions/totp';
 import { auth } from '@/server/auth';
+import { passkeyleriListele } from '@/server/auth/passkey';
 
 export const metadata: Metadata = {
   title: 'Güvenlik',
@@ -33,6 +35,7 @@ export const metadata: Metadata = {
  */
 export default async function GuvenlikAyarlariPage() {
   const [session, status] = await Promise.all([auth(), getTotpStatus()]);
+  const passkeyler = session?.user?.id ? await passkeyleriListele(session.user.id) : [];
 
   return (
     <>
@@ -40,6 +43,8 @@ export default async function GuvenlikAyarlariPage() {
 
       <main id="panel-icerik" className="flex-1 p-4 lg:p-6">
         <div className="flex max-w-2xl flex-col gap-4">
+          <PasskeyYonetimi passkeyler={passkeyler} />
+
           <SessionProvider session={session}>
             <TotpSetup
               status={status}
