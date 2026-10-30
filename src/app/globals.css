@@ -800,6 +800,26 @@ a {
   animation: gezinme 1.2s var(--ease-brand) both;
 }
 
+@keyframes sayfa-yuksel {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+@keyframes ortu-belir {
+  from {
+    opacity: 0;
+  }
+}
+.panel-modern .hizli-sayfa {
+  animation: sayfa-yuksel 0.32s var(--ease-brand) both;
+}
+.panel-modern .hizli-ortu {
+  animation: ortu-belir 0.25s ease both;
+}
+
 @keyframes halka-dol {
   from {
     stroke-dashoffset: var(--halka-cevre);
@@ -810,7 +830,16 @@ a {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .panel-modern :is(.halka-dol, #panel-icerik > *, .grafik-cizgi, .grafik-dolgu, .gezinme-cizgisi) {
+  .panel-modern
+    :is(
+      #panel-icerik > *,
+      .grafik-cizgi,
+      .grafik-dolgu,
+      .gezinme-cizgisi,
+      .hizli-sayfa,
+      .hizli-ortu,
+      .halka-dol
+    ) {
     animation: none;
   }
   .panel-modern .grafik-cizgi {

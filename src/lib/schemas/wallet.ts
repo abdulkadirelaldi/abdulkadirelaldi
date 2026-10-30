@@ -85,3 +85,24 @@ export type UpdateWalletDebtInput = z.infer<typeof updateWalletDebtSchema>;
 export type WalletDebtPaymentInput = z.infer<typeof walletDebtPaymentSchema>;
 export type WalletFlowInput = z.infer<typeof walletFlowSchema>;
 export type UpdateWalletFlowInput = z.infer<typeof updateWalletFlowSchema>;
+
+/* Hızlı ekleme (2026-10-30) — panelin "+" düğmesi. */
+
+/** Hazır harcama kategorileri — bütçe ve dağılım bunlarla gruplanır. */
+export const HARCAMA_KATEGORILERI = [
+  'Market',
+  'Yemek',
+  'Ulaşım',
+  'Fatura',
+  'Eğlence',
+  'Sağlık',
+  'Giyim',
+  'Diğer',
+] as const;
+
+export const hizliHarcamaSchema = z.object({
+  tutar,
+  ne: ad,
+  kategori: z.enum(HARCAMA_KATEGORILERI).default('Diğer'),
+});
+export type HizliHarcamaInput = z.infer<typeof hizliHarcamaSchema>;
