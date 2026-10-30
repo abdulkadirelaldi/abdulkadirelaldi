@@ -207,18 +207,18 @@ model User {
 /// Açık anahtar burada; GİZLİ anahtar cihazdan hiç çıkmaz. Sızan bir yedek
 /// kimseyi içeri sokmaz.
 model Passkey {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   /// Kimlik bilgisi kimliği (base64url) — girişte bununla bulunur.
-  credentialId String   @unique
+  credentialId String    @unique
   publicKey    Bytes
   /// Klonlanmış doğrulayıcı tespiti: her girişte artmalı (0 kalan senkron passkey'ler hariç).
-  counter      Int      @default(0)
+  counter      Int       @default(0)
   transports   String[]
   /// Kullanıcının verdiği ad ("iPhone 13 Pro Max").
   name         String
-  createdAt    DateTime @default(now())
+  createdAt    DateTime  @default(now())
   lastUsedAt   DateTime?
 
   @@index([userId])
@@ -979,4 +979,15 @@ model PriceQuote {
   fetchedAt DateTime
 
   @@map("price_quote")
+}
+
+/// Sağlık hedefi (2026-10-30) — kullanıcı başına tek satır. Başlangıç kilosu
+/// hedef konduğu andaki son ölçüm; ilerleme yüzdesi buna göre.
+model SaglikHedefi {
+  userId      String   @id
+  hedefKg     Decimal  @db.Decimal(5, 2)
+  baslangicKg Decimal? @db.Decimal(5, 2)
+  updatedAt   DateTime @updatedAt
+
+  @@map("saglik_hedefi")
 }

@@ -443,3 +443,78 @@ export async function deleteHealthLog(
   const row = await client.healthLog.delete({ where: { id } });
   return toDto(row);
 }
+
+/* ===========================================================================
+ * HEDEF KİLO (2026-10-31)
+ * ======================================================================== */
+
+export interface SaglikHedefiDto {
+  hedefKg: string;
+  baslangicKg: string | null;
+  sonKg: string | null;
+  /** Hedefe kalan (mutlak, 1 ondalık); son ölçüm yoksa `null`. */
+  kalanKg: string | null;
+  /** Başlangıçtan hedefe yolun yüzde kaçı yüründü (0–100); hesaplanamıyorsa `null`. */
+  yuzde: number | null;
+}
+
+/** İlerleme — kilo vermek de almak da desteklenir. SAF. */
+export function hedefIlerlemesi(
+  baslangic: number | null,
+  son: number | null,
+  hedef: number,
+): { kalan: number | null; yuzde: number | null } {
+  if (son === null) return { kalan: null, yuzde: null };
+  const kalan = Math.abs(son - hedef);
+  if (baslangic === null || baslangic === hedef) return { kalan, yuzde: kalan === 0 ? 100 : null };
+  const yol = (baslangic - son) / (baslangic - hedef);
+  return { kalan, yuzde: Math.round(Math.min(1, Math.max(0, yol)) * 100) };
+}
+
+async function sonKilo(client: Pick<typeof db, 'healthLog'>): Promise<string | null> {
+  const satir = await client.healthLog.findFirst({
+    where: { weightKg: { not: null } },
+    orderBy: { date: 'desc' },
+    select: { weightKg: true },
+  });
+  return toMeasureString(satir?.weightKg ?? null, 2);
+}
+
+export async function fetchSaglikHedefi(
+  userId: string,
+  client: Pick<typeof db, 'healthLog' | 'saglikHedefi'> = db,
+): Promise<SaglikHedefiDto | null> {
+  const [hedef, son] = await Promise.all([
+    client.saglikHedefi.findUnique({ where: { userId } }),
+    sonKilo(client),
+  ]);
+  if (!hedef) return null;
+  const hedefKg = toMeasureString(hedef.hedefKg, 2) ?? '0';
+  const baslangicKg = toMeasureString(hedef.baslangicKg, 2);
+  const { kalan, yuzde } = hedefIlerlemesi(
+    baslangicKg === null ? null : Number(baslangicKg),
+    son === null ? null : Number(son),
+    Number(hedefKg),
+  );
+  return {
+    hedefKg,
+    baslangicKg,
+    sonKg: son,
+    kalanKg: kalan === null ? null : kalan.toFixed(1),
+    yuzde,
+  };
+}
+
+/** Hedefi koyar; başlangıç = o anki SON ölçüm (yeni hedef, yeni yol). */
+export async function saglikHedefiKoy(
+  userId: string,
+  hedefKg: string,
+  client: Pick<typeof db, 'healthLog' | 'saglikHedefi'> = db,
+): Promise<void> {
+  const baslangicKg = await sonKilo(client);
+  await client.saglikHedefi.upsert({
+    where: { userId },
+    create: { userId, hedefKg, baslangicKg },
+    update: { hedefKg, baslangicKg },
+  });
+}
