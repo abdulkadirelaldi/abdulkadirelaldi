@@ -139,11 +139,11 @@ export function VeriTablosu<T>({
       belirtisini düzeltirdi.
     */
     <div className={cn('border-line rounded-card relative overflow-x-auto border', className)}>
-      <table className="w-full border-collapse text-sm">
+      <table role="table" className="veri-tablo w-full border-collapse text-sm">
         <caption className="sr-only">{baslik}</caption>
 
-        <thead className="bg-elevated">
-          <tr>
+        <thead role="rowgroup" className="bg-elevated">
+          <tr role="row">
             {sutunlar.map((sutun) => {
               const aktif = siralama?.anahtar === sutun.anahtar;
               const Ikon = !aktif ? ChevronsUpDown : siralama.yon === 'artan' ? ArrowUp : ArrowDown;
@@ -151,6 +151,7 @@ export function VeriTablosu<T>({
               return (
                 <th
                   key={sutun.anahtar}
+                  role="columnheader"
                   scope="col"
                   /*
                    * `aria-sort`: ekran okuyucu sütunun sıralı olduğunu ve yönünü
@@ -187,7 +188,7 @@ export function VeriTablosu<T>({
           </tr>
         </thead>
 
-        <tbody aria-busy={yukleniyor || undefined}>
+        <tbody role="rowgroup" aria-busy={yukleniyor || undefined}>
           {yukleniyor
             ? Array.from({ length: iskeletAdedi }, (_, sira) => (
                 <tr key={`iskelet-${sira}`} className="border-line border-b last:border-b-0">
@@ -203,12 +204,16 @@ export function VeriTablosu<T>({
               ))
             : siraliSatirlar.map((satir) => (
                 <tr
+                  role="row"
                   key={satirAnahtari(satir)}
                   className="border-line hover:bg-elevated/60 ease-brand duration-micro border-b transition-colors last:border-b-0"
                 >
                   {sutunlar.map((sutun) => (
                     <td
+                      role="cell"
                       key={sutun.anahtar}
+                      data-baslik={sutun.baslik}
+                      data-eylem={sutun.baslik === 'İşlem' ? '' : undefined}
                       className={cn(
                         'text-body h-11 px-3',
                         sutun.sayisal ? 'tabular text-right' : 'text-left',

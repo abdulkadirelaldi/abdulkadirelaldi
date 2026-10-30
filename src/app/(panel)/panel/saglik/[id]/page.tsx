@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 
+import { gunAyYil } from '@/components/panel/hayat-bicim';
 import { SaglikFormu } from '@/components/panel/saglik-formu';
 import { Topbar } from '@/components/panel/topbar';
 import { fetchHealthLogById } from '@/server/services/health-log';
@@ -20,7 +21,7 @@ export default async function SaglikDuzenlePage({ params }: SayfaProps) {
 
   return (
     <>
-      <Topbar title={`Sağlık · ${kayit.date}`} />
+      <Topbar title={`Sağlık · ${gunAyYil(kayit.date)}`} />
       <main id="panel-icerik" className="flex-1 p-4 lg:p-6">
         <div className="flex max-w-3xl flex-col gap-6">
           <SaglikFormu kayit={kayit} gun={kayit.date} />

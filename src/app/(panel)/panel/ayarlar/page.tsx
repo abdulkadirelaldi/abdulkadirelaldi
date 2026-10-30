@@ -1,4 +1,12 @@
-import { Bell, DatabaseBackup, Download, KeyRound, Palette, ScrollText, ShieldCheck } from 'lucide-react';
+import {
+  Bell,
+  DatabaseBackup,
+  Download,
+  KeyRound,
+  Palette,
+  ScrollText,
+  ShieldCheck,
+} from 'lucide-react';
 import type { Metadata } from 'next';
 
 import { SettingsSection } from '@/components/panel/settings-section';
