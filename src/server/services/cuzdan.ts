@@ -496,3 +496,75 @@ export async function fetchWalletFlowById(
     isActive: a.isActive,
   };
 }
+
+/* ===========================================================================
+ * AYLIK BÜTÇE (2026-10-31) — kategori başına limit
+ * ======================================================================== */
+
+export interface ButceSatiri {
+  kategori: string;
+  harcananTl: string;
+  /** Limit yoksa `null` — yalnızca harcama gösterilir. */
+  limitTl: string | null;
+  /** Limitin yüzde kaçı harcandı; limit yoksa `null`. 100'ü geçebilir. */
+  yuzde: number | null;
+  /** Kalan (eksiyse aşım); limit yoksa `null`. */
+  kalanTl: string | null;
+}
+
+/**
+ * Bu ayın harcamaları + limitler → satırlar; en çok harcanan önce. Kategorisiz
+ * harcama "Diğer". Kuru bilinmeyen kalem (`aylikTl` null) toplama GİRMEZ. SAF.
+ */
+export function butceOzeti(
+  harcamalar: readonly Pick<AkisDto, 'category' | 'aylikTl'>[],
+  limitler: readonly { kategori: string; limitTl: string }[],
+): ButceSatiri[] {
+  const gruplar = new Map<string, string[]>();
+  for (const h of harcamalar) {
+    if (h.aylikTl === null) continue;
+    const k = h.category ?? 'Diğer';
+    gruplar.set(k, [...(gruplar.get(k) ?? []), h.aylikTl]);
+  }
+  const limit = new Map(limitler.map((l) => [l.kategori, l.limitTl]));
+  return [...new Set([...gruplar.keys(), ...limit.keys()])]
+    .map((kategori): ButceSatiri => {
+      const harcananTl = sumMoney(gruplar.get(kategori) ?? []);
+      const limitTl = limit.get(kategori) ?? null;
+      return {
+        kategori,
+        harcananTl,
+        limitTl,
+        yuzde:
+          limitTl === null || Number(limitTl) === 0
+            ? null
+            : Math.round((Number(harcananTl) / Number(limitTl)) * 100),
+        kalanTl: limitTl === null ? null : subtractMoney(limitTl, harcananTl),
+      };
+    })
+    .sort((a, b) => Number(b.harcananTl) - Number(a.harcananTl));
+}
+
+export async function fetchButceLimitleri(
+  client: Pick<typeof db, 'walletButce'> = db,
+): Promise<{ kategori: string; limitTl: string }[]> {
+  const satirlar = await client.walletButce.findMany({ orderBy: { kategori: 'asc' } });
+  return satirlar.map((s) => ({ kategori: s.kategori, limitTl: para(s.limitTl) }));
+}
+
+/** Limiti koyar; `null` kaldırır. */
+export async function butceKoy(
+  kategori: string,
+  limitTl: string | null,
+  client: Pick<typeof db, 'walletButce'> = db,
+): Promise<void> {
+  if (limitTl === null) {
+    await client.walletButce.deleteMany({ where: { kategori } });
+    return;
+  }
+  await client.walletButce.upsert({
+    where: { kategori },
+    create: { kategori, limitTl },
+    update: { limitTl },
+  });
+}
