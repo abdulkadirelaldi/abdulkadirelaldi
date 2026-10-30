@@ -207,18 +207,18 @@ model User {
 /// Açık anahtar burada; GİZLİ anahtar cihazdan hiç çıkmaz. Sızan bir yedek
 /// kimseyi içeri sokmaz.
 model Passkey {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   /// Kimlik bilgisi kimliği (base64url) — girişte bununla bulunur.
-  credentialId String   @unique
+  credentialId String    @unique
   publicKey    Bytes
   /// Klonlanmış doğrulayıcı tespiti: her girişte artmalı (0 kalan senkron passkey'ler hariç).
-  counter      Int      @default(0)
+  counter      Int       @default(0)
   transports   String[]
   /// Kullanıcının verdiği ad ("iPhone 13 Pro Max").
   name         String
-  createdAt    DateTime @default(now())
+  createdAt    DateTime  @default(now())
   lastUsedAt   DateTime?
 
   @@index([userId])
@@ -1020,4 +1020,24 @@ model BildirimKaydi {
 
   @@unique([tur, anahtar, gun])
   @@map("bildirim_kaydi")
+}
+
+/// Hata kaydı (2026-10-31) — sunucu (`onRequestError`) ve ekran (panel hata
+/// sınırı) hataları. Aynı hata İMZASIYLA tek satırda sayılır. Kişisel veri
+/// tutmaz: mesajın ilk satırı kısaltılır, e-posta ve uzun sayılar maskelenir,
+/// yoldan sorgu dizesi atılır.
+model HataKaydi {
+  id      String   @id @default(cuid())
+  imza    String   @unique
+  kaynak  String
+  ad      String
+  mesaj   String
+  yol     String?
+  ayrinti String?
+  sayi    Int      @default(1)
+  ilk     DateTime @default(now())
+  son     DateTime @default(now())
+
+  @@index([son])
+  @@map("hata_kaydi")
 }

@@ -1,4 +1,13 @@
-import { Bell, DatabaseBackup, Download, KeyRound, Palette, ScrollText, ShieldCheck } from 'lucide-react';
+import {
+  Bell,
+  Bug,
+  DatabaseBackup,
+  Download,
+  KeyRound,
+  Palette,
+  ScrollText,
+  ShieldCheck,
+} from 'lucide-react';
 import type { Metadata } from 'next';
 
 import { SettingsSection } from '@/components/panel/settings-section';
@@ -98,6 +107,13 @@ export default function AyarlarPage() {
               icon={DatabaseBackup}
               baslik="Yedek durumu"
               aciklama="Otomatik yedekleme henüz kurulmadı. Kurulduğunda son yedeğin zamanı, boyutu ve bütünlük doğrulaması burada görünecek; geri yükleme prosedürü ayrıca belgelenecek."
+            />
+
+            <SettingsSection
+              icon={Bug}
+              baslik="Hatalar"
+              aciklama="Panelde oluşan sunucu ve ekran hataları — aynı hata kaç kez olduğuyla tek satırda."
+              href="/panel/ayarlar/hatalar"
             />
 
             <SettingsSection

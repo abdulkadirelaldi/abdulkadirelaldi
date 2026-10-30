@@ -169,6 +169,11 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     kanit: [],
     not: "2026-10-30 push bildirimleri: abone ol/ayrıl (`bildirimAboneOlAction` — uç nokta yalnızca Apple/Google/Mozilla/Microsoft push kökenleri, SSRF yok), tür anahtarları (`bildirimTercihAction`), test. Planlayıcı `tests/unit/services/bildirim.test.ts`te (saat pencereleri, ay sonu ödeme günü, su hedefi). ÖLÇÜLMEYEN: gerçek push teslimi (Apple/Google sunucuları) ve service worker e2e'de yok.",
   },
+  '/panel/ayarlar/hatalar': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: "2026-10-31 hata izleme listesi (son 50, imzayla gruplu). Yazma `onRequestError` (sunucu) ve panel hata sınırı → `istemciHatasiAction`; temizleme `hatalariTemizleAction` (denetimli). Saklanan metnin maskelenmesi `tests/unit/services/hata-kaydi.test.ts`te. ÖLÇÜLMEYEN: gerçek sunucu hatasıyla uçtan uca kayıt e2e'de yok.",
+  },
   '/panel/ayarlar/sifre': {
     kapilar: ['kapsanmiyor'],
     kanit: [],

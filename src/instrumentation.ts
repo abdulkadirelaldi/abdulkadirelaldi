@@ -11,3 +11,18 @@ export async function register() {
     await import('./instrumentation-node');
   }
 }
+
+/**
+ * Sunucu hatalarını hata kaydına yazar (2026-10-31, Next.js `onRequestError`).
+ * Aynı kalıp: Node'a özel modül dalın İÇİNDE içe aktarılır.
+ */
+export async function onRequestError(
+  err: unknown,
+  request: { path: string },
+  context: { routePath?: string },
+): Promise<void> {
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    const { sunucuHatasi } = await import('./instrumentation-hata');
+    await sunucuHatasi(err, request, context);
+  }
+}
