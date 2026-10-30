@@ -1,5 +1,6 @@
 import {
   Bell,
+  Bug,
   DatabaseBackup,
   Download,
   KeyRound,
@@ -106,6 +107,13 @@ export default function AyarlarPage() {
               icon={DatabaseBackup}
               baslik="Yedek durumu"
               aciklama="Otomatik yedekleme henüz kurulmadı. Kurulduğunda son yedeğin zamanı, boyutu ve bütünlük doğrulaması burada görünecek; geri yükleme prosedürü ayrıca belgelenecek."
+            />
+
+            <SettingsSection
+              icon={Bug}
+              baslik="Hatalar"
+              aciklama="Panelde oluşan sunucu ve ekran hataları — aynı hata kaç kez olduğuyla tek satırda."
+              href="/panel/ayarlar/hatalar"
             />
 
             <SettingsSection

@@ -2,7 +2,7 @@
 
 import * as z from 'zod';
 
-import { decimalSchema } from '@/lib/schemas/common';
+import { dayDateSchema, decimalSchema } from '@/lib/schemas/common';
 import { hizliHarcamaSchema } from '@/lib/schemas/wallet';
 import { db } from '@/server/db';
 import {
@@ -12,7 +12,8 @@ import {
   writeAuditLog,
   type ApiResponse,
 } from '@/server/services/_shared';
-import { createWalletFlow } from '@/server/services/cuzdan';
+import { birKez } from '@/server/services/islem-anahtari';
+import { createWalletFlow, kuyrukGunu } from '@/server/services/cuzdan';
 import { gununKaydinaEkle } from '@/server/services/health-log';
 
 import { currentActorId, toFailure, unauthorized } from './_shared';
@@ -20,28 +21,38 @@ import { currentActorId, toFailure, unauthorized } from './_shared';
 /**
  * HIZLI EKLEME (2026-10-30) — her ekrandaki "+" düğmesi. Üç sık iş tek
  * dokunuşta: harcama, kilo, su. Gün sunucuda İstanbul saatine göre
- * (`appToday`, ADR-016). Denetim kaydına tutar/kilo YAZILMAZ (kişisel veri).
+ * (`appToday`, ADR-016); bağlantı yokken kuyruğa alınan kayıt GİRİLDİĞİ günü
+ * taşır (`kuyrukGunu` sınırlar). Denetim kaydına tutar/kilo YAZILMAZ (kişisel veri).
  */
 
-const kiloSchema = z.object({ kg: decimalSchema(3, 2) });
-const suSchema = z.object({ ml: z.number().int().min(50).max(2000) });
+const gunAlani = { gun: dayDateSchema.optional(), anahtar: z.uuid().optional() };
+const kiloSchema = z.object({ kg: decimalSchema(3, 2), ...gunAlani });
+const suSchema = z.object({ ml: z.number().int().min(50).max(2000), ...gunAlani });
+const harcamaSchema = hizliHarcamaSchema.extend(gunAlani);
 
 export async function hizliHarcamaAction(raw: unknown): Promise<ApiResponse<{ id: string }>> {
   const actorId = await currentActorId();
   if (!actorId) return unauthorized();
-  const parsed = parseOrFail(hizliHarcamaSchema, raw);
+  const parsed = parseOrFail(harcamaSchema, raw);
   if (!parsed.ok) return parsed.failure;
 
   try {
-    const { id } = await createWalletFlow({
-      kind: 'EXPENSE',
-      name: parsed.data.ne,
-      amount: parsed.data.tutar,
-      unit: 'TRY',
-      frequency: 'ONCE',
-      date: appToday(),
-      category: parsed.data.kategori,
-    });
+    const sonuc = await birKez(parsed.data.anahtar, (tx) =>
+      createWalletFlow(
+        {
+          kind: 'EXPENSE',
+          name: parsed.data.ne,
+          amount: parsed.data.tutar,
+          unit: 'TRY',
+          frequency: 'ONCE',
+          date: kuyrukGunu(parsed.data.gun, appToday()),
+          category: parsed.data.kategori,
+        },
+        tx,
+      ),
+    );
+    if (sonuc === null) return ok({ id: '' });
+    const { id } = sonuc;
     await writeAuditLog(
       {
         actorId,
@@ -67,7 +78,10 @@ export async function hizliKiloAction(
   if (!parsed.ok) return parsed.failure;
 
   try {
-    const sonuc = await gununKaydinaEkle(appToday(), { weightKg: parsed.data.kg });
+    const sonuc = await birKez(parsed.data.anahtar, (tx) =>
+      gununKaydinaEkle(kuyrukGunu(parsed.data.gun, appToday()), { weightKg: parsed.data.kg }, tx),
+    );
+    if (sonuc === null) return ok({ weightKg: parsed.data.kg });
     await writeAuditLog(
       {
         actorId,
@@ -93,7 +107,10 @@ export async function hizliSuAction(
   if (!parsed.ok) return parsed.failure;
 
   try {
-    const sonuc = await gununKaydinaEkle(appToday(), { suMl: parsed.data.ml });
+    const sonuc = await birKez(parsed.data.anahtar, (tx) =>
+      gununKaydinaEkle(kuyrukGunu(parsed.data.gun, appToday()), { suMl: parsed.data.ml }, tx),
+    );
+    if (sonuc === null) return ok({ waterMl: null });
     await writeAuditLog(
       {
         actorId,

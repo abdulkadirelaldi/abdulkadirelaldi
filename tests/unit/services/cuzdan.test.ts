@@ -1,8 +1,10 @@
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   addDebtPayment,
   aylikTutar,
+  butceOzeti,
+  fetchButceLimitleri,
   fetchCuzdan,
   kalanAy,
   fetchWalletAccountById,
@@ -10,7 +12,7 @@ import {
   fetchWalletFlowById,
   odenenYuzde,
 } from '@/server/services/cuzdan';
-import { fetchKurlar, kaynagiCozumle, tlKarsiligi, type KurDurumu } from '@/server/services/kur';
+import { kaynagiCozumle, tlKarsiligi, type KurDurumu } from '@/server/services/kur';
 
 import { decimal, decimalKalanlar } from '../_helpers/decimal-kacak';
 
@@ -44,37 +46,92 @@ describe('tlKarsiligi — kayıpsız, varlık alış / borç satış', () => {
   });
 });
 
-describe('fetchKurlar — dayanıklılık', () => {
-  it('canlı kaynak → kurlar ve veritabanına yazar', async () => {
-    const upsert = vi.fn().mockReturnValue('islem');
-    const tx = vi.fn().mockResolvedValue([]);
-    const client = { priceQuote: { upsert, findMany: vi.fn() }, $transaction: tx } as never;
-    const getir = vi.fn().mockResolvedValue({ ok: true, json: async () => KAYNAK });
-    const d = await fetchKurlar(client, getir as never, new Date('2026-10-30T07:00:00Z'));
-    expect(d.bayat).toBe(false);
-    expect(Object.keys(d.kurlar)).toContain('GOLD_GRAM');
-    expect(upsert).toHaveBeenCalledTimes(3);
+describe('fetchKurlar — sayfayı bekletmez (2026-10-30)', () => {
+  /** Modül durumu (bellek, son hata) her testte sıfır: taze yükleme. */
+  let fetchKurlar: typeof import('@/server/services/kur').fetchKurlar;
+  beforeEach(async () => {
+    vi.resetModules();
+    ({ fetchKurlar } = await import('@/server/services/kur'));
   });
 
-  it('⚠️ kaynak çökerse SON BİLİNEN kur, "bayat" olarak', async () => {
-    const client = {
-      priceQuote: {
-        findMany: vi.fn().mockResolvedValue([
-          {
-            unit: 'USD',
-            buying: decimal('49.0000'),
-            selling: decimal('49.1000'),
-            fetchedAt: new Date('2026-10-29T08:00:00Z'),
-          },
-        ]),
-      },
-      $transaction: vi.fn(),
-    } as never;
-    const getir = vi.fn().mockRejectedValue(new Error('ağ yok'));
-    // Bir gün sonra: önceki testin 10 dk'lık önbelleği geçmiş.
-    const d = await fetchKurlar(client, getir as never, new Date('2026-10-31T07:00:00Z'));
-    expect(d).toMatchObject({ bayat: true, guncellendi: '2026-10-29T08:00:00.000Z' });
+  const SIMDI = new Date('2026-10-30T07:00:00Z');
+  const satir = (fetchedAt: string) => ({
+    unit: 'USD',
+    buying: decimal('49.0000'),
+    selling: decimal('49.1000'),
+    fetchedAt: new Date(fetchedAt),
+  });
+  const istemci = (satirlar: unknown[]) => {
+    const upsert = vi.fn().mockReturnValue('islem');
+    return {
+      upsert,
+      client: {
+        priceQuote: { upsert, findMany: vi.fn().mockResolvedValue(satirlar) },
+        $transaction: vi.fn().mockResolvedValue([]),
+      } as never,
+    };
+  };
+  const basarili = () => vi.fn().mockResolvedValue({ ok: true, json: async () => KAYNAK });
+
+  it('⚠️ kaynak ASILI kalsa da kayıtlı kur HEMEN döner', async () => {
+    const { client } = istemci([satir('2026-10-30T06:30:00Z')]);
+    const asili = vi.fn(() => new Promise<never>(() => undefined));
+    const d = await fetchKurlar(client, asili as never, SIMDI);
+    expect(d).toMatchObject({ bayat: false, guncellendi: '2026-10-30T06:30:00.000Z' });
     expect(d.kurlar.USD).toEqual({ buying: '49.0000', selling: '49.1000' });
+    expect(asili).toHaveBeenCalledTimes(1); // yenileme arka planda başladı
+  });
+
+  it('1 saatten eski kur "bayat" olarak gösterilir', async () => {
+    const { client } = istemci([satir('2026-10-29T08:00:00Z')]);
+    const d = await fetchKurlar(
+      client,
+      vi.fn().mockRejectedValue(new Error('ağ yok')) as never,
+      SIMDI,
+    );
+    expect(d.bayat).toBe(true);
+  });
+
+  it('arka plan yenilemesi belleği doldurur, sonraki istek veritabanına gitmez', async () => {
+    const { client, upsert } = istemci([satir('2026-10-30T06:30:00Z')]);
+    await fetchKurlar(client, basarili() as never, SIMDI);
+    await vi.waitFor(() => expect(upsert).toHaveBeenCalledTimes(3));
+    const sonraki = await fetchKurlar(
+      client,
+      basarili() as never,
+      new Date('2026-10-30T07:01:00Z'),
+    );
+    expect(sonraki).toMatchObject({ bayat: false, guncellendi: SIMDI.toISOString() });
+    expect(Object.keys(sonraki.kurlar)).toContain('GOLD_GRAM');
+  });
+
+  it('kaynak düşükken 1 dakika yeniden denenmez', async () => {
+    const { client } = istemci([satir('2026-10-30T06:30:00Z')]);
+    const hatali = vi.fn().mockRejectedValue(new Error('ağ yok'));
+    await fetchKurlar(client, hatali as never, SIMDI);
+    await vi.waitFor(() => expect(hatali).toHaveBeenCalledTimes(1));
+    await new Promise((r) => setTimeout(r, 0));
+    await fetchKurlar(client, hatali as never, new Date('2026-10-30T07:00:30Z'));
+    expect(hatali).toHaveBeenCalledTimes(1);
+    await fetchKurlar(client, hatali as never, new Date('2026-10-30T07:01:01Z'));
+    expect(hatali).toHaveBeenCalledTimes(2);
+  });
+
+  it('hiç kur yoksa kaynak BEKLENİR; o da düşükse boş ve bayat (uydurma yok)', async () => {
+    const a = istemci([]);
+    const d = await fetchKurlar(a.client, basarili() as never, SIMDI);
+    expect(d.bayat).toBe(false);
+    expect(a.upsert).toHaveBeenCalledTimes(3);
+
+    vi.resetModules();
+    ({ fetchKurlar } = await import('@/server/services/kur'));
+    const b = istemci([]);
+    const bos = await fetchKurlar(
+      b.client,
+      vi.fn().mockRejectedValue(new Error('x')) as never,
+      SIMDI,
+    );
+    expect(bos).toEqual({ kurlar: {}, guncellendi: null, bayat: true });
   });
 });
 
@@ -315,5 +372,55 @@ describe('tek seferlik kalemler — yalnızca KENDİ aylarında (2026-10-30)', (
     // yeniden eskiye
     expect(c.harcamalar.map((h) => h.id)).toEqual(['kahve', 'market']);
     expect(c.gelirler.map((g) => g.id)).toEqual(['maas', 'ikramiye']);
+  });
+});
+
+describe('butceOzeti — aylık bütçe (2026-10-31)', () => {
+  const h = (category: string | null, aylikTl: string | null) => ({ category, aylikTl });
+
+  it('kategori toplamı kuruşu kuruşuna, en çok harcanan önce', () => {
+    const s = butceOzeti(
+      [h('Market', '450.50'), h('Market', '0.10'), h('Yemek', '900.00')],
+      [{ kategori: 'Market', limitTl: '1000.00' }],
+    );
+    expect(s.map((x) => x.kategori)).toEqual(['Yemek', 'Market']);
+    expect(s[1]).toEqual({
+      kategori: 'Market',
+      harcananTl: '450.60',
+      limitTl: '1000.00',
+      yuzde: 45,
+      kalanTl: '549.40',
+    });
+    expect(s[0]).toMatchObject({ limitTl: null, yuzde: null, kalanTl: null });
+  });
+
+  it('aşım eksi kalan; harcaması olmayan limit de görünür', () => {
+    const s = butceOzeti(
+      [h('Yemek', '1500.00')],
+      [
+        { kategori: 'Yemek', limitTl: '1000.00' },
+        { kategori: 'Ulaşım', limitTl: '500.00' },
+      ],
+    );
+    expect(s[0]).toMatchObject({ yuzde: 150, kalanTl: '-500.00' });
+    expect(s[1]).toMatchObject({ kategori: 'Ulaşım', harcananTl: '0.00', yuzde: 0 });
+  });
+
+  it('⚠️ kuru bilinmeyen kalem toplama girmez; kategorisiz "Diğer"', () => {
+    const s = butceOzeti([h('Market', null), h(null, '10.00')], []);
+    expect(s).toEqual([
+      { kategori: 'Diğer', harcananTl: '10.00', limitTl: null, yuzde: null, kalanTl: null },
+    ]);
+  });
+
+  it('limit okuması Decimal sızdırmaz', async () => {
+    const client = {
+      walletButce: {
+        findMany: vi.fn().mockResolvedValue([{ kategori: 'Market', limitTl: decimal('5000.00') }]),
+      },
+    } as never;
+    const l = await fetchButceLimitleri(client);
+    expect(decimalKalanlar(l)).toEqual([]);
+    expect(l).toEqual([{ kategori: 'Market', limitTl: '5000.00' }]);
   });
 });

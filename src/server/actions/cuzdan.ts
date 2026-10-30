@@ -1,6 +1,7 @@
 'use server';
 
 import {
+  butceSchema,
   entityIdSchema,
   updateWalletAccountSchema,
   updateWalletDebtSchema,
@@ -14,6 +15,7 @@ import { db } from '@/server/db';
 import {
   addDebtPayment,
   archiveWalletAccount,
+  butceKoy,
   createWalletAccount,
   createWalletDebt,
   createWalletFlow,
@@ -213,5 +215,29 @@ export async function deleteWalletFlowAction(raw: unknown) {
     { action: 'DELETE', entity: 'WalletFlow', kimlik: () => v.id },
     () => deleteWalletFlow(v.id),
     'wallet:flow:delete',
+  );
+}
+
+/** Aylık bütçe limiti (2026-10-31). Denetime tutar yazılmaz; kategori ve yön yazılır. */
+export async function butceKoyAction(raw: unknown): Promise<ApiResponse<{ kategori: string }>> {
+  const actorId = await currentActorId();
+  if (!actorId) return unauthorized();
+  const parsed = parseOrFail(butceSchema, raw);
+  if (!parsed.ok) return parsed.failure;
+  const { kategori, limitTl } = parsed.data;
+
+  return kaydet(
+    actorId,
+    { kategori },
+    {
+      action: limitTl === null ? 'DELETE' : 'UPDATE',
+      entity: 'WalletButce',
+      kimlik: () => kategori,
+    },
+    async () => {
+      await butceKoy(kategori, limitTl);
+      return { kategori };
+    },
+    'wallet:butce',
   );
 }
