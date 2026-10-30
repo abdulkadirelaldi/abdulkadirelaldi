@@ -53,7 +53,7 @@ export function HizliEkle() {
       <button
         type="button"
         onClick={() => setAcik(true)}
-        aria-label="Hızlı ekle"
+        aria-label="Hızlı kayıt"
         aria-haspopup="dialog"
         data-yazdirmada-gizle
         className="focus-ring bg-gradient-accent fixed right-4 bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-40 flex size-14 items-center justify-center rounded-full text-white shadow-[0_10px_28px_-8px_var(--accent-glow)] transition-transform active:scale-90 lg:right-8 lg:bottom-8"

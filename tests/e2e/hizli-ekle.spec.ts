@@ -23,7 +23,7 @@ test('"+" ile harcama eklenir ve bu ayın harcamalarında görünür', async ({
 
   try {
     await page.goto('/panel/spor');
-    await page.getByRole('button', { name: 'Hızlı ekle' }).click();
+    await page.getByRole('button', { name: 'Hızlı kayıt' }).click();
     const sayfa = page.getByRole('dialog', { name: 'Hızlı ekle' });
     await expect(sayfa).toBeVisible();
     await sayfa.getByRole('button', { name: 'Harcama' }).click();
