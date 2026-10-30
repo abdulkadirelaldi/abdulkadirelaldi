@@ -98,6 +98,8 @@ export const ALT_SEKMELER: readonly PanelRotasi[] = PANEL_GRUPLARI[0]!.items;
  */
 const EK_ETIKETLER: Record<string, string> = {
   '/panel/ayarlar/guvenlik': 'Güvenlik',
+  '/panel/ayarlar/bildirimler': 'Bildirimler',
+  '/panel/ayarlar/hatalar': 'Hatalar',
   '/panel/ayarlar/sifre': 'Şifre',
   '/panel/ayarlar/denetim': 'Denetim kaydı',
   '/panel/spor/egzersizler': 'Egzersizler',
@@ -119,6 +121,8 @@ const EK_ETIKETLER: Record<string, string> = {
 /** `EK_ETIKETLER` içinden GERÇEKTEN sayfası olanlar — `/panel/icerik` hariç. */
 const HAZIR_EK_YOLLAR: ReadonlySet<string> = new Set([
   '/panel/ayarlar/guvenlik',
+  '/panel/ayarlar/bildirimler',
+  '/panel/ayarlar/hatalar',
   '/panel/ayarlar/sifre',
   '/panel/ayarlar/denetim',
   '/panel/spor/egzersizler',

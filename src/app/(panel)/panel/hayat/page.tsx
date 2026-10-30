@@ -4,12 +4,14 @@ import Link from 'next/link';
 
 import { GunlukListe } from '@/components/panel/gunluk-liste';
 import { HayatAltMenu } from '@/components/panel/hayat-alt-menu';
+import { IsiHaritasi, Seriler } from '@/components/panel/hayat-seri';
 import { OnerilenAliskanliklar } from '@/components/panel/onerilen-aliskanliklar';
 import { Topbar } from '@/components/panel/topbar';
 import { buttonClasses } from '@/components/ui/button';
 import { dayDateSchema } from '@/lib/schemas/common';
 import { addAppDays, appToday } from '@/server/services/_shared';
-import { fetchHabitDay, type GunlukListeDto } from '@/server/services/habit-gun';
+import { fetchHabitWeek } from '@/server/services/habit';
+import { fetchHabitDay, fetchIsiHaritasi, type GunlukListeDto } from '@/server/services/habit-gun';
 import { cn } from '@/lib/utils/cn';
 
 export const metadata: Metadata = {
@@ -47,7 +49,11 @@ export default async function HayatPage({ searchParams }: SayfaProps) {
   const istenen = dayDateSchema.safeParse(tek(parametreler.gun));
   const gun = istenen.success && istenen.data <= bugun ? istenen.data : bugun;
 
-  const liste = await fetchHabitDay(gun, undefined, bugun);
+  const [liste, hafta, isi] = await Promise.all([
+    fetchHabitDay(gun, undefined, bugun),
+    fetchHabitWeek(bugun),
+    fetchIsiHaritasi(undefined, bugun),
+  ]);
   const { ozet } = liste;
   const oran = ozet.toplam === 0 ? 0 : Math.round((ozet.yapildi / ozet.toplam) * 100);
   const etiket = gunEtiketi(gun, bugun);
@@ -148,6 +154,9 @@ export default async function HayatPage({ searchParams }: SayfaProps) {
               <GunlukListe gun={gun} items={liste.items} />
 
               <GunRaporu liste={liste} etiket={etiket} />
+
+              <Seriler aliskanliklar={hafta.habits} />
+              <IsiHaritasi hucreler={isi} />
             </>
           )}
         </div>

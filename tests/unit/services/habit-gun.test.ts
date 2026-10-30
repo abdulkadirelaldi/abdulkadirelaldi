@@ -5,6 +5,7 @@ import {
   fetchHabitDay,
   fetchHabitReport,
   gunDurumu,
+  isiHaritasi,
   moveHabit,
   ONERILEN_ALISKANLIKLAR,
 } from '@/server/services/habit-gun';
@@ -180,5 +181,33 @@ describe('setHabitDayStatus', () => {
     const s = await setHabitDayStatus({ ...G, durum: 'TEMIZLE' }, client);
     expect(s).toMatchObject({ count: 0, missed: false });
     expect(deleteMany).toHaveBeenCalled();
+  });
+});
+
+describe('isiHaritasi — yıllık ısı haritası (2026-10-30)', () => {
+  const bugun = '2026-10-30'; // cuma
+
+  it('53 hafta, pazartesiden başlar, bugünde biter', () => {
+    const h = isiHaritasi([], [], bugun);
+    expect(h[0]?.gun).toBe('2025-10-27'); // bu haftanın pazartesisinden 52 hafta önce
+    expect(h.at(-1)?.gun).toBe(bugun);
+    expect(h.length).toBe(52 * 7 + 5);
+    expect(h.every((x) => x.oran === null)).toBe(true);
+  });
+
+  it('oran: o gün TAMAMLANAN / o gün VAR OLAN alışkanlık', () => {
+    const a = [
+      { id: 'kitap', olusturma: '2026-01-01', targetPerDay: null },
+      { id: 'su', olusturma: '2026-10-29', targetPerDay: 8 },
+    ];
+    const isaret = [
+      { habitId: 'kitap', gun: '2026-10-28', count: 1 },
+      { habitId: 'kitap', gun: '2026-10-30', count: 1 },
+      { habitId: 'su', gun: '2026-10-30', count: 5 }, // 5/8 — tamamlanmadı
+    ];
+    const h = new Map(isiHaritasi(a, isaret, bugun).map((x) => [x.gun, x.oran]));
+    expect(h.get('2025-12-31')).toBeNull(); // henüz alışkanlık yok
+    expect(h.get('2026-10-28')).toBe(1); // yalnız kitap vardı
+    expect(h.get('2026-10-30')).toBe(0.5); // kitap ✓, su eksik
   });
 });

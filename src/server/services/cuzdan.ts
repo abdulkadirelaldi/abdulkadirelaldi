@@ -123,7 +123,10 @@ export interface AkisDto {
   category: string | null;
   note: string | null;
   isActive: boolean;
-  /** Aylık karşılığın TL'si — tek seferlikse `null`. */
+  /**
+   * BU AYA düşen TL — tekrarlayanda aylık karşılık, tek seferlikte bu ay
+   * tarihliyse tutarın kendisi; başka aya aitse `null`.
+   */
   aylikTl: string | null;
 }
 
@@ -144,7 +147,10 @@ export interface CuzdanDto {
   hesaplar: HesapDto[];
   borclar: BorcDto[];
   gelirler: AkisDto[];
+  /** Tekrarlayan giderler (kira, abonelik…). */
   giderler: AkisDto[];
+  /** Bu ayın TEK SEFERLİK giderleri (hızlı harcama dahil), yeniden eskiye. */
+  harcamalar: AkisDto[];
   ozet: CuzdanOzeti;
   kur: Pick<KurDurumu, 'guncellendi' | 'bayat'> & { kurlar: KurDurumu['kurlar'] };
 }
@@ -220,7 +226,11 @@ export async function fetchCuzdan(
   const akislar: AkisDto[] = akisSatir.map((a) => {
     const unit = a.unit as WalletUnit;
     const amount = para(a.amount);
-    const aylik = aylikTutar(amount, a.frequency as WalletFrequency);
+    const frequency = a.frequency as WalletFrequency;
+    const gun = a.date ? dateToAppDay(a.date) : null;
+    // Tek seferlik kalem, tarihi BU AY ise bu ayın hesabına girer (2026-10-30).
+    const buAy = frequency === 'ONCE' && gun !== null && gun.slice(0, 7) === bugun.slice(0, 7);
+    const aylik = buAy ? amount : aylikTutar(amount, frequency);
     return {
       id: a.id,
       kind: a.kind as WalletFlowKind,
@@ -242,10 +252,16 @@ export async function fetchCuzdan(
   const topla = (degerler: (string | null)[]) => sumMoney(degerler.filter(bilinen));
   const varlikTl = topla(hesaplar.map((h) => h.tl));
   const borcTl = topla(borclar.map((b) => b.kalanTl));
-  const gelirler = akislar.filter((a) => a.kind === 'INCOME');
-  const giderler = akislar.filter((a) => a.kind === 'EXPENSE');
+  // Geçmiş aylara ait tek seferlikler listelere ve toplamlara girmez.
+  const buAyMi = (a: AkisDto) => a.date !== null && a.date.slice(0, 7) === bugun.slice(0, 7);
+  const gecerli = akislar.filter((a) => a.frequency !== 'ONCE' || buAyMi(a));
+  const gelirler = gecerli.filter((a) => a.kind === 'INCOME');
+  const giderler = gecerli.filter((a) => a.kind === 'EXPENSE' && a.frequency !== 'ONCE');
+  const harcamalar = gecerli
+    .filter((a) => a.kind === 'EXPENSE' && a.frequency === 'ONCE')
+    .sort((x, y) => (y.date ?? '').localeCompare(x.date ?? ''));
   const aylikGelirTl = topla(gelirler.map((a) => a.aylikTl));
-  const aylikGiderTl = topla(giderler.map((a) => a.aylikTl));
+  const aylikGiderTl = topla([...giderler, ...harcamalar].map((a) => a.aylikTl));
   const aylikTaksitTl = topla(borclar.map((b) => b.taksitTl));
 
   return {
@@ -253,6 +269,7 @@ export async function fetchCuzdan(
     borclar,
     gelirler,
     giderler,
+    harcamalar,
     ozet: {
       varlikTl,
       borcTl,

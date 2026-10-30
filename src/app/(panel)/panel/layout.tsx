@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 
 import { AltSekmeler } from '@/components/panel/alt-sekmeler';
+import { HizliEkle } from '@/components/panel/hizli-ekle';
 import { PanelKabuk } from '@/components/panel/panel-kabuk';
 import { Sidebar } from '@/components/panel/sidebar';
 
@@ -57,6 +58,7 @@ export default function PanelLayout({ children }: { children: ReactNode }) {
         </div>
 
         <AltSekmeler />
+        <HizliEkle />
       </div>
     </PanelKabuk>
   );

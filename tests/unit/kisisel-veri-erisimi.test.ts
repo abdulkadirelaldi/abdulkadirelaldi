@@ -273,6 +273,9 @@ export function denetimsizEylemler(dosya: string, metin: string): string[] {
 
 /** Denetim kaydı yazmayan ihraçlar — yalnızca OKUMALAR, gerekçesiyle. */
 const DENETIM_ISTISNALARI: Record<string, string> = {
+  'src/server/actions/hata-kaydi.ts → istemciHatasiAction':
+    'GÜNLÜK, mutasyon değil — kullanıcı verisi değişmez; hata kaydının KENDİSİ bir iz. Her ' +
+    'hata için denetim satırı yazmak, döngüdeki bir hatada denetim kaydını boğardı.',
   'src/server/actions/passkey.ts → passkeyGirisSecenekleriAction':
     'GİRİŞ ÖNCESİ meydan okuma — kullanıcı verisi değişmez. Girişin kendisi (başarılı ' +
     've başarısız) `login_attempt`e yazılıyor, kilit politikası denetim kaydı düşüyor.',

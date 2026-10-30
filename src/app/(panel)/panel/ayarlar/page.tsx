@@ -1,4 +1,13 @@
-import { DatabaseBackup, KeyRound, Palette, ScrollText, ShieldCheck } from 'lucide-react';
+import {
+  Bell,
+  Bug,
+  DatabaseBackup,
+  Download,
+  KeyRound,
+  Palette,
+  ScrollText,
+  ShieldCheck,
+} from 'lucide-react';
 import type { Metadata } from 'next';
 
 import { SettingsSection } from '@/components/panel/settings-section';
@@ -55,6 +64,13 @@ export default function AyarlarPage() {
             />
 
             <SettingsSection
+              icon={Bell}
+              baslik="Bildirimler"
+              aciklama="Ödeme günleri, kalan alışkanlıklar ve su hatırlatmaları telefonuna gelsin."
+              href="/panel/ayarlar/bildirimler"
+            />
+
+            <SettingsSection
               icon={Palette}
               baslik="Tema"
               aciklama="Koyu, aydınlık ya da sistem tercihini izle. Seçimin cookie'de tutulur ve tüm cihazlarda değil, bu tarayıcıda geçerlidir."
@@ -62,9 +78,42 @@ export default function AyarlarPage() {
             />
 
             <SettingsSection
+              icon={Download}
+              baslik="Verini dışa aktar"
+              aciklama="Cüzdan, sağlık ve alışkanlık kayıtların Excel'de açılan CSV olarak. Her indirme denetim kaydına yazılır."
+              eylem={
+                <div className="flex flex-wrap gap-2">
+                  {(
+                    [
+                      ['cuzdan', 'Cüzdan'],
+                      ['saglik', 'Sağlık'],
+                      ['aliskanlik', 'Alışkanlık'],
+                    ] as const
+                  ).map(([tur, ad]) => (
+                    <a
+                      key={tur}
+                      href={`/api/v1/panel/disa-aktar?tur=${tur}`}
+                      download
+                      className="focus-ring rounded-btn border-line text-primary hover:border-line-hover inline-flex min-h-10 items-center border px-3 text-sm font-medium"
+                    >
+                      {ad}
+                    </a>
+                  ))}
+                </div>
+              }
+            />
+
+            <SettingsSection
               icon={DatabaseBackup}
               baslik="Yedek durumu"
               aciklama="Otomatik yedekleme henüz kurulmadı. Kurulduğunda son yedeğin zamanı, boyutu ve bütünlük doğrulaması burada görünecek; geri yükleme prosedürü ayrıca belgelenecek."
+            />
+
+            <SettingsSection
+              icon={Bug}
+              baslik="Hatalar"
+              aciklama="Panelde oluşan sunucu ve ekran hataları — aynı hata kaç kez olduğuyla tek satırda."
+              href="/panel/ayarlar/hatalar"
             />
 
             <SettingsSection

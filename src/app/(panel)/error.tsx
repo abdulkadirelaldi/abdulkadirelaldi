@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useEffect } from 'react';
 
 import { Button, buttonClasses } from '@/components/ui/button';
+import { istemciHatasiAction } from '@/server/actions/hata-kaydi';
 
 /**
  * Panel hata sınırı — public taraftaki `(public)/error.tsx`'in panel karşılığı.
@@ -29,6 +30,14 @@ export default function PanelHata({
 }) {
   useEffect(() => {
     console.error(error);
+    // Hata kaydına bildir (2026-10-31) — sahibi Ayarlar → Hatalar'da görür.
+    // Bildirim başarısız olursa sessiz: hata ekranı ikinci bir hata üretmesin.
+    void istemciHatasiAction({
+      ad: error.name,
+      mesaj: error.message,
+      yol: window.location.pathname,
+      ...(error.digest ? { digest: error.digest } : {}),
+    }).catch(() => undefined);
   }, [error]);
 
   return (
