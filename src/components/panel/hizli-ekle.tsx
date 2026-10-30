@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { tutarOku } from '@/components/panel/cuzdan-bicim';
+import { istanbulGunu, kuyrugaEkle, type KuyrukTuru } from '@/components/panel/hizli-kuyruk';
 import { HARCAMA_KATEGORILERI } from '@/lib/schemas/wallet';
 import { cn } from '@/lib/utils/cn';
 import { hizliHarcamaAction, hizliKiloAction, hizliSuAction } from '@/server/actions/hizli-ekle';
@@ -42,9 +43,39 @@ export function HizliEkle() {
     };
   }, [acik]);
 
-  const tamam = (mesaj: string) => {
+  /*
+   * Aşağı kaydırırken gizlenir, yukarı kaydırınca döner: düğme satırların sağındaki
+   * tutarların üstüne biniyordu. `passive` + rAF: kaydırmayı yavaşlatmaz; 8 px altı
+   * titreşim sayılmaz. Sayfanın başında ve sonunda hep görünür.
+   */
+  const [gizli, setGizli] = useState(false);
+  useEffect(() => {
+    let onceki = window.scrollY;
+    let bekliyor = false;
+    const kaydir = () => {
+      if (bekliyor) return;
+      bekliyor = true;
+      requestAnimationFrame(() => {
+        bekliyor = false;
+        const y = window.scrollY;
+        const sonda = y + window.innerHeight >= document.documentElement.scrollHeight - 8;
+        if (y < 40 || sonda) setGizli(false);
+        else if (Math.abs(y - onceki) >= 8) setGizli(y > onceki);
+        if (Math.abs(y - onceki) >= 8) onceki = y;
+      });
+    };
+    window.addEventListener('scroll', kaydir, { passive: true });
+    return () => window.removeEventListener('scroll', kaydir);
+  }, []);
+
+  /*
+   * `yenile: false` — kuyruğa alınan kayıt: bağlantı yokken `router.refresh()`
+   * sayfayı tam yeniden yükletir ve kullanıcı "Bağlantı yok" ekranına düşerdi
+   * (e2e ile yakalandı).
+   */
+  const tamam = (mesaj: string, yenile = true) => {
     setBasari(mesaj);
-    router.refresh();
+    if (yenile) router.refresh();
     window.setTimeout(kapat, 1100);
   };
 
@@ -56,7 +87,11 @@ export function HizliEkle() {
         aria-label="Hızlı kayıt"
         aria-haspopup="dialog"
         data-yazdirmada-gizle
-        className="focus-ring bg-gradient-accent fixed right-4 bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-40 flex size-14 items-center justify-center rounded-full text-white shadow-[0_10px_28px_-8px_var(--accent-glow)] transition-transform active:scale-90 lg:right-8 lg:bottom-8"
+        className={cn(
+          'focus-ring bg-gradient-accent ease-brand fixed right-4 bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-40 flex size-14 items-center justify-center rounded-full text-white shadow-[0_10px_28px_-8px_var(--accent-glow)] transition-[transform,opacity] duration-200 active:scale-90 lg:right-8 lg:bottom-8',
+          gizli && 'pointer-events-none translate-y-6 opacity-0',
+        )}
+        tabIndex={gizli ? -1 : undefined}
       >
         <Plus className="size-7" aria-hidden="true" />
       </button>
@@ -195,6 +230,16 @@ function Kutu({
   );
 }
 
+/** Ağ hatası: kayıt kaybolmasın — cihazda bekler, bağlantı gelince gönderilir. */
+function kuyrugaAl(
+  tur: KuyrukTuru,
+  girdi: Record<string, unknown>,
+  tamam: (mesaj: string, yenile?: boolean) => void,
+) {
+  kuyrugaEkle(tur, girdi);
+  tamam('Bağlantı yok — gelince kaydedilecek', false);
+}
+
 const GIRDI =
   'focus-ring rounded-input border-line-strong bg-elevated text-primary placeholder:text-muted h-12 w-full border px-4';
 
@@ -218,7 +263,7 @@ function Hata({ metin }: { metin: string | null }) {
   ) : null;
 }
 
-function HarcamaFormu({ tamam }: { tamam: (m: string) => void }) {
+function HarcamaFormu({ tamam }: { tamam: (m: string, yenile?: boolean) => void }) {
   const tutarRef = useRef<HTMLInputElement>(null);
   const [kategori, setKategori] = useState<(typeof HARCAMA_KATEGORILERI)[number]>('Market');
   const [bekliyor, setBekliyor] = useState(false);
@@ -237,10 +282,16 @@ function HarcamaFormu({ tamam }: { tamam: (m: string) => void }) {
         const ne = String(f.get('ne') ?? '').trim() || kategori;
         setBekliyor(true);
         setHata(null);
-        const sonuc = await hizliHarcamaAction({ tutar, ne, kategori });
-        setBekliyor(false);
-        if (sonuc.ok) tamam('Harcama eklendi');
-        else setHata(sonuc.error.message);
+        const girdi = { tutar, ne, kategori, gun: istanbulGunu(), anahtar: crypto.randomUUID() };
+        try {
+          const sonuc = await hizliHarcamaAction(girdi);
+          if (sonuc.ok) tamam('Harcama eklendi');
+          else setHata(sonuc.error.message);
+        } catch {
+          kuyrugaAl('harcama', girdi, tamam);
+        } finally {
+          setBekliyor(false);
+        }
       }}
     >
       <label className="sr-only" htmlFor="hizli-tutar">
@@ -287,7 +338,7 @@ function HarcamaFormu({ tamam }: { tamam: (m: string) => void }) {
   );
 }
 
-function KiloFormu({ tamam }: { tamam: (m: string) => void }) {
+function KiloFormu({ tamam }: { tamam: (m: string, yenile?: boolean) => void }) {
   const ref = useRef<HTMLInputElement>(null);
   const [bekliyor, setBekliyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
@@ -305,10 +356,16 @@ function KiloFormu({ tamam }: { tamam: (m: string) => void }) {
         if (!/^\d{2,3}(\.\d{1,2})?$/.test(kg)) return setHata('Kilo geçersiz — örn. 82,5');
         setBekliyor(true);
         setHata(null);
-        const sonuc = await hizliKiloAction({ kg });
-        setBekliyor(false);
-        if (sonuc.ok) tamam(`${kg.replace('.', ',')} kg kaydedildi`);
-        else setHata(sonuc.error.message);
+        const girdi = { kg, gun: istanbulGunu(), anahtar: crypto.randomUUID() };
+        try {
+          const sonuc = await hizliKiloAction(girdi);
+          if (sonuc.ok) tamam(`${kg.replace('.', ',')} kg kaydedildi`);
+          else setHata(sonuc.error.message);
+        } catch {
+          kuyrugaAl('kilo', girdi, tamam);
+        } finally {
+          setBekliyor(false);
+        }
       }}
     >
       <label className="sr-only" htmlFor="hizli-kg">
@@ -332,19 +389,25 @@ function KiloFormu({ tamam }: { tamam: (m: string) => void }) {
   );
 }
 
-function SuFormu({ tamam }: { tamam: (m: string) => void }) {
+function SuFormu({ tamam }: { tamam: (m: string, yenile?: boolean) => void }) {
   const [bekliyor, setBekliyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
 
   const ekle = async (ml: number) => {
     setBekliyor(true);
     setHata(null);
-    const sonuc = await hizliSuAction({ ml });
-    setBekliyor(false);
-    if (sonuc.ok) {
-      const toplam = ((sonuc.data.waterMl ?? 0) / 1000).toLocaleString('tr-TR');
-      tamam(`+${ml} ml · bugün ${toplam} L`);
-    } else setHata(sonuc.error.message);
+    const girdi = { ml, gun: istanbulGunu(), anahtar: crypto.randomUUID() };
+    try {
+      const sonuc = await hizliSuAction(girdi);
+      if (sonuc.ok) {
+        const toplam = ((sonuc.data.waterMl ?? 0) / 1000).toLocaleString('tr-TR');
+        tamam(`+${ml} ml · bugün ${toplam} L`);
+      } else setHata(sonuc.error.message);
+    } catch {
+      kuyrugaAl('su', girdi, tamam);
+    } finally {
+      setBekliyor(false);
+    }
   };
 
   return (

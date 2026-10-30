@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 
 import { AltSekmeler } from '@/components/panel/alt-sekmeler';
+import { CevrimdisiSeridi } from '@/components/panel/cevrimdisi-seridi';
 import { HizliEkle } from '@/components/panel/hizli-ekle';
 import { PanelKabuk } from '@/components/panel/panel-kabuk';
 import { Sidebar } from '@/components/panel/sidebar';
@@ -52,13 +53,14 @@ export default function PanelLayout({ children }: { children: ReactNode }) {
 
         <Sidebar />
 
-        {/* Telefonda yüzen alt sekme çubuğu kadar pay (64 px + 8 px boşluk + nefes + ana ekran çubuğu). */}
-        <div className="flex min-w-0 flex-1 flex-col pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-0">
+        {/* Telefonda yüzen alt sekme çubuğu kadar pay (64 px + 8 px boşluk + nefes + ana ekran çubuğu) + son satır "+" düğmesinin altında kalmasın diye 4rem. */}
+        <div className="flex min-w-0 flex-1 flex-col pb-[calc(9.5rem+env(safe-area-inset-bottom))] lg:pb-24">
           {children}
         </div>
 
         <AltSekmeler />
         <HizliEkle />
+        <CevrimdisiSeridi />
       </div>
     </PanelKabuk>
   );
