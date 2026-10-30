@@ -800,8 +800,17 @@ a {
   animation: gezinme 1.2s var(--ease-brand) both;
 }
 
+@keyframes halka-dol {
+  from {
+    stroke-dashoffset: var(--halka-cevre);
+  }
+}
+.panel-modern .halka-dol {
+  animation: halka-dol 1.1s var(--ease-brand) backwards;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .panel-modern :is(#panel-icerik > *, .grafik-cizgi, .grafik-dolgu, .gezinme-cizgisi) {
+  .panel-modern :is(.halka-dol, #panel-icerik > *, .grafik-cizgi, .grafik-dolgu, .gezinme-cizgisi) {
     animation: none;
   }
   .panel-modern .grafik-cizgi {
