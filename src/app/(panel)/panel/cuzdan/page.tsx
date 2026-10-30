@@ -3,10 +3,17 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
+import { ButceKarti } from '@/components/panel/butce-karti';
 import { HESAP_TURU, miktarBicim, SIKLIK, tlBicim } from '@/components/panel/cuzdan-bicim';
 import { paraBicim } from '@/components/panel/para-bicim';
 import { Topbar } from '@/components/panel/topbar';
-import { fetchCuzdan, type AkisDto, type HesapDto } from '@/server/services/cuzdan';
+import {
+  butceOzeti,
+  fetchButceLimitleri,
+  fetchCuzdan,
+  type AkisDto,
+  type HesapDto,
+} from '@/server/services/cuzdan';
 import { cn } from '@/lib/utils/cn';
 
 export const metadata: Metadata = {
@@ -31,7 +38,7 @@ const SAAT = new Intl.DateTimeFormat('tr-TR', {
  * görünür — uydurma ya da sıfır kur yok.
  */
 export default async function CuzdanPage() {
-  const c = await fetchCuzdan();
+  const [c, limitler] = await Promise.all([fetchCuzdan(), fetchButceLimitleri()]);
   const { ozet } = c;
   const eksi = ozet.netTl.startsWith('-');
 
@@ -152,6 +159,7 @@ export default async function CuzdanPage() {
 
           <AkisBolumu baslik="Gelirler" tur="gelir" akislar={c.gelirler} />
           <AkisBolumu baslik="Düzenli giderler" tur="gider" akislar={c.giderler} />
+          <ButceKarti satirlar={butceOzeti(c.harcamalar, limitler)} />
           <Harcamalar harcamalar={c.harcamalar} />
         </div>
       </main>

@@ -968,6 +968,16 @@ model WalletFlow {
   @@map("wallet_flow")
 }
 
+/// Aylık harcama bütçesi (2026-10-31) — kategori başına tek limit, TL.
+/// Kategori `HARCAMA_KATEGORILERI`nden; limit silinince satır gider.
+model WalletButce {
+  kategori  String   @id
+  limitTl   Decimal  @db.Decimal(12, 2)
+  updatedAt DateTime @updatedAt
+
+  @@map("wallet_butce")
+}
+
 /// Son bilinen kur — canlı kaynak düşerse bu gösterilir (zamanıyla).
 model PriceQuote {
   unit      WalletUnit @id

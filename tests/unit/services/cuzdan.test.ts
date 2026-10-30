@@ -3,6 +3,8 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   addDebtPayment,
   aylikTutar,
+  butceOzeti,
+  fetchButceLimitleri,
   fetchCuzdan,
   kalanAy,
   fetchWalletAccountById,
@@ -315,5 +317,55 @@ describe('tek seferlik kalemler — yalnızca KENDİ aylarında (2026-10-30)', (
     // yeniden eskiye
     expect(c.harcamalar.map((h) => h.id)).toEqual(['kahve', 'market']);
     expect(c.gelirler.map((g) => g.id)).toEqual(['maas', 'ikramiye']);
+  });
+});
+
+describe('butceOzeti — aylık bütçe (2026-10-31)', () => {
+  const h = (category: string | null, aylikTl: string | null) => ({ category, aylikTl });
+
+  it('kategori toplamı kuruşu kuruşuna, en çok harcanan önce', () => {
+    const s = butceOzeti(
+      [h('Market', '450.50'), h('Market', '0.10'), h('Yemek', '900.00')],
+      [{ kategori: 'Market', limitTl: '1000.00' }],
+    );
+    expect(s.map((x) => x.kategori)).toEqual(['Yemek', 'Market']);
+    expect(s[1]).toEqual({
+      kategori: 'Market',
+      harcananTl: '450.60',
+      limitTl: '1000.00',
+      yuzde: 45,
+      kalanTl: '549.40',
+    });
+    expect(s[0]).toMatchObject({ limitTl: null, yuzde: null, kalanTl: null });
+  });
+
+  it('aşım eksi kalan; harcaması olmayan limit de görünür', () => {
+    const s = butceOzeti(
+      [h('Yemek', '1500.00')],
+      [
+        { kategori: 'Yemek', limitTl: '1000.00' },
+        { kategori: 'Ulaşım', limitTl: '500.00' },
+      ],
+    );
+    expect(s[0]).toMatchObject({ yuzde: 150, kalanTl: '-500.00' });
+    expect(s[1]).toMatchObject({ kategori: 'Ulaşım', harcananTl: '0.00', yuzde: 0 });
+  });
+
+  it('⚠️ kuru bilinmeyen kalem toplama girmez; kategorisiz "Diğer"', () => {
+    const s = butceOzeti([h('Market', null), h(null, '10.00')], []);
+    expect(s).toEqual([
+      { kategori: 'Diğer', harcananTl: '10.00', limitTl: null, yuzde: null, kalanTl: null },
+    ]);
+  });
+
+  it('limit okuması Decimal sızdırmaz', async () => {
+    const client = {
+      walletButce: {
+        findMany: vi.fn().mockResolvedValue([{ kategori: 'Market', limitTl: decimal('5000.00') }]),
+      },
+    } as never;
+    const l = await fetchButceLimitleri(client);
+    expect(decimalKalanlar(l)).toEqual([]);
+    expect(l).toEqual([{ kategori: 'Market', limitTl: '5000.00' }]);
   });
 });

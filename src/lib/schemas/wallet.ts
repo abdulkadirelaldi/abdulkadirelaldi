@@ -106,3 +106,10 @@ export const hizliHarcamaSchema = z.object({
   kategori: z.enum(HARCAMA_KATEGORILERI).default('Diğer'),
 });
 export type HizliHarcamaInput = z.infer<typeof hizliHarcamaSchema>;
+
+export const butceSchema = z.object({
+  kategori: z.enum(HARCAMA_KATEGORILERI),
+  /** `null` = limiti kaldır. */
+  limitTl: tutar.nullable(),
+});
+export type ButceInput = z.infer<typeof butceSchema>;
