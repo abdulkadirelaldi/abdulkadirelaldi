@@ -9,6 +9,7 @@ import {
   Plus,
   SkipForward,
   Timer,
+  TrendingUp,
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState, useTransition } from 'react';
@@ -253,7 +254,8 @@ function HareketKarti({
 }) {
   const kardiyo = hareket.kas === 'CARDIO';
   const son = hareket.yapilanSetler.at(-1) ?? null;
-  const oneri = son ?? hareket.oncekiSet;
+  // Bu oturumda set varsa son set; yoksa çift ilerleme önerisi; o da yoksa geçen set.
+  const oneri = son ?? hareket.oneri ?? hareket.oncekiSet;
   const [reps, setReps] = useState(oneri?.reps ?? ilkSayi(hareket.reps));
   const [kg, setKg] = useState(oneri?.weightKg ? kgYaz(oneri.weightKg) : '');
   const tamam = hareket.yapilanSetler.length >= hareket.sets;
@@ -282,6 +284,18 @@ function HareketKarti({
         </p>
         {hareket.ipucu && <p className="text-muted text-sm">{hareket.ipucu}</p>}
         {oncekiMetni && <p className="text-body text-xs">Geçen sefer: {oncekiMetni}</p>}
+        {hareket.oneri && hareket.yapilanSetler.length === 0 && (
+          <p className="bg-accent/10 text-primary mt-1 flex items-start gap-2 rounded-xl px-3 py-2 text-xs">
+            <TrendingUp className="text-accent mt-px size-4 shrink-0" aria-hidden="true" />
+            <span>
+              <span className="tabular font-semibold">
+                Bugün: {hareket.oneri.weightKg ? `${kgYaz(hareket.oneri.weightKg)} kg × ` : ''}
+                {hareket.oneri.reps}
+              </span>{' '}
+              — {hareket.oneri.neden}
+            </span>
+          </p>
+        )}
       </div>
 
       {/* Yapılan setler */}
