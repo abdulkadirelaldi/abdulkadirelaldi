@@ -9,6 +9,7 @@ import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 
 import { resolveAuthErrorMessage } from '@/components/auth/auth-errors';
+import { PasskeyGiris } from '@/components/auth/passkey-giris';
 import { Button } from '@/components/ui/button';
 import { FormAlert, FormError } from '@/components/ui/form-error';
 import { Input } from '@/components/ui/input';
@@ -138,6 +139,8 @@ export function LoginForm({ callbackUrl, initialErrorCode }: LoginFormProps) {
       noValidate
       className="flex flex-col gap-4"
     >
+      {!isTotpStep && <PasskeyGiris callbackUrl={callbackUrl} hata={setFormError} />}
+
       {formError && <FormAlert>{formError}</FormAlert>}
 
       <div className="flex flex-col gap-1.5">

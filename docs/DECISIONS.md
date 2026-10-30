@@ -2628,3 +2628,15 @@ Sahibi iş yönetimini Kıyı Medya'nın kendi panelinden yürütüyor; bu panel
 - **Gizlilik/denetim:** her gönderim istekten ÖNCE `AuditLog`a `EXPORT` (hedef Anthropic, değer yok). Anahtar yoksa hiçbir şey gönderilmez, ekran söyler.
 - **Ret:** sunucu tarafı yedek (`fallbacks: "default"`); `refusal` anlaşılır hata.
 - **Anahtar:** `ANTHROPIC_API_KEY` yalnızca sunucu `.env`'inde (sahibi yazar); compose `uygulama`ya geçirir.
+
+### Ek (2026-10-30) — Face ID ile giriş (passkey)
+
+- **Neden:** oturum 24 saat; telefonda her gün e-posta + şifre + TOTP yazılıyordu.
+- **Nasıl:** Auth.js'e ikinci Credentials sağlayıcısı (`passkey`). WebAuthn doğrulaması `@simplewebauthn/server` ile `server/auth/passkey.ts`te; jeton şifreli girişle aynı yoldan (`applyLoginClaims`).
+- **Güçlü faktör:** passkey (cihazda kalan anahtar + biyometri, `userVerification: required`, alan adına bağlı) şifre + TOTP'nin YERİNE geçer.
+- **Meydan okuma:** veritabanında, 5 dk, doğrulamada tek adımda silinerek tüketilir (tekrar saldırısı yok). Oturumsuz üretim için açık meydan okuma tavanı 100.
+- **Köken:** üretimde yalnızca site adresi; geliştirmede `localhost:*`; CI'da tam eşleşen `PASSKEY_TEST_KOKENI`.
+- **Kilit ve sayım:** başarısız passkey denemesi şifreli girişle aynı kilit politikasına sayılır; kilitli hesap passkey ile de açılmaz.
+- **Ekleme/silme:** Ayarlar → Güvenlik; oturum + yazma kapısı + denetim kaydı.
+- **Permissions-Policy:** `publickey-credentials-get=()` → `(self)`. Kapalıyken giriş sayfasında WebAuthn tarayıcıda engelleniyordu (e2e ile yakalandı).
+- **Test:** Chromium sanal doğrulayıcısıyla gerçek kriptografili e2e (`passkey.spec.ts`).

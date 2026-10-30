@@ -56,7 +56,8 @@ export const BASELINE_SECURITY_HEADERS: Readonly<Record<string, string>> = Objec
  *
  * Politika reddetme (deny-by-default) mantığıyla yazıldı: v1'de bu
  * yeteneklerin hiçbirine ihtiyaç yok (§1.2 kapsam dışı listesi), bu yüzden
- * hepsi kapatılır. Bir özellik gerektiğinde buraya açıkça eklenir.
+ * hepsi kapatılır. Bir özellik gerektiğinde buraya açıkça eklenir — tek istisna
+ * `publickey-credentials-get=(self)` (Face ID ile giriş).
  */
 export const PERMISSIONS_POLICY = [
   'accelerometer=()',
@@ -71,7 +72,10 @@ export const PERMISSIONS_POLICY = [
   'midi=()',
   'payment=()',
   'picture-in-picture=()',
-  'publickey-credentials-get=()',
+  // 2026-10-30: Face ID ile giriş (passkey) — YALNIZCA aynı köken; başka
+  // sitenin çerçevesi bu siteye ait passkey'i isteyemez. `()` iken giriş
+  // sayfasında WebAuthn tarayıcıda kapalıydı (e2e ile ölçüldü).
+  'publickey-credentials-get=(self)',
   'screen-wake-lock=()',
   'usb=()',
   'xr-spatial-tracking=()',
