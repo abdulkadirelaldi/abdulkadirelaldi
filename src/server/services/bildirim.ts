@@ -1,6 +1,7 @@
 import webpush from 'web-push';
 
 import { miktarBicim } from '@/components/panel/cuzdan-bicim';
+import { SU_HEDEFI_ML } from '@/lib/hedefler';
 import { guvenliHata } from '@/lib/security/guvenli-log';
 import { db } from '@/server/db';
 import type { WalletUnit } from '@/types';
@@ -28,7 +29,6 @@ import { fetchHabitDay } from './habit-gun';
  * özellik kapalı; ekran söyler.
  */
 
-export const SU_HEDEFI_ML = 3500;
 const SU_SAATLERI = [11, 15, 18] as const;
 
 export interface Vapid {

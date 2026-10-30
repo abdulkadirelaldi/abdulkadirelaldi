@@ -206,6 +206,14 @@ test.describe('§8.20 · denetim ekranı ham `diff` taşımıyor', () => {
     await page.route(
       (url) => url.pathname === '/panel/ayarlar/denetim' && url.searchParams.has('_rsc'),
       async (route) => {
+        /*
+         * ÖN YÜKLEME (prefetch) ATLANIR — 2026-10-30. Bağlantı ilk ekranın
+         * dışına düşünce (mobil, Ayarlar'a "Bildirimler" eklendi) tıklama ile
+         * görünüme giriş aynı anda prefetch + gezinme ateşliyor; prefetch yükü
+         * dinamik sayfanın VERİSİNİ taşımaz ve son biten o olursa ölçüm boşa
+         * düşüyordu. Prefetch isteği `next-router-prefetch` başlığı taşır.
+         */
+        if (route.request().headers()['next-router-prefetch']) return route.continue();
         const yanit = await route.fetch();
         rscGovde = await yanit.text();
         rscDurum = yanit.status();
