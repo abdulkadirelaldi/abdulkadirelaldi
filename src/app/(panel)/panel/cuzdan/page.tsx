@@ -82,7 +82,7 @@ export default async function CuzdanPage() {
             Kurlar: {c.kur.guncellendi ? SAAT.format(new Date(c.kur.guncellendi)) : 'alınamadı'}{' '}
             (Truncgil · varlık alış, borç satış)
             {c.kur.bayat && (
-              <span className="text-warning"> — canlı kaynağa ulaşılamadı, son bilinen kur</span>
+              <span className="text-warning"> — son bilinen kur, güncel olmayabilir</span>
             )}
             {ozet.kursuzKalem > 0 && (
               <span className="text-warning">
