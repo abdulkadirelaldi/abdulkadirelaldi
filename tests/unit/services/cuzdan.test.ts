@@ -265,3 +265,55 @@ describe('tekil okumalar — Decimal sızmaz', () => {
     expect(decimalKalanlar(await fetchWalletFlowById('f', client))).toEqual([]);
   });
 });
+
+describe('tek seferlik kalemler — yalnızca KENDİ aylarında (2026-10-30)', () => {
+  const kur: KurDurumu = { kurlar: {}, guncellendi: null, bayat: false };
+  const akis = (
+    id: string,
+    kind: string,
+    frequency: string,
+    amount: string,
+    date: Date | null,
+  ) => ({
+    id,
+    kind,
+    name: id,
+    counterparty: null,
+    unit: 'TRY',
+    amount: decimal(amount),
+    frequency,
+    day: null,
+    date,
+    category: 'Market',
+    note: null,
+    isActive: true,
+  });
+  const istemci = () =>
+    ({
+      walletAccount: { findMany: vi.fn().mockResolvedValue([]) },
+      walletDebt: { findMany: vi.fn().mockResolvedValue([]) },
+      walletFlow: {
+        findMany: vi
+          .fn()
+          .mockResolvedValue([
+            akis('maas', 'INCOME', 'MONTHLY', '30000.00', null),
+            akis('kira', 'EXPENSE', 'MONTHLY', '8000.00', null),
+            akis('market', 'EXPENSE', 'ONCE', '450.50', new Date('2026-10-12T00:00:00Z')),
+            akis('kahve', 'EXPENSE', 'ONCE', '90.00', new Date('2026-10-28T00:00:00Z')),
+            akis('eski', 'EXPENSE', 'ONCE', '999.00', new Date('2026-09-30T00:00:00Z')),
+            akis('ikramiye', 'INCOME', 'ONCE', '5000.00', new Date('2026-10-01T00:00:00Z')),
+          ]),
+      },
+    }) as never;
+
+  it('bu ayın tek seferlikleri hesaba girer, geçen ayınki girmez', async () => {
+    const c = await fetchCuzdan(istemci(), '2026-10-30', kur);
+    expect(c.ozet.aylikGelirTl).toBe('35000.00');
+    // 8000 + 450.50 + 90 — eylül harcaması (999) yok
+    expect(c.ozet.aylikGiderTl).toBe('8540.50');
+    expect(c.giderler.map((g) => g.id)).toEqual(['kira']);
+    // yeniden eskiye
+    expect(c.harcamalar.map((h) => h.id)).toEqual(['kahve', 'market']);
+    expect(c.gelirler.map((g) => g.id)).toEqual(['maas', 'ikramiye']);
+  });
+});

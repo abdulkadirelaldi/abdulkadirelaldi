@@ -337,6 +337,15 @@ const komutlar: Record<string, (arg?: string) => Promise<unknown>> = {
    * rekorlar önce, egzersiz sonra. Sabit test gününün (`gun`) sağlık kaydı ve
    * antrenmanları da gider — gün 2001'de, gerçek veriyle çakışmaz.
    */
+  /** Hızlı ekleme e2e'sinin harcamalarını siler — AD önekine göre (2026-10-30). */
+  async hizliSondaSil(arg) {
+    const { onek } = JSON.parse(arg ?? '{}') as { onek: string };
+    if (!onek || onek.length < 4)
+      throw new Error('hizliSondaSil: en az 4 karakterlik önek zorunlu.');
+    const akis = await db.walletFlow.deleteMany({ where: { name: { startsWith: onek } } });
+    return { silinen: akis.count };
+  },
+
   async kisiselSondaSil(arg) {
     const { onek, gun } = JSON.parse(arg ?? '{}') as { onek: string; gun: string };
     if (!onek || onek.length < 4 || !/^\d{4}-\d{2}-\d{2}$/.test(gun ?? '')) {

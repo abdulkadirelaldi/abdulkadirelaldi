@@ -443,3 +443,48 @@ export async function deleteHealthLog(
   const row = await client.healthLog.delete({ where: { id } });
   return toDto(row);
 }
+
+/* ===========================================================================
+ * HIZLI EKLEME (2026-10-30) — panelin "+" düğmesi
+ * ======================================================================== */
+
+/** Su tavanı — şemadaki `waterMl` sınırıyla aynı. */
+const SU_TAVANI_ML = 20_000;
+
+/**
+ * Günün kaydına KİLO yazar ya da SU EKLER; kayıt yoksa açar. Diğer alanlara
+ * dokunmaz. `date @unique` olduğu için gün başına tek satır kalır.
+ */
+export async function gununKaydinaEkle(
+  gun: string,
+  ek: { weightKg?: string; suMl?: number },
+  client: Pick<typeof db, 'healthLog'> = db,
+): Promise<{ id: string; weightKg: string | null; waterMl: number | null }> {
+  const date = appDayToDate(gun);
+  const mevcut = await client.healthLog.findUnique({
+    where: { date },
+    select: { id: true, waterMl: true },
+  });
+  const su =
+    ek.suMl === undefined ? undefined : Math.min(SU_TAVANI_ML, (mevcut?.waterMl ?? 0) + ek.suMl);
+  const data = {
+    ...(ek.weightKg !== undefined ? { weightKg: ek.weightKg } : {}),
+    ...(su !== undefined ? { waterMl: su } : {}),
+  };
+
+  const satir = mevcut
+    ? await client.healthLog.update({
+        where: { id: mevcut.id },
+        data,
+        select: { id: true, weightKg: true, waterMl: true },
+      })
+    : await client.healthLog.create({
+        data: { date, ...data },
+        select: { id: true, weightKg: true, waterMl: true },
+      });
+  return {
+    id: satir.id,
+    weightKg: toMeasureString(satir.weightKg, 2),
+    waterMl: satir.waterMl,
+  };
+}
