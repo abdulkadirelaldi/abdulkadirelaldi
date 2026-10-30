@@ -337,6 +337,19 @@ const komutlar: Record<string, (arg?: string) => Promise<unknown>> = {
    * rekorlar önce, egzersiz sonra. Sabit test gününün (`gun`) sağlık kaydı ve
    * antrenmanları da gider — gün 2001'de, gerçek veriyle çakışmaz.
    */
+  /**
+   * Face ID e2e'sinin eklediği passkey'i siler (2026-10-30). Ölçüt testin
+   * SANAL CİHAZININ kimlik bilgisi kimliği: masaüstü ve mobil projeleri aynı
+   * yönetici hesabına paralel ekliyor; zaman ya da ada göre silmek ötekinin
+   * passkey'ini götürürdü.
+   */
+  async passkeySondaSil(arg) {
+    const { kimlikler } = JSON.parse(arg ?? '{}') as { kimlikler: string[] };
+    if (!Array.isArray(kimlikler)) throw new Error('passkeySondaSil: `kimlikler` dizisi zorunlu.');
+    const passkey = await db.passkey.deleteMany({ where: { credentialId: { in: kimlikler } } });
+    return { silinen: passkey.count };
+  },
+
   async kisiselSondaSil(arg) {
     const { onek, gun } = JSON.parse(arg ?? '{}') as { onek: string; gun: string };
     if (!onek || onek.length < 4 || !/^\d{4}-\d{2}-\d{2}$/.test(gun ?? '')) {

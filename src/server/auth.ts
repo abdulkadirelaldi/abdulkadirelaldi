@@ -1,5 +1,6 @@
 import NextAuth, { CredentialsSignin } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
+import * as z from 'zod';
 
 import { SESSION_MAX_AGE_SECONDS } from '@/lib/security/session';
 import { loginSchema } from '@/lib/schemas';
@@ -10,6 +11,7 @@ import {
   extractClientIp,
   refreshTwoFactorClaim,
 } from './auth/credentials';
+import { girisDogrula, PasskeyHatasi, rpCoz } from './auth/passkey';
 import { getTotpState } from './services/user';
 import { guvenliHata, guvenliUyari } from '@/lib/security/guvenli-log';
 
@@ -45,6 +47,14 @@ import { guvenliHata, guvenliUyari } from '@/lib/security/guvenli-log';
  */
 
 const useSecureCookies = process.env.NODE_ENV === 'production';
+
+/** Passkey yanıtının kabaca biçimi — içerik kriptografik olarak serviste doğrulanır. */
+const passkeyYanitSchema = z
+  .object({
+    id: z.string().min(1).max(1024),
+    response: z.object({ clientDataJSON: z.string().max(4096) }).loose(),
+  })
+  .loose();
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   /**
@@ -114,6 +124,54 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           // `authenticateUser` kullanıcı kaydını zaten okumuştu.
           tfa: result.user.twoFactorEnabled,
         };
+      },
+    }),
+
+    /*
+     * FACE ID / TOUCH ID (2026-10-30, `server/auth/passkey.ts`). Tarayıcının
+     * imzaladığı WebAuthn yanıtı JSON olarak gelir; doğrulama, meydan okumanın
+     * tüketilmesi, kilit ve başarısız deneme sayımı serviste. Başarıda jeton
+     * şifreli girişle AYNI alanlarla basılır (`applyLoginClaims`).
+     */
+    Credentials({
+      id: 'passkey',
+      name: 'Passkey',
+      credentials: { yanit: { label: 'Yanıt', type: 'text' } },
+
+      async authorize(credentials, request) {
+        const ham = typeof credentials?.yanit === 'string' ? credentials.yanit : '';
+        // Boyut sınırı JSON.parse'tan ÖNCE — devasa gövde ayrıştırılmaz.
+        if (!ham || ham.length > 20_000) throw new CredentialsError('INVALID_CREDENTIALS');
+
+        let yanit: unknown;
+        try {
+          yanit = JSON.parse(ham);
+        } catch {
+          throw new CredentialsError('INVALID_CREDENTIALS');
+        }
+        const bicim = passkeyYanitSchema.safeParse(yanit);
+        const rp = rpCoz(request?.headers.get('origin'));
+        if (!bicim.success || !rp) throw new CredentialsError('INVALID_CREDENTIALS');
+
+        try {
+          const kullanici = await girisDogrula(
+            bicim.data as unknown as Parameters<typeof girisDogrula>[0],
+            rp,
+            extractClientIp(request),
+          );
+          return {
+            id: kullanici.id,
+            email: kullanici.email,
+            name: kullanici.name,
+            tfa: kullanici.twoFactorEnabled,
+          };
+        } catch (error) {
+          throw new CredentialsError(
+            error instanceof PasskeyHatasi && error.kod === 'KILITLI'
+              ? 'ACCOUNT_LOCKED'
+              : 'PASSKEY_FAILED',
+          );
+        }
       },
     }),
   ],

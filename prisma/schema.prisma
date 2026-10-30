@@ -198,8 +198,46 @@ model User {
 
   auditLogs   AuditLog[]
   attachments Attachment[]
+  passkeys    Passkey[]
 
   @@map("user")
+}
+
+/// Face ID / Touch ID ile giriş (WebAuthn passkey) — 2026-10-30.
+/// Açık anahtar burada; GİZLİ anahtar cihazdan hiç çıkmaz. Sızan bir yedek
+/// kimseyi içeri sokmaz.
+model Passkey {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Kimlik bilgisi kimliği (base64url) — girişte bununla bulunur.
+  credentialId String   @unique
+  publicKey    Bytes
+  /// Klonlanmış doğrulayıcı tespiti: her girişte artmalı (0 kalan senkron passkey'ler hariç).
+  counter      Int      @default(0)
+  transports   String[]
+  /// Kullanıcının verdiği ad ("iPhone 13 Pro Max").
+  name         String
+  createdAt    DateTime @default(now())
+  lastUsedAt   DateTime?
+
+  @@index([userId])
+  @@map("passkey")
+}
+
+/// WebAuthn meydan okuması — TEK KULLANIMLIK, 5 dk. Doğrulamada SİLİNEREK
+/// tüketilir; aynı yanıtı ikinci kez göndermek (tekrar saldırısı) işe yaramaz.
+model WebAuthnChallenge {
+  id        String   @id @default(cuid())
+  challenge String   @unique
+  /// `kayit` (oturum açıkken passkey ekleme) | `giris`.
+  purpose   String
+  userId    String?
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([expiresAt])
+  @@map("webauthn_challenge")
 }
 
 /// §8.4 giriş denemesi kaydı (ADR-013).
