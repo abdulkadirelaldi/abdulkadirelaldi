@@ -12,6 +12,8 @@ import {
   OturumHatasi,
   startSession,
   VARSAYILAN_KILO,
+  ilerlemeOnerisi,
+  tekrarAraligi,
 } from '@/server/services/antrenman-oturumu';
 
 import { decimal, decimalKalanlar } from '../_helpers/decimal-kacak';
@@ -198,5 +200,57 @@ describe('⚠️ hiçbir DTO yüzeyi `Decimal` sızdırmıyor', () => {
     const sonlar = await fetchRecentSessions(5, client);
     expect(decimalKalanlar(sonlar)).toEqual([]);
     expect(sonlar[0]).toMatchObject({ date: '2026-10-30', suruyor: true, setSayisi: 3 });
+  });
+});
+
+describe('ilerlemeOnerisi — çift ilerleme (2026-10-30)', () => {
+  const set = (reps: number, weightKg: string | null) => ({ reps, weightKg });
+
+  it('tekrar aralığı', () => {
+    expect(tekrarAraligi('8-12')).toEqual([8, 12]);
+    expect(tekrarAraligi('10')).toEqual([10, 10]);
+    expect(tekrarAraligi('12–8')).toEqual([8, 12]);
+    expect(tekrarAraligi('tükenene kadar')).toBeNull();
+  });
+
+  it('tüm setler üst sınırda → ağırlık artar, tekrar alttan', () => {
+    const o = ilerlemeOnerisi([set(12, '40'), set(12, '40'), set(12, '40')], '8-12', 3);
+    expect(o).toMatchObject({ weightKg: '42.5', reps: 8 });
+    expect(o?.neden).toContain('2,5 kg artır');
+  });
+
+  it("küçük ağırlıkta +1 kg (2,5 kg %10'u aşardı)", () => {
+    expect(
+      ilerlemeOnerisi([set(12, '10'), set(12, '10'), set(12, '10')], '10-12', 3),
+    ).toMatchObject({
+      weightKg: '11',
+      reps: 10,
+    });
+  });
+
+  it('üst sınıra ulaşmadıysa aynı ağırlık, +1 tekrar (üst sınırı aşmaz)', () => {
+    expect(ilerlemeOnerisi([set(10, '40'), set(9, '40'), set(8, '40')], '8-12', 3)).toMatchObject({
+      weightKg: '40',
+      reps: 11,
+    });
+    // set sayısı eksik → üstte olsa da artmaz
+    expect(ilerlemeOnerisi([set(12, '40'), set(12, '40')], '8-12', 3)).toMatchObject({
+      weightKg: '40',
+      reps: 12,
+    });
+  });
+
+  it('en ağır ağırlığın setlerine bakar (ısınma setleri sayılmaz)', () => {
+    expect(
+      ilerlemeOnerisi([set(15, '20'), set(12, '40'), set(12, '40'), set(12, '40')], '8-12', 3),
+    ).toMatchObject({ weightKg: '42.5' });
+  });
+
+  it('ağırlıksız hareket: yalnızca tekrar; geçmiş yoksa öneri yok', () => {
+    expect(ilerlemeOnerisi([set(15, null), set(12, null)], '10-15', 3)).toMatchObject({
+      weightKg: null,
+      reps: 16,
+    });
+    expect(ilerlemeOnerisi([], '8-12', 3)).toBeNull();
   });
 });

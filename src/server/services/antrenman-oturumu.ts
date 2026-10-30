@@ -512,10 +512,76 @@ export interface OturumSetiDto {
   weightKg: string | null;
 }
 
+export interface IlerlemeOnerisi {
+  weightKg: string | null;
+  reps: number;
+  /** Ekranda gösterilen gerekçe. */
+  neden: string;
+}
+
 export interface OturumHareketiDto extends ProgramHareketDto {
   yapilanSetler: OturumSetiDto[];
   /** Bu hareketin bu oturumdan ÖNCEKİ son seti — ağırlık/tekrar önerisi. */
   oncekiSet: { reps: number; weightKg: string | null } | null;
+  /** Geçen antrenmanın TÜM setlerinden çift ilerleme önerisi (2026-10-30). */
+  oneri: IlerlemeOnerisi | null;
+}
+
+/** "8-12" → [8, 12]; "10" → [10, 10]; sayı yoksa `null`. SAF. */
+export function tekrarAraligi(metin: string): [number, number] | null {
+  const sayilar = metin.match(/\d+/g)?.map(Number) ?? [];
+  if (sayilar.length === 0) return null;
+  const alt = sayilar[0] ?? 0;
+  const ust = sayilar[1] ?? alt;
+  return [Math.min(alt, ust), Math.max(alt, ust)];
+}
+
+const kgMetni = (kg: number) => String(Math.round(kg * 100) / 100);
+
+/**
+ * ÇİFT İLERLEME (double progression) — geçen antrenmanın setlerinden. SAF.
+ *
+ * - En ağır kullanılan ağırlıkta hedef set sayısı kadar set ÜST sınıra
+ *   ulaştıysa → ağırlık artar (≥20 kg ise +2,5, altında +1 — küçük
+ *   dambıllarda 2,5 kg sıçrama %10'u aşar), tekrar alt sınırdan.
+ * - Ulaşmadıysa → aynı ağırlık, en iyi tekrarın bir fazlası (üst sınırı aşmaz).
+ * - Ağırlıksız harekette yalnızca tekrar artar.
+ */
+export function ilerlemeOnerisi(
+  oncekiSetler: readonly { reps: number; weightKg: string | null }[],
+  hedefTekrar: string,
+  hedefSet: number,
+): IlerlemeOnerisi | null {
+  const aralik = tekrarAraligi(hedefTekrar);
+  if (!aralik || oncekiSetler.length === 0) return null;
+  const [alt, ust] = aralik;
+
+  const agirlik = (s: { weightKg: string | null }) => (s.weightKg ? Number(s.weightKg) : 0);
+  const enAgir = Math.max(...oncekiSetler.map(agirlik));
+  const ustteSetler = oncekiSetler.filter((s) => agirlik(s) === enAgir);
+  const enIyi = Math.max(...ustteSetler.map((s) => s.reps));
+  const hepsiUstte = ustteSetler.length >= hedefSet && ustteSetler.every((s) => s.reps >= ust);
+
+  if (enAgir === 0) {
+    return {
+      weightKg: null,
+      reps: enIyi + 1,
+      neden: `Geçen sefer en iyi ${enIyi} tekrar — bir fazlasını dene.`,
+    };
+  }
+  if (hepsiUstte) {
+    const artis = enAgir >= 20 ? 2.5 : 1;
+    return {
+      weightKg: kgMetni(enAgir + artis),
+      reps: alt,
+      neden: `Geçen sefer tüm setlerde ${ust} tekrar — ağırlığı ${String(artis).replace('.', ',')} kg artır.`,
+    };
+  }
+  return {
+    weightKg: kgMetni(enAgir),
+    reps: Math.min(ust, Math.max(alt, enIyi + 1)),
+    neden: `Aynı ağırlıkta ${Math.min(ust, Math.max(alt, enIyi + 1))} tekrarı hedefle.`,
+  };
 }
 
 export interface OturumDto {
@@ -557,16 +623,27 @@ export async function fetchSession(
   if (!w || !w.startedAt) return null;
 
   const hareketler = (w.programDay?.exercises ?? []).map(hareketDto);
+  // Her hareketin GEÇEN antrenmandaki TÜM setleri — en yeni antrenmandan,
+  // hareket başına yalnızca ilk görülen antrenmanın setleri tutulur.
   const onceki = await client.workoutSet.findMany({
     where: {
       exerciseId: { in: hareketler.map((h) => h.exerciseId) },
       workoutId: { not: w.id },
     },
     orderBy: [{ workout: { date: 'desc' } }, { createdAt: 'desc' }],
-    distinct: ['exerciseId'],
-    select: { exerciseId: true, reps: true, weightKg: true },
+    take: hareketler.length * 40,
+    select: { exerciseId: true, workoutId: true, reps: true, weightKg: true },
   });
-  const oncekiMap = new Map(onceki.map((s) => [s.exerciseId, s]));
+  const sonAntrenman = new Map<string, string>();
+  const oncekiSetler = new Map<string, { reps: number; weightKg: string | null }[]>();
+  for (const s of onceki) {
+    const wid = sonAntrenman.get(s.exerciseId) ?? s.workoutId;
+    sonAntrenman.set(s.exerciseId, wid);
+    if (wid !== s.workoutId) continue;
+    const liste = oncekiSetler.get(s.exerciseId) ?? [];
+    liste.push({ reps: s.reps, weightKg: s.weightKg ? toMeasureString(s.weightKg, 2) : null });
+    oncekiSetler.set(s.exerciseId, liste);
+  }
 
   return {
     id: w.id,
@@ -577,7 +654,9 @@ export async function fetchSession(
     durationMin: w.durationMin,
     kcal: w.kcal,
     hareketler: hareketler.map((hr) => {
-      const o = oncekiMap.get(hr.exerciseId);
+      const setler = oncekiSetler.get(hr.exerciseId) ?? [];
+      // Önceki tek set (geriye uyum): en yeni antrenmanın İLK kaydı — sıralama yeniden eskiye.
+      const o = setler[0];
       return {
         ...hr,
         yapilanSetler: w.sets
@@ -588,9 +667,8 @@ export async function fetchSession(
             reps: s.reps,
             weightKg: s.weightKg ? toMeasureString(s.weightKg, 2) : null,
           })),
-        oncekiSet: o
-          ? { reps: o.reps, weightKg: o.weightKg ? toMeasureString(o.weightKg, 2) : null }
-          : null,
+        oncekiSet: o ?? null,
+        oneri: ilerlemeOnerisi(setler, hr.reps, hr.sets),
       };
     }),
   };
