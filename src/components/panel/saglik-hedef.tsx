@@ -74,7 +74,7 @@ export function SaglikHedefKarti({ hedef }: { hedef: SaglikHedefiDto | null }) {
             value={deger}
             onChange={(e) => setDeger(e.target.value)}
             placeholder="78"
-            className="focus-ring rounded-input border-line-strong bg-elevated text-primary tabular h-12 flex-1 border px-4 text-lg"
+            className="focus-ring rounded-input border-line-strong bg-elevated text-primary tabular h-12 min-w-0 flex-1 border px-4 text-lg"
           />
           <button
             type="submit"
