@@ -11,6 +11,7 @@ import { db } from '@/server/db';
 import type { WalletAccountKind, WalletFlowKind, WalletFrequency, WalletUnit } from '@/types';
 
 import {
+  addAppDays,
   appDayToDate,
   appToday,
   computeBaseAmount,
@@ -397,7 +398,10 @@ export async function addDebtPayment(
   });
 }
 
-export async function createWalletFlow(input: WalletFlowInput, client: Client = db) {
+export async function createWalletFlow(
+  input: WalletFlowInput,
+  client: Pick<Client, 'walletFlow'> = db,
+) {
   return client.walletFlow.create({
     data: {
       kind: input.kind,
@@ -567,4 +571,16 @@ export async function butceKoy(
     create: { kategori, limitTl },
     update: { limitTl },
   });
+}
+
+/** Kuyruktan gelen kaydın kabul edilen en eski yaşı (gün). */
+const KUYRUK_EN_ESKI_GUN = 30;
+
+/**
+ * Çevrimdışı kuyruğundan gelen gün: gelecek ya da 30 günden eski olamaz (cihaz
+ * saati yanlış olabilir) — öyleyse bugün. Gün yoksa bugün. SAF.
+ */
+export function kuyrukGunu(gun: AppDay | undefined, bugun: AppDay): AppDay {
+  if (!gun || gun > bugun || gun < addAppDays(bugun, -KUYRUK_EN_ESKI_GUN)) return bugun;
+  return gun;
 }

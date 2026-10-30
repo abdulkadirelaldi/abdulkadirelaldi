@@ -1,8 +1,38 @@
-/* AE Panel service worker — 2026-10-30. YALNIZCA bildirim: önbellek YOK
-   (panel her zaman canlı veriyi gösterir). Adı `/panel` ile başlamıyor:
-   ara katman `/panel/*`ı oturuma bağlıyor (bildirim dosyasıyla aynı gerekçe). */
-self.addEventListener('install', () => self.skipWaiting());
-self.addEventListener('activate', (e) => e.waitUntil(self.clients.claim()));
+/* AE Panel service worker — 2026-10-30. Bildirim + çevrimdışı ekranı.
+   Panel sayfaları ÖNBELLEĞE ALINMAZ: kişisel finans ve sağlık verisi cihazda
+   birikmesin. Önbellekteki TEK şey statik "Bağlantı yok" sayfası. Adı `/panel`
+   ile başlamıyor: ara katman `/panel/*`ı oturuma bağlıyor (bildirim dosyasıyla
+   aynı gerekçe). */
+const ONBELLEK = 'ae-cevrimdisi-1';
+const CEVRIMDISI = '/ae-cevrimdisi.html';
+
+self.addEventListener('install', (e) => {
+  e.waitUntil(
+    caches
+      .open(ONBELLEK)
+      .then((c) => c.add(CEVRIMDISI))
+      .then(() => self.skipWaiting()),
+  );
+});
+
+self.addEventListener('activate', (e) => {
+  e.waitUntil(
+    caches
+      .keys()
+      .then((adlar) =>
+        Promise.all(adlar.filter((a) => a !== ONBELLEK).map((a) => caches.delete(a))),
+      )
+      .then(() => self.clients.claim()),
+  );
+});
+
+/* Yalnızca PANEL GEZİNMELERİ: ağ önce, ağ yoksa "Bağlantı yok". Geri kalan her
+   istek (public site, API, RSC, statik dosya) hiç dokunulmadan tarayıcıya kalır. */
+self.addEventListener('fetch', (event) => {
+  if (event.request.mode !== 'navigate') return;
+  if (!new URL(event.request.url).pathname.startsWith('/panel')) return;
+  event.respondWith(fetch(event.request).catch(() => caches.match(CEVRIMDISI)));
+});
 
 self.addEventListener('push', (event) => {
   let veri = { baslik: 'AE Panel', govde: '', url: '/panel' };

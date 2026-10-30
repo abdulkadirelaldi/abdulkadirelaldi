@@ -11,7 +11,7 @@ test('"+" ile harcama eklenir ve bu ayın harcamalarında görünür', async ({
   page,
   baseURL,
 }, info) => {
-  const onek = `e2e-hizli-${info.project.name}-`;
+  const onek = `e2e-hizli-${info.project.name}-${info.workerIndex}-`;
   const ad = `${onek}${Date.now()}`;
   const { email } = adminCredentials();
   const yonetici = await findAdminUser();
