@@ -174,6 +174,11 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     kanit: [],
     not: "2026-10-31 hata izleme listesi (son 50, imzayla gruplu). Yazma `onRequestError` (sunucu) ve panel hata sınırı → `istemciHatasiAction`; temizleme `hatalariTemizleAction` (denetimli). Saklanan metnin maskelenmesi `tests/unit/services/hata-kaydi.test.ts`te. ÖLÇÜLMEYEN: gerçek sunucu hatasıyla uçtan uca kayıt e2e'de yok.",
   },
+  '/panel/ayarlar/saglik-baglantisi': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: '2026-11-01 Kısayollar anahtarı: üret, iptal et, son kullanım. Denetimli. ÖLÇÜLMEYEN: gerçek iPhone Kısayolu çalıştırılmadı; uç `tests/unit/api/saglik-olcum.test.ts`te.',
+  },
   '/panel/ayarlar/sifre': {
     kapilar: ['kapsanmiyor'],
     kanit: [],
@@ -197,6 +202,11 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     kapilar: ['e2e'],
     kanit: ["page.goto('/panel/ayarlar/denetim')"],
     not: "T-054f ile eklendi (ADR-036). Kimlik zinciri `(panel)` düzeni + ara katman + §8.1 2FA kapısı; `robots: noindex/nofollow/nocache`. Okuma `fetchAuditLog` SERVİSTEN doğrudan, Server Action'dan DEĞİL — yeniden ihraç edilmesi denetim kaydının tamamını kimlik doğrulamasız bir POST ucuna çevirirdi ve bu ayrı bir kapı tarafından kaynaktan taranıyor. Filtre `auditLogFilterSchema`'dan geçiyor (adres çubuğu kullanıcı girdisi, ADR-032); ters aralık reddedilince süzgeçsiz ilk sayfaya düşülüyor ve kullanıcıya SÖYLENİYOR. ⚠️ ADR-034 SINIRI ARAYÜZDE: ekran `diff.fields` (alan ADLARI) ve `diff.values` (yalnızca `SHOWN_DIFF_VALUE_KEYS`) basıyor; ham `diff` DTO'da hiç yok, yani 'arayüz süzsün' demek tipi değiştirmeyi gerektirir. `ip` listede (karşılaştırmalı değeri var), `userAgent` DTO'da HİÇ SEÇİLMİYOR — bu yüzden DETAY ROTASI YAZILMADI, çağıranı olmazdı. ÖLÇÜLÜYOR (T-054g, `panel-denetim-diff.spec.ts`): `diff` değerlerinin yanıt gövdesine girmediği ARTIK ARAYÜZDEN ölçülüyor — bu satır T-054f'te 'ölçülmeyen' diyordu ve T-055f'te düzeltildi. Paket bir sonda satırı yazıp hem belgeyi hem RSC uçuş yükünü tarıyor: ADR-034'ün iki sızıntı sınıfının (`yeniSifre` adlı alan, masum adın içindeki değer) DEĞERLERİ gövdede YOK, ALAN ADLARI ise VAR — yani bilgi kaybı olmadan değer sızıntısı kapalı. Üç çapası da var (sonda satırı yükte, kimliği yükte, beyaz listedeki değer yükte), yani negatif iddialar boşa koşamıyor. `fields`/`values` dışına çıkan bir düzenleme artık sessiz kalmaz. ÖLÇÜLMEYEN: (1) Sayfa boyutu SABİT 50, adresten verilemiyor — kaynak tüketimi denenmedi. (2) `entity`, `entityId`, `actorId` filtreleri sözleşmede VAR ama arayüzde YÜZEYLENMEDİ: tek kullanıcılı sistemde `actorId` ayırt etmiyor, diğer ikisi için kullanıcı akışı yok; yüzeylendiğinde burası güncellenmeli. (3) Tarih aralığının `to` DAHİL olduğu etiketle söyleniyor ama sınır davranışı (o günün son anı) arayüzden ölçülmedi — servis birim testlerinde.",
+  },
+  '/api/v1/saglik/olcum': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: 'ANAHTARLA yazma ucu (oturum değil): yalnızca adım, uyku, nabız, kilo; okuma yok. Birim: `tests/unit/api/saglik-olcum.test.ts` (401, 400, 413, virgüllü sayı, kısmi yazma). ÖLÇÜLMEYEN: gerçek Kısayol; IP tavanı süreç başına ve bellek içi.',
   },
   '/api/v1/panel/disa-aktar': {
     kapilar: ['kapsanmiyor'],
