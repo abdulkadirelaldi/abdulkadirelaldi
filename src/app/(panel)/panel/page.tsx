@@ -1,5 +1,4 @@
 import {
-  CalendarClock,
   ChevronRight,
   Dumbbell,
   Flame,
@@ -20,6 +19,7 @@ import type { ReactNode } from 'react';
 
 import { miktarBicim } from '@/components/panel/cuzdan-bicim';
 import { GunlukListe } from '@/components/panel/gunluk-liste';
+import { OdemeOnay } from '@/components/panel/odeme-onay';
 import { paraBicim } from '@/components/panel/para-bicim';
 import { BaslatDugmesi } from '@/components/panel/spor-dugmeleri';
 import { Topbar } from '@/components/panel/topbar';
@@ -32,11 +32,12 @@ import {
   fetchRecentSessions,
 } from '@/server/services/antrenman-oturumu';
 import { fetchContactMessages } from '@/server/services/contact-message';
-import { fetchCuzdan, type BorcDto } from '@/server/services/cuzdan';
+import { fetchCuzdan } from '@/server/services/cuzdan';
 import { fetchGoals } from '@/server/services/goal';
 import { fetchHabitWeek, gunOranlari, isDayComplete } from '@/server/services/habit';
 import { fetchHabitDay } from '@/server/services/habit-gun';
 import { fetchHealthTrend } from '@/server/services/health-log';
+import { fetchBekleyenOdemeler } from '@/server/services/odeme-onay';
 
 export const metadata: Metadata = {
   title: 'Bugün',
@@ -65,24 +66,6 @@ function haftaGunu(gun: AppDay): number {
 const KISA = new Intl.DateTimeFormat('tr-TR', { day: 'numeric', month: 'short', timeZone: 'UTC' });
 const kisaTarih = (gun: AppDay) => KISA.format(new Date(`${gun}T00:00:00Z`));
 
-/** Önümüzdeki 7 gün içindeki ödemeler — gün sayısıyla, en yakın önce. */
-function yaklasanOdemeler(borclar: BorcDto[], bugun: AppDay) {
-  return borclar
-    .flatMap((b) => {
-      if (b.isClosed || !b.paymentDay) return [];
-      for (let kala = 0; kala <= 7; kala++) {
-        const gun = addAppDays(bugun, kala);
-        const [y, m] = gun.split('-').map(Number) as [number, number];
-        const sonGun = new Date(Date.UTC(y, m, 0)).getUTCDate();
-        if (Number(gun.slice(8, 10)) === Math.min(b.paymentDay, sonGun)) {
-          return [{ borc: b, kala }];
-        }
-      }
-      return [];
-    })
-    .sort((a, b) => a.kala - b.kala);
-}
-
 /**
  * BUGÜN (2026-10-30) — sabah açılıp her şeyin görüldüğü tek ekran.
  * Halkalar (alışkanlık · su · haftalık spor), bugünün antrenmanı, yaklaşan
@@ -92,18 +75,29 @@ function yaklasanOdemeler(borclar: BorcDto[], bugun: AppDay) {
 export default async function BugunPage() {
   const bugun = appToday();
   const pazartesi = addAppDays(bugun, -(haftaGunu(bugun) - 1));
-  const [aliskanlik, gunluk, saglik, oturumlar, acikOturum, program, mesajlar, cuzdan, hedefler] =
-    await Promise.all([
-      fetchHabitWeek(bugun),
-      fetchHabitDay(bugun, undefined, bugun),
-      fetchHealthTrend({ from: addAppDays(bugun, -29), to: bugun }),
-      fetchRecentSessions(10),
-      fetchActiveSession(),
-      fetchProgram(),
-      fetchContactMessages({ page: 1, perPage: 1 }),
-      fetchCuzdan(),
-      fetchGoals({ page: 1, perPage: 3, status: 'ACTIVE' }, undefined, bugun),
-    ]);
+  const [
+    aliskanlik,
+    gunluk,
+    saglik,
+    oturumlar,
+    acikOturum,
+    program,
+    mesajlar,
+    cuzdan,
+    hedefler,
+    odemeler,
+  ] = await Promise.all([
+    fetchHabitWeek(bugun),
+    fetchHabitDay(bugun, undefined, bugun),
+    fetchHealthTrend({ from: addAppDays(bugun, -29), to: bugun }),
+    fetchRecentSessions(10),
+    fetchActiveSession(),
+    fetchProgram(),
+    fetchContactMessages({ page: 1, perPage: 1 }),
+    fetchCuzdan(),
+    fetchGoals({ page: 1, perPage: 3, status: 'ACTIVE' }, undefined, bugun),
+    fetchBekleyenOdemeler(undefined, bugun),
+  ]);
 
   // ── Halkalar ─────────────────────────────────────────────────────────────
   const sira = aliskanlik.days.indexOf(bugun);
@@ -154,7 +148,6 @@ export default async function BugunPage() {
 
   const sonAntrenman = oturumlar.find((o) => !o.suruyor);
 
-  const odemeler = yaklasanOdemeler(cuzdan.borclar, bugun);
   const simdi = new Date();
   const tarih = new Intl.DateTimeFormat('tr-TR', {
     weekday: 'long',
@@ -266,34 +259,7 @@ export default async function BugunPage() {
           )}
 
           {/* ── YAKLAŞAN ÖDEMELER ────────────────────────────────────────── */}
-          <section className="rounded-card border-line bg-surface flex flex-col gap-1 border p-4">
-            <h3 className="text-muted mb-1 flex items-center gap-2 text-xs font-medium">
-              <CalendarClock className="size-4" aria-hidden="true" />
-              Yaklaşan ödemeler
-            </h3>
-            {odemeler.length === 0 && (
-              <p className="text-muted text-sm">7 gün içinde ödeme yok ✓</p>
-            )}
-            {odemeler.map(({ borc, kala }) => (
-              <Link
-                key={borc.id}
-                href={`/panel/cuzdan/borc/${borc.id}`}
-                className="focus-ring -mx-2 flex items-center justify-between gap-3 rounded-xl px-2 py-2"
-              >
-                <span className="flex min-w-0 flex-col">
-                  <span className="text-primary truncate text-sm font-medium">{borc.name}</span>
-                  <span className={cn('text-xs', kala <= 2 ? 'text-danger' : 'text-muted')}>
-                    {kala === 0 ? 'Bugün' : kala === 1 ? 'Yarın' : `${kala} gün sonra`}
-                  </span>
-                </span>
-                {borc.monthlyPayment && (
-                  <span className="tabular text-primary shrink-0 text-sm font-semibold">
-                    {miktarBicim(borc.monthlyPayment, borc.unit)}
-                  </span>
-                )}
-              </Link>
-            ))}
-          </section>
+          <OdemeOnay odemeler={odemeler} hesaplar={cuzdan.hesaplar} />
 
           {/* ── KARTLAR ──────────────────────────────────────────────────── */}
           <div className="grid grid-cols-2 gap-3">

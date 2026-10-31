@@ -369,33 +369,39 @@ export async function deleteWalletDebt(id: string, client: Client = db) {
  * Ödeme yazar ve kalan borcu AYNI İŞLEMDE düşürür; kalan sıfırlanırsa borç
  * kapanır. Kalandan büyük ödeme kalanı sıfırlar (eksi borç yok).
  */
+/** Ödemeyi yazar ve kalanı düşürür — çağıranın işlemi içinde (`tx`). */
+export async function borcOdemesiYaz(
+  input: WalletDebtPaymentInput,
+  tx: Pick<Client, 'walletDebt' | 'walletDebtPayment'>,
+): Promise<{ remainingAmount: string; isClosed: boolean }> {
+  const borc = await tx.walletDebt.findUnique({
+    where: { id: input.debtId },
+    select: { remainingAmount: true },
+  });
+  if (!borc) throw new Error('Borç bulunamadı.');
+  await tx.walletDebtPayment.create({
+    data: {
+      debtId: input.debtId,
+      date: appDayToDate(input.date),
+      amount: input.amount,
+      note: bosaNull(input.note),
+    },
+  });
+  const fark = subtractMoney(para(borc.remainingAmount), input.amount);
+  const remainingAmount = fark.startsWith('-') ? '0.00' : fark;
+  const isClosed = remainingAmount === '0.00';
+  await tx.walletDebt.update({
+    where: { id: input.debtId },
+    data: { remainingAmount, isClosed },
+  });
+  return { remainingAmount, isClosed };
+}
+
 export async function addDebtPayment(
   input: WalletDebtPaymentInput,
   client: Client = db,
 ): Promise<{ remainingAmount: string; isClosed: boolean }> {
-  return client.$transaction(async (tx) => {
-    const borc = await tx.walletDebt.findUnique({
-      where: { id: input.debtId },
-      select: { remainingAmount: true },
-    });
-    if (!borc) throw new Error('Borç bulunamadı.');
-    await tx.walletDebtPayment.create({
-      data: {
-        debtId: input.debtId,
-        date: appDayToDate(input.date),
-        amount: input.amount,
-        note: bosaNull(input.note),
-      },
-    });
-    const fark = subtractMoney(para(borc.remainingAmount), input.amount);
-    const remainingAmount = fark.startsWith('-') ? '0.00' : fark;
-    const isClosed = remainingAmount === '0.00';
-    await tx.walletDebt.update({
-      where: { id: input.debtId },
-      data: { remainingAmount, isClosed },
-    });
-    return { remainingAmount, isClosed };
-  });
+  return client.$transaction((tx) => borcOdemesiYaz(input, tx));
 }
 
 export async function createWalletFlow(

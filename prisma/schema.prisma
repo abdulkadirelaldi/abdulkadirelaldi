@@ -1000,6 +1000,26 @@ model SaglikBaglantisi {
   @@map("saglik_baglantisi")
 }
 
+/// Aylık ödeme onayı (2026-11-01). Kaynak (borç taksiti ya da aylık gider) +
+/// dönem başına TEK satır: aynı ödeme iki kez işlenemez.
+model WalletOdeme {
+  id        String   @id @default(cuid())
+  /// `BORC` | `AKIS`
+  kaynakTur String
+  kaynakId  String
+  /// `YYYY-MM`
+  donem     String
+  /// `ODENDI` | `ATLANDI`
+  durum     String
+  hesapId   String?
+  tutar     Decimal? @db.Decimal(12, 2)
+  gun       DateTime @db.Date
+  createdAt DateTime @default(now())
+
+  @@unique([kaynakTur, kaynakId, donem])
+  @@map("wallet_odeme")
+}
+
 /// Son bilinen kur — canlı kaynak düşerse bu gösterilir (zamanıyla).
 model PriceQuote {
   unit      WalletUnit @id

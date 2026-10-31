@@ -209,6 +209,13 @@ const ESLESMELER: Eslesme[] = [
       'dünü yazar ve sabahki su hatırlatmasını "zaten gönderildi" sanardı.',
   },
   {
+    servis: 'src/server/services/odeme-onay.ts',
+    model: 'WalletOdeme',
+    alan: 'gun',
+    beklenen: 'gun',
+    not: 'Ödeme onayının günü `@db.Date` → `appDayToDate(appToday())`; dönem `YYYY-MM` metin.',
+  },
+  {
     servis: 'src/server/services/habit-gun.ts',
     model: 'HabitLog',
     alan: 'date',

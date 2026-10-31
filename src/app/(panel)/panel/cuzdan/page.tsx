@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 
 import { ButceKarti } from '@/components/panel/butce-karti';
 import { HESAP_TURU, miktarBicim, SIKLIK, tlBicim } from '@/components/panel/cuzdan-bicim';
+import { OdemeOnay } from '@/components/panel/odeme-onay';
 import { paraBicim } from '@/components/panel/para-bicim';
 import { Topbar } from '@/components/panel/topbar';
 import {
@@ -14,6 +15,7 @@ import {
   type AkisDto,
   type HesapDto,
 } from '@/server/services/cuzdan';
+import { fetchBekleyenOdemeler } from '@/server/services/odeme-onay';
 import { cn } from '@/lib/utils/cn';
 
 export const metadata: Metadata = {
@@ -38,7 +40,11 @@ const SAAT = new Intl.DateTimeFormat('tr-TR', {
  * görünür — uydurma ya da sıfır kur yok.
  */
 export default async function CuzdanPage() {
-  const [c, limitler] = await Promise.all([fetchCuzdan(), fetchButceLimitleri()]);
+  const [c, limitler, odemeler] = await Promise.all([
+    fetchCuzdan(),
+    fetchButceLimitleri(),
+    fetchBekleyenOdemeler(),
+  ]);
   const { ozet } = c;
   const eksi = ozet.netTl.startsWith('-');
 
@@ -98,6 +104,8 @@ export default async function CuzdanPage() {
               </span>
             )}
           </p>
+
+          <OdemeOnay odemeler={odemeler} hesaplar={c.hesaplar} />
 
           {/* ── HESAPLAR ──────────────────────────────────────────────── */}
           <Bolum baslik="Hesaplar" ekle="/panel/cuzdan/yeni?tur=hesap" ekleEtiket="Hesap ekle">

@@ -2,6 +2,7 @@
 
 import {
   butceSchema,
+  odemeIsleSchema,
   entityIdSchema,
   updateWalletAccountSchema,
   updateWalletDebtSchema,
@@ -25,7 +26,8 @@ import {
   updateWalletDebt,
   updateWalletFlow,
 } from '@/server/services/cuzdan';
-import { ok, parseOrFail, writeAuditLog, type ApiResponse } from '@/server/services/_shared';
+import { fail, ok, parseOrFail, writeAuditLog, type ApiResponse } from '@/server/services/_shared';
+import { odemeIsle, OdemeHatasi } from '@/server/services/odeme-onay';
 import type { AuditAction } from '@/types';
 
 import { currentActorId, toFailure, unauthorized } from './_shared';
@@ -240,4 +242,31 @@ export async function butceKoyAction(raw: unknown): Promise<ApiResponse<{ katego
     },
     'wallet:butce',
   );
+}
+
+/** Aylık ödeme onayı (2026-11-01). Denetime tutar yazılmaz. */
+export async function odemeIsleAction(raw: unknown): Promise<ApiResponse<{ yeni: boolean }>> {
+  const actorId = await currentActorId();
+  if (!actorId) return unauthorized();
+  const parsed = parseOrFail(odemeIsleSchema, raw);
+  if (!parsed.ok) return parsed.failure;
+  const girdi = parsed.data;
+
+  try {
+    const sonuc = await odemeIsle(girdi);
+    await writeAuditLog(
+      {
+        actorId,
+        action: 'CREATE',
+        entity: 'WalletOdeme',
+        entityId: girdi.kaynakId,
+        diff: { tur: girdi.kaynakTur, donem: girdi.donem, durum: girdi.durum, yeni: sonuc.yeni },
+      },
+      db,
+    );
+    return ok(sonuc);
+  } catch (error) {
+    if (error instanceof OdemeHatasi) return fail('VALIDATION_ERROR', error.message);
+    return toFailure('wallet:odeme', error);
+  }
 }
