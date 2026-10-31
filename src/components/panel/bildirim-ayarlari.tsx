@@ -1,6 +1,6 @@
 'use client';
 
-import { Bell, BellOff, Droplet, Loader2, Sparkles, Wallet } from 'lucide-react';
+import { Bell, BellOff, Droplet, Loader2, Sparkles, Trophy, Wallet } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 
 import { cn } from '@/lib/utils/cn';
@@ -11,7 +11,7 @@ import {
   testBildirimiAction,
 } from '@/server/actions/bildirim';
 
-type Tercih = { borc: boolean; aliskanlik: boolean; su: boolean };
+type Tercih = { borc: boolean; aliskanlik: boolean; su: boolean; rekor: boolean };
 type Destek = 'kontrol' | 'yok' | 'anaEkran' | 'var';
 
 /** VAPID genel anahtarı (base64url) → `applicationServerKey`. */
@@ -233,6 +233,14 @@ export function BildirimAyarlari({
           aciklama="11:00, 15:00, 18:00 — 3,5 L'ye ulaşmadıysan"
           acik={tercih.su}
           onClick={() => void degistir('su')}
+        />
+        <Anahtar
+          ikon={<Trophy className="size-4" aria-hidden="true" />}
+          renk="from-amber-500 to-orange-500"
+          baslik="Yeni rekor"
+          aciklama="Bir harekette rekorunu geçtiğinde"
+          acik={tercih.rekor}
+          onClick={() => void degistir('rekor')}
         />
       </section>
     </div>

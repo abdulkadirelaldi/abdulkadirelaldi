@@ -308,6 +308,11 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     kanit: [],
     not: 'T-114 ile eklendi. Okuma `fetchExerciseById` + `fetchRecordsForExercise` (sayfasız, `reps` artan). Yazma `updateExerciseAction`; `isArchived` formda YOK (arşivleme ayrı eylem, listeden). ÖLÇÜLMEYEN: (1) Kas grubu değişikliğinin eski setleri yeniden gruplaması (yardım metninde yazılı) ölçülmedi. (2) Geçersiz kimlikte 404 dışı davranış.',
   },
+  '/panel/spor/gelisim': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: "2026-11-01 haftalık hacim ve hareket başına ağırlık. `?hareket=` yalnızca listeyle karşılaştırılır, sorguya girmez. Hesap ve rekor kuralı `tests/unit/services/spor-gelisim.test.ts`te. ÖLÇÜLMEYEN: e2e'de içerik yok; gerçek telefona rekor bildirimi.",
+  },
   '/panel/spor/rekorlar': {
     kapilar: ['e2e'],
     kanit: ["page.goto('/panel/spor/rekorlar'"],

@@ -36,6 +36,7 @@ const tercihSchema = z.object({
   borc: z.boolean(),
   aliskanlik: z.boolean(),
   su: z.boolean(),
+  rekor: z.boolean(),
 });
 
 export async function bildirimAboneOlAction(raw: unknown): Promise<ApiResponse<{ ok: true }>> {

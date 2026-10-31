@@ -21,6 +21,7 @@ const SEKMELER = [
   { anahtar: 'antrenmanlar', etiket: 'Geçmiş', href: '/panel/spor/gecmis' },
   { anahtar: 'egzersizler', etiket: 'Egzersizler', href: '/panel/spor/egzersizler' },
   { anahtar: 'rekorlar', etiket: 'Rekorlar', href: '/panel/spor/rekorlar' },
+  { anahtar: 'gelisim', etiket: 'Gelişim', href: '/panel/spor/gelisim' },
 ] as const;
 
 export type SporSekmesi = (typeof SEKMELER)[number]['anahtar'];
