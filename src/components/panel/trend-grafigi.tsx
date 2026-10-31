@@ -56,7 +56,11 @@ const PAD = { sol: 52, sag: 12, ust: 12, alt: 30 };
 const gunMs = (gun: string): number => Date.parse(`${gun}T00:00:00Z`);
 
 /** Ekran gösterimi: `82.50` → `82,50`. */
-const tr = (deger: string): string => deger.replace('.', ',');
+const tr = (deger: string): string => {
+  const [tam = '', kesir] = deger.split('.');
+  const gruplu = tam.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  return kesir === undefined ? gruplu : `${gruplu},${kesir}`;
+};
 
 const KISA_TARIH = new Intl.DateTimeFormat('tr-TR', {
   day: 'numeric',
