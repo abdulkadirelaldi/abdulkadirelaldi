@@ -547,7 +547,9 @@ export async function gununKaydinaEkle(
     select: { id: true, waterMl: true },
   });
   const su =
-    ek.suMl === undefined ? undefined : Math.min(SU_TAVANI_ML, (mevcut?.waterMl ?? 0) + ek.suMl);
+    ek.suMl === undefined
+      ? undefined
+      : Math.max(0, Math.min(SU_TAVANI_ML, (mevcut?.waterMl ?? 0) + ek.suMl));
   const data = {
     ...(ek.weightKg !== undefined ? { weightKg: ek.weightKg } : {}),
     ...(su !== undefined ? { waterMl: su } : {}),
@@ -571,4 +573,17 @@ export async function gununKaydinaEkle(
     weightKg: toMeasureString(satir.weightKg, 2),
     waterMl: satir.waterMl,
   };
+}
+
+/** En son tartı; yoksa `null`. */
+export async function sonTarti(
+  client: Pick<typeof db, 'healthLog'> = db,
+): Promise<{ kg: string; gun: string } | null> {
+  const satir = await client.healthLog.findFirst({
+    where: { weightKg: { not: null } },
+    orderBy: { date: 'desc' },
+    select: { date: true, weightKg: true },
+  });
+  const kg = satir && toMeasureString(satir.weightKg, 2);
+  return satir && kg ? { kg, gun: dateToAppDay(satir.date) } : null;
 }

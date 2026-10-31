@@ -206,6 +206,14 @@ describe('⚠️ hiçbir DTO yüzeyi `Decimal` sızdırmıyor', () => {
 describe('ilerlemeOnerisi — çift ilerleme (2026-10-30)', () => {
   const set = (reps: number, weightKg: string | null) => ({ reps, weightKg });
 
+  it('⚠️ kardiyoda birim dakika, hedef aralığı aşılmaz', () => {
+    const o = ilerlemeOnerisi([set(30, null)], '20-30', 1, true);
+    expect(o).toMatchObject({ weightKg: null, reps: 30 });
+    expect(o?.neden).toContain('dakika');
+    expect(ilerlemeOnerisi([set(45, null)], '20-30', 1, true)?.reps).toBe(30);
+    expect(ilerlemeOnerisi([set(10, null)], '20-30', 1, true)?.reps).toBe(20);
+  });
+
   it('tekrar aralığı', () => {
     expect(tekrarAraligi('8-12')).toEqual([8, 12]);
     expect(tekrarAraligi('10')).toEqual([10, 10]);

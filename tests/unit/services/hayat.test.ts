@@ -255,6 +255,7 @@ describe('alışkanlık yönetimi', () => {
       icon: null,
       order: 0,
       isActive: true,
+      otoKaynak: null,
     });
   });
 

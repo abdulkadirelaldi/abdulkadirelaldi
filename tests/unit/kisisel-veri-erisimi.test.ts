@@ -273,6 +273,8 @@ export function denetimsizEylemler(dosya: string, metin: string): string[] {
 
 /** Denetim kaydı yazmayan ihraçlar — yalnızca OKUMALAR, gerekçesiyle. */
 const DENETIM_ISTISNALARI: Record<string, string> = {
+  'src/server/actions/hizli-ekle.ts → sonKiloAction':
+    'OKUMA — kilo formunda son tartıyı gösterir, hiçbir şey yazmaz.',
   'src/server/actions/hata-kaydi.ts → istemciHatasiAction':
     'GÜNLÜK, mutasyon değil — kullanıcı verisi değişmez; hata kaydının KENDİSİ bir iz. Her ' +
     'hata için denetim satırı yazmak, döngüdeki bir hatada denetim kaydını boğardı.',

@@ -765,6 +765,8 @@ model Habit {
   isActive      Boolean @default(true)
   /// Referans veri: silinmez, arşivlenir (ADR-017).
   isArchived    Boolean @default(false)
+  /// `SU` | `SPOR`: kayıttan kendiliğinden işaretlenir. Boşsa elle.
+  otoKaynak     String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -36,6 +36,7 @@ export const MET = { GYM: 5.0, CARDIO: 8.0, KAYAK: 7.0, OTHER: 4.0 } as const sa
 /** Kilo bilinmiyorsa kullanılan değer — ekranda "son tartı yok" diye yazılıyor. */
 export const VARSAYILAN_KILO = 80;
 const MAKS_OTURUM_DK = 240;
+export const EK_HAREKET_SETI = 3;
 
 /** kcal = MET × kg × saat, tam sayıya yuvarlanır. Süre 0 ya da eksi ise 0. */
 export function kaloriHesapla({
@@ -552,6 +553,7 @@ export function ilerlemeOnerisi(
   oncekiSetler: readonly { reps: number; weightKg: string | null }[],
   hedefTekrar: string,
   hedefSet: number,
+  kardiyo = false,
 ): IlerlemeOnerisi | null {
   const aralik = tekrarAraligi(hedefTekrar);
   if (!aralik || oncekiSetler.length === 0) return null;
@@ -563,6 +565,14 @@ export function ilerlemeOnerisi(
   const enIyi = Math.max(...ustteSetler.map((s) => s.reps));
   const hepsiUstte = ustteSetler.length >= hedefSet && ustteSetler.every((s) => s.reps >= ust);
 
+  if (kardiyo) {
+    const dakika = Math.min(ust, Math.max(alt, enIyi));
+    return {
+      weightKg: null,
+      reps: dakika,
+      neden: `Geçen sefer ${enIyi} dakika — ${dakika} dakikayı hedefle.`,
+    };
+  }
   if (enAgir === 0) {
     return {
       weightKg: null,
@@ -617,13 +627,38 @@ export async function fetchSession(
       },
       sets: {
         orderBy: [{ setNo: 'asc' }],
-        select: { id: true, exerciseId: true, setNo: true, reps: true, weightKg: true },
+        select: {
+          id: true,
+          exerciseId: true,
+          setNo: true,
+          reps: true,
+          weightKg: true,
+          exercise: { select: { name: true, tip: true, muscleGroup: true } },
+        },
       },
     },
   });
   if (!w || !w.startedAt) return null;
 
-  const hareketler = (w.programDay?.exercises ?? []).map(hareketDto);
+  // Programdakiler + oturumda sonradan eklenen hareketler (yedek makine).
+  const programda = (w.programDay?.exercises ?? []).map(hareketDto);
+  const ekIdler = new Set(programda.map((h) => h.exerciseId));
+  const ekler: ProgramHareketDto[] = [];
+  for (const s of w.sets) {
+    if (ekIdler.has(s.exerciseId) || !s.exercise) continue;
+    ekIdler.add(s.exerciseId);
+    ekler.push({
+      id: `ek-${s.exerciseId}`,
+      exerciseId: s.exerciseId,
+      ad: s.exercise.name,
+      ipucu: s.exercise.tip,
+      kas: s.exercise.muscleGroup as MuscleGroup,
+      sets: Math.max(EK_HAREKET_SETI, w.sets.filter((x) => x.exerciseId === s.exerciseId).length),
+      reps: s.exercise.muscleGroup === 'CARDIO' ? '20-30' : '8-12',
+      restSec: 90,
+    });
+  }
+  const hareketler = [...programda, ...ekler];
   // Her hareketin GEÇEN antrenmandaki TÜM setleri — en yeni antrenmandan,
   // hareket başına yalnızca ilk görülen antrenmanın setleri tutulur.
   const onceki = await client.workoutSet.findMany({
@@ -669,7 +704,7 @@ export async function fetchSession(
             weightKg: s.weightKg ? toMeasureString(s.weightKg, 2) : null,
           })),
         oncekiSet: o ?? null,
-        oneri: ilerlemeOnerisi(setler, hr.reps, hr.sets),
+        oneri: ilerlemeOnerisi(setler, hr.reps, hr.sets, hr.kas === 'CARDIO'),
       };
     }),
   };

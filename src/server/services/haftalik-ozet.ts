@@ -12,7 +12,7 @@ import {
   toMeasureString,
   type AppDay,
 } from './_shared';
-import { fetchHabitWeek, gunOranlari, type HabitWeekDto } from './habit';
+import { fetchHabitWeek, gunOranlari, haftaYuzdesi } from './habit';
 import { fetchKurlar, tlKarsiligi, type KurDurumu } from './kur';
 
 /**
@@ -31,17 +31,6 @@ export interface HaftalikOzet {
   spor: { antrenman: number; hacimKg: number; oncekiHacimKg: number };
   harcama: { tl: string; oncekiTl: string };
   kilo: { son: string | null; fark: string | null };
-}
-
-/** Geçen günlerin ortalama tamamlanma yüzdesi; gelecek hafta ya da alışkanlık yoksa `null`. SAF. */
-export function aliskanlikYuzdesi(
-  hafta: Pick<HabitWeekDto, 'days' | 'habits'>,
-  bugun: AppDay,
-): number | null {
-  if (hafta.habits.length === 0) return null;
-  const oranlar = gunOranlari(hafta).filter((_, i) => (hafta.days[i] ?? '') <= bugun);
-  if (oranlar.length === 0) return null;
-  return Math.round((oranlar.reduce((t, o) => t + o, 0) / oranlar.length) * 100);
 }
 
 /** Bildirim gövdesi; hiç veri yoksa `null` (boş özet gönderilmez). SAF. */
@@ -121,8 +110,8 @@ export async function fetchHaftalikOzet(
     bas,
     son,
     aliskanlik: {
-      yuzde: aliskanlikYuzdesi(hafta, bugun),
-      oncekiYuzde: aliskanlikYuzdesi(oncekiHafta, bugun),
+      yuzde: haftaYuzdesi(hafta, bugun),
+      oncekiYuzde: haftaYuzdesi(oncekiHafta, bugun),
       gunler: gunOranlari(hafta),
       adet: hafta.habits.length,
     },
