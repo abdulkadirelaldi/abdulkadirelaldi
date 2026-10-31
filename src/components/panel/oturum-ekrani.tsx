@@ -61,6 +61,7 @@ export function OturumEkrani({ oturum }: { oturum: OturumDto }) {
   const [dinlenmeBitis, setDinlenmeBitis] = useState<number | null>(null);
   const [bitirOnay, setBitirOnay] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
+  const [rekor, setRekor] = useState<string | null>(null);
   const [bekliyor, basla] = useTransition();
 
   useEffect(() => {
@@ -96,6 +97,7 @@ export function OturumEkrani({ oturum }: { oturum: OturumDto }) {
         ...(kg ? { weightKg: kg } : {}),
       });
       if (!sonuc.ok) return setHata(sonuc.error.message);
+      setRekor(sonuc.data.yeniRekor ? `${hareket.ad} · ${kg} kg × ${reps}` : null);
       const yeni: OturumSetiDto = {
         id: sonuc.data.set.id,
         setNo: sonuc.data.set.setNo,
@@ -192,6 +194,14 @@ export function OturumEkrani({ oturum }: { oturum: OturumDto }) {
         />
       )}
 
+      {rekor && (
+        <p
+          role="status"
+          className="rounded-card flex items-center gap-2 bg-amber-500/12 p-3 text-sm font-medium text-amber-700 dark:text-amber-400"
+        >
+          <span aria-hidden="true">🏆</span> Yeni rekor! {rekor}
+        </p>
+      )}
       {hata && (
         <p role="alert" className="text-danger text-sm">
           {hata}

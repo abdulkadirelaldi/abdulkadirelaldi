@@ -1077,6 +1077,7 @@ model BildirimTercihi {
   borc       Boolean  @default(true)
   aliskanlik Boolean  @default(true)
   su         Boolean  @default(true)
+  rekor      Boolean  @default(true)
   updatedAt  DateTime @updatedAt
 
   @@map("bildirim_tercihi")

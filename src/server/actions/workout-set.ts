@@ -3,6 +3,7 @@
 import { createWorkoutSetSchema, entityIdSchema, updateWorkoutSetSchema } from '@/lib/schemas';
 import { db } from '@/server/db';
 import type { RecalculateResult } from '@/server/services/_shared';
+import { rekorDenetle } from '@/server/services/spor-gelisim';
 import {
   createWorkoutSet,
   deleteWorkoutSet,
@@ -87,7 +88,7 @@ function recordsDiff(records: RecalculateResult): Record<string, unknown> {
 
 export async function createWorkoutSetAction(
   raw: unknown,
-): Promise<ApiResponse<SetMutationResult>> {
+): Promise<ApiResponse<SetMutationResult & { yeniRekor: boolean }>> {
   const actorId = await currentActorId();
   if (!actorId) return unauthorized();
 
@@ -108,7 +109,10 @@ export async function createWorkoutSetAction(
       db,
     );
 
-    return ok(sonuc);
+    // Set yazıldı: rekor denetimi bozulsa da kayıt başarılı sayılır.
+    const yeniRekor = await rekorDenetle(actorId, sonuc.set).catch(() => false);
+
+    return ok({ ...sonuc, yeniRekor });
   } catch (error) {
     /*
      * P2002 → `@@unique([workoutId, exerciseId, setNo])`.

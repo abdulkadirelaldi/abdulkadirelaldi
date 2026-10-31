@@ -29,6 +29,7 @@ export default async function BildirimlerPage() {
               borc: tercih?.borc ?? true,
               aliskanlik: tercih?.aliskanlik ?? true,
               su: tercih?.su ?? true,
+              rekor: tercih?.rekor ?? true,
             }}
           />
         </div>
