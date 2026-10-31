@@ -37,10 +37,10 @@ export function HayatAltMenu({ aktif }: { aktif: HayatBolumu }) {
                 href={oge.href}
                 aria-current={secili ? 'page' : undefined}
                 className={cn(
-                  'focus-ring ease-brand duration-micro rounded-btn inline-flex items-center border px-3 py-2 text-sm transition-colors',
+                  'focus-ring ease-brand duration-micro inline-flex min-h-10 items-center rounded-full px-4 text-sm font-medium transition-colors',
                   secili
-                    ? 'border-accent/40 bg-accent/12 text-accent-soft'
-                    : 'border-line bg-surface text-body hover:border-line-hover hover:text-primary',
+                    ? 'bg-accent text-white shadow-sm'
+                    : 'bg-surface text-body hover:text-primary shadow-[var(--golge-kart)]',
                 )}
               >
                 {oge.etiket}

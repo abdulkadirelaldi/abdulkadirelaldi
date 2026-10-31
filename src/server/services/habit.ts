@@ -484,3 +484,15 @@ export async function archiveHabit(
 
   return toDto(row);
 }
+
+/**
+ * Haftanın her günü için TAMAMLANAN alışkanlık oranı (0–1), `days` sırasıyla.
+ * Bugün ve Hayat'taki hafta görünümleri okur. Alışkanlık yoksa hepsi 0. SAF.
+ */
+export function gunOranlari(hafta: Pick<HabitWeekDto, 'days' | 'habits'>): number[] {
+  return hafta.days.map((_, i) => {
+    if (hafta.habits.length === 0) return 0;
+    const tamam = hafta.habits.filter((h) => isDayComplete(h.counts[i] ?? 0, h.targetPerDay));
+    return tamam.length / hafta.habits.length;
+  });
+}

@@ -1,3 +1,4 @@
+import { AliskanlikRozeti } from '@/components/panel/aliskanlik-rozeti';
 import type { IsiHucresi } from '@/server/services/habit-gun';
 import type { HabitWeekRowDto } from '@/server/services/habit';
 
@@ -20,15 +21,13 @@ export function Seriler({ aliskanliklar }: { aliskanliklar: HabitWeekRowDto[] })
       <h2 id="seriler" className="text-primary text-base font-semibold">
         Seriler
       </h2>
-      <ul className="flex flex-wrap gap-2">
+      <ul className="-mx-4 flex gap-2.5 overflow-x-auto px-4 pb-1">
         {suren.map((a) => (
-          <li
-            key={a.id}
-            className="bg-elevated flex items-center gap-2 rounded-full py-1.5 pr-3 pl-2 text-sm"
-          >
-            <span aria-hidden="true">🔥</span>
-            <span className="text-primary font-medium">{a.name}</span>
-            <span className="tabular text-warning font-semibold">
+          <li key={a.id} className="bg-elevated flex w-32 shrink-0 flex-col gap-2 rounded-2xl p-3">
+            <AliskanlikRozeti ad={a.name} simge={a.icon} renk={a.color} boyut="kucuk" />
+            <span className="text-primary truncate text-sm font-medium">{a.name}</span>
+            <span className="tabular text-warning text-sm font-semibold">
+              <span aria-hidden="true">🔥 </span>
               {a.streak.atLeast ? '≥' : ''}
               {a.streak.value} {a.streak.unit === 'day' ? 'gün' : 'hafta'}
             </span>

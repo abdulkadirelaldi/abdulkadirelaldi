@@ -5,8 +5,8 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
+import { AliskanlikRozeti } from '@/components/panel/aliskanlik-rozeti';
 import { ArsivleDugmesi } from '@/components/panel/arsivle-dugmesi';
-import { simgeMetni } from '@/components/panel/hayat-bicim';
 import { VeriTablosu, type Sutun } from '@/components/panel/veri-tablosu';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonClasses } from '@/components/ui/button';
@@ -89,17 +89,8 @@ export function AliskanlikListesi({
           href={`/panel/hayat/aliskanliklar/${h.id}`}
           className="focus-ring rounded-btn text-primary -m-1 flex items-center gap-2 p-1 font-medium"
         >
-          {h.color && (
-            <span
-              aria-hidden="true"
-              className="size-2.5 shrink-0 rounded-full"
-              style={{ backgroundColor: h.color }}
-            />
-          )}
-          <span>
-            {simgeMetni(h.icon)}
-            {h.name}
-          </span>
+          <AliskanlikRozeti ad={h.name} simge={h.icon} renk={h.color} boyut="kucuk" />
+          <span>{h.name}</span>
         </Link>
       ),
       siralamaDegeri: (h) => h.name,
