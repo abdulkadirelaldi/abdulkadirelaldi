@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { SaglikDegerlendirmesiKarti } from '@/components/panel/saglik-degerlendirmesi';
+import { SaglikHedefKarti } from '@/components/panel/saglik-hedef';
 import { SaglikEkrani } from '@/components/panel/saglik-ekrani';
 import { Sayfalama } from '@/components/panel/sayfalama';
 import { Topbar } from '@/components/panel/topbar';
@@ -10,10 +11,12 @@ import { TrendGrafigi, type TrendNoktasi } from '@/components/panel/trend-grafig
 import { buttonClasses } from '@/components/ui/button';
 import { healthLogFilterSchema } from '@/lib/schemas/health-log';
 import { cn } from '@/lib/utils/cn';
+import { auth } from '@/server/auth';
 import { addAppDays, appToday } from '@/server/services/_shared';
 import {
   fetchHealthLogs,
   fetchHealthTrend,
+  fetchSaglikHedefi,
   findHealthLogIdByDay,
   type HealthLogDto,
 } from '@/server/services/health-log';
@@ -83,10 +86,12 @@ export default async function SaglikPage({ searchParams }: SayfaProps) {
     perPage: SAYFA_BOYUTU,
   });
 
-  const [trend, liste, bugunId] = await Promise.all([
+  const session = await auth();
+  const [trend, liste, bugunId, hedef] = await Promise.all([
     fetchHealthTrend({ from, to: bugun }),
     fetchHealthLogs(filtre.success ? filtre.data : { page: 1, perPage: SAYFA_BOYUTU }),
     findHealthLogIdByDay(bugun),
+    session?.user?.id ? fetchSaglikHedefi(session.user.id) : Promise.resolve(null),
   ]);
 
   const grafikler = [
@@ -153,6 +158,7 @@ export default async function SaglikPage({ searchParams }: SayfaProps) {
 
       <main id="panel-icerik" className="flex-1 p-4 lg:p-6">
         <div className="flex max-w-5xl flex-col gap-6">
+          <SaglikHedefKarti hedef={hedef} />
           <SaglikDegerlendirmesiKarti />
 
           <section aria-labelledby="trend-baslik" className="flex flex-col gap-3">
