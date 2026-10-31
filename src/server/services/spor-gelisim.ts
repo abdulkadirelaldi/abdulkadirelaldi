@@ -6,6 +6,7 @@ import {
   appDayToDate,
   appToday,
   dateToAppDay,
+  startOfAppWeek,
   toMeasureString,
   type AppDay,
 } from './_shared';
@@ -22,12 +23,6 @@ import { kullaniciyaGonder, vapidAyarlari } from './bildirim';
  */
 
 const HACIM_HAFTA = 8;
-
-/** Haftanın pazartesisi. SAF. */
-export function haftaBasi(gun: AppDay): AppDay {
-  const gunNo = appDayToDate(gun).getUTCDay();
-  return addAppDays(gun, -((gunNo + 6) % 7));
-}
 
 export interface GelisimSeti {
   exerciseId: string;
@@ -51,7 +46,7 @@ export function gelisimHesapla(
   istenen: string | undefined,
   bugun: AppDay,
 ): SporGelisim {
-  const buHafta = haftaBasi(bugun);
+  const buHafta = startOfAppWeek(bugun);
   const hacim = Array.from({ length: HACIM_HAFTA }, (_, i) => ({
     hafta: addAppDays(buHafta, (i - HACIM_HAFTA + 1) * 7),
     kg: 0,
@@ -59,7 +54,7 @@ export function gelisimHesapla(
   const hareket = new Map<string, { id: string; ad: string; setSayisi: number }>();
 
   for (const s of setler) {
-    const satir = hacim.find((h) => h.hafta === haftaBasi(s.gun));
+    const satir = hacim.find((h) => h.hafta === startOfAppWeek(s.gun));
     if (satir) satir.kg += s.reps * s.kg;
     const h = hareket.get(s.exerciseId);
     if (h) h.setSayisi += 1;

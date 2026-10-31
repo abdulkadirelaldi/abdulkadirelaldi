@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from 'vitest';
 import {
   fetchSporGelisim,
   gelisimHesapla,
-  haftaBasi,
   rekorMu,
   type GelisimSeti,
 } from '@/server/services/spor-gelisim';
@@ -17,14 +16,6 @@ const s = (o: Partial<GelisimSeti>): GelisimSeti => ({
   kg: 50,
   gun: '2026-10-28',
   ...o,
-});
-
-describe('haftaBasi', () => {
-  it('pazartesi kendisi, pazar önceki pazartesi', () => {
-    expect(haftaBasi('2026-10-26')).toBe('2026-10-26');
-    expect(haftaBasi('2026-11-01')).toBe('2026-10-26');
-    expect(haftaBasi('2026-10-31')).toBe('2026-10-26');
-  });
 });
 
 describe('gelisimHesapla (2026-11-01)', () => {
