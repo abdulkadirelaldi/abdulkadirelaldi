@@ -37,6 +37,7 @@ const tercihSchema = z.object({
   aliskanlik: z.boolean(),
   su: z.boolean(),
   rekor: z.boolean(),
+  haftalik: z.boolean(),
 });
 
 export async function bildirimAboneOlAction(raw: unknown): Promise<ApiResponse<{ ok: true }>> {

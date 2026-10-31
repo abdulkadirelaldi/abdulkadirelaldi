@@ -1,6 +1,15 @@
 'use client';
 
-import { Bell, BellOff, Droplet, Loader2, Sparkles, Trophy, Wallet } from 'lucide-react';
+import {
+  Bell,
+  BellOff,
+  ChartColumn,
+  Droplet,
+  Loader2,
+  Sparkles,
+  Trophy,
+  Wallet,
+} from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 
 import { cn } from '@/lib/utils/cn';
@@ -11,7 +20,13 @@ import {
   testBildirimiAction,
 } from '@/server/actions/bildirim';
 
-type Tercih = { borc: boolean; aliskanlik: boolean; su: boolean; rekor: boolean };
+type Tercih = {
+  borc: boolean;
+  aliskanlik: boolean;
+  su: boolean;
+  rekor: boolean;
+  haftalik: boolean;
+};
 type Destek = 'kontrol' | 'yok' | 'anaEkran' | 'var';
 
 /** VAPID genel anahtarı (base64url) → `applicationServerKey`. */
@@ -241,6 +256,14 @@ export function BildirimAyarlari({
           aciklama="Bir harekette rekorunu geçtiğinde"
           acik={tercih.rekor}
           onClick={() => void degistir('rekor')}
+        />
+        <Anahtar
+          ikon={<ChartColumn className="size-4" aria-hidden="true" />}
+          renk="from-indigo-500 to-violet-600"
+          baslik="Haftalık özet"
+          aciklama="Pazar akşamı 20:00"
+          acik={tercih.haftalik}
+          onClick={() => void degistir('haftalik')}
         />
       </section>
     </div>
