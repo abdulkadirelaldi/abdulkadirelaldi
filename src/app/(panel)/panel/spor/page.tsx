@@ -4,6 +4,7 @@ import Link from 'next/link';
 
 import { gunAyYil } from '@/components/panel/hayat-bicim';
 import { BaslatDugmesi, ProgramYukleDugmesi } from '@/components/panel/spor-dugmeleri';
+import { HAFTA_GUNLERI_KISA } from '@/components/panel/hayat-bicim';
 import { SporSekmeleri } from '@/components/panel/spor-sekmeleri';
 import { Topbar } from '@/components/panel/topbar';
 import { appToday } from '@/server/services/_shared';
@@ -19,7 +20,7 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false, nocache: true },
 };
 
-const GUN_ADI = ['', 'Pzt', 'Sal', 'Çrş', 'Prş', 'Cum', 'Cmt', 'Paz'] as const;
+const GUN_ADI = ['', ...HAFTA_GUNLERI_KISA] as const;
 
 /** İstanbul gününün haftadaki sırası: 1 = pazartesi … 7 = pazar. */
 function haftaGunu(gun: string): number {

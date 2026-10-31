@@ -415,7 +415,7 @@ function HarcamaFormu({ tamam }: { tamam: (m: string, yenile?: boolean) => void 
             aria-checked={kategori === k}
             onClick={() => setKategori(k)}
             className={cn(
-              'focus-ring rounded-full border px-3 py-1.5 text-sm transition-colors',
+              'focus-ring min-h-10 rounded-full border px-3 text-sm transition-colors',
               kategori === k
                 ? 'border-accent bg-accent/12 text-accent'
                 : 'border-line bg-elevated text-body',

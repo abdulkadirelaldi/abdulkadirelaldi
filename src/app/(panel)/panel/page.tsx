@@ -34,7 +34,7 @@ import {
 } from '@/server/services/antrenman-oturumu';
 import { fetchContactMessages } from '@/server/services/contact-message';
 import { fetchCuzdan } from '@/server/services/cuzdan';
-import { fetchGoals } from '@/server/services/goal';
+import { fetchGoals, guncelHedefMi } from '@/server/services/goal';
 import { fetchHabitWeek, gunOranlari } from '@/server/services/habit';
 import { fetchHabitDay } from '@/server/services/habit-gun';
 import { fetchHealthTrend } from '@/server/services/health-log';
@@ -96,9 +96,11 @@ export default async function BugunPage() {
     fetchProgram(),
     fetchContactMessages({ page: 1, perPage: 1 }),
     fetchCuzdan(),
-    fetchGoals({ page: 1, perPage: 3, status: 'ACTIVE' }, undefined, bugun),
+    fetchGoals({ page: 1, perPage: 20, status: 'ACTIVE' }, undefined, bugun),
     fetchBekleyenOdemeler(undefined, bugun),
   ]);
+
+  const guncelHedefler = hedefler.items.filter((h) => guncelHedefMi(h, bugun)).slice(0, 3);
 
   // ── Halkalar ─────────────────────────────────────────────────────────────
   // Haftalık hedefi kalan günlere sığan alışkanlık bugün "eksik" sayılmaz.
@@ -107,7 +109,7 @@ export default async function BugunPage() {
   const aliskanlikTamam = gerekliBugun.filter((i) => i.durum === 'YAPILDI').length;
   const bugunKaydi = saglik.find((k) => k.date === bugun);
   const suMl = bugunKaydi?.waterMl ?? 0;
-  const haftaHedefi = program.filter((g) => g.haftaGunu !== null).length || 5;
+  const haftaHedefi = program.filter((g) => g.haftaGunu !== null).length;
   const haftaAntrenman = oturumlar.filter((o) => o.date >= pazartesi && !o.suruyor).length;
 
   // ── Bugünün antrenmanı ───────────────────────────────────────────────────
@@ -178,7 +180,7 @@ export default async function BugunPage() {
               oranlar={[
                 aliskanlikToplam ? aliskanlikTamam / aliskanlikToplam : 0,
                 suMl / SU_HEDEFI_ML,
-                haftaAntrenman / haftaHedefi,
+                haftaHedefi ? haftaAntrenman / haftaHedefi : 0,
               ]}
             />
             <ul className="flex min-w-0 flex-1 flex-col gap-3">
@@ -195,7 +197,9 @@ export default async function BugunPage() {
               </li>
               <HalkaSatiri href="/panel/spor" renk="#f97316" etiket="Spor · bu hafta">
                 {haftaAntrenman}
-                <span className="text-muted text-sm font-normal"> / {haftaHedefi}</span>
+                {haftaHedefi > 0 && (
+                  <span className="text-muted text-sm font-normal"> / {haftaHedefi}</span>
+                )}
               </HalkaSatiri>
             </ul>
           </section>
@@ -426,7 +430,7 @@ export default async function BugunPage() {
             <BolumBasligi id="hedef-baslik" href="/panel/hayat/hedefler" baglanti="Tümü">
               Hedefler
             </BolumBasligi>
-            {hedefler.items.length === 0 ? (
+            {guncelHedefler.length === 0 ? (
               <Link
                 href="/panel/hayat/hedefler"
                 className="focus-ring text-accent w-fit rounded text-sm font-medium"
@@ -435,7 +439,7 @@ export default async function BugunPage() {
               </Link>
             ) : (
               <ul className="flex flex-col gap-3">
-                {hedefler.items.map((h) => (
+                {guncelHedefler.map((h) => (
                   <li key={h.id}>
                     <Link
                       href={`/panel/hayat/hedefler/${h.id}`}
@@ -543,7 +547,7 @@ function BolumBasligi({
       </h3>
       <Link
         href={href}
-        className="focus-ring text-accent flex shrink-0 items-center gap-0.5 rounded text-xs font-medium"
+        className="focus-ring text-accent flex inline-flex min-h-10 shrink-0 items-center gap-0.5 rounded text-xs font-medium"
       >
         {baglanti}
         <ChevronRight className="size-3.5" aria-hidden="true" />
