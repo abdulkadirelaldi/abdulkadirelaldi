@@ -1,4 +1,4 @@
-import { ChevronRight, Plus } from 'lucide-react';
+import { ChartColumn, ChevronRight, Plus } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
@@ -8,6 +8,7 @@ import { HESAP_TURU, miktarBicim, SIKLIK, tlBicim } from '@/components/panel/cuz
 import { OdemeOnay } from '@/components/panel/odeme-onay';
 import { paraBicim } from '@/components/panel/para-bicim';
 import { Topbar } from '@/components/panel/topbar';
+import { buttonClasses } from '@/components/ui/button';
 import {
   butceOzeti,
   fetchButceLimitleri,
@@ -50,7 +51,18 @@ export default async function CuzdanPage() {
 
   return (
     <>
-      <Topbar title="Cüzdan" />
+      <Topbar
+        title="Cüzdan"
+        actions={
+          <Link
+            href="/panel/cuzdan/rapor"
+            className={buttonClasses({ size: 'sm', variant: 'secondary' })}
+          >
+            <ChartColumn className="size-4" aria-hidden="true" />
+            Aylık rapor
+          </Link>
+        }
+      />
       <main id="panel-icerik" className="flex-1 px-4 py-4 lg:p-6">
         <div className="mx-auto flex max-w-2xl flex-col gap-5">
           {/* ── NET ───────────────────────────────────────────────────── */}

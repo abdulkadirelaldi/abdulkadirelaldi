@@ -253,6 +253,11 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     kanit: ["'/panel/cuzdan',"],
     not: "2026-10-30 Cüzdan (muhasebenin yerine): net varlık, bu ayın hesabı, hesaplar/borçlar/gelirler/giderler. Okuma `fetchCuzdan` (kurlar `fetchKurlar`: Truncgil → 10 dk bellek → `PriceQuote` son bilinen, 'bayat' uyarısıyla). CSP paketi geziyor — yükleniyor, ihlal yok. Hesap kuralları `tests/unit/services/cuzdan.test.ts`te (kursuz kalem toplama girmez, borç SATIŞ kuruyla, ödeme kalanı sıfırın altına indirmez). ÖLÇÜLMEYEN: içerik ve canlı kaynak e2e'de yok.",
   },
+  '/panel/cuzdan/rapor': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: "2026-11-01 aylık rapor. `?ay=YYYY-MM` (bozuk/gelecek → bu ay). Tek seferlik akış ve borç ödemeleri gerçek; düzenli kalemler bugünkü değerle tahmini. Hesap `tests/unit/services/cuzdan-rapor.test.ts`te. ÖLÇÜLMEYEN: e2e'de içerik yok.",
+  },
   '/panel/cuzdan/yeni': {
     kapilar: ['kapsanmiyor'],
     kanit: [],

@@ -1020,6 +1020,17 @@ model WalletOdeme {
   @@map("wallet_odeme")
 }
 
+/// Günlük net varlık (2026-11-01): geçmişi başka yerden hesaplanamaz, her gün
+/// saklanır. Kuru bilinmeyen kalem varken YAZILMAZ: eksik toplam yanıltır.
+model NetVarlikKaydi {
+  gun      DateTime @id @db.Date
+  varlikTl Decimal  @db.Decimal(14, 2)
+  borcTl   Decimal  @db.Decimal(14, 2)
+  netTl    Decimal  @db.Decimal(14, 2)
+
+  @@map("net_varlik_kaydi")
+}
+
 /// Son bilinen kur — canlı kaynak düşerse bu gösterilir (zamanıyla).
 model PriceQuote {
   unit      WalletUnit @id
