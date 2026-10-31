@@ -931,11 +931,13 @@ model WalletDebt {
 model WalletDebtPayment {
   id String @id @default(cuid())
 
-  debtId String
-  debt   WalletDebt @relation(fields: [debtId], references: [id], onDelete: Cascade)
-  date   DateTime   @db.Date
-  amount Decimal    @db.Decimal(14, 2)
-  note   String?
+  debtId  String
+  debt    WalletDebt @relation(fields: [debtId], references: [id], onDelete: Cascade)
+  date    DateTime   @db.Date
+  amount  Decimal    @db.Decimal(14, 2)
+  note    String?
+  /// Düşülen hesap: ödeme silinince iade için. Boşsa hesaba dokunulmamıştır.
+  hesapId String?
 
   createdAt DateTime @default(now())
 
@@ -960,6 +962,8 @@ model WalletFlow {
   category     String?
   note         String?
   isActive     Boolean         @default(true)
+  /// Düzenli kalem sonlandırıldı: bu aydan önceki aylar raporda korunur.
+  bitisGunu    DateTime?       @db.Date
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

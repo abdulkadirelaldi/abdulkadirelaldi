@@ -1,8 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { tutarOku } from '@/components/panel/cuzdan-bicim';
+import { fetchAylikRapor } from '@/server/services/cuzdan-rapor';
+
 import {
   addDebtPayment,
   aylikTutar,
+  deleteDebtPayment,
+  kalanTaksit,
   butceOzeti,
   fetchButceLimitleri,
   fetchCuzdan,
@@ -221,6 +226,8 @@ describe('fetchCuzdan', () => {
           },
         ]),
       },
+      walletDebtPayment: { findMany: vi.fn().mockResolvedValue([]) },
+      walletOdeme: { findMany: vi.fn().mockResolvedValue([]) },
     }) as never;
 
   it('⚠️ kuru olmayan kalem toplama GİRMEZ ve sayılır; Decimal sızmaz', async () => {
@@ -243,12 +250,22 @@ describe('addDebtPayment', () => {
     const update = vi.fn();
     const tx = {
       walletDebt: {
-        findUnique: vi.fn().mockResolvedValue({ remainingAmount: decimal(kalan) }),
+        findUnique: vi.fn().mockResolvedValue({ remainingAmount: decimal(kalan), unit: 'TRY' }),
         update,
       },
       walletDebtPayment: { create: vi.fn() },
+      walletAccount: {
+        findUnique: vi
+          .fn()
+          .mockResolvedValue({ unit: 'TRY', balance: decimal('500.00'), isArchived: false }),
+        update: vi.fn(),
+      },
     };
-    return { client: { $transaction: (fn: (t: typeof tx) => unknown) => fn(tx) } as never, update };
+    return {
+      client: { $transaction: (fn: (t: typeof tx) => unknown) => fn(tx) } as never,
+      update,
+      tx,
+    };
   };
 
   it('ödeme kalanı düşürür', async () => {
@@ -262,14 +279,137 @@ describe('addDebtPayment', () => {
     expect(update.mock.calls[0]?.[0].data).toEqual({ remainingAmount: '750.00', isClosed: false });
   });
 
-  it('kalandan büyük ödeme sıfırlar ve borcu KAPATIR (eksi borç yok)', async () => {
-    const { client } = istemci('100.00');
-    expect(
-      await addDebtPayment(
+  it('⚠️ kalan borçtan fazlası reddedilir: yanlış rakam borcu kapatmaz', async () => {
+    const { client, update } = istemci('100.00');
+    await expect(
+      addDebtPayment(
         { debtId: 'ckabcdefghijklmnopqrstuv', date: '2026-10-30', amount: '150.00' },
         client,
       ),
+    ).rejects.toThrow('kalan borçtan fazla');
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  it('tam kalan ödenince borç kapanır', async () => {
+    const { client } = istemci('100.00');
+    expect(
+      await addDebtPayment(
+        { debtId: 'ckabcdefghijklmnopqrstuv', date: '2026-10-30', amount: '100.00' },
+        client,
+      ),
     ).toEqual({ remainingAmount: '0.00', isClosed: true });
+  });
+
+  it('hesap seçilirse hesaptan düşer ve ödemeye yazılır; yetmezse hiçbir şey olmaz', async () => {
+    const CID = 'ckabcdefghijklmnopqrstuv';
+    const { client, tx } = istemci('1000.00');
+    await addDebtPayment(
+      { debtId: CID, date: '2026-10-30', amount: '200.00', hesapId: CID },
+      client,
+    );
+    expect(tx.walletAccount.update.mock.calls[0]?.[0].data).toEqual({ balance: '300.00' });
+    expect(tx.walletDebtPayment.create.mock.calls[0]?.[0].data.hesapId).toBe(CID);
+
+    const ikinci = istemci('1000.00');
+    await expect(
+      addDebtPayment(
+        { debtId: CID, date: '2026-10-30', amount: '600.00', hesapId: CID },
+        ikinci.client,
+      ),
+    ).rejects.toThrow('yeterli bakiye');
+    expect(ikinci.tx.walletDebtPayment.create).not.toHaveBeenCalled();
+  });
+});
+
+describe('deleteDebtPayment (2026-11-01)', () => {
+  const kurulum = (
+    odeme: Record<string, unknown>,
+    onay: Record<string, unknown> | null = null,
+    kalan = '0.00',
+  ) => {
+    const tx = {
+      walletDebtPayment: { findUnique: vi.fn().mockResolvedValue(odeme), delete: vi.fn() },
+      walletOdeme: { findFirst: vi.fn().mockResolvedValue(onay), delete: vi.fn() },
+      walletAccount: {
+        findUnique: vi.fn().mockResolvedValue({ balance: decimal('100.00') }),
+        update: vi.fn(),
+      },
+      walletDebt: {
+        findUnique: vi.fn().mockResolvedValue({
+          remainingAmount: decimal(kalan),
+          totalAmount: decimal('1000.00'),
+        }),
+        update: vi.fn(),
+      },
+    };
+    return { tx, client: { $transaction: (f: (t: typeof tx) => unknown) => f(tx) } as never };
+  };
+  const odeme = {
+    id: 'o1',
+    debtId: 'd1',
+    amount: decimal('250.00'),
+    date: new Date('2026-10-30T00:00:00Z'),
+    hesapId: 'h1',
+  };
+
+  it('hesaba iade eder, kalanı geri ekler, kapanan borcu açar', async () => {
+    const { tx, client } = kurulum(odeme);
+    await deleteDebtPayment('o1', client);
+    expect(tx.walletAccount.update.mock.calls[0]?.[0]).toMatchObject({
+      where: { id: 'h1' },
+      data: { balance: '350.00' },
+    });
+    expect(tx.walletDebt.update.mock.calls[0]?.[0].data).toEqual({
+      remainingAmount: '250.00',
+      isClosed: false,
+    });
+    expect(tx.walletDebtPayment.delete).toHaveBeenCalledWith({ where: { id: 'o1' } });
+  });
+
+  it('⚠️ aylık onay da silinir: o ay yeniden sorulur; eski kayıtta hesap onaydan okunur', async () => {
+    const { tx, client } = kurulum({ ...odeme, hesapId: null }, { id: 'y1', hesapId: 'h2' });
+    await deleteDebtPayment('o1', client);
+    expect(tx.walletAccount.update.mock.calls[0]?.[0].where).toEqual({ id: 'h2' });
+    expect(tx.walletOdeme.delete).toHaveBeenCalledWith({ where: { id: 'y1' } });
+  });
+
+  it('hesapsız ödemede hesaba dokunulmaz; kalan toplamı geçmez', async () => {
+    const { tx, client } = kurulum({ ...odeme, hesapId: null }, null, '900.00');
+    await deleteDebtPayment('o1', client);
+    expect(tx.walletAccount.update).not.toHaveBeenCalled();
+    expect(tx.walletDebt.update.mock.calls[0]?.[0].data.remainingAmount).toBe('1000.00');
+  });
+
+  it('ödeme yoksa anlaşılır hata', async () => {
+    const { client } = kurulum(null as never);
+    await expect(deleteDebtPayment('o1', client)).rejects.toThrow('bulunamadı');
+  });
+});
+
+describe('kalanTaksit (2026-11-01)', () => {
+  it.each([
+    ['1000.00', '5000.00', '0.00', false, '1000.00'],
+    ['1000.00', '5000.00', '400.00', false, '600.00'],
+    ['1000.00', '5000.00', '1000.00', false, '0.00'],
+    ['1000.00', '5000.00', '1500.00', false, '0.00'],
+    ['1000.00', '300.00', '0.00', false, '300.00'],
+    ['1000.00', '5000.00', '0.00', true, '0.00'],
+    [null, '5000.00', '0.00', false, '0.00'],
+  ] as const)('%s / kalan %s / ödenen %s / atlandı %s → %s', (a, k, o, at, sonuc) => {
+    expect(kalanTaksit(a, k, o, at)).toBe(sonuc);
+  });
+});
+
+describe('tutarOku · altın (2026-11-01)', () => {
+  it('⚠️ altında nokta ondalıktır, binlik değil; üç ondalık sessizce büyümez', () => {
+    expect(tutarOku('2.125', 'GOLD_GRAM')).toBeNull();
+    expect(tutarOku('2,125', 'GOLD_GRAM')).toBeNull();
+    expect(tutarOku('2.13', 'GOLD_GRAM')).toBe('2.13');
+    expect(tutarOku('2,5', 'GOLD_GRAM')).toBe('2.5');
+  });
+  it('parada binlik davranışı aynı', () => {
+    expect(tutarOku('2.125', 'TRY')).toBe('2125');
+    expect(tutarOku('2.125')).toBe('2125');
   });
 });
 
@@ -361,6 +501,8 @@ describe('tek seferlik kalemler — yalnızca KENDİ aylarında (2026-10-30)', (
             akis('ikramiye', 'INCOME', 'ONCE', '5000.00', new Date('2026-10-01T00:00:00Z')),
           ]),
       },
+      walletDebtPayment: { findMany: vi.fn().mockResolvedValue([]) },
+      walletOdeme: { findMany: vi.fn().mockResolvedValue([]) },
     }) as never;
 
   it('bu ayın tek seferlikleri hesaba girer, geçen ayınki girmez', async () => {
@@ -372,6 +514,101 @@ describe('tek seferlik kalemler — yalnızca KENDİ aylarında (2026-10-30)', (
     // yeniden eskiye
     expect(c.harcamalar.map((h) => h.id)).toEqual(['kahve', 'market']);
     expect(c.gelirler.map((g) => g.id)).toEqual(['maas', 'ikramiye']);
+  });
+});
+
+describe('ay sonunda kalan: Cüzdan ve rapor AYNI sayı (2026-11-01)', () => {
+  const tarih = (g: string) => new Date(`${g}T00:00:00Z`);
+  const akis = (
+    id: string,
+    kind: string,
+    frequency: string,
+    amount: string,
+    date: Date | null,
+  ) => ({
+    id,
+    kind,
+    name: id,
+    counterparty: null,
+    unit: 'TRY',
+    amount: decimal(amount),
+    frequency,
+    day: 5,
+    date,
+    category: null,
+    note: null,
+    isActive: true,
+    bitisGunu: null,
+    createdAt: tarih('2026-01-01'),
+  });
+  const borclar = [
+    {
+      id: 'b1',
+      name: 'Kredi',
+      lender: null,
+      unit: 'TRY',
+      totalAmount: decimal('9000.00'),
+      remainingAmount: decimal('4000.00'),
+      monthlyPayment: decimal('1000.00'),
+      paymentDay: 15,
+      endDate: null,
+      note: null,
+      isClosed: false,
+    },
+    {
+      id: 'b2',
+      name: 'Atlanan',
+      lender: null,
+      unit: 'TRY',
+      totalAmount: decimal('9000.00'),
+      remainingAmount: decimal('4000.00'),
+      monthlyPayment: decimal('700.00'),
+      paymentDay: 15,
+      endDate: null,
+      note: null,
+      isClosed: false,
+    },
+  ];
+  const client = {
+    walletAccount: { findMany: vi.fn().mockResolvedValue([]) },
+    walletDebt: { findMany: vi.fn().mockResolvedValue(borclar) },
+    walletFlow: {
+      findMany: vi
+        .fn()
+        .mockResolvedValue([
+          akis('maas', 'INCOME', 'MONTHLY', '30000.00', null),
+          akis('kira', 'EXPENSE', 'MONTHLY', '8000.00', null),
+          akis('dergi', 'EXPENSE', 'MONTHLY', '100.00', null),
+          akis('market', 'EXPENSE', 'ONCE', '500.00', tarih('2026-10-12')),
+        ]),
+    },
+    walletDebtPayment: {
+      findMany: vi.fn().mockResolvedValue([
+        {
+          debtId: 'b1',
+          date: tarih('2026-10-02'),
+          amount: decimal('400.00'),
+          debt: { unit: 'TRY' },
+        },
+      ]),
+    },
+    walletOdeme: {
+      findMany: vi.fn().mockResolvedValue([
+        { kaynakTur: 'AKIS', kaynakId: 'dergi', donem: '2026-10', durum: 'ATLANDI' },
+        { kaynakTur: 'BORC', kaynakId: 'b2', donem: '2026-10', durum: 'ATLANDI' },
+      ]),
+    },
+    netVarlikKaydi: { findMany: vi.fn().mockResolvedValue([]) },
+  } as never;
+  const kur: KurDurumu = { kurlar: {}, guncellendi: null, bayat: false };
+
+  it('atlanan girmez, kısmi ödeme ikiye sayılmaz, sonuç eşit', async () => {
+    const c = await fetchCuzdan(client, '2026-10-30', kur);
+    const r = await fetchAylikRapor('2026-10', client, kur, '2026-10-30');
+    // 30000 − 8000 − 500 − (400 ödenen + 600 kalan taksit)
+    expect(c.ozet.aylikKalanTl).toBe('20500.00');
+    expect(r.ozet.kalanTl).toBe(c.ozet.aylikKalanTl);
+    expect(c.ozet.harcananTl).toBe('500.00');
   });
 });
 
