@@ -58,6 +58,7 @@ export const BASELINE_SECURITY_HEADERS: Readonly<Record<string, string>> = Objec
  * yeteneklerin hiçbirine ihtiyaç yok (§1.2 kapsam dışı listesi), bu yüzden
  * hepsi kapatılır. Bir özellik gerektiğinde buraya açıkça eklenir — tek istisna
  * `publickey-credentials-get=(self)` (Face ID ile giriş).
+ * `screen-wake-lock=(self)` (antrenmanda ekran açık kalsın).
  */
 export const PERMISSIONS_POLICY = [
   'accelerometer=()',
@@ -76,7 +77,7 @@ export const PERMISSIONS_POLICY = [
   // sitenin çerçevesi bu siteye ait passkey'i isteyemez. `()` iken giriş
   // sayfasında WebAuthn tarayıcıda kapalıydı (e2e ile ölçüldü).
   'publickey-credentials-get=(self)',
-  'screen-wake-lock=()',
+  'screen-wake-lock=(self)',
   'usb=()',
   'xr-spatial-tracking=()',
 ].join(', ');

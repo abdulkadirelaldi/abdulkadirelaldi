@@ -61,6 +61,8 @@ export interface HabitDto {
   order: number;
   isActive: boolean;
   isArchived: boolean;
+  /** Kayıttan kendiliğinden işaretlenme kaynağı; `null` → elle. */
+  otoKaynak: 'SU' | 'SPOR' | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -75,6 +77,7 @@ const HABIT_SELECT = {
   order: true,
   isActive: true,
   isArchived: true,
+  otoKaynak: true,
   createdAt: true,
   updatedAt: true,
 } as const;
@@ -91,6 +94,7 @@ interface HabitRow {
   isArchived: boolean;
   createdAt: Date;
   updatedAt: Date;
+  otoKaynak?: string | null;
 }
 
 interface HabitLogRow {
@@ -122,6 +126,7 @@ export interface HabitClient {
         icon: string | null;
         order: number;
         isActive: boolean;
+        otoKaynak: string | null;
       };
       select: typeof HABIT_SELECT;
     }): Promise<HabitRow>;
@@ -154,6 +159,7 @@ function toDto(row: HabitRow): HabitDto {
     order: row.order,
     isActive: row.isActive,
     isArchived: row.isArchived,
+    otoKaynak: (row.otoKaynak ?? null) as HabitDto['otoKaynak'],
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -433,6 +439,7 @@ export async function createHabit(
       icon: input.icon?.trim() ? input.icon : null,
       order: input.order,
       isActive: input.isActive,
+      otoKaynak: input.otoKaynak ?? null,
     },
     select: HABIT_SELECT,
   });
@@ -464,6 +471,7 @@ export async function updateHabit(
       ...(fields.color !== undefined ? { color: fields.color } : {}),
       ...(fields.icon !== undefined ? { icon: fields.icon?.trim() ? fields.icon : null } : {}),
       ...(fields.isActive !== undefined ? { isActive: fields.isActive } : {}),
+      ...(fields.otoKaynak !== undefined ? { otoKaynak: fields.otoKaynak } : {}),
     },
     select: HABIT_SELECT,
   });
@@ -486,13 +494,51 @@ export async function archiveHabit(
 }
 
 /**
- * Haftanın her günü için TAMAMLANAN alışkanlık oranı (0–1), `days` sırasıyla.
- * Bugün ve Hayat'taki hafta görünümleri okur. Alışkanlık yoksa hepsi 0. SAF.
+ * Bu gün gerçekten gerekli mi: haftada 3 günlük alışkanlık, hedef hâlâ kalan günlere
+ * sığıyorsa o gün "eksik" sayılmaz. Her gün olanlar her zaman gereklidir. SAF.
  */
-export function gunOranlari(hafta: Pick<HabitWeekDto, 'days' | 'habits'>): number[] {
+export function gunGerekliMi(haftaHedefi: number, oncekiTamam: number, gunSirasi: number): boolean {
+  return haftaHedefi - oncekiTamam >= 7 - gunSirasi;
+}
+
+type HaftaGorunumu = Pick<HabitWeekDto, 'days' | 'habits'>;
+
+/** Bir günün gerekli ve tamamlanan alışkanlık sayısı. SAF. */
+function gunSayimi(hafta: HaftaGorunumu, i: number): { gerekli: number; tamam: number } {
+  let gerekli = 0;
+  let tamam = 0;
+  for (const h of hafta.habits) {
+    const bitti = (g: number) => isDayComplete(h.counts[g] ?? 0, h.targetPerDay);
+    const onceki = Array.from({ length: i }, (_, g) => g).filter(bitti).length;
+    if (bitti(i)) {
+      tamam += 1;
+      gerekli += 1;
+    } else if (gunGerekliMi(h.targetPerWeek ?? 7, onceki, i)) gerekli += 1;
+  }
+  return { gerekli, tamam };
+}
+
+/**
+ * Haftanın her günü için TAMAMLANAN alışkanlık oranı (0–1), `days` sırasıyla.
+ * Yalnızca o gün gerekli olanlar paydaya girer. Bugün ve Hayat'taki hafta
+ * görünümleri okur. Alışkanlık yoksa hepsi 0. SAF.
+ */
+export function gunOranlari(hafta: HaftaGorunumu): number[] {
   return hafta.days.map((_, i) => {
-    if (hafta.habits.length === 0) return 0;
-    const tamam = hafta.habits.filter((h) => isDayComplete(h.counts[i] ?? 0, h.targetPerDay));
-    return tamam.length / hafta.habits.length;
+    const { gerekli, tamam } = gunSayimi(hafta, i);
+    return gerekli === 0 ? 0 : tamam / gerekli;
   });
+}
+
+/** Geçen günlerin tamamlanma yüzdesi; gerekli gün yoksa `null`. SAF. */
+export function haftaYuzdesi(hafta: HaftaGorunumu, bugun: AppDay): number | null {
+  let gerekli = 0;
+  let tamam = 0;
+  hafta.days.forEach((gun, i) => {
+    if (gun > bugun) return;
+    const g = gunSayimi(hafta, i);
+    gerekli += g.gerekli;
+    tamam += g.tamam;
+  });
+  return gerekli === 0 ? null : Math.round((tamam / gerekli) * 100);
 }

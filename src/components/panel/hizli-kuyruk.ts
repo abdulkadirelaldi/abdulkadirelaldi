@@ -6,7 +6,7 @@
  * `kuyrugaEkle` `false` döner. Saf çekirdek (`kuyruguIsle`) depodan bağımsız.
  */
 
-export type KuyrukTuru = 'harcama' | 'kilo' | 'su';
+export type KuyrukTuru = 'harcama' | 'kilo' | 'su' | 'uyku';
 
 export interface KuyrukKaydi {
   id: string;

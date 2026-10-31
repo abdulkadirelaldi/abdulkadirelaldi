@@ -54,6 +54,7 @@ function baslangic(kayit: HabitDto | undefined): AliskanlikFormGirdi {
     color: kayit.color ?? undefined,
     icon: kayit.icon ?? '',
     isActive: kayit.isActive,
+    otoKaynak: kayit.otoKaynak ?? undefined,
   };
 }
 
@@ -67,7 +68,7 @@ export function AliskanlikFormu({ kayit }: { kayit?: HabitDto }) {
   const kaydet = async (degerler: AliskanlikFormGirdi) => {
     const sonuc = kayit
       ? await updateHabitAction({
-          ...bosaltilanlariNullYap(degerler, kayit, ['targetPerDay', 'color']),
+          ...bosaltilanlariNullYap(degerler, kayit, ['targetPerDay', 'color', 'otoKaynak']),
           id: kayit.id,
         })
       : await createHabitAction(degerler);
@@ -215,6 +216,26 @@ export function AliskanlikFormu({ kayit }: { kayit?: HabitDto }) {
               )}
             </Alan>
           </div>
+
+          <Alan
+            id="otoKaynak"
+            etiket="Otomatik işaretle"
+            hata={errors.otoKaynak?.message}
+            yardim="Kayıt girildiğinde alışkanlık kendiliğinden işaretlenir."
+          >
+            {(b) => (
+              <select
+                id="otoKaynak"
+                className="focus-ring rounded-input border-line-strong bg-elevated text-primary h-11 border px-3 text-sm"
+                {...b}
+                {...register('otoKaynak', { setValueAs: (v) => v || undefined })}
+              >
+                <option value="">Hayır, elle</option>
+                <option value="SU">Su kaydından</option>
+                <option value="SPOR">Biten antrenmandan</option>
+              </select>
+            )}
+          </Alan>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <Alan

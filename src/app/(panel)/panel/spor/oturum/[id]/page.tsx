@@ -8,6 +8,7 @@ import { Topbar } from '@/components/panel/topbar';
 import { buttonClasses } from '@/components/ui/button';
 import { cuidSchema } from '@/lib/schemas/common';
 import { fetchSession, type OturumDto } from '@/server/services/antrenman-oturumu';
+import { fetchExercises } from '@/server/services/exercise';
 
 export const metadata: Metadata = {
   title: 'Antrenman',
@@ -23,13 +24,24 @@ export default async function OturumPage({ params }: { params: Promise<{ id: str
   if (!cuidSchema.safeParse(id).success) notFound();
   const oturum = await fetchSession(id);
   if (!oturum) notFound();
+  const egzersizler = oturum.finishedAt
+    ? []
+    : (await fetchExercises({ page: 1, perPage: 100, isArchived: false })).items.map((e) => ({
+        id: e.id,
+        name: e.name,
+        kas: e.muscleGroup,
+      }));
 
   return (
     <>
       <Topbar title={oturum.gunAdi ?? 'Antrenman'} />
       <main id="panel-icerik" className="flex-1 px-4 py-4 lg:p-6">
         <div className="mx-auto flex max-w-xl flex-col gap-4">
-          {oturum.finishedAt ? <Ozet oturum={oturum} /> : <OturumEkrani oturum={oturum} />}
+          {oturum.finishedAt ? (
+            <Ozet oturum={oturum} />
+          ) : (
+            <OturumEkrani oturum={oturum} egzersizler={egzersizler} />
+          )}
         </div>
       </main>
     </>

@@ -1,15 +1,33 @@
 'use client';
 
-import { CheckCircle2, ChevronLeft, Droplet, Plus, Scale, Sparkles, Wallet, X } from 'lucide-react';
+import {
+  CheckCircle2,
+  ChevronLeft,
+  Droplet,
+  Moon,
+  Plus,
+  Scale,
+  Sparkles,
+  Wallet,
+  X,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { tutarOku } from '@/components/panel/cuzdan-bicim';
+import { gunAy } from '@/components/panel/hayat-bicim';
 import { istanbulGunu, kuyrugaEkle, type KuyrukTuru } from '@/components/panel/hizli-kuyruk';
 import { HARCAMA_KATEGORILERI } from '@/lib/schemas/wallet';
 import { cn } from '@/lib/utils/cn';
-import { hizliHarcamaAction, hizliKiloAction, hizliSuAction } from '@/server/actions/hizli-ekle';
+import {
+  hizliHarcamaAction,
+  hizliKiloAction,
+  hizliSuAction,
+  hizliUykuAction,
+  sonKiloAction,
+  suGeriAlAction,
+} from '@/server/actions/hizli-ekle';
 
 /**
  * HIZLI EKLEME (2026-10-30) — her panel ekranında, alt sekme çubuğunun
@@ -17,13 +35,14 @@ import { hizliHarcamaAction, hizliKiloAction, hizliSuAction } from '@/server/act
  * Alttan açılan sayfa (iOS "sheet"); ESC ya da dışına dokunmak kapatır.
  */
 
-type Gorunum = 'menu' | 'harcama' | 'kilo' | 'su';
+type Gorunum = 'menu' | 'harcama' | 'kilo' | 'su' | 'uyku';
 
 export function HizliEkle() {
   const router = useRouter();
   const [acik, setAcik] = useState(false);
   const [gorunum, setGorunum] = useState<Gorunum>('menu');
   const [basari, setBasari] = useState<string | null>(null);
+  const [geriAl, setGeriAl] = useState<(() => Promise<void>) | null>(null);
 
   const kapat = () => {
     setAcik(false);
@@ -56,7 +75,7 @@ export function HizliEkle() {
   useEffect(() => {
     const url = new URL(window.location.href);
     const ekle = url.searchParams.get('ekle');
-    if (ekle !== 'harcama' && ekle !== 'su' && ekle !== 'kilo') return;
+    if (ekle !== 'harcama' && ekle !== 'su' && ekle !== 'kilo' && ekle !== 'uyku') return;
     setGorunum(ekle);
     setAcik(true);
     url.searchParams.delete('ekle');
@@ -88,10 +107,12 @@ export function HizliEkle() {
    * sayfayı tam yeniden yükletir ve kullanıcı "Bağlantı yok" ekranına düşerdi
    * (e2e ile yakalandı).
    */
-  const tamam = (mesaj: string, yenile = true) => {
+  const tamam = (mesaj: string, yenile = true, geriAl?: () => Promise<void>) => {
     setBasari(mesaj);
+    setGeriAl(geriAl ? () => geriAl : null);
     if (yenile) router.refresh();
-    window.setTimeout(kapat, 1100);
+    // Geri alınabiliyorsa düğmeye dokunacak kadar açık kalır.
+    window.setTimeout(kapat, geriAl ? 3500 : 1100);
   };
 
   return (
@@ -161,9 +182,23 @@ export function HizliEkle() {
               >
                 <CheckCircle2 className="size-10" aria-hidden="true" />
                 {basari}
+                {geriAl && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const is = geriAl;
+                      setGeriAl(null);
+                      setBasari('Geri alındı');
+                      void is();
+                    }}
+                    className="focus-ring bg-elevated text-body mt-1 min-h-11 rounded-full px-5 text-sm font-medium"
+                  >
+                    Geri al
+                  </button>
+                )}
               </p>
             ) : gorunum === 'menu' ? (
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-2 gap-3">
                 <Kutu
                   ikon={Wallet}
                   renk="from-emerald-500 to-teal-500"
@@ -185,10 +220,17 @@ export function HizliEkle() {
                 >
                   Su
                 </Kutu>
+                <Kutu
+                  ikon={Moon}
+                  renk="from-indigo-500 to-violet-600"
+                  onClick={() => setGorunum('uyku')}
+                >
+                  Uyku
+                </Kutu>
                 <Link
                   href="/panel/hayat"
                   onClick={kapat}
-                  className="focus-ring bg-elevated text-body col-span-3 flex min-h-12 items-center justify-center gap-2 rounded-2xl text-sm font-medium"
+                  className="focus-ring bg-elevated text-body col-span-2 flex min-h-12 items-center justify-center gap-2 rounded-2xl text-sm font-medium"
                 >
                   <Sparkles className="text-accent size-4" aria-hidden="true" />
                   Bugünün alışkanlıklarını işaretle
@@ -198,6 +240,8 @@ export function HizliEkle() {
               <HarcamaFormu tamam={tamam} />
             ) : gorunum === 'kilo' ? (
               <KiloFormu tamam={tamam} />
+            ) : gorunum === 'uyku' ? (
+              <UykuFormu tamam={tamam} />
             ) : (
               <SuFormu tamam={tamam} />
             )}
@@ -213,6 +257,7 @@ const BASLIK: Record<Gorunum, string> = {
   harcama: 'Harcama',
   kilo: 'Bugünkü kilo',
   su: 'Su içtim',
+  uyku: 'Dün geceki uyku',
 };
 
 function Kutu({
@@ -399,8 +444,17 @@ function KiloFormu({ tamam }: { tamam: (m: string, yenile?: boolean) => void }) 
   const ref = useRef<HTMLInputElement>(null);
   const [bekliyor, setBekliyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
+  const [son, setSon] = useState<{ kg: string; gun: string; bugun: boolean } | null>(null);
 
   useEffect(() => ref.current?.focus(), []);
+  useEffect(() => {
+    // Yalnızca bilgi: alınamazsa form yine çalışır.
+    sonKiloAction()
+      .then((sonuc) => {
+        if (sonuc.ok) setSon(sonuc.data);
+      })
+      .catch(() => undefined);
+  }, []);
 
   return (
     <form
@@ -442,25 +496,56 @@ function KiloFormu({ tamam }: { tamam: (m: string, yenile?: boolean) => void }) 
         />
         <span className="text-muted absolute top-1/2 right-4 -translate-y-1/2 text-xl">kg</span>
       </div>
+      {son && (
+        <p className={cn('tabular text-sm', son.bugun ? 'text-warning' : 'text-muted')}>
+          {son.bugun
+            ? `Bugünkü ${son.kg.replace('.', ',')} kg kaydı değişecek.`
+            : `Son tartı: ${son.kg.replace('.', ',')} kg · ${gunAy(son.gun)}`}
+        </p>
+      )}
       <Hata metin={hata} />
       <Gonder bekliyor={bekliyor}>Kaydet</Gonder>
     </form>
   );
 }
 
-function SuFormu({ tamam }: { tamam: (m: string, yenile?: boolean) => void }) {
+/** Geri alma: kayıt sunucuya ulaştıysa çıkarılır; sonuç sayfayı yeniler. */
+async function suyuGeriAl(ml: number, gun: string, yenile: () => void): Promise<void> {
+  try {
+    await suGeriAlAction({ ml, gun });
+  } finally {
+    yenile();
+  }
+}
+
+const SU_SECENEKLERI = [
+  { ml: 250, etiket: '1 bardak' },
+  { ml: 330, etiket: 'Kutu' },
+  { ml: 500, etiket: 'Küçük şişe' },
+  { ml: 750, etiket: 'Büyük şişe' },
+] as const;
+
+function SuFormu({
+  tamam,
+}: {
+  tamam: (m: string, yenile?: boolean, geriAl?: () => Promise<void>) => void;
+}) {
+  const router = useRouter();
   const [bekliyor, setBekliyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
 
   const ekle = async (ml: number) => {
     setBekliyor(true);
     setHata(null);
-    const girdi = { ml, gun: istanbulGunu(), anahtar: crypto.randomUUID() };
+    const gun = istanbulGunu();
+    const girdi = { ml, gun, anahtar: crypto.randomUUID() };
     try {
       const sonuc = await hizliSuAction(girdi);
       if (sonuc.ok) {
         const toplam = ((sonuc.data.waterMl ?? 0) / 1000).toLocaleString('tr-TR');
-        tamam(`+${ml} ml · bugün ${toplam} L`);
+        tamam(`+${ml} ml · bugün ${toplam} L`, true, () =>
+          suyuGeriAl(ml, gun, () => router.refresh()),
+        );
       } else setHata(sonuc.error.message);
     } catch {
       kuyrugaAl('su', girdi, tamam, setHata);
@@ -472,21 +557,128 @@ function SuFormu({ tamam }: { tamam: (m: string, yenile?: boolean) => void }) {
   return (
     <div className="flex flex-col gap-3">
       <div className="grid grid-cols-2 gap-3">
-        {[250, 500].map((ml) => (
+        {SU_SECENEKLERI.map(({ ml, etiket }) => (
           <button
             key={ml}
             type="button"
             disabled={bekliyor}
             onClick={() => void ekle(ml)}
-            className="focus-ring bg-elevated text-primary flex flex-col items-center gap-1 rounded-2xl py-5 transition-transform active:scale-95 disabled:opacity-60"
+            className="focus-ring bg-elevated text-primary flex flex-col items-center gap-1 rounded-2xl py-4 transition-transform active:scale-95 disabled:opacity-60"
           >
             <Droplet className="size-6 text-sky-500" aria-hidden="true" />
             <span className="tabular text-xl font-semibold">+{ml} ml</span>
-            <span className="text-muted text-xs">{ml === 250 ? '1 bardak' : '1 şişe'}</span>
+            <span className="text-muted text-xs">{etiket}</span>
           </button>
         ))}
       </div>
       <Hata metin={hata} />
+    </div>
+  );
+}
+
+function UykuFormu({ tamam }: { tamam: (m: string, yenile?: boolean) => void }) {
+  const [saat, setSaat] = useState('');
+  const [bekliyor, setBekliyor] = useState(false);
+  const [hata, setHata] = useState<string | null>(null);
+
+  const kaydet = async (metin: string) => {
+    const deger = metin.trim().replace(',', '.');
+    if (!/^\d{1,2}(\.\d)?$/.test(deger) || Number(deger) < 1 || Number(deger) > 16) {
+      return setHata('Uyku geçersiz — örn. 7,5');
+    }
+    setBekliyor(true);
+    setHata(null);
+    const girdi = { saat: deger, gun: istanbulGunu(), anahtar: crypto.randomUUID() };
+    try {
+      const sonuc = await hizliUykuAction(girdi);
+      if (sonuc.ok) tamam(`${deger.replace('.', ',')} saat kaydedildi`);
+      else setHata(sonuc.error.message);
+    } catch {
+      kuyrugaAl('uyku', girdi, tamam, setHata);
+    } finally {
+      setBekliyor(false);
+    }
+  };
+
+  return (
+    <form
+      className="flex flex-col gap-3"
+      onSubmit={(e) => {
+        e.preventDefault();
+        void kaydet(saat);
+      }}
+    >
+      <div className="grid grid-cols-4 gap-2">
+        {['6', '7', '8', '9'].map((s) => (
+          <button
+            key={s}
+            type="button"
+            disabled={bekliyor}
+            onClick={() => void kaydet(s)}
+            className="focus-ring bg-elevated text-primary tabular min-h-12 rounded-2xl font-semibold disabled:opacity-60"
+          >
+            {s} sa
+          </button>
+        ))}
+      </div>
+      <label className="sr-only" htmlFor="hizli-uyku">
+        Uyku (saat)
+      </label>
+      <input
+        id="hizli-uyku"
+        value={saat}
+        onChange={(e) => setSaat(e.target.value)}
+        inputMode="decimal"
+        autoComplete="off"
+        placeholder="Başka: 7,5"
+        className={GIRDI}
+      />
+      <Hata metin={hata} />
+      <Gonder bekliyor={bekliyor}>Kaydet</Gonder>
+    </form>
+  );
+}
+
+/** Bugün ekranında tek dokunuşla su: bağlantı yoksa kuyruğa düşer. */
+export function SuHizliDugmesi() {
+  const router = useRouter();
+  const [mesaj, setMesaj] = useState<string | null>(null);
+  const [bekliyor, setBekliyor] = useState(false);
+
+  const ekle = async () => {
+    setBekliyor(true);
+    setMesaj(null);
+    const girdi = { ml: 250, gun: istanbulGunu(), anahtar: crypto.randomUUID() };
+    try {
+      const sonuc = await hizliSuAction(girdi);
+      if (sonuc.ok) router.refresh();
+      else setMesaj(sonuc.error.message);
+    } catch {
+      setMesaj(
+        kuyrugaEkle('su', girdi)
+          ? 'Bağlantı yok — gelince eklenecek'
+          : 'Kaydedilemedi, yeniden dene',
+      );
+    } finally {
+      setBekliyor(false);
+    }
+  };
+
+  return (
+    <div className="flex flex-col gap-1">
+      <button
+        type="button"
+        disabled={bekliyor}
+        onClick={() => void ekle()}
+        className="focus-ring tabular min-h-10 self-start rounded-full bg-sky-500/12 px-3.5 text-sm font-medium text-sky-700 disabled:opacity-60 dark:text-sky-300"
+      >
+        {bekliyor ? 'Ekleniyor…' : '+250 ml su'}
+      </button>
+      {mesaj && (
+        <span role="status" className="text-muted text-xs">
+          {mesaj}
+        </span>
+      )}
     </div>
   );
 }

@@ -1,7 +1,18 @@
 import type { MoveHabitInput } from '@/lib/schemas';
 import { db } from '@/server/db';
 
-import { addAppDays, appDayToDate, appToday, dateToAppDay, type AppDay } from './_shared';
+import { SU_HEDEFI_ML } from '@/lib/hedefler';
+
+import {
+  addAppDays,
+  appDayToDate,
+  appToday,
+  dateToAppDay,
+  differenceInAppDays,
+  startOfAppWeek,
+  type AppDay,
+} from './_shared';
+import { gunGerekliMi, isDayComplete } from './habit';
 
 /**
  * HAYAT · GÜNLÜK LİSTE VE RAPOR (2026-10-29).
@@ -40,6 +51,10 @@ export interface GunlukAliskanlikDto {
   targetPerDay: number | null;
   count: number;
   durum: GunDurumu;
+  /** Bugün gerekli mi: haftalık hedef kalan günlere sığıyorsa değil. */
+  gerekli: boolean;
+  /** Her gün değilse "bu hafta 1/3" için; her gün olanlarda `null`. */
+  hafta: { tamam: number; hedef: number } | null;
 }
 
 export interface GunOzeti {
@@ -82,7 +97,14 @@ export async function fetchHabitDay(
   const gunSonu = appDayToDate(addAppDays(gun, 1));
   const habits = await client.habit.findMany({
     where: { ...AKTIF, createdAt: { lt: gunSonu } },
-    select: { id: true, name: true, icon: true, color: true, targetPerDay: true },
+    select: {
+      id: true,
+      name: true,
+      icon: true,
+      color: true,
+      targetPerDay: true,
+      targetPerWeek: true,
+    },
     orderBy: SIRA,
   });
   const logs = await client.habitLog.findMany({
@@ -91,10 +113,36 @@ export async function fetchHabitDay(
   });
   const kayit = new Map(logs.map((l) => [l.habitId, l]));
 
-  const items = habits.map((h) => {
+  // Haftalık hedefli olanlar için haftanın önceki günleri.
+  const haftalik = habits.filter((h) => (h.targetPerWeek ?? 7) < 7);
+  const pazartesi = startOfAppWeek(gun);
+  const oncekiLoglar =
+    haftalik.length > 0 && pazartesi < gun
+      ? await client.habitLog.findMany({
+          where: {
+            habitId: { in: haftalik.map((h) => h.id) },
+            date: { gte: appDayToDate(pazartesi), lt: appDayToDate(gun) },
+          },
+          select: { habitId: true, count: true, missed: true },
+        })
+      : [];
+  const gunSirasi = differenceInAppDays(pazartesi, gun);
+
+  const items = habits.map(({ targetPerWeek, ...h }) => {
     const l = kayit.get(h.id);
     const count = l?.count ?? 0;
-    return { ...h, count, durum: gunDurumu(count, l?.missed ?? false, h.targetPerDay) };
+    const durum = gunDurumu(count, l?.missed ?? false, h.targetPerDay);
+    const hedef = targetPerWeek ?? 7;
+    const onceki = oncekiLoglar.filter(
+      (o) => o.habitId === h.id && isDayComplete(o.count, h.targetPerDay),
+    ).length;
+    return {
+      ...h,
+      count,
+      durum,
+      gerekli: durum === 'YAPILDI' || gunGerekliMi(hedef, onceki, gunSirasi),
+      hafta: hedef < 7 ? { tamam: onceki + (durum === 'YAPILDI' ? 1 : 0), hedef } : null,
+    };
   });
 
   return { gun, bugun, items, ozet: ozetle(items.map((i) => i.durum)) };
@@ -192,16 +240,51 @@ export const ONERILEN_ALISKANLIKLAR: ReadonlyArray<{
   name: string;
   icon: string;
   targetPerDay?: number;
+  otoKaynak?: 'SU' | 'SPOR';
 }> = [
   { name: 'Diş fırçala', icon: '🪥', targetPerDay: 2 },
   { name: 'Yüze buz uygula', icon: '🧊' },
-  { name: 'Spor / egzersiz', icon: '🏋️' },
-  { name: 'Su iç (3,5 L)', icon: '💧', targetPerDay: 7 },
+  { name: 'Spor / egzersiz', icon: '🏋️', otoKaynak: 'SPOR' },
+  { name: 'Su iç (3,5 L)', icon: '💧', targetPerDay: 7, otoKaynak: 'SU' },
   { name: 'Kod yaz', icon: '💻' },
   { name: 'Kitap oku', icon: '📖' },
   { name: 'İngilizce çalış', icon: '🇬🇧' },
   { name: 'Ders çalış', icon: '🎓' },
 ];
+
+/**
+ * Kayıttan kendiliğinden işaretler. Spor: antrenman bitince tam. Su: içilen orana göre
+ * (3,5 L hedefi, 7 bardaklık alışkanlıkta 1,5 L = 3 bardak). Elle girilenin altına inmez;
+ * `kesin` geri almada kullanılır.
+ */
+export async function otomatikIsaretle(
+  kaynak: 'SU' | 'SPOR',
+  gun: AppDay,
+  suMl: number | null = null,
+  kesin = false,
+  client: GunClient = db,
+): Promise<void> {
+  const habits = await client.habit.findMany({
+    where: { ...AKTIF, otoKaynak: kaynak },
+    select: { id: true, targetPerDay: true },
+  });
+  const date = appDayToDate(gun);
+  for (const h of habits) {
+    const hedef = h.targetPerDay ?? 1;
+    const yeni =
+      kaynak === 'SPOR' ? hedef : Math.min(hedef, Math.floor(((suMl ?? 0) * hedef) / SU_HEDEFI_ML));
+    const mevcut = await client.habitLog.findUnique({
+      where: { habitId_date: { habitId: h.id, date } },
+      select: { count: true },
+    });
+    if (!kesin && (mevcut?.count ?? 0) >= yeni) continue;
+    await client.habitLog.upsert({
+      where: { habitId_date: { habitId: h.id, date } },
+      create: { habitId: h.id, date, count: yeni, missed: false },
+      update: { count: yeni, missed: false },
+    });
+  }
+}
 
 /** Hiç (arşivsiz) alışkanlık yokken önerilen listeyi ekler; varsa dokunmaz. */
 export async function createSuggestedHabits(client: GunClient = db): Promise<number> {
@@ -212,6 +295,7 @@ export async function createSuggestedHabits(client: GunClient = db): Promise<num
       name: a.name,
       icon: a.icon,
       targetPerDay: a.targetPerDay ?? null,
+      otoKaynak: a.otoKaynak ?? null,
       order: (i + 1) * 10,
     })),
   });

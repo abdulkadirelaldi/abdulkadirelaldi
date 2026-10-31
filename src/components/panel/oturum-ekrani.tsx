@@ -15,7 +15,12 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState, useTransition } from 'react';
 
 import { finishSessionAction } from '@/server/actions/antrenman-oturumu';
-import { createWorkoutSetAction } from '@/server/actions/workout-set';
+import {
+  createWorkoutSetAction,
+  deleteWorkoutSetAction,
+  updateWorkoutSetAction,
+} from '@/server/actions/workout-set';
+import type { MuscleGroup } from '@/types';
 import type {
   OturumDto,
   OturumHareketiDto,
@@ -39,7 +44,7 @@ function sure(saniye: number): string {
 }
 
 /** "40.5" ↔ 40,5 — ekranda virgül, sunucuya nokta (decimalSchema). */
-const kgYaz = (kg: string) => kg.replace('.', ',');
+const kgYaz = (kg: string) => String(Number(kg)).replace('.', ',');
 const kgOku = (metin: string) => metin.replace(',', '.').trim();
 
 /**
@@ -52,12 +57,19 @@ const kgOku = (metin: string) => metin.replace(',', '.').trim();
  * Sayfa kapanıp açılırsa kaldığı yerden: yapılan setler sunucudan geliyor,
  * dinlenme sayacı ise yalnızca ekranda (kaybolması zararsız).
  */
-export function OturumEkrani({ oturum }: { oturum: OturumDto }) {
+export function OturumEkrani({
+  oturum,
+  egzersizler,
+}: {
+  oturum: OturumDto;
+  egzersizler: { id: string; name: string; kas: MuscleGroup }[];
+}) {
   const router = useRouter();
   const [hareketler, setHareketler] = useState<OturumHareketiDto[]>(oturum.hareketler);
   const ilkEksik = hareketler.findIndex((h) => h.yapilanSetler.length < h.sets);
   const [sira, setSira] = useState(ilkEksik === -1 ? 0 : ilkEksik);
-  const [simdi, setSimdi] = useState(() => Date.now());
+  // Sunucu ve istemci aynı saniyeyi çizmeyebilir: ilk çizim başlangıçtan, saat etkide.
+  const [simdi, setSimdi] = useState(() => new Date(oturum.startedAt).getTime());
   const [dinlenmeBitis, setDinlenmeBitis] = useState<number | null>(null);
   const [bitirOnay, setBitirOnay] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
@@ -65,8 +77,36 @@ export function OturumEkrani({ oturum }: { oturum: OturumDto }) {
   const [bekliyor, basla] = useTransition();
 
   useEffect(() => {
+    setSimdi(Date.now());
     const t = window.setInterval(() => setSimdi(Date.now()), 1000);
     return () => window.clearInterval(t);
+  }, []);
+
+  // Onay yapışkan kalmasın: vazgeçilen dokunuş dakikalar sonra antrenmanı bitirmesin.
+  useEffect(() => {
+    if (!bitirOnay) return;
+    const t = setTimeout(() => setBitirOnay(false), 5000);
+    return () => clearTimeout(t);
+  }, [bitirOnay]);
+
+  // Set ve dinlenme arasında ekran kapanmasın; destek yoksa sessizce geçilir.
+  useEffect(() => {
+    let kilit: WakeLockSentinel | null = null;
+    const al = () => {
+      if (document.visibilityState !== 'visible' || !('wakeLock' in navigator)) return;
+      navigator.wakeLock
+        .request('screen')
+        .then((k) => {
+          kilit = k;
+        })
+        .catch(() => undefined);
+    };
+    al();
+    document.addEventListener('visibilitychange', al);
+    return () => {
+      document.removeEventListener('visibilitychange', al);
+      void kilit?.release().catch(() => undefined);
+    };
   }, []);
 
   const hareket = hareketler[sira];
@@ -86,7 +126,8 @@ export function OturumEkrani({ oturum }: { oturum: OturumDto }) {
   }
 
   const setEkle = (reps: number, kg: string) => {
-    const setNo = hareket.yapilanSetler.length + 1;
+    // Silinen setten sonra numara çakışmasın.
+    const setNo = Math.max(0, ...hareket.yapilanSetler.map((s) => s.setNo)) + 1;
     setHata(null);
     basla(async () => {
       let sonuc;
@@ -115,7 +156,7 @@ export function OturumEkrani({ oturum }: { oturum: OturumDto }) {
         i === sira ? { ...h, yapilanSetler: [...h.yapilanSetler, yeni] } : h,
       );
       setHareketler(guncel);
-      const tamam = guncel[sira]!.yapilanSetler.length >= hareket.sets;
+      const tamam = guncel[sira]!.yapilanSetler.length === hareket.sets;
       if (hareket.restSec > 0) setDinlenmeBitis(Date.now() + hareket.restSec * 1000);
       if (tamam) {
         const sonraki = guncel.findIndex((h, i) => i > sira && h.yapilanSetler.length < h.sets);
@@ -124,32 +165,67 @@ export function OturumEkrani({ oturum }: { oturum: OturumDto }) {
     });
   };
 
-  // Onay yapışkan kalmasın: vazgeçilen dokunuş dakikalar sonra antrenmanı bitirmesin.
-  useEffect(() => {
-    if (!bitirOnay) return;
-    const t = setTimeout(() => setBitirOnay(false), 5000);
-    return () => clearTimeout(t);
-  }, [bitirOnay]);
+  const setDuzelt = (setId: string, reps: number, kg: string) => {
+    setHata(null);
+    basla(async () => {
+      try {
+        const sonuc = await updateWorkoutSetAction({ id: setId, reps, weightKg: kg || null });
+        if (!sonuc.ok) return setHata(sonuc.error.message);
+        setHareketler((liste) =>
+          liste.map((h) => ({
+            ...h,
+            yapilanSetler: h.yapilanSetler.map((s) =>
+              s.id === setId ? { ...s, reps, weightKg: kg || null } : s,
+            ),
+          })),
+        );
+      } catch {
+        setHata('Bağlantı kurulamadı. Yeniden dene.');
+      }
+    });
+  };
 
-  // Set ve dinlenme arasında ekran kapanmasın; destek yoksa sessizce geçilir.
-  useEffect(() => {
-    let kilit: WakeLockSentinel | null = null;
-    const al = () => {
-      if (document.visibilityState !== 'visible' || !('wakeLock' in navigator)) return;
-      navigator.wakeLock
-        .request('screen')
-        .then((k) => {
-          kilit = k;
-        })
-        .catch(() => undefined);
-    };
-    al();
-    document.addEventListener('visibilitychange', al);
-    return () => {
-      document.removeEventListener('visibilitychange', al);
-      void kilit?.release().catch(() => undefined);
-    };
-  }, []);
+  const setSil = (setId: string) => {
+    setHata(null);
+    basla(async () => {
+      try {
+        const sonuc = await deleteWorkoutSetAction({ id: setId });
+        if (!sonuc.ok) return setHata(sonuc.error.message);
+        setHareketler((liste) =>
+          liste.map((h) => ({
+            ...h,
+            yapilanSetler: h.yapilanSetler.filter((s) => s.id !== setId),
+          })),
+        );
+      } catch {
+        setHata('Bağlantı kurulamadı. Yeniden dene.');
+      }
+    });
+  };
+
+  const hareketEkle = (id: string) => {
+    const e = egzersizler.find((x) => x.id === id);
+    if (!e) return;
+    const mevcut = hareketler.findIndex((h) => h.exerciseId === id);
+    if (mevcut !== -1) return setSira(mevcut);
+    setHareketler([
+      ...hareketler,
+      {
+        id: `ek-${e.id}`,
+        exerciseId: e.id,
+        ad: e.name,
+        ipucu: null,
+        kas: e.kas,
+        sets: 3,
+        reps: e.kas === 'CARDIO' ? '20-30' : '8-12',
+        restSec: 90,
+        yapilanSetler: [],
+        oncekiSet: null,
+        oneri: null,
+      },
+    ]);
+    setSira(hareketler.length);
+  };
 
   const bitir = () => {
     if (!hepsiBitti && !bitirOnay) {
@@ -225,7 +301,27 @@ export function OturumEkrani({ oturum }: { oturum: OturumDto }) {
           hareket={hareket}
           bekliyor={bekliyor}
           onSet={setEkle}
+          onDuzelt={setDuzelt}
+          onSil={setSil}
         />
+      )}
+
+      {!dinleniyor && (
+        <label className="text-muted flex items-center gap-2 text-sm">
+          <span className="shrink-0">Hareket ekle</span>
+          <select
+            value=""
+            onChange={(o) => hareketEkle(o.target.value)}
+            className="focus-ring rounded-input border-line-strong bg-elevated text-primary h-11 min-w-0 flex-1 border px-3 text-sm"
+          >
+            <option value="">Yedek makine, fazladan hareket…</option>
+            {egzersizler.map((e) => (
+              <option key={e.id} value={e.id}>
+                {e.name}
+              </option>
+            ))}
+          </select>
+        </label>
       )}
 
       {rekor && (
@@ -291,10 +387,14 @@ function HareketKarti({
   hareket,
   bekliyor,
   onSet,
+  onDuzelt,
+  onSil,
 }: {
   hareket: OturumHareketiDto;
   bekliyor: boolean;
   onSet: (reps: number, kg: string) => void;
+  onDuzelt: (setId: string, reps: number, kg: string) => void;
+  onSil: (setId: string) => void;
 }) {
   const kardiyo = hareket.kas === 'CARDIO';
   const son = hareket.yapilanSetler.at(-1) ?? null;
@@ -302,12 +402,17 @@ function HareketKarti({
   const oneri = son ?? hareket.oneri ?? hareket.oncekiSet;
   const [reps, setReps] = useState(oneri?.reps ?? ilkSayi(hareket.reps));
   const [kg, setKg] = useState(oneri?.weightKg ? kgYaz(oneri.weightKg) : '');
-  const tamam = hareket.yapilanSetler.length >= hareket.sets;
-  const kgAdim = (fark: number) => {
+  const [fazladan, setFazladan] = useState(false);
+  const [duzenlenen, setDuzenlenen] = useState<string | null>(null);
+  const tamam = hareket.yapilanSetler.length >= hareket.sets && !fazladan;
+  // Öneriyle aynı adım: 20 kg altında 1, üstünde 2,5 kg.
+  const kgAdim = (yon: 1 | -1) => {
     const mevcut = Number(kgOku(kg) || '0');
-    const yeni = Math.max(0, Math.round((mevcut + fark) * 10) / 10);
+    const adim = (yon > 0 ? mevcut >= 20 : mevcut > 20) ? 2.5 : 1;
+    const yeni = Math.max(0, Math.round((mevcut + yon * adim) * 10) / 10);
     setKg(yeni === 0 ? '' : kgYaz(String(yeni)));
   };
+  const seciliSet = hareket.yapilanSetler.find((s) => s.id === duzenlenen) ?? null;
   const kgGecerli = kg === '' || /^\d{1,4}([.,]\d{1,2})?$/.test(kg.trim());
 
   const oncekiMetni = useMemo(() => {
@@ -344,24 +449,61 @@ function HareketKarti({
 
       {/* Yapılan setler */}
       <ol className="flex flex-wrap gap-1.5">
-        {Array.from({ length: hareket.sets }, (_, i) => {
+        {Array.from({ length: Math.max(hareket.sets, hareket.yapilanSetler.length) }, (_, i) => {
           const s = hareket.yapilanSetler[i];
+          const metin = s
+            ? `${s.weightKg ? `${kgYaz(s.weightKg)}×` : ''}${s.reps}`
+            : `Set ${i + 1}`;
           return (
-            <li
-              key={i}
-              className={cn(
-                'tabular rounded-md border px-2 py-1 text-xs',
-                s ? 'border-success/40 bg-success/10 text-primary' : 'border-line text-muted',
+            <li key={s?.id ?? i}>
+              {s ? (
+                <button
+                  type="button"
+                  aria-label={`Set ${i + 1}, ${metin}: düzelt`}
+                  aria-expanded={duzenlenen === s.id}
+                  onClick={() => setDuzenlenen(duzenlenen === s.id ? null : s.id)}
+                  className={cn(
+                    'focus-ring tabular min-h-10 rounded-lg border px-3 text-sm',
+                    duzenlenen === s.id
+                      ? 'border-accent bg-accent/12 text-primary'
+                      : 'border-success/40 bg-success/10 text-primary',
+                  )}
+                >
+                  {metin}
+                </button>
+              ) : (
+                <span className="border-line text-muted tabular flex min-h-10 items-center rounded-lg border px-3 text-sm">
+                  {metin}
+                </span>
               )}
-            >
-              {s ? `${s.weightKg ? `${kgYaz(s.weightKg)}×` : ''}${s.reps}` : `Set ${i + 1}`}
             </li>
           );
         })}
       </ol>
 
+      {seciliSet && (
+        <SetDuzeltici
+          key={seciliSet.id}
+          set={seciliSet}
+          kardiyo={kardiyo}
+          bekliyor={bekliyor}
+          kapat={() => setDuzenlenen(null)}
+          onDuzelt={onDuzelt}
+          onSil={onSil}
+        />
+      )}
+
       {tamam ? (
-        <p className="text-success text-sm font-medium">Bu hareket tamam ✓ — sıradakine geç.</p>
+        <div className="flex flex-col gap-2">
+          <p className="text-success text-sm font-medium">Bu hareket tamam ✓ — sıradakine geç.</p>
+          <button
+            type="button"
+            onClick={() => setFazladan(true)}
+            className="focus-ring border-line text-body min-h-11 rounded-full border px-4 text-sm font-medium"
+          >
+            Fazladan set ekle
+          </button>
+        </div>
       ) : (
         <>
           <div className={cn('grid gap-3', kardiyo ? 'grid-cols-1' : 'grid-cols-2')}>
@@ -370,14 +512,25 @@ function HareketKarti({
               deger={String(reps)}
               onEksi={() => setReps((r) => Math.max(1, r - 1))}
               onArti={() => setReps((r) => Math.min(1000, r + 1))}
+              giris={
+                <input
+                  inputMode="numeric"
+                  value={reps || ''}
+                  onChange={(o) =>
+                    setReps(Math.min(1000, Number(o.target.value.replace(/\D/g, '')) || 0))
+                  }
+                  aria-label={kardiyo ? 'Dakika' : 'Tekrar'}
+                  className="tabular text-primary w-full bg-transparent text-center text-2xl font-semibold outline-none"
+                />
+              }
             />
             {!kardiyo && (
               <Sayac
                 etiket="Kg"
                 deger={kg}
                 bos="—"
-                onEksi={() => kgAdim(-2.5)}
-                onArti={() => kgAdim(2.5)}
+                onEksi={() => kgAdim(-1)}
+                onArti={() => kgAdim(1)}
                 giris={
                   <input
                     inputMode="decimal"
@@ -394,7 +547,7 @@ function HareketKarti({
           {!kgGecerli && <p className="text-danger text-xs">Ağırlık örn. 40 ya da 42,5 olmalı.</p>}
           <button
             type="button"
-            disabled={bekliyor || !kgGecerli}
+            disabled={bekliyor || !kgGecerli || reps < 1}
             onClick={() => onSet(reps, kgOku(kg))}
             className="focus-ring bg-accent hover:bg-accent-hover flex h-14 items-center justify-center gap-2 rounded-full text-base font-semibold text-white transition-[transform,background-color] active:scale-[0.98] disabled:opacity-50"
           >
@@ -404,6 +557,85 @@ function HareketKarti({
         </>
       )}
     </section>
+  );
+}
+
+/** Yapılan seti düzeltir ya da siler: rekor sunucuda yeniden hesaplanır. */
+function SetDuzeltici({
+  set,
+  kardiyo,
+  bekliyor,
+  kapat,
+  onDuzelt,
+  onSil,
+}: {
+  set: OturumSetiDto;
+  kardiyo: boolean;
+  bekliyor: boolean;
+  kapat: () => void;
+  onDuzelt: (setId: string, reps: number, kg: string) => void;
+  onSil: (setId: string) => void;
+}) {
+  const [reps, setReps] = useState(String(set.reps));
+  const [kg, setKg] = useState(set.weightKg ? kgYaz(set.weightKg) : '');
+  const [silOnay, setSilOnay] = useState(false);
+  const gecerli = Number(reps) >= 1 && (kg === '' || /^\d{1,4}([.,]\d{1,2})?$/.test(kg.trim()));
+  const ALAN =
+    'focus-ring rounded-input border-line-strong bg-elevated text-primary tabular h-11 w-full border px-3';
+
+  return (
+    <div className="bg-canvas border-line flex flex-col gap-3 rounded-2xl border p-3">
+      <div className="grid grid-cols-2 gap-3">
+        <label className="text-muted flex flex-col gap-1 text-xs">
+          {kardiyo ? 'Dakika' : 'Tekrar'}
+          <input
+            inputMode="numeric"
+            value={reps}
+            onChange={(o) => setReps(o.target.value.replace(/\D/g, ''))}
+            className={ALAN}
+          />
+        </label>
+        {!kardiyo && (
+          <label className="text-muted flex flex-col gap-1 text-xs">
+            Kg
+            <input
+              inputMode="decimal"
+              value={kg}
+              onChange={(o) => setKg(o.target.value)}
+              className={ALAN}
+            />
+          </label>
+        )}
+      </div>
+      <div className="flex gap-2">
+        <button
+          type="button"
+          disabled={bekliyor || !gecerli}
+          onClick={() => {
+            onDuzelt(set.id, Number(reps), kgOku(kg));
+            kapat();
+          }}
+          className="focus-ring bg-accent min-h-11 flex-1 rounded-full text-sm font-semibold text-white disabled:opacity-50"
+        >
+          Kaydet
+        </button>
+        <button
+          type="button"
+          disabled={bekliyor}
+          onClick={() => {
+            if (!silOnay) return setSilOnay(true);
+            onSil(set.id);
+            kapat();
+          }}
+          className={cn(
+            'focus-ring min-h-11 rounded-full border px-4 text-sm font-medium',
+            silOnay ? 'border-danger bg-danger text-white' : 'border-line text-danger',
+          )}
+        >
+          {silOnay ? 'Emin misin?' : 'Seti sil'}
+        </button>
+      </div>
+    </div>
   );
 }
 

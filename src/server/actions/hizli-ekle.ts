@@ -14,7 +14,8 @@ import {
 } from '@/server/services/_shared';
 import { birKez } from '@/server/services/islem-anahtari';
 import { createWalletFlow, kuyrukGunu } from '@/server/services/cuzdan';
-import { gununKaydinaEkle } from '@/server/services/health-log';
+import { otomatikIsaretle } from '@/server/services/habit-gun';
+import { gununKaydinaEkle, sonTarti } from '@/server/services/health-log';
 
 import { currentActorId, toFailure, unauthorized } from './_shared';
 
@@ -33,6 +34,13 @@ const kiloSchema = z.object({
   ...gunAlani,
 });
 const suSchema = z.object({ ml: z.number().int().min(50).max(2000), ...gunAlani });
+const uykuSchema = z.object({
+  saat: decimalSchema(2, 1).refine((v) => Number(v) >= 1 && Number(v) <= 16, {
+    error: 'Uyku 1–16 saat arasında olmalı.',
+  }),
+  ...gunAlani,
+});
+const suGeriAlSchema = z.object({ ml: suSchema.shape.ml, gun: dayDateSchema.optional() });
 const harcamaSchema = hizliHarcamaSchema.extend(gunAlani);
 
 export async function hizliHarcamaAction(raw: unknown): Promise<ApiResponse<{ id: string }>> {
@@ -116,6 +124,10 @@ export async function hizliSuAction(
       gununKaydinaEkle(kuyrukGunu(parsed.data.gun, appToday()), { suMl: parsed.data.ml }, tx),
     );
     if (sonuc === null) return ok({ waterMl: null });
+    // Alışkanlık işaretlenemese de su kaydı başarılıdır.
+    await otomatikIsaretle('SU', kuyrukGunu(parsed.data.gun, appToday()), sonuc.waterMl).catch(
+      () => undefined,
+    );
     await writeAuditLog(
       {
         actorId,
@@ -129,5 +141,80 @@ export async function hizliSuAction(
     return ok({ waterMl: sonuc.waterMl });
   } catch (error) {
     return toFailure('hizli:su', error);
+  }
+}
+
+/** Son su eklemesini geri alır: kayıt sıfırın altına inmez, alışkanlık yeniden hesaplanır. */
+export async function suGeriAlAction(
+  raw: unknown,
+): Promise<ApiResponse<{ waterMl: number | null }>> {
+  const actorId = await currentActorId();
+  if (!actorId) return unauthorized();
+  const parsed = parseOrFail(suGeriAlSchema, raw);
+  if (!parsed.ok) return parsed.failure;
+
+  try {
+    const gun = kuyrukGunu(parsed.data.gun, appToday());
+    const sonuc = await gununKaydinaEkle(gun, { suMl: -parsed.data.ml });
+    await otomatikIsaretle('SU', gun, sonuc.waterMl, true).catch(() => undefined);
+    await writeAuditLog(
+      {
+        actorId,
+        action: 'UPDATE',
+        entity: 'HealthLog',
+        entityId: sonuc.id,
+        diff: { alanlar: ['waterMl'], geriAlma: true },
+      },
+      db,
+    );
+    return ok({ waterMl: sonuc.waterMl });
+  } catch (error) {
+    return toFailure('hizli:su-geri', error);
+  }
+}
+
+export async function hizliUykuAction(raw: unknown): Promise<ApiResponse<{ sleepHours: string }>> {
+  const actorId = await currentActorId();
+  if (!actorId) return unauthorized();
+  const parsed = parseOrFail(uykuSchema, raw);
+  if (!parsed.ok) return parsed.failure;
+
+  try {
+    const sonuc = await birKez(parsed.data.anahtar, (tx) =>
+      gununKaydinaEkle(
+        kuyrukGunu(parsed.data.gun, appToday()),
+        { sleepHours: parsed.data.saat },
+        tx,
+      ),
+    );
+    if (sonuc === null) return ok({ sleepHours: parsed.data.saat });
+    await writeAuditLog(
+      {
+        actorId,
+        action: 'UPDATE',
+        entity: 'HealthLog',
+        entityId: sonuc.id,
+        diff: { alanlar: ['sleepHours'] },
+      },
+      db,
+    );
+    return ok({ sleepHours: parsed.data.saat });
+  } catch (error) {
+    return toFailure('hizli:uyku', error);
+  }
+}
+
+/** Kilo formundaki "son tartı" bilgisi: yalnızca okur. */
+export async function sonKiloAction(): Promise<
+  ApiResponse<{ kg: string; gun: string; bugun: boolean } | null>
+> {
+  const actorId = await currentActorId();
+  if (!actorId) return unauthorized();
+
+  try {
+    const son = await sonTarti();
+    return ok(son && { ...son, bugun: son.gun === appToday() });
+  } catch (error) {
+    return toFailure('hizli:son-kilo', error);
   }
 }

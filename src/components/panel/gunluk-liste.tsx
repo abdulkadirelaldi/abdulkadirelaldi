@@ -143,7 +143,12 @@ function Satir({
               </span>
             )}
             {durumMetni && <span>{durumMetni}</span>}
-            {!seri && !durumMetni && <span>Bekliyor</span>}
+            {item.hafta && (
+              <span className="tabular">
+                Bu hafta {item.hafta.tamam}/{item.hafta.hedef}
+              </span>
+            )}
+            {!seri && !durumMetni && !item.hafta && <span>Bekliyor</span>}
           </span>
         </div>
 

@@ -190,7 +190,7 @@ async function planGirdisi(userId: string, simdi: Date): Promise<PlanGirdisi> {
       };
     }),
     kalanAliskanliklar: gunluk.items
-      .filter((i) => i.durum !== 'YAPILDI' && i.durum !== 'YAPILMADI')
+      .filter((i) => i.gerekli && i.durum !== 'YAPILDI' && i.durum !== 'YAPILMADI')
       .map((i) => i.name),
     suMl: saglik?.waterMl ?? null,
     odenen: await fetchIslenenBorclar(),

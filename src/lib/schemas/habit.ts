@@ -35,6 +35,7 @@ const habitBase = z.object({
   /** Günlük listedeki sıra — küçük önce (2026-10-29). */
   order: z.number().int().min(0).max(999).default(0),
   isActive: z.boolean().default(true),
+  otoKaynak: z.enum(['SU', 'SPOR']).optional(),
 });
 
 export const createHabitSchema = habitBase;
@@ -48,6 +49,7 @@ export const createHabitSchema = habitBase;
 export const updateHabitSchema = partialWithoutDefaults(habitBase).extend({
   id: cuidSchema,
   targetPerDay: habitBase.shape.targetPerDay.nullable(),
+  otoKaynak: habitBase.shape.otoKaynak.nullable(),
   color: habitBase.shape.color.nullable(),
   icon: habitBase.shape.icon.nullable(),
 });

@@ -12,7 +12,12 @@ import {
   type GonderimSonucu,
   type KuyrukKaydi,
 } from '@/components/panel/hizli-kuyruk';
-import { hizliHarcamaAction, hizliKiloAction, hizliSuAction } from '@/server/actions/hizli-ekle';
+import {
+  hizliHarcamaAction,
+  hizliKiloAction,
+  hizliSuAction,
+  hizliUykuAction,
+} from '@/server/actions/hizli-ekle';
 
 async function gonder(k: KuyrukKaydi): Promise<GonderimSonucu> {
   const sonuc =
@@ -20,7 +25,9 @@ async function gonder(k: KuyrukKaydi): Promise<GonderimSonucu> {
       ? await hizliHarcamaAction(k.girdi)
       : k.tur === 'kilo'
         ? await hizliKiloAction(k.girdi)
-        : await hizliSuAction(k.girdi);
+        : k.tur === 'uyku'
+          ? await hizliUykuAction(k.girdi)
+          : await hizliSuAction(k.girdi);
   if (sonuc.ok) return 'tamam';
   // Oturum düşmüş / geçici sunucu hatası: kayıt silinmez, sonra yeniden denenir.
   return sonuc.error.code === 'VALIDATION_ERROR' ? 'red' : 'bekle';

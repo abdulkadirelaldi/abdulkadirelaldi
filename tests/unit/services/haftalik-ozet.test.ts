@@ -1,12 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { planla, type PlanGirdisi } from '@/server/services/bildirim';
-import {
-  aliskanlikYuzdesi,
-  fetchHaftalikOzet,
-  ozetMetni,
-  type HaftalikOzet,
-} from '@/server/services/haftalik-ozet';
+import { haftaYuzdesi } from '@/server/services/habit';
+import { fetchHaftalikOzet, ozetMetni, type HaftalikOzet } from '@/server/services/haftalik-ozet';
 
 import { decimal, decimalKalanlar } from '../_helpers/decimal-kacak';
 
@@ -22,14 +18,14 @@ const GUNLER = [
 const hafta = (counts: number[]) =>
   ({ days: GUNLER, today: '2026-10-28', habits: [{ counts, targetPerDay: null }] }) as never;
 
-describe('aliskanlikYuzdesi (2026-11-01)', () => {
+describe('haftaYuzdesi (2026-11-01)', () => {
   it('⚠️ gelecek günler oranı düşürmez', () => {
-    expect(aliskanlikYuzdesi(hafta([1, 0, 1, 0, 0, 0, 0]), '2026-10-28')).toBe(67);
-    expect(aliskanlikYuzdesi(hafta([1, 0, 1, 0, 0, 0, 0]), '2026-11-01')).toBe(29);
+    expect(haftaYuzdesi(hafta([1, 0, 1, 0, 0, 0, 0]), '2026-10-28')).toBe(67);
+    expect(haftaYuzdesi(hafta([1, 0, 1, 0, 0, 0, 0]), '2026-11-01')).toBe(29);
   });
   it('alışkanlık yoksa ya da hafta gelmediyse yok', () => {
-    expect(aliskanlikYuzdesi({ days: GUNLER, habits: [] }, '2026-10-28')).toBeNull();
-    expect(aliskanlikYuzdesi(hafta([0, 0, 0, 0, 0, 0, 0]), '2026-10-01')).toBeNull();
+    expect(haftaYuzdesi({ days: GUNLER, habits: [] }, '2026-10-28')).toBeNull();
+    expect(haftaYuzdesi(hafta([0, 0, 0, 0, 0, 0, 0]), '2026-10-01')).toBeNull();
   });
 });
 

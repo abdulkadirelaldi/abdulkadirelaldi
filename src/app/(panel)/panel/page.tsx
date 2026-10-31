@@ -19,6 +19,7 @@ import type { ReactNode } from 'react';
 
 import { miktarBicim } from '@/components/panel/cuzdan-bicim';
 import { GunlukListe } from '@/components/panel/gunluk-liste';
+import { SuHizliDugmesi } from '@/components/panel/hizli-ekle';
 import { OdemeOnay } from '@/components/panel/odeme-onay';
 import { paraBicim } from '@/components/panel/para-bicim';
 import { BaslatDugmesi } from '@/components/panel/spor-dugmeleri';
@@ -34,7 +35,7 @@ import {
 import { fetchContactMessages } from '@/server/services/contact-message';
 import { fetchCuzdan } from '@/server/services/cuzdan';
 import { fetchGoals } from '@/server/services/goal';
-import { fetchHabitWeek, gunOranlari, isDayComplete } from '@/server/services/habit';
+import { fetchHabitWeek, gunOranlari } from '@/server/services/habit';
 import { fetchHabitDay } from '@/server/services/habit-gun';
 import { fetchHealthTrend } from '@/server/services/health-log';
 import { fetchBekleyenOdemeler } from '@/server/services/odeme-onay';
@@ -100,11 +101,10 @@ export default async function BugunPage() {
   ]);
 
   // ── Halkalar ─────────────────────────────────────────────────────────────
-  const sira = aliskanlik.days.indexOf(bugun);
-  const aliskanlikToplam = aliskanlik.habits.length;
-  const aliskanlikTamam = aliskanlik.habits.filter((h) =>
-    isDayComplete(h.counts[sira] ?? 0, h.targetPerDay),
-  ).length;
+  // Haftalık hedefi kalan günlere sığan alışkanlık bugün "eksik" sayılmaz.
+  const gerekliBugun = gunluk.items.filter((i) => i.gerekli);
+  const aliskanlikToplam = gerekliBugun.length;
+  const aliskanlikTamam = gerekliBugun.filter((i) => i.durum === 'YAPILDI').length;
   const bugunKaydi = saglik.find((k) => k.date === bugun);
   const suMl = bugunKaydi?.waterMl ?? 0;
   const haftaHedefi = program.filter((g) => g.haftaGunu !== null).length || 5;
@@ -123,7 +123,9 @@ export default async function BugunPage() {
     sonKilo && kilolar.length > 1 ? sonKilo.kg - (kilolar[0]?.kg ?? sonKilo.kg) : null;
 
   // ── Kalan alışkanlıklar: işaretlenmemiş ya da eksik, ilk 4 ───────────────
-  const kalanlar = gunluk.items.filter((i) => i.durum === 'ISARETSIZ' || i.durum === 'EKSIK');
+  const kalanlar = gunluk.items
+    .filter((i) => i.durum === 'ISARETSIZ' || i.durum === 'EKSIK')
+    .sort((a, b) => Number(b.gerekli) - Number(a.gerekli));
   const seriMetinleri = Object.fromEntries(
     aliskanlik.habits
       .filter((h) => h.streak.value > 0)
@@ -188,6 +190,9 @@ export default async function BugunPage() {
                 {(suMl / 1000).toLocaleString('tr-TR')}
                 <span className="text-muted text-sm font-normal"> / 3,5 L</span>
               </HalkaSatiri>
+              <li>
+                <SuHizliDugmesi />
+              </li>
               <HalkaSatiri href="/panel/spor" renk="#f97316" etiket="Spor · bu hafta">
                 {haftaAntrenman}
                 <span className="text-muted text-sm font-normal"> / {haftaHedefi}</span>

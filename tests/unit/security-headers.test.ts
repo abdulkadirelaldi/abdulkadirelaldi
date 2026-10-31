@@ -70,6 +70,8 @@ describe('buildSecurityHeaders', () => {
     for (const capability of ['camera', 'microphone', 'geolocation', 'payment', 'usb']) {
       expect(policy).toContain(`${capability}=()`);
     }
+    // Antrenmanda ekran açık kalsın: yalnızca aynı köken.
+    expect(policy).toContain('screen-wake-lock=(self)');
   });
 
   it('§8.7 — X-Robots-Tag YALNIZCA panel yollarına eklenir', () => {
