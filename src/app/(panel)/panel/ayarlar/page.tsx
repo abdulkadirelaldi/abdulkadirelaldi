@@ -96,6 +96,9 @@ export default function AyarlarPage() {
                       ['cuzdan', 'Cüzdan'],
                       ['saglik', 'Sağlık'],
                       ['aliskanlik', 'Alışkanlık'],
+                      ['spor', 'Spor'],
+                      ['gunluk', 'Günlük'],
+                      ['hedef', 'Hedefler'],
                     ] as const
                   ).map(([tur, ad]) => (
                     <a

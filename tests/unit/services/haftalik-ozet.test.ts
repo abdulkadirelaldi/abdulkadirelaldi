@@ -107,7 +107,7 @@ describe('ozetMetni', () => {
           kilo: { son: '81.50', fark: null },
         }),
       ),
-    ).toBe('Alışkanlık %72 · 3 antrenman · 4.200 ₺ harcama · 81,50 kg');
+    ).toBe('Alışkanlık %72 · 3 antrenman · 4.200 ₺ harcama · 81,5 kg');
   });
   it('⚠️ veri yoksa boş bildirim üretmez', () => {
     expect(ozetMetni(ozet({}))).toBeNull();

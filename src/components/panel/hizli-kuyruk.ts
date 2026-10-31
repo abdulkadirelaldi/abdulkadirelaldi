@@ -6,6 +6,8 @@
  * `kuyrugaEkle` `false` döner. Saf çekirdek (`kuyruguIsle`) depodan bağımsız.
  */
 
+import { gunAy } from '@/components/panel/hayat-bicim';
+
 export type KuyrukTuru = 'harcama' | 'kilo' | 'su' | 'uyku';
 
 export interface KuyrukKaydi {
@@ -51,6 +53,17 @@ export function kuyrugaEkle(tur: KuyrukTuru, girdi: Record<string, unknown>): bo
 
 export const kuyruguYaz = yaz;
 
+/** Kaydın kullanıcıya gösterilen özeti: tutar ve gün. SAF. */
+export function kayitOzeti(k: KuyrukKaydi): string {
+  const g = k.girdi;
+  const gun = typeof g.gun === 'string' ? ` · ${gunAy(g.gun)}` : '';
+  const ondalik = (v: unknown) => String(v).replace('.', ',');
+  if (k.tur === 'harcama') return `${ondalik(g.tutar)} ₺ · ${String(g.ne ?? 'Harcama')}${gun}`;
+  if (k.tur === 'kilo') return `${ondalik(g.kg)} kg${gun}`;
+  if (k.tur === 'uyku') return `${ondalik(g.saat)} saat uyku${gun}`;
+  return `${String(g.ml)} ml su${gun}`;
+}
+
 /**
  * Sırayla gönderir; ilk `bekle`de durur (ağ yine yok). Dönen: kalanlar ve kaç
  * kaydın reddedildiği. Fırlatan gönderici `bekle` sayılır. SAF.
@@ -58,15 +71,15 @@ export const kuyruguYaz = yaz;
 export async function kuyruguIsle(
   kayitlar: readonly KuyrukKaydi[],
   gonder: (k: KuyrukKaydi) => Promise<GonderimSonucu>,
-): Promise<{ kalan: KuyrukKaydi[]; gonderilen: number; reddedilen: number }> {
+): Promise<{ kalan: KuyrukKaydi[]; gonderilen: number; reddedilen: KuyrukKaydi[] }> {
   let gonderilen = 0;
-  let reddedilen = 0;
+  const reddedilen: KuyrukKaydi[] = [];
   for (let i = 0; i < kayitlar.length; i += 1) {
     const kayit = kayitlar[i] as KuyrukKaydi;
     const sonuc = await gonder(kayit).catch((): GonderimSonucu => 'bekle');
     if (sonuc === 'bekle') return { kalan: kayitlar.slice(i), gonderilen, reddedilen };
     if (sonuc === 'tamam') gonderilen += 1;
-    else reddedilen += 1;
+    else reddedilen.push(kayit);
   }
   return { kalan: [], gonderilen, reddedilen };
 }

@@ -220,7 +220,8 @@ export default async function CuzdanRaporPage({ searchParams }: SayfaProps) {
             <section className="rounded-card border-line bg-surface flex flex-col gap-1 border p-4">
               <h3 className="text-primary text-base font-semibold">Net varlık geçmişi</h3>
               <p className="text-muted text-sm">
-                Kayıt tutulmaya başlandı; grafik birkaç gün içinde dolacak.
+                Henüz kayıt yok. Hesap ya da borç eklendiğinde her gün yazılır; kuru bilinmeyen
+                kalem varken o gün atlanır.
               </p>
             </section>
           ) : (

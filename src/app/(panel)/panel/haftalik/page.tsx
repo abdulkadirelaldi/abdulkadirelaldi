@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
-import { gunAy } from '@/components/panel/hayat-bicim';
+import { gunAy, HAFTA_GUNLERI_KISA } from '@/components/panel/hayat-bicim';
 import { paraBicim } from '@/components/panel/para-bicim';
 import { Topbar } from '@/components/panel/topbar';
 import { cn } from '@/lib/utils/cn';
@@ -14,8 +14,6 @@ export const metadata: Metadata = {
   title: 'Haftalık özet',
   robots: { index: false, follow: false, nocache: true },
 };
-
-const GUNLER = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
 
 type SayfaProps = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
@@ -84,8 +82,8 @@ export default async function HaftalikPage({ searchParams }: SayfaProps) {
               <ol className="mt-1 grid grid-cols-7 gap-1.5">
                 {o.aliskanlik.gunler.map((oran, i) => (
                   <li
-                    key={GUNLER[i]}
-                    aria-label={`${GUNLER[i]}: %${Math.round(oran * 100)}`}
+                    key={HAFTA_GUNLERI_KISA[i]}
+                    aria-label={`${HAFTA_GUNLERI_KISA[i]}: %${Math.round(oran * 100)}`}
                     className="flex flex-col items-center gap-1"
                   >
                     <span className="bg-elevated flex h-14 w-full items-end overflow-hidden rounded-md">
@@ -96,7 +94,7 @@ export default async function HaftalikPage({ searchParams }: SayfaProps) {
                         />
                       )}
                     </span>
-                    <span className="text-muted text-[10px]">{GUNLER[i]}</span>
+                    <span className="text-muted text-[10px]">{HAFTA_GUNLERI_KISA[i]}</span>
                   </li>
                 ))}
               </ol>
@@ -133,7 +131,7 @@ export default async function HaftalikPage({ searchParams }: SayfaProps) {
               ikon={<Scale className="size-4" aria-hidden="true" />}
               renk="from-rose-500 to-pink-500"
               baslik="Kilo"
-              deger={o.kilo.son ? `${o.kilo.son.replace('.', ',')} kg` : '—'}
+              deger={o.kilo.son ? `${String(Number(o.kilo.son)).replace('.', ',')} kg` : '—'}
               alt={
                 kiloFark === null
                   ? o.kilo.son

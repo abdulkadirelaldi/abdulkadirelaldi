@@ -92,7 +92,7 @@ export function ButceKarti({ satirlar }: { satirlar: ButceSatiri[] }) {
         <button
           type="button"
           onClick={() => setAcik(null)}
-          className="focus-ring text-muted rounded"
+          className="focus-ring text-muted min-h-10 rounded px-2"
         >
           Vazgeç
         </button>
@@ -101,7 +101,7 @@ export function ButceKarti({ satirlar }: { satirlar: ButceSatiri[] }) {
             type="button"
             disabled={bekliyor}
             onClick={() => void kaydet(kategori, null)}
-            className="focus-ring text-danger rounded"
+            className="focus-ring text-danger min-h-10 rounded px-2"
           >
             Limiti kaldır
           </button>
@@ -196,7 +196,7 @@ export function ButceKarti({ satirlar }: { satirlar: ButceSatiri[] }) {
               key={k}
               type="button"
               onClick={() => ac(k, null)}
-              className="focus-ring border-line text-body rounded-full border px-3 py-1 text-xs"
+              className="focus-ring border-line text-body min-h-10 rounded-full border px-3 text-xs"
             >
               {k}
             </button>

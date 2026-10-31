@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 
 import {
   istanbulGunu,
+  kayitOzeti,
   kuyruguIsle,
   type GonderimSonucu,
   type KuyrukKaydi,
@@ -18,7 +19,7 @@ const sirali = (...sonuclar: GonderimSonucu[]) => {
 describe('kuyruguIsle — çevrimdışı kuyruk (2026-10-31)', () => {
   it('hepsi giderse kuyruk boşalır', async () => {
     const s = await kuyruguIsle([kayit('a'), kayit('b')], sirali('tamam', 'tamam'));
-    expect(s).toEqual({ kalan: [], gonderilen: 2, reddedilen: 0 });
+    expect(s).toEqual({ kalan: [], gonderilen: 2, reddedilen: [] });
   });
 
   it('⚠️ ağ yine yoksa durur, kalanlar SIRAYLA korunur', async () => {
@@ -36,7 +37,9 @@ describe('kuyruguIsle — çevrimdışı kuyruk (2026-10-31)', () => {
 
   it('reddedilen kayıt kuyruğu tıkamaz', async () => {
     const s = await kuyruguIsle([kayit('a'), kayit('b')], sirali('red', 'tamam'));
-    expect(s).toEqual({ kalan: [], gonderilen: 1, reddedilen: 1 });
+    expect(s.kalan).toEqual([]);
+    expect(s.gonderilen).toBe(1);
+    expect(s.reddedilen).toHaveLength(1);
   });
 });
 
@@ -51,5 +54,21 @@ describe('günler', () => {
     expect(kuyrukGunu('2026-11-01', bugun)).toBe(bugun);
     expect(kuyrukGunu('2026-09-01', bugun)).toBe(bugun);
     expect(kuyrukGunu(undefined, bugun)).toBe(bugun);
+  });
+});
+
+describe('kayitOzeti (2026-11-01)', () => {
+  const k = (tur: KuyrukKaydi['tur'], girdi: Record<string, unknown>): KuyrukKaydi => ({
+    id: 'x',
+    tur,
+    girdi,
+  });
+  it('kaydı okunur yazar', () => {
+    expect(kayitOzeti(k('harcama', { tutar: '77.50', ne: 'Yemek', gun: '2026-10-30' }))).toBe(
+      '77,50 ₺ · Yemek · 30 Ekim',
+    );
+    expect(kayitOzeti(k('kilo', { kg: '82.5' }))).toBe('82,5 kg');
+    expect(kayitOzeti(k('su', { ml: 250 }))).toBe('250 ml su');
+    expect(kayitOzeti(k('uyku', { saat: '7.5' }))).toBe('7,5 saat uyku');
   });
 });

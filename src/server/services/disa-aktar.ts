@@ -4,14 +4,14 @@ import { dateToAppDay, toMeasureString } from './_shared';
 import { gunDurumu } from './habit-gun';
 
 /**
- * VERİYİ DIŞA AKTARMA (2026-10-31) — Cüzdan, Sağlık, Alışkanlık → CSV.
+ * VERİYİ DIŞA AKTARMA (2026-10-31) — Cüzdan, Sağlık, Alışkanlık, Spor, Günlük, Hedef → CSV.
  *
  * EXCEL TÜRKÇE İÇİN: UTF-8 BOM (yoksa ç/ğ/ş bozuk görünür), `;` ayırıcı ve
  * VİRGÜLLÜ ondalık — TR bölgesel ayarlı Excel çift tıklamada sütunları ve
  * sayıları doğru açar. Tutarlar metinden yazılır, sayıya çevrilmez (ADR-014/D).
  */
 
-export type DisaAktarTuru = 'cuzdan' | 'saglik' | 'aliskanlik';
+export type DisaAktarTuru = 'cuzdan' | 'saglik' | 'aliskanlik' | 'spor' | 'gunluk' | 'hedef';
 
 /** Tek hücre: `;`, tırnak ya da satır sonu varsa tırnaklanır. SAF. */
 function csvHucre(deger: string | number | boolean | null | undefined): string {
@@ -33,10 +33,15 @@ export function csv(baslik: string[], satirlar: (string | number | boolean | nul
 }
 
 async function cuzdanCsv(): Promise<string> {
-  const [hesaplar, borclar, akislar] = await Promise.all([
-    db.walletAccount.findMany({ where: { isArchived: false }, orderBy: { createdAt: 'asc' } }),
+  const [hesaplar, borclar, akislar, odemeler, netVarlik] = await Promise.all([
+    db.walletAccount.findMany({ orderBy: { createdAt: 'asc' } }),
     db.walletDebt.findMany({ orderBy: { createdAt: 'asc' } }),
     db.walletFlow.findMany({ orderBy: [{ date: 'desc' }, { createdAt: 'asc' }] }),
+    db.walletDebtPayment.findMany({
+      orderBy: { date: 'desc' },
+      include: { debt: { select: { name: true, unit: true } } },
+    }),
+    db.netVarlikKaydi.findMany({ orderBy: { gun: 'desc' } }),
   ]);
   const para = (d: unknown) => ondalik(toMeasureString(d as never, 2));
   return csv(
@@ -56,7 +61,7 @@ async function cuzdanCsv(): Promise<string> {
     ],
     [
       ...hesaplar.map((h) => [
-        'Hesap',
+        h.isArchived ? 'Hesap (kaldırıldı)' : 'Hesap',
         h.name,
         null,
         para(h.balance),
@@ -96,6 +101,34 @@ async function cuzdanCsv(): Promise<string> {
         a.date ? dateToAppDay(a.date) : null,
         a.category,
         a.note,
+      ]),
+      ...odemeler.map((o) => [
+        'Borç ödemesi',
+        o.debt.name,
+        null,
+        para(o.amount),
+        null,
+        null,
+        o.debt.unit,
+        null,
+        null,
+        dateToAppDay(o.date),
+        null,
+        o.note,
+      ]),
+      ...netVarlik.map((n) => [
+        'Net varlık',
+        null,
+        null,
+        para(n.netTl),
+        para(n.borcTl),
+        null,
+        'TRY',
+        null,
+        null,
+        dateToAppDay(n.gun),
+        null,
+        null,
       ]),
     ],
   );
@@ -179,8 +212,78 @@ async function aliskanlikCsv(): Promise<string> {
   );
 }
 
+async function sporCsv(): Promise<string> {
+  const setler = await db.workoutSet.findMany({
+    orderBy: [{ workout: { date: 'desc' } }, { exerciseId: 'asc' }, { setNo: 'asc' }],
+    include: {
+      exercise: { select: { name: true } },
+      workout: {
+        select: {
+          date: true,
+          type: true,
+          durationMin: true,
+          kcal: true,
+          programDay: { select: { name: true } },
+        },
+      },
+    },
+  });
+  return csv(
+    ['Tarih', 'Program', 'Tür', 'Hareket', 'Set', 'Tekrar', 'Kg', 'RPE', 'Süre (dk)', 'Kalori'],
+    setler.map((s) => [
+      dateToAppDay(s.workout.date),
+      s.workout.programDay?.name ?? null,
+      s.workout.type,
+      s.exercise.name,
+      s.setNo,
+      s.reps,
+      ondalik(toMeasureString(s.weightKg, 2)),
+      s.rpe,
+      s.workout.durationMin,
+      s.workout.kcal,
+    ]),
+  );
+}
+
+async function gunlukCsv(): Promise<string> {
+  const yazilar = await db.journalEntry.findMany({ orderBy: { date: 'desc' } });
+  return csv(
+    ['Tarih', 'Başlık', 'Ruh hâli', 'Etiketler', 'İçerik'],
+    yazilar.map((y) => [dateToAppDay(y.date), y.title, y.mood, y.tags.join(', '), y.content]),
+  );
+}
+
+async function hedefCsv(): Promise<string> {
+  const hedefler = await db.goal.findMany({ orderBy: { createdAt: 'desc' } });
+  return csv(
+    [
+      'Başlık',
+      'Kategori',
+      'Durum',
+      'İlerleme (%)',
+      'Dönem',
+      'Dönem anahtarı',
+      'Hedef tarih',
+      'Açıklama',
+    ],
+    hedefler.map((h) => [
+      h.title,
+      h.category,
+      h.status,
+      h.progress,
+      h.period,
+      h.periodKey,
+      h.targetDate ? dateToAppDay(h.targetDate) : null,
+      h.description,
+    ]),
+  );
+}
+
 export async function disaAktar(tur: DisaAktarTuru): Promise<string> {
   if (tur === 'cuzdan') return cuzdanCsv();
   if (tur === 'saglik') return saglikCsv();
+  if (tur === 'spor') return sporCsv();
+  if (tur === 'gunluk') return gunlukCsv();
+  if (tur === 'hedef') return hedefCsv();
   return aliskanlikCsv();
 }

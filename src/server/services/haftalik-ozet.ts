@@ -41,7 +41,7 @@ export function ozetMetni(o: HaftalikOzet): string | null {
   if (Number(o.harcama.tl) > 0) {
     parcalar.push(`${Math.round(Number(o.harcama.tl)).toLocaleString('tr-TR')} ₺ harcama`);
   }
-  if (o.kilo.son) parcalar.push(`${o.kilo.son.replace('.', ',')} kg`);
+  if (o.kilo.son) parcalar.push(`${String(Number(o.kilo.son)).replace('.', ',')} kg`);
   return parcalar.length > 0 ? parcalar.join(' · ') : null;
 }
 

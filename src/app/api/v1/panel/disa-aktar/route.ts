@@ -7,13 +7,13 @@ import { appToday, writeAuditLog } from '@/server/services/_shared';
 import { disaAktar } from '@/server/services/disa-aktar';
 
 /**
- * `GET /api/v1/panel/disa-aktar?tur=cuzdan|saglik|aliskanlik` — CSV indirme
+ * `GET /api/v1/panel/disa-aktar?tur=cuzdan|saglik|aliskanlik|spor|gunluk|hedef` — CSV indirme
  * (2026-10-31). Kimlik iki katman: ara katman `/api/v1/panel/*`ı oturumsuz
  * 401'e çeviriyor + burada `currentActorId`. Her indirme denetime `EXPORT`.
  * Önbelleğe ALINMAZ (`no-store`) — kişisel finans ve sağlık verisi.
  */
 
-const turSchema = z.enum(['cuzdan', 'saglik', 'aliskanlik']);
+const turSchema = z.enum(['cuzdan', 'saglik', 'aliskanlik', 'spor', 'gunluk', 'hedef']);
 
 export async function GET(request: Request): Promise<Response> {
   const actorId = await currentActorId();

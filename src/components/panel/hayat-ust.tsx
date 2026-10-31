@@ -2,9 +2,10 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
+import { HAFTA_GUNLERI_KISA } from '@/components/panel/hayat-bicim';
 import { cn } from '@/lib/utils/cn';
 
-const HAFTA_GUNU = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'] as const;
+const HAFTA_GUNU = HAFTA_GUNLERI_KISA;
 
 /** Halka: `oran` 0–1. `zemin` üstünde beyaz; animasyon yalnızca stroke (`halka-dol`). */
 function Halka({ oran, boyut, kalinlik }: { oran: number; boyut: number; kalinlik: number }) {
@@ -179,7 +180,7 @@ function GunOku({ href, etiket, children }: { href: string; etiket: string; chil
     <Link
       href={href}
       aria-label={etiket}
-      className="focus-ring flex size-7 shrink-0 items-center justify-center rounded-full bg-white/15 text-white active:bg-white/30"
+      className="focus-ring flex size-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-white active:bg-white/30"
     >
       {children}
     </Link>

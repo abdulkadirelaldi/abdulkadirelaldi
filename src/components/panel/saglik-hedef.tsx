@@ -15,7 +15,7 @@ const tr = (s: string) => s.replace('.', ',');
  */
 export function SaglikHedefKarti({ hedef }: { hedef: SaglikHedefiDto | null }) {
   const router = useRouter();
-  const [duzenle, setDuzenle] = useState(hedef === null);
+  const [duzenle, setDuzenle] = useState(false);
   const [deger, setDeger] = useState(hedef ? tr(hedef.hedefKg.replace(/\.?0+$/, '')) : '');
   const [hata, setHata] = useState<string | null>(null);
   const [bekliyor, setBekliyor] = useState(false);
@@ -89,6 +89,14 @@ export function SaglikHedefKarti({ hedef }: { hedef: SaglikHedefiDto | null }) {
             Kaydet
           </button>
         </form>
+      ) : !hedef ? (
+        <button
+          type="button"
+          onClick={() => setDuzenle(true)}
+          className="focus-ring text-accent min-h-10 self-start rounded text-sm font-medium"
+        >
+          Hedef kilo koy →
+        </button>
       ) : (
         hedef && (
           <>
