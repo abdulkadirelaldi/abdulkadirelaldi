@@ -4,7 +4,7 @@ import { Check, Minus, Plus, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useState, useTransition } from 'react';
 
-import { simgeMetni } from '@/components/panel/hayat-bicim';
+import { AliskanlikRozeti, aliskanlikRengi } from '@/components/panel/aliskanlik-rozeti';
 import { setHabitDayCountAction, setHabitDayStatusAction } from '@/server/actions/habit';
 import type { GunDurumu, GunlukAliskanlikDto } from '@/server/services/habit-gun';
 import { cn } from '@/lib/utils/cn';
@@ -27,17 +27,34 @@ function durumHesapla(count: number, missed: boolean, hedef: number | null): Gun
  *   ✗  YAPMADIM — açık işaret; yeniden dokununca kaldırır
  *   − / +       — yalnızca sayılı alışkanlıkta (ör. 7 bardak su)
  */
-export function GunlukListe({ gun, items }: { gun: string; items: GunlukAliskanlikDto[] }) {
+export function GunlukListe({
+  gun,
+  items,
+  seriler = {},
+}: {
+  gun: string;
+  items: GunlukAliskanlikDto[];
+  /** Alışkanlık kimliği → süren seri metni ("12 gün"). */
+  seriler?: Readonly<Record<string, string>>;
+}) {
   return (
-    <ul className="flex flex-col gap-2">
+    <ul className="flex flex-col gap-2.5">
       {items.map((item) => (
-        <Satir key={`${gun}-${item.id}`} gun={gun} item={item} />
+        <Satir key={`${gun}-${item.id}`} gun={gun} item={item} seri={seriler[item.id]} />
       ))}
     </ul>
   );
 }
 
-function Satir({ gun, item }: { gun: string; item: GunlukAliskanlikDto }) {
+function Satir({
+  gun,
+  item,
+  seri,
+}: {
+  gun: string;
+  item: GunlukAliskanlikDto;
+  seri: string | undefined;
+}) {
   const router = useRouter();
   const [count, setCount] = useState(item.count);
   const [durum, setDurum] = useState<GunDurumu>(item.durum);
@@ -90,60 +107,51 @@ function Satir({ gun, item }: { gun: string; item: GunlukAliskanlikDto }) {
     uygula(yeni, false, () => setHabitDayCountAction({ habitId: item.id, date: gun, count: yeni }));
   };
 
+  const ton = aliskanlikRengi(item.name, item.color);
+  const durumMetni =
+    durum === 'YAPILDI'
+      ? 'Tamamlandı'
+      : durum === 'YAPILMADI'
+        ? 'Yapılmadı'
+        : durum === 'EKSIK'
+          ? 'Devam ediyor'
+          : null;
+
   return (
     <li
       className={cn(
-        'rounded-card border p-3 transition-colors',
-        durum === 'YAPILDI' && 'border-success/40 bg-success/8',
-        durum === 'YAPILMADI' && 'border-danger/40 bg-danger/8',
-        durum === 'EKSIK' && 'border-warning/40 bg-warning/8',
-        durum === 'ISARETSIZ' && 'border-line bg-surface',
+        'rounded-card flex flex-col gap-3 border p-3.5 transition-colors',
+        durum === 'YAPILDI' && 'border-success/25 bg-success/8',
+        durum === 'YAPILMADI' && 'border-danger/25 bg-danger/6',
+        durum !== 'YAPILDI' && durum !== 'YAPILMADI' && 'border-line bg-surface',
       )}
     >
       <div className="flex items-center gap-3">
-        <span aria-hidden="true" className="w-7 shrink-0 text-center text-xl">
-          {simgeMetni(item.icon).trim() || '•'}
-        </span>
+        <AliskanlikRozeti ad={item.name} simge={item.icon} renk={item.color} />
 
-        <div className="flex min-w-0 flex-1 flex-col">
-          <span
-            className={cn(
-              'text-primary truncate font-medium',
-              durum === 'YAPILDI' && 'text-muted line-through',
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <span className="text-primary truncate font-medium">{item.name}</span>
+          <span className="text-muted flex items-center gap-2 text-xs">
+            {seri && (
+              <span className="tabular text-warning font-medium">
+                <span aria-hidden="true">🔥 </span>
+                {seri}
+              </span>
             )}
-          >
-            {item.name}
+            {durumMetni && <span>{durumMetni}</span>}
+            {!seri && !durumMetni && <span>Bekliyor</span>}
           </span>
-          {hedef !== null && (
-            <span className="tabular text-muted text-xs">
-              {count} / {hedef}
-            </span>
-          )}
         </div>
-
-        {hedef !== null && (
-          <div className="flex items-center gap-1">
-            <Dugme
-              etiket={`${item.name}: bir azalt`}
-              onClick={() => sayac(-1)}
-              disabled={bekliyor || count === 0}
-            >
-              <Minus className="size-4" />
-            </Dugme>
-            <Dugme etiket={`${item.name}: bir artır`} onClick={() => sayac(1)} disabled={bekliyor}>
-              <Plus className="size-4" />
-            </Dugme>
-          </div>
-        )}
 
         <Dugme
           etiket={`${item.name}: yapmadım`}
           aktif={durum === 'YAPILMADI'}
           ton="danger"
+          kucuk
           onClick={yapmadim}
           disabled={bekliyor}
         >
-          <X className="size-5" />
+          <X className="size-4" />
         </Dugme>
         <Dugme
           etiket={`${item.name}: yaptım`}
@@ -152,12 +160,47 @@ function Satir({ gun, item }: { gun: string; item: GunlukAliskanlikDto }) {
           onClick={yaptim}
           disabled={bekliyor}
         >
-          <Check className="size-5" />
+          <Check className="size-5" strokeWidth={2.5} />
         </Dugme>
       </div>
 
+      {hedef !== null && (
+        <div className="flex items-center gap-3">
+          <Dugme
+            etiket={`${item.name}: bir azalt`}
+            kucuk
+            onClick={() => sayac(-1)}
+            disabled={bekliyor || count === 0}
+          >
+            <Minus className="size-4" />
+          </Dugme>
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <div className="bg-elevated h-2 overflow-hidden rounded-full">
+              <div
+                className="h-full rounded-full transition-[width] duration-300"
+                style={{
+                  width: `${Math.min(100, (count / Math.max(1, hedef)) * 100)}%`,
+                  backgroundColor: ton,
+                }}
+              />
+            </div>
+            <span className="tabular text-muted text-center text-xs">
+              {count} / {hedef}
+            </span>
+          </div>
+          <Dugme
+            etiket={`${item.name}: bir artır`}
+            kucuk
+            onClick={() => sayac(1)}
+            disabled={bekliyor}
+          >
+            <Plus className="size-4" />
+          </Dugme>
+        </div>
+      )}
+
       {hata && (
-        <p role="alert" className="text-danger mt-2 text-xs">
+        <p role="alert" className="text-danger text-xs">
           {hata}
         </p>
       )}
@@ -165,11 +208,12 @@ function Satir({ gun, item }: { gun: string; item: GunlukAliskanlikDto }) {
   );
 }
 
-/** 44 px dokunma hedefi; `aktif` iken dolu renk. */
+/** Ana düğme 44 px; `kucuk` 40 px, kenarsız. `aktif` iken dolu renk. */
 function Dugme({
   etiket,
   aktif = false,
   ton,
+  kucuk = false,
   onClick,
   disabled,
   children,
@@ -177,6 +221,7 @@ function Dugme({
   etiket: string;
   aktif?: boolean;
   ton?: 'success' | 'danger';
+  kucuk?: boolean;
   onClick: () => void;
   disabled?: boolean;
   children: React.ReactNode;
@@ -189,8 +234,10 @@ function Dugme({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'focus-ring flex size-11 shrink-0 items-center justify-center rounded-full border transition-[transform,background-color,color] active:scale-90 disabled:opacity-50',
-        !aktif && 'border-line bg-canvas text-muted',
+        'focus-ring flex shrink-0 items-center justify-center rounded-full border transition-[transform,background-color,color] active:scale-90 disabled:opacity-50',
+        kucuk ? 'size-10' : 'size-11',
+        !aktif && kucuk && 'bg-elevated text-muted border-transparent',
+        !aktif && !kucuk && 'border-line-strong/50 bg-canvas text-muted',
         aktif && ton === 'success' && 'border-success bg-success text-white',
         aktif && ton === 'danger' && 'border-danger bg-danger text-white',
       )}

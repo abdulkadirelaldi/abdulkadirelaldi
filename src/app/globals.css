@@ -691,7 +691,7 @@ a {
 .light.panel-modern {
   --bg-base: #f2f2f7;
   --bg-surface: #ffffff;
-  --bg-elevated: #ffffff;
+  --bg-elevated: #f2f2f7; /* kartın (beyaz) üstünde iz, düğme, girdi zemini görünsün */
   --border: #e5e5ea;
   --border-hover: #d1d1d6;
   --border-strong: #8e8e93;
@@ -706,7 +706,7 @@ a {
   html:not(.dark):not(.light) .panel-modern {
     --bg-base: #f2f2f7;
     --bg-surface: #ffffff;
-    --bg-elevated: #ffffff;
+    --bg-elevated: #f2f2f7; /* kartın (beyaz) üstünde iz, düğme, girdi zemini görünsün */
     --border: #e5e5ea;
     --border-hover: #d1d1d6;
     --border-strong: #8e8e93;

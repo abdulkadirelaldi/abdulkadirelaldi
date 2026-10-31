@@ -2,7 +2,13 @@ import {
   CalendarClock,
   ChevronRight,
   Dumbbell,
+  Flame,
+  Footprints,
+  HeartPulse,
+  Landmark,
   Mail,
+  Moon,
+  Percent,
   Play,
   Scale,
   Wallet,
@@ -13,6 +19,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { miktarBicim } from '@/components/panel/cuzdan-bicim';
+import { GunlukListe } from '@/components/panel/gunluk-liste';
 import { paraBicim } from '@/components/panel/para-bicim';
 import { BaslatDugmesi } from '@/components/panel/spor-dugmeleri';
 import { Topbar } from '@/components/panel/topbar';
@@ -26,7 +33,9 @@ import {
 } from '@/server/services/antrenman-oturumu';
 import { fetchContactMessages } from '@/server/services/contact-message';
 import { fetchCuzdan, type BorcDto } from '@/server/services/cuzdan';
-import { fetchHabitWeek, isDayComplete } from '@/server/services/habit';
+import { fetchGoals } from '@/server/services/goal';
+import { fetchHabitWeek, gunOranlari, isDayComplete } from '@/server/services/habit';
+import { fetchHabitDay } from '@/server/services/habit-gun';
 import { fetchHealthTrend } from '@/server/services/health-log';
 
 export const metadata: Metadata = {
@@ -83,15 +92,18 @@ function yaklasanOdemeler(borclar: BorcDto[], bugun: AppDay) {
 export default async function BugunPage() {
   const bugun = appToday();
   const pazartesi = addAppDays(bugun, -(haftaGunu(bugun) - 1));
-  const [aliskanlik, saglik, oturumlar, acikOturum, program, mesajlar, cuzdan] = await Promise.all([
-    fetchHabitWeek(bugun),
-    fetchHealthTrend({ from: addAppDays(bugun, -29), to: bugun }),
-    fetchRecentSessions(10),
-    fetchActiveSession(),
-    fetchProgram(),
-    fetchContactMessages({ page: 1, perPage: 1 }),
-    fetchCuzdan(),
-  ]);
+  const [aliskanlik, gunluk, saglik, oturumlar, acikOturum, program, mesajlar, cuzdan, hedefler] =
+    await Promise.all([
+      fetchHabitWeek(bugun),
+      fetchHabitDay(bugun, undefined, bugun),
+      fetchHealthTrend({ from: addAppDays(bugun, -29), to: bugun }),
+      fetchRecentSessions(10),
+      fetchActiveSession(),
+      fetchProgram(),
+      fetchContactMessages({ page: 1, perPage: 1 }),
+      fetchCuzdan(),
+      fetchGoals({ page: 1, perPage: 3, status: 'ACTIVE' }, undefined, bugun),
+    ]);
 
   // ── Halkalar ─────────────────────────────────────────────────────────────
   const sira = aliskanlik.days.indexOf(bugun);
@@ -115,6 +127,32 @@ export default async function BugunPage() {
   const sonKilo = kilolar.at(-1);
   const kiloFark =
     sonKilo && kilolar.length > 1 ? sonKilo.kg - (kilolar[0]?.kg ?? sonKilo.kg) : null;
+
+  // ── Kalan alışkanlıklar: işaretlenmemiş ya da eksik, ilk 4 ───────────────
+  const kalanlar = gunluk.items.filter((i) => i.durum === 'ISARETSIZ' || i.durum === 'EKSIK');
+  const seriMetinleri = Object.fromEntries(
+    aliskanlik.habits
+      .filter((h) => h.streak.value > 0)
+      .map((h) => [h.id, `${h.streak.value} ${h.streak.unit === 'day' ? 'gün' : 'hafta'}`]),
+  );
+  const haftaOranlari = gunOranlari(aliskanlik);
+  const antrenmanGunleri = new Set(oturumlar.filter((o) => !o.suruyor).map((o) => o.date));
+
+  // ── Sağlık: her ölçünün EN SON bilinen değeri (son 30 gün) ───────────────
+  const sonDeger = <T,>(alan: (k: (typeof saglik)[number]) => T | null): T | null => {
+    for (let i = saglik.length - 1; i >= 0; i -= 1) {
+      const kayit = saglik[i];
+      const deger = kayit ? alan(kayit) : null;
+      if (deger !== null) return deger;
+    }
+    return null;
+  };
+  const sonUyku = sonDeger((k) => k.sleepHours);
+  const sonAdim = sonDeger((k) => k.steps);
+  const sonNabiz = sonDeger((k) => k.restingHr);
+  const sonYag = sonDeger((k) => k.bodyFatPct);
+
+  const sonAntrenman = oturumlar.find((o) => !o.suruyor);
 
   const odemeler = yaklasanOdemeler(cuzdan.borclar, bugun);
   const simdi = new Date();
@@ -164,6 +202,22 @@ export default async function BugunPage() {
             </ul>
           </section>
 
+          {/* ── KALAN ALIŞKANLIKLAR — buradan işaretlenir ─────────────────── */}
+          <section aria-labelledby="kalan-baslik" className="flex flex-col gap-2.5">
+            <BolumBasligi id="kalan-baslik" href="/panel/hayat" baglanti="Tümü">
+              Sıradaki alışkanlıklar
+            </BolumBasligi>
+            {aliskanlikToplam === 0 ? (
+              <BosKart href="/panel/hayat">Her gün işaretleyeceğin listeyi oluştur →</BosKart>
+            ) : kalanlar.length === 0 ? (
+              <p className="rounded-card border-success/25 bg-success/8 text-success border p-4 text-sm font-medium">
+                Bugünkü alışkanlıkların hepsi işaretli 🎉
+              </p>
+            ) : (
+              <GunlukListe gun={bugun} items={kalanlar.slice(0, 4)} seriler={seriMetinleri} />
+            )}
+          </section>
+
           {/* ── BUGÜNÜN ANTRENMANI ───────────────────────────────────────── */}
           {acikOturum ? (
             <Link
@@ -195,41 +249,51 @@ export default async function BugunPage() {
               {!bugunYapildi && <BaslatDugmesi dayId={bugununGunu.id} vurgulu />}
             </section>
           ) : (
-            program.length > 0 && (
-              <p className="text-muted px-1 text-sm">
-                Bugün programda antrenman yok — dinlenme günü 🌿
-              </p>
-            )
+            <section className="rounded-card border-line bg-surface flex items-center gap-4 border p-4">
+              <Rozet ikon={Dumbbell} renk="from-orange-500 to-amber-500" />
+              <span className="flex min-w-0 flex-1 flex-col">
+                <span className="text-primary font-semibold">
+                  {program.length > 0 ? 'Bugün dinlenme günü 🌿' : 'Antrenman programı yok'}
+                </span>
+                <Link
+                  href="/panel/spor"
+                  className="focus-ring text-accent w-fit rounded text-xs font-medium"
+                >
+                  {program.length > 0 ? 'Yine de antrenman seç' : 'Programı yükle'}
+                </Link>
+              </span>
+            </section>
           )}
 
           {/* ── YAKLAŞAN ÖDEMELER ────────────────────────────────────────── */}
-          {odemeler.length > 0 && (
-            <section className="rounded-card border-line bg-surface flex flex-col gap-1 border p-4">
-              <h3 className="text-muted mb-1 flex items-center gap-2 text-xs font-medium">
-                <CalendarClock className="size-4" aria-hidden="true" />
-                Yaklaşan ödemeler
-              </h3>
-              {odemeler.map(({ borc, kala }) => (
-                <Link
-                  key={borc.id}
-                  href={`/panel/cuzdan/borc/${borc.id}`}
-                  className="focus-ring -mx-2 flex items-center justify-between gap-3 rounded-xl px-2 py-2"
-                >
-                  <span className="flex min-w-0 flex-col">
-                    <span className="text-primary truncate text-sm font-medium">{borc.name}</span>
-                    <span className={cn('text-xs', kala <= 2 ? 'text-danger' : 'text-muted')}>
-                      {kala === 0 ? 'Bugün' : kala === 1 ? 'Yarın' : `${kala} gün sonra`}
-                    </span>
+          <section className="rounded-card border-line bg-surface flex flex-col gap-1 border p-4">
+            <h3 className="text-muted mb-1 flex items-center gap-2 text-xs font-medium">
+              <CalendarClock className="size-4" aria-hidden="true" />
+              Yaklaşan ödemeler
+            </h3>
+            {odemeler.length === 0 && (
+              <p className="text-muted text-sm">7 gün içinde ödeme yok ✓</p>
+            )}
+            {odemeler.map(({ borc, kala }) => (
+              <Link
+                key={borc.id}
+                href={`/panel/cuzdan/borc/${borc.id}`}
+                className="focus-ring -mx-2 flex items-center justify-between gap-3 rounded-xl px-2 py-2"
+              >
+                <span className="flex min-w-0 flex-col">
+                  <span className="text-primary truncate text-sm font-medium">{borc.name}</span>
+                  <span className={cn('text-xs', kala <= 2 ? 'text-danger' : 'text-muted')}>
+                    {kala === 0 ? 'Bugün' : kala === 1 ? 'Yarın' : `${kala} gün sonra`}
                   </span>
-                  {borc.monthlyPayment && (
-                    <span className="tabular text-primary shrink-0 text-sm font-semibold">
-                      {miktarBicim(borc.monthlyPayment, borc.unit)}
-                    </span>
-                  )}
-                </Link>
-              ))}
-            </section>
-          )}
+                </span>
+                {borc.monthlyPayment && (
+                  <span className="tabular text-primary shrink-0 text-sm font-semibold">
+                    {miktarBicim(borc.monthlyPayment, borc.unit)}
+                  </span>
+                )}
+              </Link>
+            ))}
+          </section>
 
           {/* ── KARTLAR ──────────────────────────────────────────────────── */}
           <div className="grid grid-cols-2 gap-3">
@@ -283,6 +347,176 @@ export default async function BugunPage() {
             </Kart>
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <Kart
+              href="/panel/cuzdan"
+              ikon={Landmark}
+              renk="from-violet-500 to-indigo-500"
+              baslik="Net varlık"
+            >
+              <span className="tabular text-primary truncate text-xl font-semibold tracking-tight">
+                {paraBicim(cuzdan.ozet.netTl, 'TRY')}
+              </span>
+              <span className="text-muted text-xs">
+                {cuzdan.hesaplar.length} hesap · {cuzdan.borclar.length} borç
+              </span>
+            </Kart>
+            <Kart
+              href="/panel/spor/gecmis"
+              ikon={Flame}
+              renk="from-orange-500 to-amber-500"
+              baslik="Son antrenman"
+            >
+              {sonAntrenman ? (
+                <>
+                  <span className="text-primary truncate text-base font-semibold tracking-tight">
+                    {sonAntrenman.gunAdi ?? 'Antrenman'}
+                  </span>
+                  <span className="tabular text-muted truncate text-xs">
+                    {kisaTarih(sonAntrenman.date)}
+                    {sonAntrenman.durationMin !== null && ` · ${sonAntrenman.durationMin} dk`}
+                    {sonAntrenman.kcal !== null && ` · ${sonAntrenman.kcal} kcal`}
+                  </span>
+                </>
+              ) : (
+                <span className="text-muted text-sm">Henüz antrenman yok</span>
+              )}
+            </Kart>
+          </div>
+
+          {/* ── BU HAFTA ─────────────────────────────────────────────────── */}
+          <section
+            aria-labelledby="hafta-baslik"
+            className="rounded-card border-line bg-surface flex flex-col gap-3 border p-4"
+          >
+            <BolumBasligi id="hafta-baslik" href="/panel/hayat/rapor" baglanti="Rapor">
+              Bu hafta
+            </BolumBasligi>
+            <HaftaGrafigi
+              gunler={aliskanlik.days}
+              oranlar={haftaOranlari}
+              bugun={bugun}
+              antrenman={antrenmanGunleri}
+            />
+            <p className="text-muted flex items-center gap-3 text-xs">
+              <span className="flex items-center gap-1.5">
+                <span aria-hidden="true" className="bg-accent size-2 rounded-full" />
+                Alışkanlık
+              </span>
+              <span className="flex items-center gap-1.5">
+                <span aria-hidden="true" className="size-2 rounded-full bg-orange-500" />
+                Antrenman
+              </span>
+            </p>
+          </section>
+
+          {/* ── SAĞLIK ÖZETİ ─────────────────────────────────────────────── */}
+          <section aria-labelledby="saglik-baslik" className="flex flex-col gap-2.5">
+            <BolumBasligi id="saglik-baslik" href="/panel/saglik" baglanti="Sağlık">
+              Vücut ve uyku
+            </BolumBasligi>
+            <dl className="grid grid-cols-4 gap-2">
+              <MiniOlcu
+                ikon={Moon}
+                etiket="Uyku"
+                deger={sonUyku ? trOndalik(sonUyku, 1) : null}
+                birim="sa"
+              />
+              <MiniOlcu
+                ikon={Footprints}
+                etiket="Adım"
+                deger={sonAdim === null ? null : sonAdim.toLocaleString('tr-TR')}
+              />
+              <MiniOlcu
+                ikon={HeartPulse}
+                etiket="Nabız"
+                deger={sonNabiz === null ? null : String(sonNabiz)}
+              />
+              <MiniOlcu
+                ikon={Percent}
+                etiket="Yağ"
+                deger={sonYag ? trOndalik(sonYag, 1) : null}
+                birim="%"
+              />
+            </dl>
+          </section>
+
+          {/* ── HEDEFLER ─────────────────────────────────────────────────── */}
+          <section
+            aria-labelledby="hedef-baslik"
+            className="rounded-card border-line bg-surface flex flex-col gap-3 border p-4"
+          >
+            <BolumBasligi id="hedef-baslik" href="/panel/hayat/hedefler" baglanti="Tümü">
+              Hedefler
+            </BolumBasligi>
+            {hedefler.items.length === 0 ? (
+              <Link
+                href="/panel/hayat/hedefler"
+                className="focus-ring text-accent w-fit rounded text-sm font-medium"
+              >
+                Haftalık, aylık ya da yıllık hedef koy →
+              </Link>
+            ) : (
+              <ul className="flex flex-col gap-3">
+                {hedefler.items.map((h) => (
+                  <li key={h.id}>
+                    <Link
+                      href={`/panel/hayat/hedefler/${h.id}`}
+                      className="focus-ring flex flex-col gap-1.5 rounded-lg"
+                    >
+                      <span className="flex items-baseline justify-between gap-3 text-sm">
+                        <span className="text-primary truncate font-medium">{h.title}</span>
+                        <span className="tabular text-muted shrink-0 text-xs">%{h.progress}</span>
+                      </span>
+                      <span className="bg-elevated block h-2 overflow-hidden rounded-full">
+                        <span
+                          className="bg-gradient-accent block h-full rounded-full"
+                          style={{ width: `${h.progress}%` }}
+                        />
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          {/* ── SON HARCAMALAR ───────────────────────────────────────────── */}
+          <section
+            aria-labelledby="harcama-baslik"
+            className="rounded-card border-line bg-surface flex flex-col gap-1 border p-4"
+          >
+            <BolumBasligi id="harcama-baslik" href="/panel/cuzdan" baglanti="Cüzdan">
+              Son harcamalar
+            </BolumBasligi>
+            {cuzdan.harcamalar.length === 0 ? (
+              <p className="text-muted pt-1 text-sm">Bu ay harcama yok. Sağ alttaki + ile ekle.</p>
+            ) : (
+              <ul className="divide-line flex flex-col divide-y">
+                {cuzdan.harcamalar.slice(0, 3).map((h) => (
+                  <li key={h.id}>
+                    <Link
+                      href={`/panel/cuzdan/akis/${h.id}`}
+                      className="focus-ring flex items-center justify-between gap-3 py-2.5"
+                    >
+                      <span className="flex min-w-0 flex-col">
+                        <span className="text-primary truncate text-sm font-medium">{h.name}</span>
+                        <span className="text-muted truncate text-xs">
+                          {[h.category, h.date ? kisaTarih(h.date) : null]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </span>
+                      </span>
+                      <span className="tabular text-danger shrink-0 text-sm font-semibold">
+                        {miktarBicim(h.amount, h.unit)}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
           {mesajlar.unreadCount > 0 && (
             <Link
               href="/panel/mesajlar?gorunum=okunmamis"
@@ -308,6 +542,125 @@ export default async function BugunPage() {
 /* ===========================================================================
  * PARÇALAR
  * ======================================================================== */
+
+/** `"7.50"` → `"7,5"`. SAF. */
+function trOndalik(deger: string, ondalik: number): string {
+  return Number(deger).toFixed(ondalik).replace('.', ',').replace(/,0$/, '');
+}
+
+function BolumBasligi({
+  id,
+  href,
+  baglanti,
+  children,
+}: {
+  id: string;
+  href: string;
+  baglanti: string;
+  children: ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <h3 id={id} className="text-primary text-base font-semibold">
+        {children}
+      </h3>
+      <Link
+        href={href}
+        className="focus-ring text-accent flex shrink-0 items-center gap-0.5 rounded text-xs font-medium"
+      >
+        {baglanti}
+        <ChevronRight className="size-3.5" aria-hidden="true" />
+      </Link>
+    </div>
+  );
+}
+
+function BosKart({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className="focus-ring rounded-card border-line-hover text-muted border border-dashed p-4 text-center text-sm"
+    >
+      {children}
+    </Link>
+  );
+}
+
+function MiniOlcu({
+  ikon: Ikon,
+  etiket,
+  deger,
+  birim,
+}: {
+  ikon: LucideIcon;
+  etiket: string;
+  deger: string | null;
+  birim?: string;
+}) {
+  return (
+    <div className="rounded-card border-line bg-surface flex min-w-0 flex-col gap-1 border p-3">
+      <dt className="text-muted flex items-center gap-1 text-[0.6875rem]">
+        <Ikon className="size-3.5 shrink-0" aria-hidden="true" />
+        <span className="truncate">{etiket}</span>
+      </dt>
+      <dd className="tabular text-primary truncate text-base font-semibold tracking-tight">
+        {deger ?? '—'}
+        {deger && birim && <span className="text-muted ml-0.5 text-xs font-normal">{birim}</span>}
+      </dd>
+    </div>
+  );
+}
+
+const HAFTA_KISA = ['P', 'S', 'Ç', 'P', 'C', 'C', 'P'] as const;
+
+/** Haftanın günleri: sütun = tamamlanan alışkanlık oranı, turuncu nokta = antrenman. */
+function HaftaGrafigi({
+  gunler,
+  oranlar,
+  bugun,
+  antrenman,
+}: {
+  gunler: readonly string[];
+  oranlar: readonly number[];
+  bugun: string;
+  antrenman: ReadonlySet<string>;
+}) {
+  return (
+    <ol className="grid h-28 grid-cols-7 gap-2">
+      {gunler.map((g, i) => {
+        const oran = oranlar[i] ?? 0;
+        const gelecek = g > bugun;
+        return (
+          <li
+            key={g}
+            aria-label={`${kisaTarih(g)}: yüzde ${Math.round(oran * 100)}${antrenman.has(g) ? ', antrenman yapıldı' : ''}`}
+            className="flex min-w-0 flex-col items-center gap-1.5"
+          >
+            <span className="bg-elevated relative flex w-full flex-1 items-end overflow-hidden rounded-lg">
+              {!gelecek && oran > 0 && (
+                <span
+                  className={cn(
+                    'w-full rounded-lg',
+                    g === bugun ? 'bg-gradient-accent' : 'bg-accent/55',
+                  )}
+                  style={{ height: `${Math.max(8, oran * 100)}%` }}
+                />
+              )}
+              {antrenman.has(g) && (
+                <span className="absolute top-1.5 left-1/2 size-1.5 -translate-x-1/2 rounded-full bg-orange-500" />
+              )}
+            </span>
+            <span
+              className={cn('text-xs', g === bugun ? 'text-primary font-semibold' : 'text-muted')}
+            >
+              {HAFTA_KISA[i]}
+            </span>
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
 
 const HALKA_RENK = ['#8b5cf6', '#0ea5e9', '#f97316'] as const;
 

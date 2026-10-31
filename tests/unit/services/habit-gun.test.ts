@@ -9,6 +9,7 @@ import {
   moveHabit,
   ONERILEN_ALISKANLIKLAR,
 } from '@/server/services/habit-gun';
+import { gunOranlari } from '@/server/services/habit';
 import { setHabitDayStatus } from '@/server/services/habit-log';
 
 /* Sahte istemci — yalnızca kullanılan yöntemler. Tarihler UTC gece yarısı (`@db.Date`). */
@@ -209,5 +210,26 @@ describe('isiHaritasi — yıllık ısı haritası (2026-10-30)', () => {
     expect(h.get('2025-12-31')).toBeNull(); // henüz alışkanlık yok
     expect(h.get('2026-10-28')).toBe(1); // yalnız kitap vardı
     expect(h.get('2026-10-30')).toBe(0.5); // kitap ✓, su eksik
+  });
+});
+
+describe('gunOranlari — hafta görünümleri (2026-10-31)', () => {
+  const satir = (counts: number[], targetPerDay: number | null) =>
+    ({ counts, targetPerDay }) as never;
+
+  it('gün başına tamamlanan oranı; hedefin altı sayılmaz', () => {
+    expect(
+      gunOranlari({
+        days: ['2026-10-26', '2026-10-27'],
+        habits: [satir([1, 0], null), satir([8, 5], 8)],
+      }),
+    ).toEqual([1, 0]);
+    expect(
+      gunOranlari({ days: ['2026-10-26'], habits: [satir([1], null), satir([0], null)] }),
+    ).toEqual([0.5]);
+  });
+
+  it('alışkanlık yoksa 0', () => {
+    expect(gunOranlari({ days: ['2026-10-26'], habits: [] })).toEqual([0]);
   });
 });

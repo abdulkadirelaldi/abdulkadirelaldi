@@ -1,18 +1,18 @@
-import { ChevronLeft, ChevronRight, Settings2 } from 'lucide-react';
+import { Settings2 } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { GunlukListe } from '@/components/panel/gunluk-liste';
 import { HayatAltMenu } from '@/components/panel/hayat-alt-menu';
+import { HayatIstatistik, HayatUstKarti } from '@/components/panel/hayat-ust';
 import { IsiHaritasi, Seriler } from '@/components/panel/hayat-seri';
 import { OnerilenAliskanliklar } from '@/components/panel/onerilen-aliskanliklar';
 import { Topbar } from '@/components/panel/topbar';
 import { buttonClasses } from '@/components/ui/button';
 import { dayDateSchema } from '@/lib/schemas/common';
 import { addAppDays, appToday } from '@/server/services/_shared';
-import { fetchHabitWeek } from '@/server/services/habit';
+import { fetchHabitWeek, gunOranlari } from '@/server/services/habit';
 import { fetchHabitDay, fetchIsiHaritasi, type GunlukListeDto } from '@/server/services/habit-gun';
-import { cn } from '@/lib/utils/cn';
 
 export const metadata: Metadata = {
   title: 'Hayat',
@@ -51,11 +51,25 @@ export default async function HayatPage({ searchParams }: SayfaProps) {
 
   const [liste, hafta, isi] = await Promise.all([
     fetchHabitDay(gun, undefined, bugun),
-    fetchHabitWeek(bugun),
+    fetchHabitWeek(gun),
     fetchIsiHaritasi(undefined, bugun),
   ]);
   const { ozet } = liste;
-  const oran = ozet.toplam === 0 ? 0 : Math.round((ozet.yapildi / ozet.toplam) * 100);
+  const haftaOranlari = gunOranlari(hafta);
+  // Yüzde yalnızca GEÇMİŞ + bugün üzerinden: gelecek günler ortalamayı düşürmesin.
+  const gecenOranlar = haftaOranlari.filter((_, i) => (hafta.days[i] ?? '') <= bugun);
+  const haftaYuzdesi = Math.round(
+    (gecenOranlar.reduce((t, o) => t + o, 0) / Math.max(1, gecenOranlar.length)) * 100,
+  );
+  const seriMetinleri = Object.fromEntries(
+    hafta.habits
+      .filter((h) => h.streak.value > 0)
+      .map((h) => [h.id, `${h.streak.value} ${h.streak.unit === 'day' ? 'gün' : 'hafta'}`]),
+  );
+  const enUzunSeri = [...hafta.habits]
+    .filter((h) => h.streak.value > 0)
+    .sort((a, b) => b.streak.value - a.streak.value)[0];
+  const aktifGun = isi.filter((h) => h.oran !== null && h.oran > 0).length;
   const etiket = gunEtiketi(gun, bugun);
 
   return (
@@ -78,35 +92,15 @@ export default async function HayatPage({ searchParams }: SayfaProps) {
         <div className="mx-auto flex max-w-2xl flex-col gap-4">
           <HayatAltMenu aktif="genel" />
 
-          {/* ── GÜN SEÇİCİ ─────────────────────────────────────────────── */}
-          <div className="flex items-center justify-between gap-2">
-            <Link
-              href={`/panel/hayat?gun=${addAppDays(gun, -1)}`}
-              aria-label="Önceki gün"
-              className="focus-ring rounded-btn text-body hover:bg-elevated flex size-11 items-center justify-center"
-            >
-              <ChevronLeft className="size-5" aria-hidden="true" />
-            </Link>
-            <div className="flex flex-col items-center">
-              <span className="text-primary text-lg font-semibold capitalize">{etiket}</span>
-              {gun !== bugun && (
-                <Link href="/panel/hayat" className="text-accent text-xs font-medium">
-                  Bugüne dön
-                </Link>
-              )}
-            </div>
-            {gun < bugun ? (
-              <Link
-                href={`/panel/hayat?gun=${addAppDays(gun, 1)}`}
-                aria-label="Sonraki gün"
-                className="focus-ring rounded-btn text-body hover:bg-elevated flex size-11 items-center justify-center"
-              >
-                <ChevronRight className="size-5" aria-hidden="true" />
-              </Link>
-            ) : (
-              <span className="size-11" aria-hidden="true" />
-            )}
-          </div>
+          <HayatUstKarti
+            etiket={etiket}
+            gun={gun}
+            bugun={bugun}
+            gunler={hafta.days}
+            oranlar={haftaOranlari}
+            yapildi={ozet.yapildi}
+            toplam={ozet.toplam}
+          />
 
           {ozet.toplam === 0 ? (
             <section className="rounded-card border-line bg-surface flex flex-col items-center gap-4 border p-6 text-center">
@@ -125,35 +119,23 @@ export default async function HayatPage({ searchParams }: SayfaProps) {
             </section>
           ) : (
             <>
-              {/* ── İLERLEME ───────────────────────────────────────────── */}
-              <div className="flex flex-col gap-2">
-                <div className="flex items-baseline justify-between">
-                  <span className="text-muted text-sm">İlerleme</span>
-                  <span className="tabular text-primary text-sm font-semibold">
-                    {ozet.yapildi} / {ozet.toplam} · %{oran}
-                  </span>
-                </div>
-                <div
-                  role="progressbar"
-                  aria-valuenow={oran}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-label={`${etiket} ilerleme`}
-                  className="bg-elevated h-2.5 overflow-hidden rounded-full"
-                >
-                  <div
-                    className={cn(
-                      'h-full rounded-full transition-[width] duration-500',
-                      oran === 100 ? 'bg-success' : 'bg-accent',
-                    )}
-                    style={{ width: `${oran}%` }}
-                  />
-                </div>
-              </div>
-
-              <GunlukListe gun={gun} items={liste.items} />
+              <GunlukListe gun={gun} items={liste.items} seriler={seriMetinleri} />
 
               <GunRaporu liste={liste} etiket={etiket} />
+
+              <HayatIstatistik
+                kalemler={[
+                  { etiket: 'Bu hafta', deger: `%${haftaYuzdesi}` },
+                  {
+                    etiket: 'En uzun seri',
+                    deger: enUzunSeri ? `🔥 ${enUzunSeri.streak.value}` : '—',
+                    ...(enUzunSeri
+                      ? { ek: enUzunSeri.streak.unit === 'day' ? 'gün' : 'hafta' }
+                      : {}),
+                  },
+                  { etiket: 'Aktif gün', deger: String(aktifGun), ek: '/ yıl' },
+                ]}
+              />
 
               <Seriler aliskanliklar={hafta.habits} />
               <IsiHaritasi hucreler={isi} />
