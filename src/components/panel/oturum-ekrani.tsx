@@ -89,13 +89,20 @@ export function OturumEkrani({ oturum }: { oturum: OturumDto }) {
     const setNo = hareket.yapilanSetler.length + 1;
     setHata(null);
     basla(async () => {
-      const sonuc = await createWorkoutSetAction({
-        workoutId: oturum.id,
-        exerciseId: hareket.exerciseId,
-        setNo,
-        reps,
-        ...(kg ? { weightKg: kg } : {}),
-      });
+      let sonuc;
+      try {
+        sonuc = await createWorkoutSetAction({
+          workoutId: oturum.id,
+          exerciseId: hareket.exerciseId,
+          setNo,
+          reps,
+          ...(kg ? { weightKg: kg } : {}),
+        });
+      } catch {
+        return setHata('Bağlantı kurulamadı. Yeniden dene.');
+      }
+      // Önceki denemenin yanıtı kaybolmuş, set yazılmış: ekranı sunucudan yeniden kur.
+      if (!sonuc.ok && sonuc.error.code === 'CONFLICT') return window.location.reload();
       if (!sonuc.ok) return setHata(sonuc.error.message);
       setRekor(sonuc.data.yeniRekor ? `${hareket.ad} · ${kg} kg × ${reps}` : null);
       const yeni: OturumSetiDto = {
@@ -116,6 +123,33 @@ export function OturumEkrani({ oturum }: { oturum: OturumDto }) {
       }
     });
   };
+
+  // Onay yapışkan kalmasın: vazgeçilen dokunuş dakikalar sonra antrenmanı bitirmesin.
+  useEffect(() => {
+    if (!bitirOnay) return;
+    const t = setTimeout(() => setBitirOnay(false), 5000);
+    return () => clearTimeout(t);
+  }, [bitirOnay]);
+
+  // Set ve dinlenme arasında ekran kapanmasın; destek yoksa sessizce geçilir.
+  useEffect(() => {
+    let kilit: WakeLockSentinel | null = null;
+    const al = () => {
+      if (document.visibilityState !== 'visible' || !('wakeLock' in navigator)) return;
+      navigator.wakeLock
+        .request('screen')
+        .then((k) => {
+          kilit = k;
+        })
+        .catch(() => undefined);
+    };
+    al();
+    document.addEventListener('visibilitychange', al);
+    return () => {
+      document.removeEventListener('visibilitychange', al);
+      void kilit?.release().catch(() => undefined);
+    };
+  }, []);
 
   const bitir = () => {
     if (!hepsiBitti && !bitirOnay) {

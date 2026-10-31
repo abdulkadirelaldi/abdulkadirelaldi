@@ -6,8 +6,8 @@ import { useState, useTransition } from 'react';
 
 import { miktarBicim } from '@/components/panel/cuzdan-bicim';
 import { cn } from '@/lib/utils/cn';
-import { odemeIsleAction } from '@/server/actions/cuzdan';
-import type { BekleyenOdeme } from '@/server/services/odeme-onay';
+import { odemeGeriAlAction, odemeIsleAction } from '@/server/actions/cuzdan';
+import type { BekleyenOdeme, IslenenOdeme } from '@/server/services/odeme-onay';
 import type { WalletUnit } from '@/types';
 
 function vadeMetni(kala: number): string {
@@ -26,14 +26,16 @@ export interface OdemeHesabi {
 /**
  * ÖDEME ONAYI (2026-11-01): "Ödendi" → aynı birimde hesap varsa hangisinden
  * düşeceği sorulur (düşmeden de işlenir); "Atla" bu ayı kapatır. Tutar sunucuda
- * kaynaktan okunur.
+ * kaynaktan okunur. `islenenler` verilirse işlenen kayıtlar "Geri al" ile listelenir.
  */
 export function OdemeOnay({
   odemeler,
   hesaplar,
+  islenenler = [],
 }: {
   odemeler: BekleyenOdeme[];
   hesaplar: OdemeHesabi[];
+  islenenler?: IslenenOdeme[];
 }) {
   return (
     <section
@@ -57,7 +59,70 @@ export function OdemeOnay({
           ))}
         </ul>
       )}
+      {islenenler.length > 0 && (
+        <details className="group">
+          <summary className="text-muted focus-ring min-h-10 cursor-pointer content-center text-sm">
+            İşlenenler ({islenenler.length})
+          </summary>
+          <ul className="divide-line flex flex-col divide-y">
+            {islenenler.map((o) => (
+              <IslenenSatir key={`${o.kaynakTur}-${o.kaynakId}-${o.donem}`} odeme={o} />
+            ))}
+          </ul>
+        </details>
+      )}
     </section>
+  );
+}
+
+function IslenenSatir({ odeme }: { odeme: IslenenOdeme }) {
+  const router = useRouter();
+  const [hata, setHata] = useState<string | null>(null);
+  const [bekliyor, basla] = useTransition();
+
+  const geriAl = () => {
+    setHata(null);
+    basla(async () => {
+      try {
+        const sonuc = await odemeGeriAlAction({
+          kaynakTur: odeme.kaynakTur,
+          kaynakId: odeme.kaynakId,
+          donem: odeme.donem,
+        });
+        if (sonuc.ok) router.refresh();
+        else setHata(sonuc.error.message);
+      } catch {
+        setHata('Bağlantı kurulamadı. Yeniden dene.');
+      }
+    });
+  };
+
+  return (
+    <li className="flex flex-col gap-1 py-2.5">
+      <div className="flex items-center justify-between gap-3">
+        <span className="flex min-w-0 flex-col">
+          <span className="text-primary truncate text-sm font-medium">{odeme.ad}</span>
+          <span className="text-muted text-xs">
+            {odeme.donem} · {odeme.durum === 'ODENDI' ? 'Ödendi' : 'Atlandı'}
+            {odeme.tutar && ` · ${miktarBicim(odeme.tutar, odeme.unit)}`}
+          </span>
+        </span>
+        <button
+          type="button"
+          disabled={bekliyor}
+          onClick={geriAl}
+          aria-label={`${odeme.ad}: geri al`}
+          className="focus-ring bg-elevated text-body min-h-10 shrink-0 rounded-full px-4 text-sm font-medium disabled:opacity-60"
+        >
+          Geri al
+        </button>
+      </div>
+      {hata && (
+        <p role="alert" className="text-danger text-xs">
+          {hata}
+        </p>
+      )}
+    </li>
   );
 }
 

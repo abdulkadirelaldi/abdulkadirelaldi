@@ -26,7 +26,12 @@ import { currentActorId, toFailure, unauthorized } from './_shared';
  */
 
 const gunAlani = { gun: dayDateSchema.optional(), anahtar: z.uuid().optional() };
-const kiloSchema = z.object({ kg: decimalSchema(3, 2), ...gunAlani });
+const kiloSchema = z.object({
+  kg: decimalSchema(3, 2).refine((v) => Number(v) >= 30 && Number(v) <= 250, {
+    error: 'Kilo 30–250 arasında olmalı.',
+  }),
+  ...gunAlani,
+});
 const suSchema = z.object({ ml: z.number().int().min(50).max(2000), ...gunAlani });
 const harcamaSchema = hizliHarcamaSchema.extend(gunAlani);
 

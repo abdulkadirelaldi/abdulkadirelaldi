@@ -72,14 +72,18 @@ function Satir({
     setDurum(durumHesapla(yeniCount, yeniMissed, hedef));
     setHata(null);
     basla(async () => {
-      const sonuc = await eylem();
-      if (!sonuc.ok) {
+      const geriDon = (mesaj: string) => {
         setCount(onceki.count);
         setDurum(onceki.durum);
-        setHata(sonuc.error?.message ?? 'Kaydedilemedi.');
-        return;
+        setHata(mesaj);
+      };
+      try {
+        const sonuc = await eylem();
+        if (!sonuc.ok) return geriDon(sonuc.error?.message ?? 'Kaydedilemedi.');
+        router.refresh();
+      } catch {
+        geriDon('Bağlantı kurulamadı. Yeniden dene.');
       }
-      router.refresh();
     });
   };
 

@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation';
 import { useState, useTransition, type FormEvent, type ReactNode } from 'react';
 
 import { BIRIM_ADI, HESAP_TURU, SIKLIK, tutarOku, tutarYaz } from '@/components/panel/cuzdan-bicim';
+import { istanbulGunu } from '@/components/panel/hizli-kuyruk';
 import { Input } from '@/components/ui/input';
+import { HARCAMA_KATEGORILERI } from '@/lib/schemas/wallet';
 import {
   addDebtPaymentAction,
   archiveWalletAccountAction,
@@ -65,14 +67,18 @@ function useGonder() {
     basla(async () => {
       setHata(null);
       setAlanHatalari({});
-      const sonuc = await eylem();
-      if (!sonuc.ok) {
-        setHata(sonuc.error.message);
-        setAlanHatalari(sonuc.error.fields ?? {});
-        return;
+      try {
+        const sonuc = await eylem();
+        if (!sonuc.ok) {
+          setHata(sonuc.error.message);
+          setAlanHatalari(sonuc.error.fields ?? {});
+          return;
+        }
+        if (sonra) router.push(sonra);
+        router.refresh();
+      } catch {
+        setHata('Bağlantı kurulamadı. Yeniden dene.');
       }
-      if (sonra) router.push(sonra);
-      router.refresh();
     });
 
   return { hata, alanHatalari, bekliyor, gonder, setHata };
@@ -135,7 +141,7 @@ export function HesapFormu({ hesap }: { hesap?: Omit<HesapDto, 'tl'> }) {
     if (balance === null) return setHata('Bakiye geçersiz — örn. 1250,50');
     gonder(() =>
       hesap
-        ? updateWalletAccountAction({ id: hesap.id, name: ad, kind: tur, unit: birim, balance })
+        ? updateWalletAccountAction({ id: hesap.id, name: ad, kind: tur, balance })
         : createWalletAccountAction({ name: ad, kind: tur, unit: birim, balance }),
     );
   };
@@ -168,6 +174,7 @@ export function HesapFormu({ hesap }: { hesap?: Omit<HesapDto, 'tl'> }) {
           <select
             value={birim}
             onChange={(o) => setBirim(o.target.value as WalletUnit)}
+            disabled={Boolean(hesap)}
             className={SECIM}
           >
             {BIRIMLER.map((b) => (
@@ -412,26 +419,35 @@ export function AkisFormu({
   const [siklik, setSiklik] = useState<WalletFrequency>(akis?.frequency ?? 'MONTHLY');
   const [gun, setGun] = useState(akis?.day ? String(akis.day) : '');
   const [tarih, setTarih] = useState(akis?.date ?? '');
+  const [kategori, setKategori] = useState(akis?.category ?? 'Diğer');
   const gelir = tur === 'INCOME';
+  const harcama = !gelir && siklik === 'ONCE';
 
   const kaydet = (o: FormEvent) => {
     o.preventDefault();
     const amount = tutarOku(tutar);
     if (!amount) return setHata('Tutar geçersiz — örn. 25000 ya da 1250,50');
+    if (siklik === 'ONCE' && !tarih) return setHata('Tek seferlik kayıt için tarih seç.');
     const day = gun ? Number(gun) : undefined;
-    const ortak = {
-      name: ad,
-      counterparty: karsi || undefined,
-      unit: birim,
-      amount,
-      frequency: siklik,
-      ...(day ? { day } : {}),
-      ...(tarih ? { date: tarih } : {}),
-    };
+    const ortak = { name: ad, unit: birim, amount, frequency: siklik };
     gonder(() =>
       akis
-        ? updateWalletFlowAction({ id: akis.id, ...ortak })
-        : createWalletFlowAction({ kind: tur, ...ortak }),
+        ? updateWalletFlowAction({
+            id: akis.id,
+            ...ortak,
+            counterparty: karsi || null,
+            day: day ?? null,
+            date: tarih || null,
+            category: harcama ? kategori : null,
+          })
+        : createWalletFlowAction({
+            kind: tur,
+            ...ortak,
+            ...(karsi ? { counterparty: karsi } : {}),
+            ...(day ? { day } : {}),
+            ...(tarih ? { date: tarih } : {}),
+            ...(harcama ? { category: kategori } : {}),
+          }),
     );
   };
 
@@ -477,7 +493,11 @@ export function AkisFormu({
         <Alan etiket="Sıklık">
           <select
             value={siklik}
-            onChange={(o) => setSiklik(o.target.value as WalletFrequency)}
+            onChange={(o) => {
+              const yeni = o.target.value as WalletFrequency;
+              setSiklik(yeni);
+              if (yeni === 'ONCE' && !tarih) setTarih(istanbulGunu());
+            }}
             className={SECIM}
           >
             {(Object.keys(SIKLIK) as WalletFrequency[]).map((s) => (
@@ -498,7 +518,27 @@ export function AkisFormu({
           </Alan>
         ) : (
           <Alan etiket="Tarih">
-            <Input type="date" value={tarih} onChange={(o) => setTarih(o.target.value)} />
+            <Input
+              type="date"
+              value={tarih}
+              onChange={(o) => setTarih(o.target.value)}
+              required={siklik === 'ONCE'}
+            />
+          </Alan>
+        )}
+        {harcama && (
+          <Alan etiket="Kategori">
+            <select
+              value={kategori}
+              onChange={(o) => setKategori(o.target.value)}
+              className={SECIM}
+            >
+              {[...new Set([...HARCAMA_KATEGORILERI, kategori])].map((k) => (
+                <option key={k} value={k}>
+                  {k}
+                </option>
+              ))}
+            </select>
           </Alan>
         )}
       </div>

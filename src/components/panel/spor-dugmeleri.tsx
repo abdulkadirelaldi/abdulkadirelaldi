@@ -25,9 +25,13 @@ export function BaslatDugmesi({ dayId, vurgulu }: { dayId: string; vurgulu?: boo
         onClick={() =>
           basla(async () => {
             setHata(null);
-            const sonuc = await startSessionAction({ dayId });
-            if (!sonuc.ok) return setHata(sonuc.error.message);
-            router.push(`/panel/spor/oturum/${sonuc.data.id}`);
+            try {
+              const sonuc = await startSessionAction({ dayId });
+              if (!sonuc.ok) return setHata(sonuc.error.message);
+              router.push(`/panel/spor/oturum/${sonuc.data.id}`);
+            } catch {
+              setHata('Bağlantı kurulamadı. Yeniden dene.');
+            }
           })
         }
         className={cn(

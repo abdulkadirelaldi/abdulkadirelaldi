@@ -124,7 +124,7 @@ export default async function HaftalikPage({ searchParams }: SayfaProps) {
               deger={paraBicim(o.harcama.tl, 'TRY')}
               alt={
                 Number(o.harcama.oncekiTl) > 0 || Number(o.harcama.tl) > 0
-                  ? `Geçen hafta ${paraBicim(o.harcama.oncekiTl, 'TRY')}${harcamaFark === 0 ? '' : harcamaFark > 0 ? ' · arttı' : ' · azaldı'}`
+                  ? `Geçen hafta ${paraBicim(o.harcama.oncekiTl, 'TRY')}${hafta === buHafta || harcamaFark === 0 ? '' : harcamaFark > 0 ? ' · arttı' : ' · azaldı'}`
                   : 'Düzenli ödemeler hariç'
               }
             />

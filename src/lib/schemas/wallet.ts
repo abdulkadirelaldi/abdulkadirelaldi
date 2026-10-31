@@ -74,9 +74,14 @@ export const walletFlowSchema = z.object({
   category: shortTextSchema.optional(),
   note: mediumTextSchema.optional(),
 });
-export const updateWalletFlowSchema = walletFlowSchema
-  .partial()
-  .extend({ id: cuidSchema, isActive: z.boolean().optional() });
+export const updateWalletFlowSchema = walletFlowSchema.partial().extend({
+  id: cuidSchema,
+  counterparty: shortTextSchema.nullable().optional(),
+  day: z.number().int().min(1).max(31).nullable().optional(),
+  date: dayDateSchema.nullable().optional(),
+  category: shortTextSchema.nullable().optional(),
+  isActive: z.boolean().optional(),
+});
 
 export type WalletAccountInput = z.infer<typeof walletAccountSchema>;
 export type UpdateWalletAccountInput = z.infer<typeof updateWalletAccountSchema>;
@@ -101,7 +106,7 @@ export const HARCAMA_KATEGORILERI = [
 ] as const;
 
 export const hizliHarcamaSchema = z.object({
-  tutar,
+  tutar: tutar.refine((v) => Number(v) > 0, { error: 'Tutar sıfırdan büyük olmalı.' }),
   ne: ad,
   kategori: z.enum(HARCAMA_KATEGORILERI).default('Diğer'),
 });
@@ -123,3 +128,10 @@ export const odemeIsleSchema = z.object({
   hesapId: cuidSchema.optional(),
 });
 export type OdemeIsleInput = z.infer<typeof odemeIsleSchema>;
+
+export const odemeGeriAlSchema = odemeIsleSchema.pick({
+  kaynakTur: true,
+  kaynakId: true,
+  donem: true,
+});
+export type OdemeGeriAlInput = z.infer<typeof odemeGeriAlSchema>;

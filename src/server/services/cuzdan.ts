@@ -137,6 +137,8 @@ export interface CuzdanOzeti {
   netTl: string;
   aylikGelirTl: string;
   aylikGiderTl: string;
+  /** Bu ayın tek seferlik harcamaları: düzenli giderler hariç. */
+  harcananTl: string;
   aylikTaksitTl: string;
   /** Gelir − gider − taksit. */
   aylikKalanTl: string;
@@ -277,6 +279,7 @@ export async function fetchCuzdan(
       netTl: subtractMoney(varlikTl, borcTl),
       aylikGelirTl,
       aylikGiderTl,
+      harcananTl: topla(harcamalar.map((a) => a.aylikTl)),
       aylikTaksitTl,
       aylikKalanTl: subtractMoney(aylikGelirTl, sumMoney([aylikGiderTl, aylikTaksitTl])),
       kursuzKalem: kursuz,
@@ -429,7 +432,7 @@ export async function updateWalletFlow(input: UpdateWalletFlowInput, client: Cli
   const { id, date, ...alanlar } = input;
   return client.walletFlow.update({
     where: { id },
-    data: { ...alanlar, ...(date !== undefined ? { date: appDayToDate(date) } : {}) },
+    data: { ...alanlar, ...(date !== undefined ? { date: date && appDayToDate(date) } : {}) },
     select: { id: true },
   });
 }

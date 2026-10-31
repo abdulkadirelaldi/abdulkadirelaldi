@@ -43,7 +43,9 @@ export function CevrimdisiSeridi() {
     if (isleniyor.current || !navigator.onLine || kayitlar.length === 0) return;
     isleniyor.current = true;
     const { kalan, gonderilen, reddedilen: red } = await kuyruguIsle(kayitlar, gonder);
-    kuyruguYaz(kalan);
+    // Gönderim sürerken eklenen kayıtlar üzerine yazılmasın.
+    const islenen = new Set(kayitlar.map((k) => k.id));
+    kuyruguYaz([...kalan, ...kuyruguOku().filter((k) => !islenen.has(k.id))]);
     isleniyor.current = false;
     if (red > 0) setReddedilen((r) => r + red);
     if (gonderilen > 0) router.refresh();
