@@ -45,3 +45,19 @@ test('"+" ile harcama eklenir ve bu ayın harcamalarında görünür', async ({
     await hizliSondaSil(onek);
   }
 });
+
+test('kısayol adresi hızlı ekleme sayfasını doğrudan açar', async ({ page, baseURL }) => {
+  const { email } = adminCredentials();
+  const yonetici = await findAdminUser();
+  await applySessionCookie(
+    page.context(),
+    { userId: yonetici.id, email, twoFactorEnabled: true },
+    baseURL ?? 'http://127.0.0.1:3100',
+  );
+  await page.goto('/panel?ekle=su');
+  await expect(page.getByRole('dialog', { name: 'Su içtim' })).toBeVisible();
+  // Parametre silinir: yenileme sayfayı yeniden açmaz.
+  await expect(page).toHaveURL(/\/panel$/);
+  await page.reload();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
+});

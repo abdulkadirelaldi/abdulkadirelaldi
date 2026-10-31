@@ -48,6 +48,21 @@ export function HizliEkle() {
    * tutarların üstüne biniyordu. `passive` + rAF: kaydırmayı yavaşlatmaz; 8 px altı
    * titreşim sayılmaz. Sayfanın başında ve sonunda hep görünür.
    */
+  /*
+   * Kısayol adresi (2026-11-01): `/panel?ekle=harcama|su|kilo` sayfayı doğrudan açar.
+   * Manifest kısayolları (Android, masaüstü) ve iPhone Kısayollar bunu kullanır.
+   * Parametre sonra adresten silinir: yenilemede yeniden açılmasın.
+   */
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const ekle = url.searchParams.get('ekle');
+    if (ekle !== 'harcama' && ekle !== 'su' && ekle !== 'kilo') return;
+    setGorunum(ekle);
+    setAcik(true);
+    url.searchParams.delete('ekle');
+    window.history.replaceState(window.history.state, '', url);
+  }, []);
+
   const [gizli, setGizli] = useState(false);
   useEffect(() => {
     let onceki = window.scrollY;
