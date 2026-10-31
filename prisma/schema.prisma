@@ -989,6 +989,17 @@ model IslemAnahtari {
   @@map("islem_anahtari")
 }
 
+/// iPhone Kısayollar bağlantısı (2026-11-01) — kullanıcı başına tek anahtar.
+/// Anahtarın kendisi TUTULMAZ, SHA-256 özeti tutulur: yedek sızsa da işe yaramaz.
+model SaglikBaglantisi {
+  userId       String    @id
+  anahtarOzeti String    @unique
+  createdAt    DateTime  @default(now())
+  sonKullanim  DateTime?
+
+  @@map("saglik_baglantisi")
+}
+
 /// Son bilinen kur — canlı kaynak düşerse bu gösterilir (zamanıyla).
 model PriceQuote {
   unit      WalletUnit @id

@@ -532,7 +532,13 @@ const SU_TAVANI_ML = 20_000;
  */
 export async function gununKaydinaEkle(
   gun: string,
-  ek: { weightKg?: string; suMl?: number },
+  ek: {
+    weightKg?: string;
+    suMl?: number;
+    steps?: number;
+    sleepHours?: string;
+    restingHr?: number;
+  },
   client: Pick<typeof db, 'healthLog'> = db,
 ): Promise<{ id: string; weightKg: string | null; waterMl: number | null }> {
   const date = appDayToDate(gun);
@@ -545,6 +551,9 @@ export async function gununKaydinaEkle(
   const data = {
     ...(ek.weightKg !== undefined ? { weightKg: ek.weightKg } : {}),
     ...(su !== undefined ? { waterMl: su } : {}),
+    ...(ek.steps !== undefined ? { steps: ek.steps } : {}),
+    ...(ek.sleepHours !== undefined ? { sleepHours: ek.sleepHours } : {}),
+    ...(ek.restingHr !== undefined ? { restingHr: ek.restingHr } : {}),
   };
 
   const satir = mevcut

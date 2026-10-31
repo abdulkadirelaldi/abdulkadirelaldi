@@ -7,6 +7,7 @@ import {
   Palette,
   ScrollText,
   ShieldCheck,
+  Smartphone,
 } from 'lucide-react';
 import type { Metadata } from 'next';
 
@@ -68,6 +69,13 @@ export default function AyarlarPage() {
               baslik="Bildirimler"
               aciklama="Ödeme günleri, kalan alışkanlıklar ve su hatırlatmaları telefonuna gelsin."
               href="/panel/ayarlar/bildirimler"
+            />
+
+            <SettingsSection
+              icon={Smartphone}
+              baslik="iPhone sağlık verisi"
+              aciklama="Adım, uyku, nabız ve kilo Kısayollar ile her gün kendiliğinden gelsin."
+              href="/panel/ayarlar/saglik-baglantisi"
             />
 
             <SettingsSection
