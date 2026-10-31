@@ -373,6 +373,12 @@ export default async function BugunPage() {
                 <span aria-hidden="true" className="size-2 rounded-full bg-orange-500" />
                 Antrenman
               </span>
+              <Link
+                href="/panel/haftalik"
+                className="focus-ring text-accent-soft ml-auto font-medium"
+              >
+                Haftalık özet →
+              </Link>
             </p>
           </section>
 

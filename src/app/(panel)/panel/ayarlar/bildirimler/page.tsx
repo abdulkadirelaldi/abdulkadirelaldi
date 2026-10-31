@@ -30,6 +30,7 @@ export default async function BildirimlerPage() {
               aliskanlik: tercih?.aliskanlik ?? true,
               su: tercih?.su ?? true,
               rekor: tercih?.rekor ?? true,
+              haftalik: tercih?.haftalik ?? true,
             }}
           />
         </div>

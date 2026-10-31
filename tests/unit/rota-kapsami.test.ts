@@ -308,6 +308,11 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     kanit: [],
     not: 'T-114 ile eklendi. Okuma `fetchExerciseById` + `fetchRecordsForExercise` (sayfasız, `reps` artan). Yazma `updateExerciseAction`; `isArchived` formda YOK (arşivleme ayrı eylem, listeden). ÖLÇÜLMEYEN: (1) Kas grubu değişikliğinin eski setleri yeniden gruplaması (yardım metninde yazılı) ölçülmedi. (2) Geçersiz kimlikte 404 dışı davranış.',
   },
+  '/panel/haftalik': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: "2026-11-01 haftalık özet. `?hafta=` tarih doğrulanır, gelecek ve bozuk değer bu haftaya düşer. Hesap ve pazar bildirimi `tests/unit/services/haftalik-ozet.test.ts`te. ÖLÇÜLMEYEN: e2e'de içerik yok; gerçek telefona bildirim.",
+  },
   '/panel/spor/gelisim': {
     kapilar: ['kapsanmiyor'],
     kanit: [],

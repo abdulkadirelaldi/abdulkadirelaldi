@@ -1078,6 +1078,7 @@ model BildirimTercihi {
   aliskanlik Boolean  @default(true)
   su         Boolean  @default(true)
   rekor      Boolean  @default(true)
+  haftalik   Boolean  @default(true)
   updatedAt  DateTime @updatedAt
 
   @@map("bildirim_tercihi")

@@ -6,8 +6,16 @@ import { guvenliHata } from '@/lib/security/guvenli-log';
 import { db } from '@/server/db';
 import type { WalletUnit } from '@/types';
 
-import { addAppDays, appDayToDate, appToday, toMeasureString, type AppDay } from './_shared';
+import {
+  addAppDays,
+  appDayToDate,
+  appToday,
+  startOfAppWeek,
+  toMeasureString,
+  type AppDay,
+} from './_shared';
 import { fetchHabitDay } from './habit-gun';
+import { fetchHaftalikOzet, ozetMetni } from './haftalik-ozet';
 import { fetchIslenenBorclar } from './odeme-onay';
 
 /**
@@ -23,6 +31,8 @@ import { fetchIslenenBorclar } from './odeme-onay';
  *   borç       09–21 · ödeme gününden 2 gün önce ve ödeme günü
  *   alışkanlık 21–23 · işaretlenmemiş alışkanlık kaldıysa
  *   su         11, 15, 18 (2 saatlik pencere) · bugün 3,5 L'nin altındaysa
+ *   haftalık   pazar 20–23 · hafta boş değilse
+ * Rekor bildirimi zamanlayıcıdan değil set yazılırken gider (`spor-gelisim.ts`).
  * Pencere dışında gönderilmez: sunucu 19:00'da kalkarsa sabahın su
  * hatırlatması yığılıp gelmez.
  *
@@ -46,7 +56,7 @@ export function vapidAyarlari(env: Record<string, string | undefined> = process.
 }
 
 export interface Bildirim {
-  tur: 'borc' | 'aliskanlik' | 'su' | 'test';
+  tur: 'borc' | 'aliskanlik' | 'su' | 'haftalik' | 'test';
   /** Gün içinde tekrarı önleyen anahtar. */
   anahtar: string;
   baslik: string;
@@ -58,6 +68,7 @@ export interface Tercih {
   borc: boolean;
   aliskanlik: boolean;
   su: boolean;
+  haftalik?: boolean;
 }
 
 export interface PlanGirdisi {
@@ -70,12 +81,19 @@ export interface PlanGirdisi {
   suMl: number | null;
   /** Ödenmiş ya da atlanmış taksitler: `borçId:YYYY-MM` — hatırlatılmaz. */
   odenen?: ReadonlySet<string>;
+  /** Yalnızca pazar akşamı dolar; boş haftada `null`. */
+  haftalikGovde?: string | null;
 }
 
 /** Ayın son günü — 31'inde ödenen borç şubatta 28'ine düşer. SAF. */
 function sonGun(gun: AppDay): number {
   const [y, m] = gun.split('-').map(Number) as [number, number];
   return new Date(Date.UTC(y, m, 0)).getUTCDate();
+}
+
+/** Pazar 20:00–23:00. SAF. */
+function haftalikZamani(gun: AppDay, saat: number): boolean {
+  return gun === addAppDays(startOfAppWeek(gun), 6) && saat >= 20 && saat < 23;
 }
 
 /** Bu saatte gönderilmesi gerekenler. SAF — zamanlayıcının bütün kararı. */
@@ -126,6 +144,16 @@ export function planla(g: PlanGirdisi): Bildirim[] {
     });
   }
 
+  if (g.tercih.haftalik !== false && g.haftalikGovde && haftalikZamani(g.gun, g.saat)) {
+    sonuc.push({
+      tur: 'haftalik',
+      anahtar: 'pazar',
+      baslik: 'Haftan hazır 📊',
+      govde: g.haftalikGovde,
+      url: '/panel/haftalik',
+    });
+  }
+
   return sonuc;
 }
 
@@ -138,6 +166,7 @@ const SAAT = new Intl.DateTimeFormat('en-GB', {
 /** Kullanıcının o anki planı için veriyi toplar. */
 async function planGirdisi(userId: string, simdi: Date): Promise<PlanGirdisi> {
   const gun = appToday(simdi);
+  const saat = Number(SAAT.format(simdi));
   const [tercih, borclar, gunluk, saglik] = await Promise.all([
     db.bildirimTercihi.findUnique({ where: { userId } }),
     db.walletDebt.findMany({
@@ -149,7 +178,7 @@ async function planGirdisi(userId: string, simdi: Date): Promise<PlanGirdisi> {
   ]);
   return {
     gun,
-    saat: Number(SAAT.format(simdi)),
+    saat,
     tercih: tercih ?? { borc: true, aliskanlik: true, su: true },
     borclar: borclar.map((b) => {
       const tutar = toMeasureString(b.monthlyPayment, 2);
@@ -165,6 +194,9 @@ async function planGirdisi(userId: string, simdi: Date): Promise<PlanGirdisi> {
       .map((i) => i.name),
     suMl: saglik?.waterMl ?? null,
     odenen: await fetchIslenenBorclar(),
+    haftalikGovde: haftalikZamani(gun, saat)
+      ? ozetMetni(await fetchHaftalikOzet(gun, db, gun))
+      : null,
   };
 }
 
