@@ -58,6 +58,15 @@ function sade(miktar: string): string {
   return temiz ? `${gruplu},${temiz}` : gruplu;
 }
 
+const paraBirimiMi = (birim: WalletUnit) =>
+  birim === 'TRY' || birim === 'USD' || birim === 'EUR' || birim === 'GBP';
+
+/** Geçersiz tutar mesajı: altında ondalık sınırını söyler. */
+export const tutarHatasi = (birim: WalletUnit): string =>
+  paraBirimiMi(birim)
+    ? 'Tutar geçersiz — örn. 25000 ya da 1250,50'
+    : 'Miktar geçersiz — en fazla iki ondalık, örn. 2,13';
+
 /** Birimine göre miktar: para birimleri `paraBicim`, altın/gümüş adet ya da gram. */
 export function miktarBicim(miktar: string, birim: WalletUnit): string {
   if (birim === 'TRY' || birim === 'USD' || birim === 'EUR' || birim === 'GBP') {
@@ -78,11 +87,15 @@ export function tlBicim(tl: string | null): string {
  * ⚠️ VİRGÜLSÜZ NOKTA: Türkçede "42.500" kırk iki BİN beş yüz demek. Noktadan
  * sonra tam üç haneli gruplar varsa ("42.500", "1.250.000") nokta binlik
  * ayırıcıdır; bir-iki hane ("12.5", "1250.50") ondalıktır.
+ *
+ * ⚠️ ALTINDA NOKTA ONDALIKTIR: `birim` altınsa "2.125" iki bin değil 2,125 gram
+ * demektir; üç ondalık saklanmadığı için sessizce 1000 katına çıkmak yerine reddedilir.
  */
-export function tutarOku(metin: string): string | null {
+export function tutarOku(metin: string, birim?: WalletUnit): string | null {
   let t = metin.trim().replace(/\s/g, '');
   if (!t) return null;
-  if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.');
+  if (birim && !paraBirimiMi(birim)) t = t.replace(',', '.');
+  else if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.');
   else if (/^\d{1,3}(\.\d{3})+$/.test(t)) t = t.replace(/\./g, '');
   if (!/^\d{1,10}(\.\d{1,2})?$/.test(t)) return null;
   return t;

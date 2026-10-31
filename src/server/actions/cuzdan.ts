@@ -17,6 +17,10 @@ import { db } from '@/server/db';
 import {
   addDebtPayment,
   archiveWalletAccount,
+  deleteDebtPayment,
+  restoreWalletAccount,
+  sonlandirWalletFlow,
+  yenidenBaslatWalletFlow,
   butceKoy,
   createWalletAccount,
   createWalletDebt,
@@ -167,12 +171,86 @@ export async function addDebtPaymentAction(
   const parsed = parseOrFail(walletDebtPaymentSchema, raw);
   if (!parsed.ok) return parsed.failure;
   const v = parsed.data;
+  try {
+    const sonuc = await addDebtPayment(v);
+    await writeAuditLog(
+      {
+        actorId,
+        action: 'CREATE',
+        entity: 'WalletDebtPayment',
+        entityId: v.debtId,
+        diff: { hesaptan: Boolean(v.hesapId) },
+      },
+      db,
+    );
+    return ok(sonuc);
+  } catch (error) {
+    if (error instanceof OdemeHatasi) return fail('VALIDATION_ERROR', error.message);
+    return toFailure('wallet:debt:payment', error);
+  }
+}
+
+export async function deleteDebtPaymentAction(raw: unknown): Promise<ApiResponse<{ id: string }>> {
+  const actorId = await currentActorId();
+  if (!actorId) return unauthorized();
+  const parsed = parseOrFail(entityIdSchema, raw);
+  if (!parsed.ok) return parsed.failure;
+  const { id } = parsed.data;
+  try {
+    await deleteDebtPayment(id);
+    await writeAuditLog(
+      { actorId, action: 'DELETE', entity: 'WalletDebtPayment', entityId: id },
+      db,
+    );
+    return ok({ id });
+  } catch (error) {
+    if (error instanceof OdemeHatasi) return fail('VALIDATION_ERROR', error.message);
+    return toFailure('wallet:debt:payment:delete', error);
+  }
+}
+
+export async function restoreWalletAccountAction(raw: unknown) {
+  const actorId = await currentActorId();
+  if (!actorId) return unauthorized();
+  const parsed = parseOrFail(entityIdSchema, raw);
+  if (!parsed.ok) return parsed.failure;
+  const v = parsed.data;
   return kaydet(
     actorId,
     v,
-    { action: 'CREATE', entity: 'WalletDebtPayment', kimlik: () => v.debtId },
-    () => addDebtPayment(v),
-    'wallet:debt:payment',
+    { action: 'UPDATE', entity: 'WalletAccount', kimlik: () => v.id },
+    () => restoreWalletAccount(v.id),
+    'wallet:account:restore',
+  );
+}
+
+export async function sonlandirWalletFlowAction(raw: unknown) {
+  const actorId = await currentActorId();
+  if (!actorId) return unauthorized();
+  const parsed = parseOrFail(entityIdSchema, raw);
+  if (!parsed.ok) return parsed.failure;
+  const v = parsed.data;
+  return kaydet(
+    actorId,
+    v,
+    { action: 'UPDATE', entity: 'WalletFlow', kimlik: () => v.id },
+    () => sonlandirWalletFlow(v.id),
+    'wallet:flow:end',
+  );
+}
+
+export async function yenidenBaslatWalletFlowAction(raw: unknown) {
+  const actorId = await currentActorId();
+  if (!actorId) return unauthorized();
+  const parsed = parseOrFail(entityIdSchema, raw);
+  if (!parsed.ok) return parsed.failure;
+  const v = parsed.data;
+  return kaydet(
+    actorId,
+    v,
+    { action: 'UPDATE', entity: 'WalletFlow', kimlik: () => v.id },
+    () => yenidenBaslatWalletFlow(v.id),
+    'wallet:flow:restart',
   );
 }
 

@@ -31,6 +31,10 @@ import { fetchKurlar, tlKarsiligi, type KurDurumu } from './kur';
  * toplamlar `sumMoney` (ADR-014/D). Varlık ALIŞ, borç SATIŞ kuruyla (kur.ts).
  * Kuru bilinmeyen kalem toplama GİRMEZ ve ekranda "kur yok" diye işaretlenir —
  * sıfır saymak toplamı sessizce düşürürdü.
+ *
+ * "AY SONUNDA KALAN" TEK KURALLA: gelir ALIŞ, gider ve taksit SATIŞ kuruyla; atlanan
+ * kalem girmez; taksit = bu ay ödenen + bu ay kalan (`kalanTaksit`). Aylık rapor da
+ * aynısını kullanır.
  */
 
 type Client = typeof db;
@@ -75,6 +79,22 @@ export function odenenYuzde(toplam: string, kalan: string): number {
   const t = Number(toplam);
   if (t <= 0) return 0;
   return Math.max(0, Math.min(100, Math.round(((t - Number(kalan)) / t) * 100)));
+}
+
+/** İşlenemeyen para hareketi: mesaj kullanıcıya gösterilir. */
+export class OdemeHatasi extends Error {}
+
+/** Bu ay daha ödenecek taksit: atlandıysa ya da ödendiyse 0, kalan borcu geçmez. SAF. */
+export function kalanTaksit(
+  aylik: string | null,
+  kalanBorc: string,
+  odenen: string,
+  atlandi: boolean,
+): string {
+  if (!aylik || atlandi) return '0.00';
+  const eksik = subtractMoney(aylik, odenen);
+  if (eksik.startsWith('-')) return '0.00';
+  return Number(kalanBorc) < Number(eksik) ? kalanBorc : eksik;
 }
 
 /* ===========================================================================
@@ -139,6 +159,7 @@ export interface CuzdanOzeti {
   aylikGiderTl: string;
   /** Bu ayın tek seferlik harcamaları: düzenli giderler hariç. */
   harcananTl: string;
+  /** Bu ay ödenen + bu ay daha ödenecek taksit. */
   aylikTaksitTl: string;
   /** Gelir − gider − taksit. */
   aylikKalanTl: string;
@@ -167,7 +188,8 @@ export async function fetchCuzdan(
   bugun: AppDay = appToday(),
   kurDurumu?: KurDurumu,
 ): Promise<CuzdanDto> {
-  const [hesapSatir, borcSatir, akisSatir, kur] = await Promise.all([
+  const buAyKodu = bugun.slice(0, 7);
+  const [hesapSatir, borcSatir, akisSatir, odemeSatir, onaySatir, kur] = await Promise.all([
     client.walletAccount.findMany({
       where: { isArchived: false },
       orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
@@ -179,6 +201,14 @@ export async function fetchCuzdan(
     client.walletFlow.findMany({
       where: { isActive: true },
       orderBy: [{ day: { sort: 'asc', nulls: 'last' } }, { createdAt: 'asc' }],
+    }),
+    client.walletDebtPayment.findMany({
+      where: { date: { gte: appDayToDate(`${buAyKodu}-01` as AppDay) } },
+      select: { debtId: true, date: true, amount: true, debt: { select: { unit: true } } },
+    }),
+    client.walletOdeme.findMany({
+      where: { donem: buAyKodu, durum: 'ATLANDI' },
+      select: { kaynakTur: true, kaynakId: true },
     }),
     kurDurumu ? Promise.resolve(kurDurumu) : fetchKurlar(),
   ]);
@@ -247,7 +277,10 @@ export async function fetchCuzdan(
       category: a.category,
       note: a.note,
       isActive: a.isActive,
-      aylikTl: aylik === null ? null : say(tlKarsiligi(aylik, unit, kurlar, 'alis')),
+      aylikTl:
+        aylik === null
+          ? null
+          : say(tlKarsiligi(aylik, unit, kurlar, a.kind === 'INCOME' ? 'alis' : 'satis')),
     };
   });
 
@@ -264,8 +297,26 @@ export async function fetchCuzdan(
     .filter((a) => a.kind === 'EXPENSE' && a.frequency === 'ONCE')
     .sort((x, y) => (y.date ?? '').localeCompare(x.date ?? ''));
   const aylikGelirTl = topla(gelirler.map((a) => a.aylikTl));
-  const aylikGiderTl = topla([...giderler, ...harcamalar].map((a) => a.aylikTl));
-  const aylikTaksitTl = topla(borclar.map((b) => b.taksitTl));
+  const atlanan = new Set(onaySatir.map((o) => `${o.kaynakTur}:${o.kaynakId}`));
+  const aylikGiderTl = topla(
+    [...giderler.filter((g) => !atlanan.has(`AKIS:${g.id}`)), ...harcamalar].map((a) => a.aylikTl),
+  );
+  const buAyOdemeleri = odemeSatir.filter((o) => dateToAppDay(o.date).slice(0, 7) === buAyKodu);
+  const odenen = (borcId: string) =>
+    sumMoney(buAyOdemeleri.filter((o) => o.debtId === borcId).map((o) => para(o.amount)));
+  const aylikTaksitTl = topla([
+    ...buAyOdemeleri.map((o) =>
+      tlKarsiligi(para(o.amount), o.debt.unit as WalletUnit, kurlar, 'satis'),
+    ),
+    ...borclar.map((b) =>
+      tlKarsiligi(
+        kalanTaksit(b.monthlyPayment, b.remainingAmount, odenen(b.id), atlanan.has(`BORC:${b.id}`)),
+        b.unit,
+        kurlar,
+        'satis',
+      ),
+    ),
+  ]);
 
   return {
     hesaplar,
@@ -306,6 +357,85 @@ export async function fetchDebtPayments(
   }));
 }
 
+/** Ödemede seçilebilecek hesaplar: arşivsiz ve aynı birimde. */
+export async function fetchOdemeHesaplari(
+  unit: WalletUnit,
+  client: Pick<Client, 'walletAccount'> = db,
+): Promise<{ id: string; name: string; unit: WalletUnit; balance: string }[]> {
+  const satirlar = await client.walletAccount.findMany({
+    where: { isArchived: false, unit },
+    orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
+  });
+  return satirlar.map((h) => ({
+    id: h.id,
+    name: h.name,
+    unit: h.unit as WalletUnit,
+    balance: para(h.balance),
+  }));
+}
+
+export interface CuzdanArsivi {
+  hesaplar: { id: string; name: string; unit: WalletUnit; balance: string }[];
+  borclar: { id: string; name: string; unit: WalletUnit; totalAmount: string }[];
+  sonlananlar: {
+    id: string;
+    name: string;
+    unit: WalletUnit;
+    amount: string;
+    bitis: AppDay | null;
+  }[];
+  /** Tarihi girilmemiş eski tek seferlik kalemler: hiçbir toplama girmez, düzeltilmeli. */
+  tarihsizler: { id: string; name: string; unit: WalletUnit; amount: string }[];
+}
+
+/** Ana ekranda görünmeyen ama silinmemiş kayıtlar. */
+export async function fetchCuzdanArsivi(
+  client: Pick<Client, 'walletAccount' | 'walletDebt' | 'walletFlow'> = db,
+): Promise<CuzdanArsivi> {
+  const [hesaplar, borclar, sonlananlar, tarihsizler] = await Promise.all([
+    client.walletAccount.findMany({
+      where: { isArchived: true },
+      orderBy: { updatedAt: 'desc' },
+    }),
+    client.walletDebt.findMany({ where: { isClosed: true }, orderBy: { updatedAt: 'desc' } }),
+    client.walletFlow.findMany({
+      where: { isActive: false, frequency: { not: 'ONCE' } },
+      orderBy: { updatedAt: 'desc' },
+    }),
+    client.walletFlow.findMany({
+      where: { frequency: 'ONCE', date: null },
+      orderBy: { createdAt: 'desc' },
+    }),
+  ]);
+  return {
+    hesaplar: hesaplar.map((h) => ({
+      id: h.id,
+      name: h.name,
+      unit: h.unit as WalletUnit,
+      balance: para(h.balance),
+    })),
+    borclar: borclar.map((b) => ({
+      id: b.id,
+      name: b.name,
+      unit: b.unit as WalletUnit,
+      totalAmount: para(b.totalAmount),
+    })),
+    sonlananlar: sonlananlar.map((a) => ({
+      id: a.id,
+      name: a.name,
+      unit: a.unit as WalletUnit,
+      amount: para(a.amount),
+      bitis: a.bitisGunu ? dateToAppDay(a.bitisGunu) : null,
+    })),
+    tarihsizler: tarihsizler.map((a) => ({
+      id: a.id,
+      name: a.name,
+      unit: a.unit as WalletUnit,
+      amount: para(a.amount),
+    })),
+  };
+}
+
 /* ===========================================================================
  * YAZMA
  * ======================================================================== */
@@ -333,6 +463,14 @@ export async function archiveWalletAccount(id: string, client: Client = db) {
   });
 }
 
+export async function restoreWalletAccount(id: string, client: Client = db) {
+  return client.walletAccount.update({
+    where: { id },
+    data: { isArchived: false },
+    select: { id: true },
+  });
+}
+
 export async function createWalletDebt(input: WalletDebtInput, client: Client = db) {
   return client.walletDebt.create({
     data: {
@@ -356,6 +494,10 @@ export async function updateWalletDebt(input: UpdateWalletDebtInput, client: Cli
     where: { id },
     data: {
       ...alanlar,
+      // Kalan elle değişince durum da değişir: düzeltilen borç yeniden açılır.
+      ...(alanlar.remainingAmount !== undefined
+        ? { isClosed: Number(alanlar.remainingAmount) === 0 }
+        : {}),
       ...(endDate !== undefined
         ? { endDate: endDate === null ? null : appDayToDate(endDate) }
         : {}),
@@ -368,10 +510,60 @@ export async function deleteWalletDebt(id: string, client: Client = db) {
   return client.walletDebt.delete({ where: { id }, select: { id: true } });
 }
 
-/**
- * Ödeme yazar ve kalan borcu AYNI İŞLEMDE düşürür; kalan sıfırlanırsa borç
- * kapanır. Kalandan büyük ödeme kalanı sıfırlar (eksi borç yok).
- */
+/** Hesaptan düşer: arşivli hesap, farklı birim ve eksi bakiye reddedilir. */
+export async function hesaptanDus(
+  hesapId: string,
+  unit: WalletUnit,
+  tutar: string,
+  tx: Pick<Client, 'walletAccount'>,
+): Promise<void> {
+  const hesap = await tx.walletAccount.findUnique({
+    where: { id: hesapId },
+    select: { unit: true, balance: true, isArchived: true },
+  });
+  if (!hesap || hesap.isArchived) throw new OdemeHatasi('Hesap bulunamadı.');
+  if (hesap.unit !== unit) throw new OdemeHatasi('Hesabın birimi ödemeyle aynı değil.');
+  const kalan = subtractMoney(para(hesap.balance), tutar);
+  if (kalan.startsWith('-')) throw new OdemeHatasi('Hesapta yeterli bakiye yok.');
+  await tx.walletAccount.update({ where: { id: hesapId }, data: { balance: kalan } });
+}
+
+/** Hesaba iade eder; hesap silinmişse iade edilecek yer yoktur. */
+export async function hesabaIade(
+  hesapId: string,
+  tutar: string,
+  tx: Pick<Client, 'walletAccount'>,
+): Promise<void> {
+  const hesap = await tx.walletAccount.findUnique({
+    where: { id: hesapId },
+    select: { balance: true },
+  });
+  if (!hesap) return;
+  await tx.walletAccount.update({
+    where: { id: hesapId },
+    data: { balance: sumMoney([para(hesap.balance), tutar]) },
+  });
+}
+
+/** Silinen ödemeyi kalana geri ekler ve borcu açar; kalan toplamı geçmez. */
+export async function borcaGeriEkle(
+  debtId: string,
+  tutar: string,
+  tx: Pick<Client, 'walletDebt'>,
+): Promise<void> {
+  const borc = await tx.walletDebt.findUnique({
+    where: { id: debtId },
+    select: { remainingAmount: true, totalAmount: true },
+  });
+  if (!borc) return;
+  const yeni = sumMoney([para(borc.remainingAmount), tutar]);
+  const toplam = para(borc.totalAmount);
+  await tx.walletDebt.update({
+    where: { id: debtId },
+    data: { remainingAmount: Number(yeni) > Number(toplam) ? toplam : yeni, isClosed: false },
+  });
+}
+
 /** Ödemeyi yazar ve kalanı düşürür — çağıranın işlemi içinde (`tx`). */
 export async function borcOdemesiYaz(
   input: WalletDebtPaymentInput,
@@ -388,6 +580,7 @@ export async function borcOdemesiYaz(
       date: appDayToDate(input.date),
       amount: input.amount,
       note: bosaNull(input.note),
+      hesapId: input.hesapId ?? null,
     },
   });
   const fark = subtractMoney(para(borc.remainingAmount), input.amount);
@@ -404,7 +597,46 @@ export async function addDebtPayment(
   input: WalletDebtPaymentInput,
   client: Client = db,
 ): Promise<{ remainingAmount: string; isClosed: boolean }> {
-  return client.$transaction((tx) => borcOdemesiYaz(input, tx));
+  return client.$transaction(async (tx) => {
+    const borc = await tx.walletDebt.findUnique({
+      where: { id: input.debtId },
+      select: { remainingAmount: true, unit: true },
+    });
+    if (!borc) throw new OdemeHatasi('Borç bulunamadı.');
+    if (Number(input.amount) > Number(para(borc.remainingAmount))) {
+      throw new OdemeHatasi('Ödeme kalan borçtan fazla olamaz.');
+    }
+    if (input.hesapId) {
+      await hesaptanDus(input.hesapId, borc.unit as WalletUnit, input.amount, tx);
+    }
+    return borcOdemesiYaz(input, tx);
+  });
+}
+
+/**
+ * Ödemeyi siler: hesaba iade, kalana geri ekleme ve bağlı aylık onay TEK işlemde.
+ * Ödeme onayından gelen eski kayıtlarda hesap yalnızca onay kaydındadır.
+ */
+export async function deleteDebtPayment(id: string, client: Client = db): Promise<void> {
+  await client.$transaction(async (tx) => {
+    const odeme = await tx.walletDebtPayment.findUnique({ where: { id } });
+    if (!odeme) throw new OdemeHatasi('Ödeme bulunamadı.');
+    const tutar = para(odeme.amount);
+    const onay = await tx.walletOdeme.findFirst({
+      where: {
+        kaynakTur: 'BORC',
+        kaynakId: odeme.debtId,
+        gun: odeme.date,
+        tutar: odeme.amount,
+        durum: 'ODENDI',
+      },
+    });
+    const hesapId = odeme.hesapId ?? onay?.hesapId ?? null;
+    if (hesapId) await hesabaIade(hesapId, tutar, tx);
+    await borcaGeriEkle(odeme.debtId, tutar, tx);
+    if (onay) await tx.walletOdeme.delete({ where: { id: onay.id } });
+    await tx.walletDebtPayment.delete({ where: { id } });
+  });
 }
 
 export async function createWalletFlow(
@@ -433,6 +665,27 @@ export async function updateWalletFlow(input: UpdateWalletFlowInput, client: Cli
   return client.walletFlow.update({
     where: { id },
     data: { ...alanlar, ...(date !== undefined ? { date: date && appDayToDate(date) } : {}) },
+    select: { id: true },
+  });
+}
+
+/** Düzenli kalemi sonlandırır: geçmiş aylar raporda kalır, bu aydan itibaren sayılmaz. */
+export async function sonlandirWalletFlow(
+  id: string,
+  client: Pick<Client, 'walletFlow'> = db,
+  bugun: AppDay = appToday(),
+) {
+  return client.walletFlow.update({
+    where: { id },
+    data: { isActive: false, bitisGunu: appDayToDate(bugun) },
+    select: { id: true },
+  });
+}
+
+export async function yenidenBaslatWalletFlow(id: string, client: Pick<Client, 'walletFlow'> = db) {
+  return client.walletFlow.update({
+    where: { id },
+    data: { isActive: true, bitisGunu: null },
     select: { id: true },
   });
 }

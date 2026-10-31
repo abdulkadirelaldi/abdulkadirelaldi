@@ -2,9 +2,17 @@
 
 import { Trash2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition, type FormEvent, type ReactNode } from 'react';
+import { useEffect, useState, useTransition, type FormEvent, type ReactNode } from 'react';
 
-import { BIRIM_ADI, HESAP_TURU, SIKLIK, tutarOku, tutarYaz } from '@/components/panel/cuzdan-bicim';
+import {
+  BIRIM_ADI,
+  HESAP_TURU,
+  SIKLIK,
+  tutarHatasi,
+  tutarOku,
+  miktarBicim,
+  tutarYaz,
+} from '@/components/panel/cuzdan-bicim';
 import { istanbulGunu } from '@/components/panel/hizli-kuyruk';
 import { Input } from '@/components/ui/input';
 import { HARCAMA_KATEGORILERI } from '@/lib/schemas/wallet';
@@ -13,6 +21,10 @@ import {
   archiveWalletAccountAction,
   createWalletAccountAction,
   createWalletDebtAction,
+  deleteDebtPaymentAction,
+  restoreWalletAccountAction,
+  sonlandirWalletFlowAction,
+  yenidenBaslatWalletFlowAction,
   createWalletFlowAction,
   deleteWalletDebtAction,
   deleteWalletFlowAction,
@@ -63,6 +75,7 @@ function useGonder() {
   const gonder = (
     eylem: () => Promise<ApiResponse<unknown>>,
     sonra: string | null = '/panel/cuzdan',
+    basarida?: () => void,
   ) =>
     basla(async () => {
       setHata(null);
@@ -74,6 +87,7 @@ function useGonder() {
           setAlanHatalari(sonuc.error.fields ?? {});
           return;
         }
+        basarida?.();
         if (sonra) router.push(sonra);
         router.refresh();
       } catch {
@@ -107,6 +121,12 @@ function SilDugmesi({
   bekliyor: boolean;
 }) {
   const [onay, setOnay] = useState(false);
+  // iOS düğmeye odak vermeyebilir: onay yalnızca `onBlur` ile sönmesin.
+  useEffect(() => {
+    if (!onay) return;
+    const t = setTimeout(() => setOnay(false), 5000);
+    return () => clearTimeout(t);
+  }, [onay]);
   return (
     <button
       type="button"
@@ -114,7 +134,7 @@ function SilDugmesi({
       onClick={() => (onay ? onSil() : setOnay(true))}
       onBlur={() => setOnay(false)}
       className={cn(
-        'focus-ring flex h-11 items-center justify-center gap-2 rounded-full border text-sm font-medium',
+        'focus-ring flex h-11 items-center justify-center gap-2 rounded-full border px-4 text-sm font-medium',
         onay ? 'border-danger bg-danger text-white' : 'border-line text-danger',
       )}
     >
@@ -137,8 +157,8 @@ export function HesapFormu({ hesap }: { hesap?: Omit<HesapDto, 'tl'> }) {
 
   const kaydet = (o: FormEvent) => {
     o.preventDefault();
-    const balance = tutarOku(bakiye || '0');
-    if (balance === null) return setHata('Bakiye geçersiz — örn. 1250,50');
+    const balance = tutarOku(bakiye || '0', birim);
+    if (balance === null) return setHata(tutarHatasi(birim));
     gonder(() =>
       hesap
         ? updateWalletAccountAction({ id: hesap.id, name: ad, kind: tur, balance })
@@ -230,11 +250,11 @@ export function BorcFormu({ borc }: { borc?: Omit<BorcDto, 'kalanTl' | 'taksitTl
 
   const kaydet = (o: FormEvent) => {
     o.preventDefault();
-    const remainingAmount = tutarOku(kalan || toplam);
-    const totalAmount = tutarOku(toplam || kalan);
-    const monthlyPayment = taksit ? tutarOku(taksit) : undefined;
+    const remainingAmount = tutarOku(kalan || toplam, birim);
+    const totalAmount = tutarOku(toplam || kalan, birim);
+    const monthlyPayment = taksit ? tutarOku(taksit, birim) : undefined;
     if (!remainingAmount || !totalAmount || monthlyPayment === null) {
-      return setHata('Tutarlardan biri geçersiz — örn. 15000 ya da 2,5');
+      return setHata(tutarHatasi(birim));
     }
     const paymentDay = gun ? Number(gun) : undefined;
     gonder(
@@ -244,6 +264,7 @@ export function BorcFormu({ borc }: { borc?: Omit<BorcDto, 'kalanTl' | 'taksitTl
               id: borc.id,
               name: ad,
               lender: kime || null,
+              totalAmount,
               remainingAmount,
               monthlyPayment: monthlyPayment ?? null,
               paymentDay: paymentDay ?? null,
@@ -295,16 +316,14 @@ export function BorcFormu({ borc }: { borc?: Omit<BorcDto, 'kalanTl' | 'taksitTl
         </select>
       </Alan>
       <div className="grid grid-cols-2 gap-3">
-        {!borc && (
-          <Alan etiket="Toplam borç" hata={alanHatalari.totalAmount}>
-            <Input
-              value={toplam}
-              onChange={(o) => setToplam(o.target.value)}
-              inputMode="decimal"
-              required
-            />
-          </Alan>
-        )}
+        <Alan etiket="Toplam borç" hata={alanHatalari.totalAmount}>
+          <Input
+            value={toplam}
+            onChange={(o) => setToplam(o.target.value)}
+            inputMode="decimal"
+            required
+          />
+        </Alan>
         <Alan etiket="Kalan (güncel)" hata={alanHatalari.remainingAmount}>
           <Input
             value={kalan}
@@ -354,21 +373,33 @@ export function OdemeFormu({
   borcId,
   birim,
   bugun,
+  hesaplar,
 }: {
   borcId: string;
   birim: WalletUnit;
   bugun: string;
+  hesaplar: { id: string; name: string; unit: WalletUnit; balance: string }[];
 }) {
   const { hata, bekliyor, gonder, setHata } = useGonder();
   const [tutar, setTutar] = useState('');
   const [tarih, setTarih] = useState(bugun);
+  const [hesapId, setHesapId] = useState(hesaplar[0]?.id ?? '');
 
   const kaydet = (o: FormEvent) => {
     o.preventDefault();
-    const amount = tutarOku(tutar);
-    if (!amount) return setHata('Tutar geçersiz — örn. 2500 ya da 0,5');
-    gonder(() => addDebtPaymentAction({ debtId: borcId, date: tarih, amount }), null);
-    setTutar('');
+    const amount = tutarOku(tutar, birim);
+    if (!amount || Number(amount) <= 0) return setHata(tutarHatasi(birim));
+    gonder(
+      () =>
+        addDebtPaymentAction({
+          debtId: borcId,
+          date: tarih,
+          amount,
+          ...(hesapId ? { hesapId } : {}),
+        }),
+      null,
+      () => setTutar(''),
+    );
   };
 
   return (
@@ -390,6 +421,18 @@ export function OdemeFormu({
           <Input type="date" value={tarih} onChange={(o) => setTarih(o.target.value)} required />
         </Alan>
       </div>
+      {hesaplar.length > 0 && (
+        <Alan etiket="Düşülecek hesap">
+          <select value={hesapId} onChange={(o) => setHesapId(o.target.value)} className={SECIM}>
+            {hesaplar.map((h) => (
+              <option key={h.id} value={h.id}>
+                {h.name} · {miktarBicim(h.balance, h.unit)}
+              </option>
+            ))}
+            <option value="">Hesaptan düşme</option>
+          </select>
+        </Alan>
+      )}
       {hata && (
         <p role="alert" className="text-danger text-sm">
           {hata}
@@ -397,6 +440,48 @@ export function OdemeFormu({
       )}
       <Kaydet bekliyor={bekliyor} etiket="Ödemeyi kaydet" />
     </form>
+  );
+}
+
+/** Ödeme satırındaki silme: hesaba iade edilir, kalan borç geri eklenir. */
+export function OdemeSilDugmesi({ odemeId }: { odemeId: string }) {
+  const { hata, bekliyor, gonder } = useGonder();
+  return (
+    <div className="flex flex-col items-end gap-1">
+      <SilDugmesi
+        etiket="Sil"
+        bekliyor={bekliyor}
+        onSil={() => gonder(() => deleteDebtPaymentAction({ id: odemeId }), null)}
+      />
+      {hata && (
+        <p role="alert" className="text-danger text-xs">
+          {hata}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** Arşivdeki hesabı geri getirir. */
+export function HesapGeriGetir({ hesapId, ad }: { hesapId: string; ad: string }) {
+  const { hata, bekliyor, gonder } = useGonder();
+  return (
+    <div className="flex shrink-0 flex-col items-end gap-1">
+      <button
+        type="button"
+        disabled={bekliyor}
+        aria-label={`${ad}: geri getir`}
+        onClick={() => gonder(() => restoreWalletAccountAction({ id: hesapId }), null)}
+        className="focus-ring bg-elevated text-body min-h-10 rounded-full px-4 text-sm font-medium disabled:opacity-60"
+      >
+        Geri getir
+      </button>
+      {hata && (
+        <p role="alert" className="text-danger text-xs">
+          {hata}
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -425,8 +510,8 @@ export function AkisFormu({
 
   const kaydet = (o: FormEvent) => {
     o.preventDefault();
-    const amount = tutarOku(tutar);
-    if (!amount) return setHata('Tutar geçersiz — örn. 25000 ya da 1250,50');
+    const amount = tutarOku(tutar, birim);
+    if (!amount) return setHata(tutarHatasi(birim));
     if (siklik === 'ONCE' && !tarih) return setHata('Tek seferlik kayıt için tarih seç.');
     const day = gun ? Number(gun) : undefined;
     const ortak = { name: ad, unit: birim, amount, frequency: siklik };
@@ -548,6 +633,22 @@ export function AkisFormu({
         </p>
       )}
       <Kaydet bekliyor={bekliyor} />
+      {akis && akis.frequency !== 'ONCE' && (
+        <button
+          type="button"
+          disabled={bekliyor}
+          onClick={() =>
+            gonder(() =>
+              akis.isActive
+                ? sonlandirWalletFlowAction({ id: akis.id })
+                : yenidenBaslatWalletFlowAction({ id: akis.id }),
+            )
+          }
+          className="focus-ring border-line text-body flex h-11 items-center justify-center rounded-full border px-4 text-sm font-medium disabled:opacity-60"
+        >
+          {akis.isActive ? 'Sonlandır (geçmiş aylar korunur)' : 'Yeniden başlat'}
+        </button>
+      )}
       {akis && (
         <SilDugmesi
           etiket={gelir ? 'Geliri sil' : 'Gideri sil'}

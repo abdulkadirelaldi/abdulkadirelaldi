@@ -189,6 +189,12 @@ export default async function CuzdanPage() {
           <AkisBolumu baslik="Düzenli giderler" tur="gider" akislar={c.giderler} />
           <ButceKarti satirlar={butceOzeti(c.harcamalar, limitler)} />
           <Harcamalar harcamalar={c.harcamalar} />
+          <Link
+            href="/panel/cuzdan/arsiv"
+            className="focus-ring text-muted min-h-11 content-center self-center px-3 text-sm font-medium"
+          >
+            Arşiv: kapanan borçlar, kaldırılan hesaplar →
+          </Link>
         </div>
       </main>
     </>

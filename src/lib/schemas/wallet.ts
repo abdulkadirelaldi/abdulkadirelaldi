@@ -43,23 +43,33 @@ export const walletDebtSchema = z
     error: 'Kalan borç toplam borçtan büyük olamaz.',
     path: ['remainingAmount'],
   });
-export const updateWalletDebtSchema = z.object({
-  id: cuidSchema,
-  name: ad.optional(),
-  lender: shortTextSchema.nullable().optional(),
-  remainingAmount: tutar.optional(),
-  monthlyPayment: tutar.nullable().optional(),
-  paymentDay: z.number().int().min(1).max(31).nullable().optional(),
-  endDate: dayDateSchema.nullable().optional(),
-  note: mediumTextSchema.nullable().optional(),
-  isClosed: z.boolean().optional(),
-});
+export const updateWalletDebtSchema = z
+  .object({
+    id: cuidSchema,
+    name: ad.optional(),
+    lender: shortTextSchema.nullable().optional(),
+    totalAmount: tutar.optional(),
+    remainingAmount: tutar.optional(),
+    monthlyPayment: tutar.nullable().optional(),
+    paymentDay: z.number().int().min(1).max(31).nullable().optional(),
+    endDate: dayDateSchema.nullable().optional(),
+    note: mediumTextSchema.nullable().optional(),
+    isClosed: z.boolean().optional(),
+  })
+  .refine(
+    (d) =>
+      d.totalAmount === undefined ||
+      d.remainingAmount === undefined ||
+      Number(d.remainingAmount) <= Number(d.totalAmount),
+    { error: 'Kalan borç toplam borçtan büyük olamaz.', path: ['remainingAmount'] },
+  );
 
 export const walletDebtPaymentSchema = z.object({
   debtId: cuidSchema,
   date: dayDateSchema,
   amount: tutar.refine((v) => Number(v) > 0, { error: 'Ödeme sıfırdan büyük olmalı.' }),
   note: shortTextSchema.optional(),
+  hesapId: cuidSchema.optional(),
 });
 
 export const walletFlowSchema = z.object({

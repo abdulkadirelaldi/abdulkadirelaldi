@@ -13,6 +13,9 @@ import type { KurDurumu } from '@/server/services/kur';
 import { decimal, decimalKalanlar } from '../_helpers/decimal-kacak';
 
 const a = (o: Partial<RaporAkisi>): RaporAkisi => ({
+  id: 'k1',
+  ad: 'Kalem',
+  bitis: null,
   kind: 'EXPENSE',
   frequency: 'ONCE',
   unit: 'TRY',
@@ -87,6 +90,39 @@ describe('ayOzeti (2026-11-01)', () => {
   });
 });
 
+describe('ayOzeti · sonlandırma ve atlama (2026-11-01)', () => {
+  const abonelik = a({ frequency: 'MONTHLY', amount: '100.00', bitis: '2026-10-15' });
+
+  it('⚠️ sonlandırılan kalem geçmiş aylarda kalır, bitiş ayından itibaren girmez', () => {
+    expect(ayOzeti('2026-09', [abonelik], [], {}).duzenliGiderTl).toBe('100.00');
+    expect(ayOzeti('2026-10', [abonelik], [], {}).duzenliGiderTl).toBe('0.00');
+    expect(ayOzeti('2026-11', [abonelik], [], {}).duzenliGiderTl).toBe('0.00');
+  });
+
+  it('atlanan kalem yalnızca o aydan düşer', () => {
+    const k = a({ id: 'x', frequency: 'MONTHLY', amount: '100.00' });
+    const atlanan = new Set(['x:2026-10']);
+    expect(ayOzeti('2026-10', [k], [], {}, { atlanan }).duzenliGiderTl).toBe('0.00');
+    expect(ayOzeti('2026-09', [k], [], {}, { atlanan }).duzenliGiderTl).toBe('100.00');
+  });
+
+  it('kalan taksit kalandan düşer; kalemler yeniden eskiye', () => {
+    const s = ayOzeti(
+      '2026-10',
+      [
+        a({ id: 'e', kind: 'INCOME', frequency: 'MONTHLY', amount: '1000.00' }),
+        a({ id: 'u1', date: '2026-10-03', amount: '10.00' }),
+        a({ id: 'u2', date: '2026-10-20', amount: '20.00' }),
+      ],
+      [],
+      {},
+      { kalanTaksitTl: '300.00' },
+    );
+    expect(s.kalanTl).toBe('670.00');
+    expect(s.kalemler.map((k) => k.id)).toEqual(['u2', 'u1']);
+  });
+});
+
 describe('yardımcılar', () => {
   it('önceki ay, yıl geçişi', () => {
     expect(oncekiAy('2026-01')).toBe('2025-12');
@@ -133,31 +169,29 @@ describe('fetchAylikRapor', () => {
   it('Decimal sızmaz; 6 ay eskiden yeniye', async () => {
     const client = {
       walletFlow: {
-        findMany: vi
-          .fn()
-          .mockResolvedValue([
-            {
-              kind: 'EXPENSE',
-              frequency: 'ONCE',
-              unit: 'TRY',
-              amount: decimal('50.00'),
-              date: new Date('2026-10-05T00:00:00Z'),
-              category: null,
-              createdAt: new Date('2026-01-01T00:00:00Z'),
-            },
-          ]),
+        findMany: vi.fn().mockResolvedValue([
+          {
+            kind: 'EXPENSE',
+            frequency: 'ONCE',
+            unit: 'TRY',
+            amount: decimal('50.00'),
+            date: new Date('2026-10-05T00:00:00Z'),
+            category: null,
+            createdAt: new Date('2026-01-01T00:00:00Z'),
+          },
+        ]),
       },
       walletDebtPayment: {
-        findMany: vi
-          .fn()
-          .mockResolvedValue([
-            {
-              date: new Date('2026-10-02T00:00:00Z'),
-              amount: decimal('10.00'),
-              debt: { unit: 'TRY' },
-            },
-          ]),
+        findMany: vi.fn().mockResolvedValue([
+          {
+            date: new Date('2026-10-02T00:00:00Z'),
+            amount: decimal('10.00'),
+            debt: { unit: 'TRY' },
+          },
+        ]),
       },
+      walletOdeme: { findMany: vi.fn().mockResolvedValue([]) },
+      walletDebt: { findMany: vi.fn().mockResolvedValue([]) },
       netVarlikKaydi: {
         findMany: vi
           .fn()

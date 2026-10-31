@@ -3,11 +3,15 @@ import { notFound } from 'next/navigation';
 
 import { gunAyYil } from '@/components/panel/hayat-bicim';
 import { miktarBicim } from '@/components/panel/cuzdan-bicim';
-import { BorcFormu, OdemeFormu } from '@/components/panel/cuzdan-formlari';
+import { BorcFormu, OdemeFormu, OdemeSilDugmesi } from '@/components/panel/cuzdan-formlari';
 import { Topbar } from '@/components/panel/topbar';
 import { cuidSchema } from '@/lib/schemas/common';
 import { appToday } from '@/server/services/_shared';
-import { fetchDebtPayments, fetchWalletDebtById } from '@/server/services/cuzdan';
+import {
+  fetchDebtPayments,
+  fetchOdemeHesaplari,
+  fetchWalletDebtById,
+} from '@/server/services/cuzdan';
 
 export const metadata: Metadata = {
   title: 'Borç',
@@ -20,6 +24,7 @@ export default async function BorcPage({ params }: { params: Promise<{ id: strin
   if (!cuidSchema.safeParse(id).success) notFound();
   const [borc, odemeler] = await Promise.all([fetchWalletDebtById(id), fetchDebtPayments(id)]);
   if (!borc) notFound();
+  const hesaplar = await fetchOdemeHesaplari(borc.unit);
 
   return (
     <>
@@ -44,7 +49,9 @@ export default async function BorcPage({ params }: { params: Promise<{ id: strin
             </span>
           </section>
 
-          {!borc.isClosed && <OdemeFormu borcId={borc.id} birim={borc.unit} bugun={appToday()} />}
+          {!borc.isClosed && (
+            <OdemeFormu borcId={borc.id} birim={borc.unit} bugun={appToday()} hesaplar={hesaplar} />
+          )}
 
           {odemeler.length > 0 && (
             <section className="flex flex-col gap-2">
@@ -53,12 +60,15 @@ export default async function BorcPage({ params }: { params: Promise<{ id: strin
                 {odemeler.map((o) => (
                   <li
                     key={o.id}
-                    className="border-line flex items-center justify-between border-b py-2 text-sm"
+                    className="border-line flex items-center justify-between gap-3 border-b py-2 text-sm"
                   >
-                    <span className="tabular text-muted">{gunAyYil(o.date)}</span>
-                    <span className="tabular text-primary font-medium">
-                      {miktarBicim(o.amount, borc.unit)}
+                    <span className="flex min-w-0 flex-col">
+                      <span className="tabular text-primary font-medium">
+                        {miktarBicim(o.amount, borc.unit)}
+                      </span>
+                      <span className="tabular text-muted text-xs">{gunAyYil(o.date)}</span>
                     </span>
+                    <OdemeSilDugmesi odemeId={o.id} />
                   </li>
                 ))}
               </ul>

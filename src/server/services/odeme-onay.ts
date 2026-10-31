@@ -7,12 +7,12 @@ import {
   appDayToDate,
   appToday,
   dateToAppDay,
-  subtractMoney,
-  sumMoney,
   toMeasureString,
   type AppDay,
 } from './_shared';
-import { borcOdemesiYaz } from './cuzdan';
+import { borcaGeriEkle, borcOdemesiYaz, hesabaIade, hesaptanDus, OdemeHatasi } from './cuzdan';
+
+export { OdemeHatasi };
 
 /**
  * AYLIK ÖDEME ONAYI (2026-11-01) — günü gelen taksit ve gider için "ödendi mi?".
@@ -29,8 +29,6 @@ import { borcOdemesiYaz } from './cuzdan';
 
 const PENCERE_GUN = 7;
 const ILK_DONEM = '2026-11';
-
-export class OdemeHatasi extends Error {}
 
 export interface BekleyenOdeme {
   kaynakTur: 'BORC' | 'AKIS';
@@ -250,24 +248,16 @@ export async function odemeIsle(
       });
       if (!odendi) return;
 
-      if (girdi.hesapId) {
-        const hesap = await tx.walletAccount.findUnique({
-          where: { id: girdi.hesapId },
-          select: { unit: true, balance: true, isArchived: true },
-        });
-        if (!hesap || hesap.isArchived) throw new OdemeHatasi('Hesap bulunamadı.');
-        if (hesap.unit !== kaynak.unit)
-          throw new OdemeHatasi('Hesabın birimi ödemeyle aynı değil.');
-        const kalan = subtractMoney(para(hesap.balance), tutar);
-        if (kalan.startsWith('-')) throw new OdemeHatasi('Hesapta yeterli bakiye yok.');
-        await tx.walletAccount.update({
-          where: { id: girdi.hesapId },
-          data: { balance: kalan },
-        });
-      }
+      if (girdi.hesapId) await hesaptanDus(girdi.hesapId, kaynak.unit as WalletUnit, tutar, tx);
       if (girdi.kaynakTur === 'BORC') {
         await borcOdemesiYaz(
-          { debtId: girdi.kaynakId, date: bugun, amount: tutar, note: 'Aylık ödeme' },
+          {
+            debtId: girdi.kaynakId,
+            date: bugun,
+            amount: tutar,
+            note: 'Aylık ödeme',
+            ...(girdi.hesapId ? { hesapId: girdi.hesapId } : {}),
+          },
           tx,
         );
       }
@@ -346,18 +336,7 @@ export async function odemeGeriAl(
 
     const tutar = toMeasureString(kayit.tutar, 2);
     if (kayit.durum === 'ODENDI' && tutar) {
-      if (kayit.hesapId) {
-        const hesap = await tx.walletAccount.findUnique({
-          where: { id: kayit.hesapId },
-          select: { balance: true },
-        });
-        if (hesap) {
-          await tx.walletAccount.update({
-            where: { id: kayit.hesapId },
-            data: { balance: sumMoney([para(hesap.balance), tutar]) },
-          });
-        }
-      }
+      if (kayit.hesapId) await hesabaIade(kayit.hesapId, tutar, tx);
       if (kayit.kaynakTur === 'BORC') {
         await borcOdemesiniGeriAl(kayit.kaynakId, kayit.gun, tutar, tx);
       }
@@ -378,16 +357,5 @@ async function borcOdemesiniGeriAl(
     select: { id: true },
   });
   if (odeme) await tx.walletDebtPayment.delete({ where: { id: odeme.id } });
-
-  const borc = await tx.walletDebt.findUnique({
-    where: { id: debtId },
-    select: { remainingAmount: true, totalAmount: true },
-  });
-  if (!borc) return;
-  const yeni = sumMoney([para(borc.remainingAmount), tutar]);
-  const toplam = para(borc.totalAmount);
-  await tx.walletDebt.update({
-    where: { id: debtId },
-    data: { remainingAmount: Number(yeni) > Number(toplam) ? toplam : yeni, isClosed: false },
-  });
+  await borcaGeriEkle(debtId, tutar, tx);
 }

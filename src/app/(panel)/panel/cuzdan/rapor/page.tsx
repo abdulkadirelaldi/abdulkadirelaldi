@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight, TrendingDown, TrendingUp } from 'lucide-reac
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
+import { gunAy } from '@/components/panel/hayat-bicim';
 import { paraBicim } from '@/components/panel/para-bicim';
 import { Topbar } from '@/components/panel/topbar';
 import { TrendGrafigi } from '@/components/panel/trend-grafigi';
@@ -93,7 +94,11 @@ export default async function CuzdanRaporPage({ searchParams }: SayfaProps) {
             <Kutu etiket="Gelir" deger={ozet.gelirTl} ton="text-success" />
             <Kutu etiket="Harcama" deger={ozet.harcamaTl} ton="text-danger" />
             <Kutu etiket="Düzenli gider" deger={ozet.duzenliGiderTl} ton="text-primary" />
-            <Kutu etiket="Borç ödemesi" deger={ozet.borcOdemeTl} ton="text-primary" />
+            <Kutu
+              etiket="Borç taksitleri"
+              deger={(Number(ozet.borcOdemeTl) + Number(ozet.kalanTaksitTl)).toFixed(2)}
+              ton="text-primary"
+            />
           </dl>
 
           <section className="rounded-card border-line bg-surface flex flex-col gap-3 border p-4">
@@ -185,6 +190,32 @@ export default async function CuzdanRaporPage({ searchParams }: SayfaProps) {
             )}
           </section>
 
+          {ozet.kalemler.length > 0 && (
+            <section className="rounded-card border-line bg-surface flex flex-col gap-1 border p-4">
+              <h3 className="text-primary text-base font-semibold">Harcamalar</h3>
+              <ul className="divide-line flex flex-col divide-y">
+                {ozet.kalemler.map((k) => (
+                  <li key={k.id}>
+                    <Link
+                      href={`/panel/cuzdan/akis/${k.id}`}
+                      className="focus-ring flex min-h-11 items-center justify-between gap-3 py-2 text-sm"
+                    >
+                      <span className="flex min-w-0 flex-col">
+                        <span className="text-primary truncate font-medium">{k.ad}</span>
+                        <span className="text-muted text-xs">
+                          {gunAy(k.gun)} · {k.kategori}
+                        </span>
+                      </span>
+                      <span className="tabular text-primary shrink-0 font-medium">
+                        {paraBicim(k.tl, 'TRY')}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
           {netGecmis.length === 0 ? (
             <section className="rounded-card border-line bg-surface flex flex-col gap-1 border p-4">
               <h3 className="text-primary text-base font-semibold">Net varlık geçmişi</h3>
@@ -202,9 +233,9 @@ export default async function CuzdanRaporPage({ searchParams }: SayfaProps) {
           )}
 
           <p className="text-muted px-1 text-xs">
-            Tek seferlik kalemler ve borç ödemeleri gerçek kayıtlardır. Düzenli gelir ve giderlerin
-            geçmişi tutulmadığı için bugünkü tutarlarıyla hesaplanır. Dövizli kalemler bugünkü kurla
-            çevrilir{kurBayat ? ' (kur güncel olmayabilir)' : ''}.
+            Tek seferlik kalemler ve yapılan borç ödemeleri gerçek kayıtlardır. Düzenli gelir ve
+            giderlerin geçmişi tutulmadığı için bugünkü tutarlarıyla hesaplanır. Dövizli kalemler
+            bugünkü kurla çevrilir{kurBayat ? ' (kur güncel olmayabilir)' : ''}.
           </p>
         </div>
       </main>
