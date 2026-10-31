@@ -40,7 +40,7 @@ export function SettingsSection({
   const hazir = Boolean(href) || Boolean(eylem);
 
   const govde = (
-    <div className="flex items-start gap-4 p-5">
+    <div className="flex flex-wrap items-start gap-4 p-5">
       <span
         aria-hidden="true"
         className={cn(
@@ -51,7 +51,7 @@ export function SettingsSection({
         <Icon className="size-5" />
       </span>
 
-      <div className="flex min-w-0 flex-1 flex-col gap-1">
+      <div className="flex min-w-0 flex-[1_1_12rem] flex-col gap-1">
         <div className="flex flex-wrap items-center gap-2">
           <Baslik className="text-primary text-base font-semibold">{baslik}</Baslik>
           {!hazir && <Badge variant="neutral">Yakında</Badge>}
@@ -60,7 +60,7 @@ export function SettingsSection({
       </div>
 
       {eylem ? (
-        <div className="shrink-0">{eylem}</div>
+        <div className="max-w-full">{eylem}</div>
       ) : href ? (
         <ChevronRight className="text-muted mt-2 size-5 shrink-0" aria-hidden="true" />
       ) : null}
