@@ -270,7 +270,7 @@ export default async function BugunPage() {
               baslik="Bu ay"
             >
               <span className="tabular text-primary text-xl font-semibold tracking-tight">
-                {paraBicim(cuzdan.ozet.aylikGiderTl, 'TRY')}
+                {paraBicim(cuzdan.ozet.harcananTl, 'TRY')}
               </span>
               <span className="text-muted text-xs">
                 harcandı · kalan{' '}

@@ -50,7 +50,8 @@ export default async function CuzdanRaporPage({ searchParams }: SayfaProps) {
   const ay = istenen > buAy ? buAy : istenen;
 
   const { ozet, onceki, alti, netGecmis, kurBayat } = await fetchAylikRapor(ay);
-  const degisim = degisimYuzdesi(ozet.harcamaTl, onceki.harcamaTl);
+  // Süren ay tam ayla kıyaslanmaz: ayın 5'inde "düşüş" yanıltır.
+  const degisim = ay < buAy ? degisimYuzdesi(ozet.harcamaTl, onceki.harcamaTl) : null;
   const enYuksek = Math.max(1, ...alti.map((a) => Number(a.harcamaTl)));
   const sonrakiAy =
     ay < buAy

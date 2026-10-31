@@ -44,12 +44,17 @@ export function ButceKarti({ satirlar }: { satirlar: ButceSatiri[] }) {
   const kaydet = async (kategori: string, limitTl: string | null) => {
     setBekliyor(true);
     setHata(null);
-    const sonuc = await butceKoyAction({ kategori: kategori as Kategori, limitTl });
-    setBekliyor(false);
-    if (sonuc.ok) {
-      setAcik(null);
-      router.refresh();
-    } else setHata(sonuc.error.message);
+    try {
+      const sonuc = await butceKoyAction({ kategori: kategori as Kategori, limitTl });
+      if (sonuc.ok) {
+        setAcik(null);
+        router.refresh();
+      } else setHata(sonuc.error.message);
+    } catch {
+      setHata('Bağlantı kurulamadı. Yeniden dene.');
+    } finally {
+      setBekliyor(false);
+    }
   };
 
   const duzenleyici = (kategori: string, varMi: boolean) => (

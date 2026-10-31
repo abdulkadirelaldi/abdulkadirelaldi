@@ -245,14 +245,33 @@ function Kutu({
   );
 }
 
-/** Ağ hatası: kayıt kaybolmasın — cihazda bekler, bağlantı gelince gönderilir. */
+/** Ağ hatası: kayıt kaybolmasın — cihazda bekler. Cihaza da yazılamazsa form açık kalır. */
 function kuyrugaAl(
   tur: KuyrukTuru,
   girdi: Record<string, unknown>,
   tamam: (mesaj: string, yenile?: boolean) => void,
+  setHata: (mesaj: string) => void,
 ) {
-  kuyrugaEkle(tur, girdi);
-  tamam('Bağlantı yok — gelince kaydedilecek', false);
+  if (kuyrugaEkle(tur, girdi)) tamam('Bağlantı yok — gelince kaydedilecek', false);
+  else setHata('Bağlantı yok ve cihaza da yazılamadı. Kayıt alınmadı, yeniden dene.');
+}
+
+const SON_KATEGORI = 'ae-son-kategori';
+
+function sonKategori(): (typeof HARCAMA_KATEGORILERI)[number] {
+  try {
+    const k = localStorage.getItem(SON_KATEGORI);
+    return HARCAMA_KATEGORILERI.find((v) => v === k) ?? 'Market';
+  } catch {
+    return 'Market';
+  }
+}
+
+/** Takvim gününden bir önceki gün. SAF. */
+function birGunOnce(gun: string): string {
+  const t = new Date(`${gun}T00:00:00Z`);
+  t.setUTCDate(t.getUTCDate() - 1);
+  return t.toISOString().slice(0, 10);
 }
 
 const GIRDI =
@@ -280,7 +299,8 @@ function Hata({ metin }: { metin: string | null }) {
 
 function HarcamaFormu({ tamam }: { tamam: (m: string, yenile?: boolean) => void }) {
   const tutarRef = useRef<HTMLInputElement>(null);
-  const [kategori, setKategori] = useState<(typeof HARCAMA_KATEGORILERI)[number]>('Market');
+  const [kategori, setKategori] = useState(sonKategori);
+  const [dun, setDun] = useState(false);
   const [bekliyor, setBekliyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
 
@@ -293,17 +313,30 @@ function HarcamaFormu({ tamam }: { tamam: (m: string, yenile?: boolean) => void 
         e.preventDefault();
         const f = new FormData(e.currentTarget);
         const tutar = tutarOku(String(f.get('tutar') ?? ''));
-        if (!tutar || tutar === '0') return setHata('Tutar geçersiz — örn. 250 ya da 1.250,50');
+        if (!tutar || Number(tutar) <= 0)
+          return setHata('Tutar geçersiz — örn. 250 ya da 1.250,50');
         const ne = String(f.get('ne') ?? '').trim() || kategori;
         setBekliyor(true);
         setHata(null);
-        const girdi = { tutar, ne, kategori, gun: istanbulGunu(), anahtar: crypto.randomUUID() };
+        const bugun = istanbulGunu();
+        const girdi = {
+          tutar,
+          ne,
+          kategori,
+          gun: dun ? birGunOnce(bugun) : bugun,
+          anahtar: crypto.randomUUID(),
+        };
+        try {
+          localStorage.setItem(SON_KATEGORI, kategori);
+        } catch {
+          // Hatırlanamazsa kayıt yine yapılır.
+        }
         try {
           const sonuc = await hizliHarcamaAction(girdi);
-          if (sonuc.ok) tamam('Harcama eklendi');
+          if (sonuc.ok) tamam(dun ? 'Dünkü harcama eklendi' : 'Harcama eklendi');
           else setHata(sonuc.error.message);
         } catch {
-          kuyrugaAl('harcama', girdi, tamam);
+          kuyrugaAl('harcama', girdi, tamam, setHata);
         } finally {
           setBekliyor(false);
         }
@@ -347,6 +380,15 @@ function HarcamaFormu({ tamam }: { tamam: (m: string, yenile?: boolean) => void 
           </button>
         ))}
       </div>
+      <label className="text-body flex min-h-10 items-center gap-2 text-sm">
+        <input
+          type="checkbox"
+          checked={dun}
+          onChange={(e) => setDun(e.target.checked)}
+          className="accent-accent size-5"
+        />
+        Dünün harcaması
+      </label>
       <Hata metin={hata} />
       <Gonder bekliyor={bekliyor}>Ekle</Gonder>
     </form>
@@ -368,7 +410,9 @@ function KiloFormu({ tamam }: { tamam: (m: string, yenile?: boolean) => void }) 
         const kg = String(new FormData(e.currentTarget).get('kg') ?? '')
           .trim()
           .replace(',', '.');
-        if (!/^\d{2,3}(\.\d{1,2})?$/.test(kg)) return setHata('Kilo geçersiz — örn. 82,5');
+        if (!/^\d{2,3}(\.\d{1,2})?$/.test(kg) || Number(kg) < 30 || Number(kg) > 250) {
+          return setHata('Kilo geçersiz — örn. 82,5');
+        }
         setBekliyor(true);
         setHata(null);
         const girdi = { kg, gun: istanbulGunu(), anahtar: crypto.randomUUID() };
@@ -377,7 +421,7 @@ function KiloFormu({ tamam }: { tamam: (m: string, yenile?: boolean) => void }) 
           if (sonuc.ok) tamam(`${kg.replace('.', ',')} kg kaydedildi`);
           else setHata(sonuc.error.message);
         } catch {
-          kuyrugaAl('kilo', girdi, tamam);
+          kuyrugaAl('kilo', girdi, tamam, setHata);
         } finally {
           setBekliyor(false);
         }
@@ -419,7 +463,7 @@ function SuFormu({ tamam }: { tamam: (m: string, yenile?: boolean) => void }) {
         tamam(`+${ml} ml · bugün ${toplam} L`);
       } else setHata(sonuc.error.message);
     } catch {
-      kuyrugaAl('su', girdi, tamam);
+      kuyrugaAl('su', girdi, tamam, setHata);
     } finally {
       setBekliyor(false);
     }

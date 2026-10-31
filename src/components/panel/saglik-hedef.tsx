@@ -25,12 +25,17 @@ export function SaglikHedefKarti({ hedef }: { hedef: SaglikHedefiDto | null }) {
     if (!/^\d{2,3}(\.\d{1,2})?$/.test(kg)) return setHata('Hedef geçersiz — örn. 78 ya da 78,5');
     setBekliyor(true);
     setHata(null);
-    const sonuc = await saglikHedefiAction({ hedefKg: kg });
-    setBekliyor(false);
-    if (sonuc.ok) {
-      setDuzenle(false);
-      router.refresh();
-    } else setHata(sonuc.error.message);
+    try {
+      const sonuc = await saglikHedefiAction({ hedefKg: kg });
+      if (sonuc.ok) {
+        setDuzenle(false);
+        router.refresh();
+      } else setHata(sonuc.error.message);
+    } catch {
+      setHata('Bağlantı kurulamadı. Yeniden dene.');
+    } finally {
+      setBekliyor(false);
+    }
   };
 
   return (

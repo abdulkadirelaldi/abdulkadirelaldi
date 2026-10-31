@@ -2,6 +2,7 @@
 
 import {
   butceSchema,
+  odemeGeriAlSchema,
   odemeIsleSchema,
   entityIdSchema,
   updateWalletAccountSchema,
@@ -27,7 +28,7 @@ import {
   updateWalletFlow,
 } from '@/server/services/cuzdan';
 import { fail, ok, parseOrFail, writeAuditLog, type ApiResponse } from '@/server/services/_shared';
-import { odemeIsle, OdemeHatasi } from '@/server/services/odeme-onay';
+import { odemeGeriAl, odemeIsle, OdemeHatasi } from '@/server/services/odeme-onay';
 import type { AuditAction } from '@/types';
 
 import { currentActorId, toFailure, unauthorized } from './_shared';
@@ -245,6 +246,33 @@ export async function butceKoyAction(raw: unknown): Promise<ApiResponse<{ katego
 }
 
 /** Aylık ödeme onayı (2026-11-01). Denetime tutar yazılmaz. */
+export async function odemeGeriAlAction(
+  raw: unknown,
+): Promise<ApiResponse<{ geriAlindi: boolean }>> {
+  const actorId = await currentActorId();
+  if (!actorId) return unauthorized();
+  const parsed = parseOrFail(odemeGeriAlSchema, raw);
+  if (!parsed.ok) return parsed.failure;
+  const girdi = parsed.data;
+
+  try {
+    const sonuc = await odemeGeriAl(girdi);
+    await writeAuditLog(
+      {
+        actorId,
+        action: 'DELETE',
+        entity: 'WalletOdeme',
+        entityId: girdi.kaynakId,
+        diff: { tur: girdi.kaynakTur, donem: girdi.donem, geriAlindi: sonuc.geriAlindi },
+      },
+      db,
+    );
+    return ok(sonuc);
+  } catch (error) {
+    return toFailure('wallet:odeme-geri-al', error);
+  }
+}
+
 export async function odemeIsleAction(raw: unknown): Promise<ApiResponse<{ yeni: boolean }>> {
   const actorId = await currentActorId();
   if (!actorId) return unauthorized();

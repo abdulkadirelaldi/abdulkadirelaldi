@@ -90,3 +90,12 @@ export function tutarOku(metin: string): string | null {
 
 /** Sunucu biçimi → formdaki yazım (`"1250.50"` → `"1250,50"`). */
 export const tutarYaz = (t: string): string => t.replace('.', ',');
+
+const GUN_EKI = ['', "'i", "'si", "'ü", "'ü", "'i", "'sı", "'si", "'i", "'u"];
+const ONLUK_EKI = ["'u", "'si", "'u"];
+
+/** `3` → "ayın 3'ü", `10` → "ayın 10'u". SAF. */
+export function ayinGunu(gun: number): string {
+  const ek = gun % 10 === 0 ? ONLUK_EKI[gun / 10 - 1] : GUN_EKI[gun % 10];
+  return `ayın ${gun}${ek ?? ''}`;
+}

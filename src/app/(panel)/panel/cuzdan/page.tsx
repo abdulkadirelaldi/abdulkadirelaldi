@@ -4,7 +4,14 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { ButceKarti } from '@/components/panel/butce-karti';
-import { HESAP_TURU, miktarBicim, SIKLIK, tlBicim } from '@/components/panel/cuzdan-bicim';
+import {
+  ayinGunu,
+  HESAP_TURU,
+  miktarBicim,
+  SIKLIK,
+  tlBicim,
+} from '@/components/panel/cuzdan-bicim';
+import { gunAy } from '@/components/panel/hayat-bicim';
 import { OdemeOnay } from '@/components/panel/odeme-onay';
 import { paraBicim } from '@/components/panel/para-bicim';
 import { Topbar } from '@/components/panel/topbar';
@@ -16,7 +23,7 @@ import {
   type AkisDto,
   type HesapDto,
 } from '@/server/services/cuzdan';
-import { fetchBekleyenOdemeler } from '@/server/services/odeme-onay';
+import { fetchBekleyenOdemeler, fetchIslenenOdemeler } from '@/server/services/odeme-onay';
 import { cn } from '@/lib/utils/cn';
 
 export const metadata: Metadata = {
@@ -41,10 +48,11 @@ const SAAT = new Intl.DateTimeFormat('tr-TR', {
  * görünür — uydurma ya da sıfır kur yok.
  */
 export default async function CuzdanPage() {
-  const [c, limitler, odemeler] = await Promise.all([
+  const [c, limitler, odemeler, islenenler] = await Promise.all([
     fetchCuzdan(),
     fetchButceLimitleri(),
     fetchBekleyenOdemeler(),
+    fetchIslenenOdemeler(),
   ]);
   const { ozet } = c;
   const eksi = ozet.netTl.startsWith('-');
@@ -117,7 +125,7 @@ export default async function CuzdanPage() {
             )}
           </p>
 
-          <OdemeOnay odemeler={odemeler} hesaplar={c.hesaplar} />
+          <OdemeOnay odemeler={odemeler} hesaplar={c.hesaplar} islenenler={islenenler} />
 
           {/* ── HESAPLAR ──────────────────────────────────────────────── */}
           <Bolum baslik="Hesaplar" ekle="/panel/cuzdan/yeni?tur=hesap" ekleEtiket="Hesap ekle">
@@ -168,7 +176,7 @@ export default async function CuzdanPage() {
                     <span className="tabular text-muted text-xs">
                       %{b.odenenYuzde} ödendi
                       {b.monthlyPayment && ` · aylık ${miktarBicim(b.monthlyPayment, b.unit)}`}
-                      {b.paymentDay && ` · ayın ${b.paymentDay}'i`}
+                      {b.paymentDay && ` · ${ayinGunu(b.paymentDay)}`}
                       {b.kalanAy !== null && ` · ${b.kalanAy} ay kaldı`}
                     </span>
                   </Link>
@@ -294,8 +302,8 @@ function AkisBolumu({
             alt={[
               a.counterparty,
               SIKLIK[a.frequency],
-              a.frequency === 'MONTHLY' && a.day ? `ayın ${a.day}'i` : null,
-              a.date,
+              a.frequency === 'MONTHLY' && a.day ? ayinGunu(a.day) : null,
+              a.date ? gunAy(a.date) : null,
             ]
               .filter(Boolean)
               .join(' · ')}

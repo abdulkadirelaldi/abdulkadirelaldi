@@ -35,6 +35,7 @@ export const MET = { GYM: 5.0, CARDIO: 8.0, KAYAK: 7.0, OTHER: 4.0 } as const sa
 
 /** Kilo bilinmiyorsa kullanılan değer — ekranda "son tartı yok" diye yazılıyor. */
 export const VARSAYILAN_KILO = 80;
+const MAKS_OTURUM_DK = 240;
 
 /** kcal = MET × kg × saat, tam sayıya yuvarlanır. Süre 0 ya da eksi ise 0. */
 export function kaloriHesapla({
@@ -736,7 +737,11 @@ export async function finishSession(
   // Decimal → metin → sayı (ADR-014/D: Decimal doğrudan `Number()`e verilmez).
   const kiloMetni = sonTarti?.weightKg ? toMeasureString(sonTarti.weightKg, 2) : null;
   const kiloKg = kiloMetni ? Number(kiloMetni) : VARSAYILAN_KILO;
-  const durationMin = Math.max(1, Math.round((simdi.getTime() - w.startedAt.getTime()) / 60_000));
+  // Bitirmeyi unutulan oturum yüzlerce dakika ve dev kalori yazmasın.
+  const durationMin = Math.min(
+    MAKS_OTURUM_DK,
+    Math.max(1, Math.round((simdi.getTime() - w.startedAt.getTime()) / 60_000)),
+  );
   const kcal = kaloriHesapla({ dakika: durationMin, kiloKg, met: MET[w.type as WorkoutType] });
 
   await client.workout.update({
