@@ -113,3 +113,13 @@ export const butceSchema = z.object({
   limitTl: tutar.nullable(),
 });
 export type ButceInput = z.infer<typeof butceSchema>;
+
+/** Aylık ödeme onayı (2026-11-01). Tutar burada YOK: sunucu kaynaktan okur. */
+export const odemeIsleSchema = z.object({
+  kaynakTur: z.enum(['BORC', 'AKIS']),
+  kaynakId: cuidSchema,
+  donem: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/),
+  durum: z.enum(['ODENDI', 'ATLANDI']),
+  hesapId: cuidSchema.optional(),
+});
+export type OdemeIsleInput = z.infer<typeof odemeIsleSchema>;

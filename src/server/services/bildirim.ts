@@ -8,6 +8,7 @@ import type { WalletUnit } from '@/types';
 
 import { addAppDays, appDayToDate, appToday, toMeasureString, type AppDay } from './_shared';
 import { fetchHabitDay } from './habit-gun';
+import { fetchIslenenBorclar } from './odeme-onay';
 
 /**
  * BİLDİRİMLER (2026-10-30) — telefona push.
@@ -67,6 +68,8 @@ export interface PlanGirdisi {
   borclar: { id: string; ad: string; odemeGunu: number; tutar: string | null }[];
   kalanAliskanliklar: string[];
   suMl: number | null;
+  /** Ödenmiş ya da atlanmış taksitler: `borçId:YYYY-MM` — hatırlatılmaz. */
+  odenen?: ReadonlySet<string>;
 }
 
 /** Ayın son günü — 31'inde ödenen borç şubatta 28'ine düşer. SAF. */
@@ -85,6 +88,7 @@ export function planla(g: PlanGirdisi): Bildirim[] {
         const hedef = addAppDays(g.gun, kala);
         const gunNo = Number(hedef.slice(8, 10));
         if (gunNo !== Math.min(b.odemeGunu, sonGun(hedef))) continue;
+        if (g.odenen?.has(`${b.id}:${hedef.slice(0, 7)}`)) continue;
         sonuc.push({
           tur: 'borc',
           anahtar: `${b.id}:${hedef}`,
@@ -160,6 +164,7 @@ async function planGirdisi(userId: string, simdi: Date): Promise<PlanGirdisi> {
       .filter((i) => i.durum !== 'YAPILDI' && i.durum !== 'YAPILMADI')
       .map((i) => i.name),
     suMl: saglik?.waterMl ?? null,
+    odenen: await fetchIslenenBorclar(),
   };
 }
 
