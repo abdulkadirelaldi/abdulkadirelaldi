@@ -7,6 +7,7 @@ import type {
   WalletDebtPaymentInput,
   WalletFlowInput,
 } from '@/lib/schemas';
+import type { WalletTransferInput } from '@/lib/schemas/wallet';
 import { db } from '@/server/db';
 import type { WalletAccountKind, WalletFlowKind, WalletFrequency, WalletUnit } from '@/types';
 
@@ -144,6 +145,8 @@ export interface AkisDto {
   category: string | null;
   note: string | null;
   isActive: boolean;
+  /** Tek seferlik kalemin yansıdığı hesap. */
+  hesapId: string | null;
   /**
    * BU AYA düşen TL — tekrarlayanda aylık karşılık, tek seferlikte bu ay
    * tarihliyse tutarın kendisi; başka aya aitse `null`.
@@ -277,6 +280,7 @@ export async function fetchCuzdan(
       category: a.category,
       note: a.note,
       isActive: a.isActive,
+      hesapId: a.hesapId ?? null,
       aylikTl:
         aylik === null
           ? null
@@ -682,10 +686,36 @@ export async function deleteDebtPayment(id: string, client: Client = db): Promis
   });
 }
 
+type HesapEtkisi = Pick<WalletFlowInput, 'kind' | 'frequency' | 'amount' | 'unit'> & {
+  hesapId?: string | null;
+};
+
+/** Kalemin bakiyeye yansıması: yalnızca hesabı olan tek seferlik kalem. */
+async function hesabaYansit(k: HesapEtkisi, tx: Pick<Client, 'walletAccount'>): Promise<void> {
+  if (!k.hesapId || k.frequency !== 'ONCE') return;
+  if (k.kind === 'EXPENSE') return hesaptanDus(k.hesapId, k.unit, k.amount, tx);
+  const hesap = await tx.walletAccount.findUnique({
+    where: { id: k.hesapId },
+    select: { unit: true, isArchived: true },
+  });
+  if (!hesap || hesap.isArchived) throw new OdemeHatasi('Hesap bulunamadı.');
+  if (hesap.unit !== k.unit) throw new OdemeHatasi('Hesabın birimi kalemle aynı değil.');
+  await hesabaIade(k.hesapId, k.amount, tx);
+}
+
+/** Yansımayı geri alır; gelir zaten harcandıysa hesaptanDus reddeder. */
+async function yansimayiGeriAl(k: HesapEtkisi, tx: Pick<Client, 'walletAccount'>): Promise<void> {
+  if (!k.hesapId || k.frequency !== 'ONCE') return;
+  if (k.kind === 'EXPENSE') return hesabaIade(k.hesapId, k.amount, tx);
+  return hesaptanDus(k.hesapId, k.unit, k.amount, tx);
+}
+
+/** Kalem + varsa hesap etkisi: `client` işlem olmalı (`birKez` ya da `$transaction`). */
 export async function createWalletFlow(
   input: WalletFlowInput,
-  client: Pick<Client, 'walletFlow'> = db,
+  client: Pick<Client, 'walletFlow' | 'walletAccount'> = db,
 ) {
+  await hesabaYansit(input, client);
   return client.walletFlow.create({
     data: {
       kind: input.kind,
@@ -698,17 +728,56 @@ export async function createWalletFlow(
       date: input.date ? appDayToDate(input.date) : null,
       category: bosaNull(input.category),
       note: bosaNull(input.note),
+      hesapId: input.frequency === 'ONCE' ? (input.hesapId ?? null) : null,
     },
     select: { id: true },
   });
 }
 
+/** Tutar ya da hesap değişirse eski yansıma geri alınır, yenisi uygulanır; tek işlemde. */
 export async function updateWalletFlow(input: UpdateWalletFlowInput, client: Client = db) {
-  const { id, date, ...alanlar } = input;
-  return client.walletFlow.update({
-    where: { id },
-    data: { ...alanlar, ...(date !== undefined ? { date: date && appDayToDate(date) } : {}) },
-    select: { id: true },
+  const { id, date, hesapId, ...alanlar } = input;
+  return client.$transaction(async (tx) => {
+    const eski = await tx.walletFlow.findUnique({
+      where: { id },
+      select: { kind: true, frequency: true, amount: true, unit: true, hesapId: true },
+    });
+    if (!eski) throw new OdemeHatasi('Kayıt bulunamadı.');
+    const eskiEtki: HesapEtkisi = {
+      kind: eski.kind as WalletFlowKind,
+      frequency: eski.frequency as WalletFrequency,
+      amount: para(eski.amount),
+      unit: eski.unit as WalletUnit,
+      hesapId: eski.hesapId,
+    };
+    const yeniEtki: HesapEtkisi = {
+      ...eskiEtki,
+      ...(alanlar.kind ? { kind: alanlar.kind } : {}),
+      ...(alanlar.frequency ? { frequency: alanlar.frequency } : {}),
+      ...(alanlar.amount ? { amount: alanlar.amount } : {}),
+      ...(alanlar.unit ? { unit: alanlar.unit } : {}),
+      ...(hesapId !== undefined ? { hesapId } : {}),
+    };
+    // Yalnızca ad ya da tarih değiştiyse bakiyeye dokunulmaz: harcanmış gelirin adı da düzelebilsin.
+    const paraDegisti =
+      eskiEtki.kind !== yeniEtki.kind ||
+      eskiEtki.frequency !== yeniEtki.frequency ||
+      Number(eskiEtki.amount) !== Number(yeniEtki.amount) ||
+      eskiEtki.unit !== yeniEtki.unit ||
+      (eskiEtki.hesapId ?? null) !== (yeniEtki.hesapId ?? null);
+    if (paraDegisti) {
+      await yansimayiGeriAl(eskiEtki, tx);
+      await hesabaYansit(yeniEtki, tx);
+    }
+    return tx.walletFlow.update({
+      where: { id },
+      data: {
+        ...alanlar,
+        hesapId: yeniEtki.frequency === 'ONCE' ? (yeniEtki.hesapId ?? null) : null,
+        ...(date !== undefined ? { date: date && appDayToDate(date) } : {}),
+      },
+      select: { id: true },
+    });
   });
 }
 
@@ -733,8 +802,122 @@ export async function yenidenBaslatWalletFlow(id: string, client: Pick<Client, '
   });
 }
 
+/** Siler; hesaba yansımışsa geri alır. */
 export async function deleteWalletFlow(id: string, client: Client = db) {
-  return client.walletFlow.delete({ where: { id }, select: { id: true } });
+  return client.$transaction(async (tx) => {
+    const k = await tx.walletFlow.findUnique({
+      where: { id },
+      select: { kind: true, frequency: true, amount: true, unit: true, hesapId: true },
+    });
+    if (k) {
+      await yansimayiGeriAl(
+        {
+          kind: k.kind as WalletFlowKind,
+          frequency: k.frequency as WalletFrequency,
+          amount: para(k.amount),
+          unit: k.unit as WalletUnit,
+          hesapId: k.hesapId,
+        },
+        tx,
+      );
+    }
+    return tx.walletFlow.delete({ where: { id }, select: { id: true } });
+  });
+}
+
+/* ===========================================================================
+ * TRANSFER (2026-11-01)
+ * ======================================================================== */
+
+export interface TransferDto {
+  id: string;
+  kaynak: string;
+  hedef: string;
+  unit: WalletUnit;
+  amount: string;
+  gun: AppDay;
+  note: string | null;
+}
+
+/** Hesaplar arası aktarım: yalnızca aynı birim, kaynak eksiye düşmez. */
+export async function createWalletTransfer(
+  input: WalletTransferInput,
+  client: Client = db,
+): Promise<{ id: string }> {
+  return client.$transaction(async (tx) => {
+    const hedef = await tx.walletAccount.findUnique({
+      where: { id: input.hedefId },
+      select: { unit: true, isArchived: true },
+    });
+    if (!hedef || hedef.isArchived) throw new OdemeHatasi('Hedef hesap bulunamadı.');
+    await hesaptanDus(input.kaynakId, hedef.unit as WalletUnit, input.amount, tx);
+    await hesabaIade(input.hedefId, input.amount, tx);
+    return tx.walletTransfer.create({
+      data: {
+        kaynakId: input.kaynakId,
+        hedefId: input.hedefId,
+        amount: input.amount,
+        gun: appDayToDate(input.gun),
+        note: bosaNull(input.note),
+      },
+      select: { id: true },
+    });
+  });
+}
+
+/** Geri alır: hedefte para kalmadıysa reddedilir, hesap eksiye düşmez. */
+export async function deleteWalletTransfer(id: string, client: Client = db): Promise<void> {
+  await client.$transaction(async (tx) => {
+    const t = await tx.walletTransfer.findUnique({ where: { id } });
+    if (!t) throw new OdemeHatasi('Transfer bulunamadı.');
+    const kaynak = await tx.walletAccount.findUnique({
+      where: { id: t.kaynakId },
+      select: { unit: true },
+    });
+    const tutar = para(t.amount);
+    await hesaptanDus(t.hedefId, (kaynak?.unit ?? 'TRY') as WalletUnit, tutar, tx);
+    await hesabaIade(t.kaynakId, tutar, tx);
+    await tx.walletTransfer.delete({ where: { id } });
+  });
+}
+
+export async function fetchSonTransferler(
+  client: Pick<Client, 'walletTransfer' | 'walletAccount'> = db,
+): Promise<TransferDto[]> {
+  const satirlar = await client.walletTransfer.findMany({
+    orderBy: [{ gun: 'desc' }, { createdAt: 'desc' }],
+    take: 20,
+  });
+  const hesaplar = await client.walletAccount.findMany({
+    where: { id: { in: satirlar.flatMap((t) => [t.kaynakId, t.hedefId]) } },
+    select: { id: true, name: true, unit: true },
+  });
+  const hesap = new Map(hesaplar.map((h) => [h.id, h]));
+  return satirlar.map((t) => ({
+    id: t.id,
+    kaynak: hesap.get(t.kaynakId)?.name ?? 'Silinmiş hesap',
+    hedef: hesap.get(t.hedefId)?.name ?? 'Silinmiş hesap',
+    unit: (hesap.get(t.kaynakId)?.unit ?? 'TRY') as WalletUnit,
+    amount: para(t.amount),
+    gun: dateToAppDay(t.gun),
+    note: t.note,
+  }));
+}
+
+/** Formlarda seçilebilen hesaplar: arşivsiz, her birim. */
+export async function fetchSecilebilirHesaplar(
+  client: Pick<Client, 'walletAccount'> = db,
+): Promise<{ id: string; name: string; unit: WalletUnit; balance: string }[]> {
+  const satirlar = await client.walletAccount.findMany({
+    where: { isArchived: false },
+    orderBy: [{ order: 'asc' }, { createdAt: 'asc' }],
+  });
+  return satirlar.map((h) => ({
+    id: h.id,
+    name: h.name,
+    unit: h.unit as WalletUnit,
+    balance: para(h.balance),
+  }));
 }
 
 /* ===========================================================================
@@ -803,6 +986,7 @@ export async function fetchWalletFlowById(
     category: a.category,
     note: a.note,
     isActive: a.isActive,
+    hesapId: a.hesapId ?? null,
   };
 }
 

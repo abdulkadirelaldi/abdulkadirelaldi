@@ -7,13 +7,19 @@ import { hizliHarcamaSchema } from '@/lib/schemas/wallet';
 import { db } from '@/server/db';
 import {
   appToday,
+  fail,
   ok,
   parseOrFail,
   writeAuditLog,
   type ApiResponse,
 } from '@/server/services/_shared';
 import { birKez } from '@/server/services/islem-anahtari';
-import { createWalletFlow, kuyrukGunu } from '@/server/services/cuzdan';
+import {
+  createWalletFlow,
+  fetchOdemeHesaplari,
+  kuyrukGunu,
+  OdemeHatasi,
+} from '@/server/services/cuzdan';
 import { otomatikIsaretle } from '@/server/services/habit-gun';
 import { gununKaydinaEkle, sonTarti } from '@/server/services/health-log';
 
@@ -60,6 +66,7 @@ export async function hizliHarcamaAction(raw: unknown): Promise<ApiResponse<{ id
           frequency: 'ONCE',
           date: kuyrukGunu(parsed.data.gun, appToday()),
           category: parsed.data.kategori,
+          ...(parsed.data.hesapId ? { hesapId: parsed.data.hesapId } : {}),
         },
         tx,
       ),
@@ -72,12 +79,17 @@ export async function hizliHarcamaAction(raw: unknown): Promise<ApiResponse<{ id
         action: 'CREATE',
         entity: 'WalletFlow',
         entityId: id,
-        diff: { kaynak: 'hizli-ekle', kategori: parsed.data.kategori },
+        diff: {
+          kaynak: 'hizli-ekle',
+          kategori: parsed.data.kategori,
+          hesaptan: Boolean(parsed.data.hesapId),
+        },
       },
       db,
     );
     return ok({ id });
   } catch (error) {
+    if (error instanceof OdemeHatasi) return fail('VALIDATION_ERROR', error.message);
     return toFailure('hizli:harcama', error);
   }
 }
@@ -216,5 +228,20 @@ export async function sonKiloAction(): Promise<
     return ok(son && { ...son, bugun: son.gun === appToday() });
   } catch (error) {
     return toFailure('hizli:son-kilo', error);
+  }
+}
+
+/** Hızlı harcamada seçilebilen TL hesapları: yalnızca okur. */
+export async function hizliHesaplarAction(): Promise<
+  ApiResponse<{ id: string; ad: string; bakiye: string }[]>
+> {
+  const actorId = await currentActorId();
+  if (!actorId) return unauthorized();
+
+  try {
+    const hesaplar = await fetchOdemeHesaplari('TRY');
+    return ok(hesaplar.map((h) => ({ id: h.id, ad: h.name, bakiye: h.balance })));
+  } catch (error) {
+    return toFailure('hizli:hesaplar', error);
   }
 }

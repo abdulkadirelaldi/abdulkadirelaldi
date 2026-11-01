@@ -204,6 +204,12 @@ export default async function CuzdanPage() {
           >
             Arşiv: kapanan borçlar, kaldırılan hesaplar →
           </Link>
+          <Link
+            href="/panel/cuzdan/transfer"
+            className="focus-ring text-muted min-h-11 content-center self-center px-3 text-sm font-medium"
+          >
+            Hesaplar arası transfer →
+          </Link>
         </div>
       </main>
     </>

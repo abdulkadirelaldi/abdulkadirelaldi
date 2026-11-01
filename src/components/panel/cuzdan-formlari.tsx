@@ -21,6 +21,8 @@ import {
   archiveWalletAccountAction,
   createWalletAccountAction,
   createWalletDebtAction,
+  createWalletTransferAction,
+  deleteWalletTransferAction,
   deleteDebtPaymentAction,
   restoreWalletAccountAction,
   sonlandirWalletFlowAction,
@@ -462,6 +464,115 @@ export function OdemeSilDugmesi({ odemeId }: { odemeId: string }) {
   );
 }
 
+/** Hesaplar arası transfer: yalnızca aynı birimdeki hesaba. */
+export function TransferFormu({
+  hesaplar,
+  bugun,
+}: {
+  hesaplar: { id: string; name: string; unit: WalletUnit; balance: string }[];
+  bugun: string;
+}) {
+  const { hata, alanHatalari, bekliyor, gonder, setHata } = useGonder();
+  const [kaynak, setKaynak] = useState(hesaplar[0]?.id ?? '');
+  const kaynakHesap = hesaplar.find((h) => h.id === kaynak);
+  const hedefler = hesaplar.filter((h) => h.unit === kaynakHesap?.unit && h.id !== kaynak);
+  const [hedef, setHedef] = useState('');
+  const [tutar, setTutar] = useState('');
+  const [tarih, setTarih] = useState(bugun);
+  const secilenHedef = hedefler.some((h) => h.id === hedef) ? hedef : (hedefler[0]?.id ?? '');
+
+  const kaydet = (o: FormEvent) => {
+    o.preventDefault();
+    if (!kaynakHesap || !secilenHedef) return setHata('Aynı birimde iki hesap gerekir.');
+    const amount = tutarOku(tutar, kaynakHesap.unit);
+    if (!amount || Number(amount) <= 0) return setHata(tutarHatasi(kaynakHesap.unit));
+    gonder(
+      () =>
+        createWalletTransferAction({
+          kaynakId: kaynak,
+          hedefId: secilenHedef,
+          amount,
+          gun: tarih,
+        }),
+      null,
+      () => setTutar(''),
+    );
+  };
+
+  return (
+    <form
+      onSubmit={kaydet}
+      className="rounded-card border-line bg-surface flex flex-col gap-3 border p-4"
+    >
+      <Alan etiket="Nereden">
+        <select value={kaynak} onChange={(o) => setKaynak(o.target.value)} className={SECIM}>
+          {hesaplar.map((h) => (
+            <option key={h.id} value={h.id}>
+              {h.name} · {miktarBicim(h.balance, h.unit)}
+            </option>
+          ))}
+        </select>
+      </Alan>
+      <Alan etiket="Nereye" hata={alanHatalari.hedefId}>
+        <select
+          value={secilenHedef}
+          onChange={(o) => setHedef(o.target.value)}
+          className={SECIM}
+          disabled={hedefler.length === 0}
+        >
+          {hedefler.length === 0 && <option value="">Aynı birimde başka hesap yok</option>}
+          {hedefler.map((h) => (
+            <option key={h.id} value={h.id}>
+              {h.name} · {miktarBicim(h.balance, h.unit)}
+            </option>
+          ))}
+        </select>
+      </Alan>
+      <div className="grid grid-cols-2 gap-3">
+        <Alan etiket="Tutar" hata={alanHatalari.amount}>
+          <Input
+            value={tutar}
+            onChange={(o) => setTutar(o.target.value)}
+            inputMode="decimal"
+            required
+          />
+        </Alan>
+        <Alan etiket="Tarih">
+          <Input type="date" value={tarih} onChange={(o) => setTarih(o.target.value)} required />
+        </Alan>
+      </div>
+      {hata && (
+        <p role="alert" className="text-danger text-sm">
+          {hata}
+        </p>
+      )}
+      <Kaydet bekliyor={bekliyor} etiket="Aktar" />
+    </form>
+  );
+}
+
+/** Transferi geri alır: para kaynak hesaba döner. */
+export function TransferGeriAl({ transferId }: { transferId: string }) {
+  const { hata, bekliyor, gonder } = useGonder();
+  return (
+    <div className="flex shrink-0 flex-col items-end gap-1">
+      <button
+        type="button"
+        disabled={bekliyor}
+        onClick={() => gonder(() => deleteWalletTransferAction({ id: transferId }), null)}
+        className="focus-ring bg-elevated text-body min-h-10 rounded-full px-4 text-sm font-medium disabled:opacity-60"
+      >
+        Geri al
+      </button>
+      {hata && (
+        <p role="alert" className="text-danger max-w-40 text-right text-xs">
+          {hata}
+        </p>
+      )}
+    </div>
+  );
+}
+
 /** Arşivdeki hesabı geri getirir. */
 export function HesapGeriGetir({ hesapId, ad }: { hesapId: string; ad: string }) {
   const { hata, bekliyor, gonder } = useGonder();
@@ -492,7 +603,9 @@ export function HesapGeriGetir({ hesapId, ad }: { hesapId: string; ad: string })
 export function AkisFormu({
   tur,
   akis,
+  hesaplar = [],
 }: {
+  hesaplar?: { id: string; name: string; unit: WalletUnit; balance: string }[];
   tur: 'INCOME' | 'EXPENSE';
   akis?: Omit<AkisDto, 'aylikTl'>;
 }) {
@@ -505,8 +618,10 @@ export function AkisFormu({
   const [gun, setGun] = useState(akis?.day ? String(akis.day) : '');
   const [tarih, setTarih] = useState(akis?.date ?? '');
   const [kategori, setKategori] = useState(akis?.category ?? 'Diğer');
+  const [hesapId, setHesapId] = useState(akis?.hesapId ?? '');
   const gelir = tur === 'INCOME';
   const harcama = !gelir && siklik === 'ONCE';
+  const uygunHesaplar = hesaplar.filter((h) => h.unit === birim);
 
   const kaydet = (o: FormEvent) => {
     o.preventDefault();
@@ -515,6 +630,8 @@ export function AkisFormu({
     if (siklik === 'ONCE' && !tarih) return setHata('Tek seferlik kayıt için tarih seç.');
     const day = gun ? Number(gun) : undefined;
     const ortak = { name: ad, unit: birim, amount, frequency: siklik };
+    const tekSefer = siklik === 'ONCE';
+    const secilenHesap = uygunHesaplar.some((h) => h.id === hesapId) ? hesapId : '';
     gonder(() =>
       akis
         ? updateWalletFlowAction({
@@ -524,6 +641,10 @@ export function AkisFormu({
             day: day ?? null,
             date: tarih || null,
             category: harcama ? kategori : null,
+            // Arşivlenmiş hesaba bağlı eski kalemin bağı sessizce kopmasın.
+            ...(hesapId && hesapId === akis.hesapId && !secilenHesap
+              ? {}
+              : { hesapId: tekSefer ? secilenHesap || null : null }),
           })
         : createWalletFlowAction({
             kind: tur,
@@ -532,6 +653,7 @@ export function AkisFormu({
             ...(day ? { day } : {}),
             ...(tarih ? { date: tarih } : {}),
             ...(harcama ? { category: kategori } : {}),
+            ...(tekSefer && secilenHesap ? { hesapId: secilenHesap } : {}),
           }),
     );
   };
@@ -627,6 +749,18 @@ export function AkisFormu({
           </Alan>
         )}
       </div>
+      {siklik === 'ONCE' && uygunHesaplar.length > 0 && (
+        <Alan etiket={gelir ? 'Yatan hesap' : 'Düşülecek hesap'}>
+          <select value={hesapId} onChange={(o) => setHesapId(o.target.value)} className={SECIM}>
+            <option value="">{gelir ? 'Hesaba ekleme' : 'Hesaptan düşme'}</option>
+            {uygunHesaplar.map((h) => (
+              <option key={h.id} value={h.id}>
+                {h.name} · {miktarBicim(h.balance, h.unit)}
+              </option>
+            ))}
+          </select>
+        </Alan>
+      )}
       {hata && (
         <p role="alert" className="text-danger text-sm">
           {hata}

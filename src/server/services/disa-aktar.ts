@@ -33,7 +33,7 @@ export function csv(baslik: string[], satirlar: (string | number | boolean | nul
 }
 
 async function cuzdanCsv(): Promise<string> {
-  const [hesaplar, borclar, akislar, odemeler, netVarlik] = await Promise.all([
+  const [hesaplar, borclar, akislar, odemeler, netVarlik, transferler] = await Promise.all([
     db.walletAccount.findMany({ orderBy: { createdAt: 'asc' } }),
     db.walletDebt.findMany({ orderBy: { createdAt: 'asc' } }),
     db.walletFlow.findMany({ orderBy: [{ date: 'desc' }, { createdAt: 'asc' }] }),
@@ -42,7 +42,9 @@ async function cuzdanCsv(): Promise<string> {
       include: { debt: { select: { name: true, unit: true } } },
     }),
     db.netVarlikKaydi.findMany({ orderBy: { gun: 'desc' } }),
+    db.walletTransfer.findMany({ orderBy: { gun: 'desc' } }),
   ]);
+  const hesapAdi = new Map(hesaplar.map((h) => [h.id, h]));
   const para = (d: unknown) => ondalik(toMeasureString(d as never, 2));
   return csv(
     [
@@ -115,6 +117,20 @@ async function cuzdanCsv(): Promise<string> {
         dateToAppDay(o.date),
         null,
         o.note,
+      ]),
+      ...transferler.map((t) => [
+        'Transfer',
+        hesapAdi.get(t.kaynakId)?.name ?? null,
+        hesapAdi.get(t.hedefId)?.name ?? null,
+        para(t.amount),
+        null,
+        null,
+        hesapAdi.get(t.kaynakId)?.unit ?? null,
+        null,
+        null,
+        dateToAppDay(t.gun),
+        null,
+        t.note,
       ]),
       ...netVarlik.map((n) => [
         'Net varlık',

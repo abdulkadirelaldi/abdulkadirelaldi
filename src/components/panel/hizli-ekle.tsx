@@ -17,12 +17,14 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { tutarOku } from '@/components/panel/cuzdan-bicim';
 import { gunAy } from '@/components/panel/hayat-bicim';
+import { paraBicim } from '@/components/panel/para-bicim';
 import { istanbulGunu, kuyrugaEkle, type KuyrukTuru } from '@/components/panel/hizli-kuyruk';
 import { HARCAMA_KATEGORILERI } from '@/lib/schemas/wallet';
 import { cn } from '@/lib/utils/cn';
 import {
   hizliHarcamaAction,
   hizliKiloAction,
+  hizliHesaplarAction,
   hizliSuAction,
   hizliUykuAction,
   sonKiloAction,
@@ -145,7 +147,7 @@ export function HizliEkle() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="hizli-baslik"
-            className="hizli-sayfa bg-surface relative w-full max-w-md rounded-t-[1.75rem] p-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] shadow-2xl lg:rounded-[1.75rem] lg:pb-5"
+            className="hizli-sayfa bg-surface relative max-h-[85dvh] w-full max-w-md overflow-y-auto rounded-t-[1.75rem] p-5 pb-[calc(env(safe-area-inset-bottom)+1.25rem)] shadow-2xl lg:rounded-[1.75rem] lg:pb-5"
           >
             <span
               aria-hidden="true"
@@ -302,6 +304,15 @@ function kuyrugaAl(
 }
 
 const SON_KATEGORI = 'ae-son-kategori';
+const SON_HESAP = 'ae-son-hesap';
+
+function sonHesap(): string {
+  try {
+    return localStorage.getItem(SON_HESAP) ?? '';
+  } catch {
+    return '';
+  }
+}
 
 function sonKategori(): (typeof HARCAMA_KATEGORILERI)[number] {
   try {
@@ -346,10 +357,23 @@ function HarcamaFormu({ tamam }: { tamam: (m: string, yenile?: boolean) => void 
   const tutarRef = useRef<HTMLInputElement>(null);
   const [kategori, setKategori] = useState(sonKategori);
   const [dun, setDun] = useState(false);
+  const [hesaplar, setHesaplar] = useState<{ id: string; ad: string; bakiye: string }[]>([]);
+  const [hesapId, setHesapId] = useState('');
   const [bekliyor, setBekliyor] = useState(false);
   const [hata, setHata] = useState<string | null>(null);
 
   useEffect(() => tutarRef.current?.focus(), []);
+  useEffect(() => {
+    // Yalnızca seçim: alınamazsa harcama hesapsız kaydedilir.
+    hizliHesaplarAction()
+      .then((sonuc) => {
+        if (!sonuc.ok) return;
+        setHesaplar(sonuc.data);
+        const son = sonHesap();
+        if (sonuc.data.some((h) => h.id === son)) setHesapId(son);
+      })
+      .catch(() => undefined);
+  }, []);
 
   return (
     <form
@@ -370,9 +394,11 @@ function HarcamaFormu({ tamam }: { tamam: (m: string, yenile?: boolean) => void 
           kategori,
           gun: dun ? birGunOnce(bugun) : bugun,
           anahtar: crypto.randomUUID(),
+          ...(hesapId ? { hesapId } : {}),
         };
         try {
           localStorage.setItem(SON_KATEGORI, kategori);
+          localStorage.setItem(SON_HESAP, hesapId);
         } catch {
           // Hatırlanamazsa kayıt yine yapılır.
         }
@@ -425,6 +451,21 @@ function HarcamaFormu({ tamam }: { tamam: (m: string, yenile?: boolean) => void 
           </button>
         ))}
       </div>
+      {hesaplar.length > 0 && (
+        <select
+          aria-label="Düşülecek hesap"
+          value={hesapId}
+          onChange={(e) => setHesapId(e.target.value)}
+          className={GIRDI}
+        >
+          <option value="">Hesaptan düşme</option>
+          {hesaplar.map((h) => (
+            <option key={h.id} value={h.id}>
+              {h.ad} · {paraBicim(h.bakiye, 'TRY')}
+            </option>
+          ))}
+        </select>
+      )}
       <label className="text-body flex min-h-10 items-center gap-2 text-sm">
         <input
           type="checkbox"
