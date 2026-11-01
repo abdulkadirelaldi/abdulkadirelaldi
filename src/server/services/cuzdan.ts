@@ -201,8 +201,15 @@ export async function fetchCuzdan(
       where: { isClosed: false },
       orderBy: [{ endDate: { sort: 'asc', nulls: 'last' } }, { createdAt: 'asc' }],
     }),
+    // Geçmiş ayların tek seferlikleri bu ekranda kullanılmaz; aylar geçtikçe sorgu büyümesin.
     client.walletFlow.findMany({
-      where: { isActive: true },
+      where: {
+        isActive: true,
+        OR: [
+          { frequency: { not: 'ONCE' } },
+          { date: { gte: appDayToDate(`${buAyKodu}-01` as AppDay) } },
+        ],
+      },
       orderBy: [{ day: { sort: 'asc', nulls: 'last' } }, { createdAt: 'asc' }],
     }),
     client.walletDebtPayment.findMany({

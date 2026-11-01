@@ -192,9 +192,20 @@ export async function fetchAylikRapor(
   kurDurumu?: KurDurumu,
   bugun: AppDay = appToday(),
 ): Promise<AylikRapor> {
+  // Yalnızca ekranın baktığı aylar: seçilen ay, önceki ay ve 6 aylık grafik.
+  const aylar = [ay];
+  for (let i = 0; i < 5; i += 1) aylar.unshift(oncekiAy(aylar[0] as string));
+  const pencereBas = appDayToDate(`${aylar[0]}-01` as AppDay);
+  const buAyBas = appDayToDate(`${bugun.slice(0, 7)}-01` as AppDay);
+
   const [akisSatir, odemeSatir, netSatir, atlananSatir, borcSatir, kur] = await Promise.all([
     client.walletFlow.findMany({
-      where: { OR: [{ isActive: true }, { bitisGunu: { not: null } }] },
+      where: {
+        AND: [
+          { OR: [{ isActive: true }, { bitisGunu: { not: null } }] },
+          { OR: [{ frequency: { not: 'ONCE' } }, { date: { gte: pencereBas } }] },
+        ],
+      },
       select: {
         id: true,
         name: true,
@@ -209,6 +220,7 @@ export async function fetchAylikRapor(
       },
     }),
     client.walletDebtPayment.findMany({
+      where: { date: { gte: pencereBas < buAyBas ? pencereBas : buAyBas } },
       select: { debtId: true, date: true, amount: true, debt: { select: { unit: true } } },
     }),
     client.netVarlikKaydi.findMany({
@@ -272,8 +284,6 @@ export async function fetchAylikRapor(
       atlanan,
       ...(a === buAy ? { kalanTaksitTl } : {}),
     });
-  const aylar = [ay];
-  for (let i = 0; i < 5; i += 1) aylar.unshift(oncekiAy(aylar[0] as string));
 
   return {
     ozet: hesap(ay),

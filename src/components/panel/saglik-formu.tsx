@@ -151,6 +151,26 @@ export function SaglikFormu({
   };
 
   const varsayilan = baslangic(kayit, gun, oneri);
+  const [birlesiyor, setBirlesiyor] = useState(false);
+  /** Çakışmada uzun form boşa gitmesin: dolu alanlar o günün kaydına yazılır, gerisi kalır. */
+  const girdileriBirlestir = async (id: string) => {
+    setBirlesiyor(true);
+    try {
+      const dolu = Object.fromEntries(
+        Object.entries(form.getValues()).filter(
+          ([ad, deger]) => ad !== 'date' && deger !== undefined && deger !== '' && deger !== null,
+        ),
+      );
+      const sonuc = await updateHealthLogAction({ id, ...dolu });
+      if (sonuc.ok) router.push(`/panel/saglik/${id}`);
+      else form.setError('root', { message: sonuc.error.message });
+    } catch {
+      form.setError('root', { message: 'Bağlantı kurulamadı. Yeniden dene.' });
+    } finally {
+      setBirlesiyor(false);
+    }
+  };
+
   const { form, durum, formHatasi, gonder } = usePanelForm<SaglikFormGirdi>({
     sema: createHealthLogSchema,
     varsayilanDegerler: {
@@ -205,6 +225,15 @@ export function SaglikFormu({
             >
               O günün kaydını düzenle
             </Link>
+            {' · '}
+            <button
+              type="button"
+              disabled={birlesiyor}
+              onClick={() => void girdileriBirlestir(mevcutId)}
+              className="text-primary focus-ring rounded-sm font-medium underline underline-offset-4"
+            >
+              Girdiklerimi o güne ekle
+            </button>
           </p>
         )}
 

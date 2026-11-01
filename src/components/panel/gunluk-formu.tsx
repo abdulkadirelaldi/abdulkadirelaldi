@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type * as z from 'zod';
 
 import { Alan, SAYI_YA_DA_YOK, bosaltilanlariNullYap } from '@/components/panel/alan';
@@ -85,6 +85,39 @@ function etiketHatasi(hata: unknown, etiketler: readonly string[]): string | und
   return undefined;
 }
 
+const TASLAK = 'ae-gunluk-taslak';
+
+function taslagiOku(): { icerik: string; baslik: string } | null {
+  try {
+    const ham = localStorage.getItem(TASLAK);
+    if (!ham) return null;
+    const v = JSON.parse(ham) as { icerik?: unknown; baslik?: unknown };
+    return typeof v.icerik === 'string' && v.icerik
+      ? { icerik: v.icerik, baslik: typeof v.baslik === 'string' ? v.baslik : '' }
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function taslagiYaz(icerik: string, baslik: string): void {
+  try {
+    if (icerik.trim() || baslik.trim()) {
+      localStorage.setItem(TASLAK, JSON.stringify({ icerik, baslik }));
+    } else localStorage.removeItem(TASLAK);
+  } catch {
+    // Depo kapalıysa taslak yok; yazmaya engel değil.
+  }
+}
+
+function taslagiSil(): void {
+  try {
+    localStorage.removeItem(TASLAK);
+  } catch {
+    // Depo kapalıysa silinecek taslak da yok.
+  }
+}
+
 export function GunlukFormu({ kayit, gun }: { kayit?: JournalEntryDto; gun: string }) {
   const router = useRouter();
   const duzenleme = kayit !== undefined;
@@ -99,6 +132,7 @@ export function GunlukFormu({ kayit, gun }: { kayit?: JournalEntryDto; gun: stri
       : await createJournalEntryAction(degerler);
 
     if (sonuc.ok) {
+      if (!kayit) taslagiSil();
       router.refresh();
       if (!kayit) router.push('/panel/hayat/gunluk');
     }
@@ -119,11 +153,49 @@ export function GunlukFormu({ kayit, gun }: { kayit?: JournalEntryDto; gun: stri
     formState: { errors, isSubmitted },
   } = form;
   const etiketler = watch('tags') ?? [];
+
+  // Yeni kayıtta yazılan cihazda saklanır: uygulama kapansa da metin gitmez.
+  const icerik = watch('content');
+  const ustBaslik = watch('title');
+  const [taslakVar, setTaslakVar] = useState(false);
+  useEffect(() => {
+    if (kayit) return;
+    const taslak = taslagiOku();
+    if (!taslak) return;
+    setValue('content', taslak.icerik);
+    setValue('title', taslak.baslik);
+    setTaslakVar(true);
+  }, [kayit, setValue]);
+  useEffect(() => {
+    if (kayit) return;
+    const t = setTimeout(() => taslagiYaz(icerik ?? '', ustBaslik ?? ''), 500);
+    return () => clearTimeout(t);
+  }, [kayit, icerik, ustBaslik]);
   const baslik = kayit ? (kayit.title ?? gunAyYil(kayit.date)) : 'Yeni günlük kaydı';
 
   return (
     <Card>
       <CardContent className="flex flex-col gap-4">
+        {taslakVar && (
+          <p
+            role="status"
+            className="bg-accent/10 text-primary flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-sm"
+          >
+            Kaydedilmemiş taslağın geri yüklendi.
+            <button
+              type="button"
+              onClick={() => {
+                setValue('content', '');
+                setValue('title', '');
+                taslagiSil();
+                setTaslakVar(false);
+              }}
+              className="focus-ring min-h-10 shrink-0 rounded-full px-3 font-medium"
+            >
+              Temizle
+            </button>
+          </p>
+        )}
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex min-w-0 flex-col gap-1">
             <CardTitle seviye="h2" className="break-words">

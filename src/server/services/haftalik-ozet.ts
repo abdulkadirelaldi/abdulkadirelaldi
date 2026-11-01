@@ -62,8 +62,8 @@ export async function fetchHaftalikOzet(
   const aralik = { gte: appDayToDate(oncekiBas), lte: appDayToDate(son) };
 
   const [hafta, oncekiHafta, antrenmanlar, giderler, tartilar, kur] = await Promise.all([
-    aliskanlikOku(bas),
-    aliskanlikOku(oncekiBas),
+    aliskanlikOku(bas, undefined, bugun, { seri: false }),
+    aliskanlikOku(oncekiBas, undefined, bugun, { seri: false }),
     client.workout.findMany({
       where: { date: aralik },
       select: { date: true, sets: { select: { reps: true, weightKg: true } } },

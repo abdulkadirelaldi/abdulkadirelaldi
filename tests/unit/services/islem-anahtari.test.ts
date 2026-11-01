@@ -6,6 +6,10 @@ import { birKez } from '@/server/services/islem-anahtari';
 function sahte() {
   const anahtarlar = new Set<string>();
   const client = {
+    islemAnahtari: {
+      findUnique: async ({ where }: { where: { anahtar: string } }) =>
+        anahtarlar.has(where.anahtar) ? where : null,
+    },
     $transaction: async (fn: (tx: unknown) => Promise<unknown>) => {
       const eklenen: string[] = [];
       const tx = {
@@ -54,5 +58,38 @@ describe('birKez — yanıtı kaybolan istek iki kez yazmaz (2026-10-31)', () =>
     expect(is).toHaveBeenCalledTimes(2);
     const hata = Object.assign(new Error('x'), { code: 'P2025' });
     await expect(birKez('b', vi.fn().mockRejectedValue(hata), client)).rejects.toBe(hata);
+  });
+});
+
+describe('birKez · başka tablodaki çakışma (2026-11-01)', () => {
+  const p2002 = () => Object.assign(new Error('x'), { code: 'P2002' });
+  const istemci = (anahtarVar: boolean) =>
+    ({
+      $transaction: (f: (t: unknown) => unknown) => f({ islemAnahtari: { create: vi.fn() } }),
+      islemAnahtari: {
+        findUnique: vi.fn().mockResolvedValue(anahtarVar ? { anahtar: 'a' } : null),
+      },
+    }) as never;
+
+  it('⚠️ anahtar yazılmamışsa kayıt kaybolmaz, yeniden denenir', async () => {
+    const is = vi.fn().mockRejectedValueOnce(p2002()).mockResolvedValueOnce('kayit');
+    expect(await birKez('a', is, istemci(false))).toBe('kayit');
+    expect(is).toHaveBeenCalledTimes(2);
+  });
+
+  it('anahtar varsa gerçekten işlenmiştir', async () => {
+    const is = vi.fn().mockRejectedValue(p2002());
+    expect(await birKez('a', is, istemci(true))).toBeNull();
+    expect(is).toHaveBeenCalledTimes(1);
+  });
+
+  it('ikinci denemede de çakışırsa hata görünür, başarı yalanı yok', async () => {
+    const is = vi.fn().mockRejectedValue(p2002());
+    await expect(birKez('a', is, istemci(false))).rejects.toThrow('x');
+  });
+
+  it('anahtarsız çağrıda P2002 yutulmaz', async () => {
+    const is = vi.fn().mockRejectedValue(p2002());
+    await expect(birKez(undefined, is, istemci(false))).rejects.toThrow('x');
   });
 });

@@ -16,6 +16,7 @@ import { Input, Textarea } from '@/components/ui/input';
 import { createGoalSchema } from '@/lib/schemas/goal';
 import { createGoalAction, deleteGoalAction, updateGoalAction } from '@/server/actions/goal';
 import type { GoalDto } from '@/server/services/goal';
+import type { GoalPeriod } from '@/types';
 
 /**
  * HEDEF FORMU — §4.2 `/panel/hayat/hedefler`, T-115. Yeni + düzenleme.
@@ -47,9 +48,22 @@ import type { GoalDto } from '@/server/services/goal';
 
 type HedefFormGirdi = z.input<typeof createGoalSchema>;
 
-function baslangic(kayit: GoalDto | undefined): HedefFormGirdi {
+const SEKME: Record<GoalPeriod, string> = {
+  WEEKLY: 'haftalik',
+  MONTHLY: 'aylik',
+  YEARLY: 'yillik',
+};
+
+function baslangic(kayit: GoalDto | undefined, donem: GoalPeriod | undefined): HedefFormGirdi {
   if (!kayit) {
-    return { title: '', description: '', category: 'PERSONAL', progress: 0, status: 'ACTIVE' };
+    return {
+      title: '',
+      description: '',
+      category: 'PERSONAL',
+      progress: 0,
+      status: 'ACTIVE',
+      ...(donem ? { period: donem } : {}),
+    };
   }
   return {
     title: kayit.title,
@@ -64,7 +78,7 @@ function baslangic(kayit: GoalDto | undefined): HedefFormGirdi {
 const SECIM_SINIFI =
   'focus-ring rounded-input border-line-strong bg-elevated text-primary h-11 w-full border px-3 text-sm';
 
-export function HedefFormu({ kayit }: { kayit?: GoalDto }) {
+export function HedefFormu({ kayit, donem }: { kayit?: GoalDto; donem?: GoalPeriod }) {
   const router = useRouter();
   const duzenleme = kayit !== undefined;
 
@@ -78,7 +92,12 @@ export function HedefFormu({ kayit }: { kayit?: GoalDto }) {
 
     if (sonuc.ok) {
       router.refresh();
-      if (!kayit) router.push('/panel/hayat/hedefler');
+      if (!kayit)
+        router.push(
+          donem
+            ? `/panel/hayat/hedefler?donem=${SEKME[donem]}`
+            : '/panel/hayat/hedefler?donem=uzun',
+        );
     }
 
     return sonuc;
@@ -86,7 +105,7 @@ export function HedefFormu({ kayit }: { kayit?: GoalDto }) {
 
   const { form, durum, formHatasi, gonder } = usePanelForm<HedefFormGirdi>({
     sema: createGoalSchema,
-    varsayilanDegerler: baslangic(kayit),
+    varsayilanDegerler: baslangic(kayit, donem),
     kaydet,
   });
 
