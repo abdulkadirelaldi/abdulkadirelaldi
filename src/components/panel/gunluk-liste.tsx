@@ -125,8 +125,10 @@ function Satir({
     <li
       className={cn(
         'rounded-card flex flex-col gap-3 border p-3.5 transition-colors',
-        durum === 'YAPILDI' && 'border-success/25 bg-success/8',
-        durum === 'YAPILMADI' && 'border-danger/25 bg-danger/6',
+        durum === 'YAPILDI' &&
+          'border-success/25 bg-[color-mix(in_oklab,var(--success)_9%,var(--bg-surface))]',
+        durum === 'YAPILMADI' &&
+          'border-danger/25 bg-[color-mix(in_oklab,var(--danger)_7%,var(--bg-surface))]',
         durum !== 'YAPILDI' && durum !== 'YAPILMADI' && 'border-line bg-surface',
       )}
     >
@@ -243,11 +245,13 @@ function Dugme({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        'focus-ring flex shrink-0 items-center justify-center rounded-full border transition-[transform,background-color,color] active:scale-90 disabled:opacity-50',
+        'focus-ring flex shrink-0 items-center justify-center rounded-full border transition-[transform,background-color,color,border-color] active:scale-90 disabled:opacity-50',
         kucuk ? 'size-10' : 'size-11',
-        !aktif && kucuk && 'bg-elevated text-muted border-transparent',
-        !aktif && !kucuk && 'border-line-strong/50 bg-canvas text-muted',
-        aktif && ton === 'success' && 'border-success bg-success text-white',
+        ton === 'success' && 'isaret-tam',
+        !aktif && kucuk && ton && 'text-muted hover:bg-elevated border-transparent',
+        !aktif && kucuk && !ton && 'bg-elevated text-muted border-transparent',
+        !aktif && !kucuk && 'border-accent/35 bg-accent/6 text-accent',
+        aktif && ton === 'success' && 'text-white',
         aktif && ton === 'danger' && 'border-danger bg-danger text-white',
       )}
     >

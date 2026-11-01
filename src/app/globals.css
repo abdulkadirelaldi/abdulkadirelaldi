@@ -666,11 +666,11 @@ a {
    #141418 üzerinde 5.9:1; form sınırı (border-strong) iki temada ≥ 3:1.
    -------------------------------------------------------------------------- */
 .panel-modern {
-  --bg-base: #09090b;
-  --bg-surface: #141418;
-  --bg-elevated: #1c1c22;
-  --border: #22222a;
-  --border-hover: #33333d;
+  --bg-base: #08080d;
+  --bg-surface: #13131b;
+  --bg-elevated: #1d1d28;
+  --border: #24242f;
+  --border-hover: #363644;
   --border-strong: #6b6b78;
   --text-primary: #fafafa;
   --text-body: #c7c7d0;
@@ -679,17 +679,20 @@ a {
   --accent-hover: #5f3cf2;
   --accent-soft: #a897ff;
   --accent-blue: #8b3dff;
-  --accent-glow: rgba(109, 74, 255, 0.3);
-  --gradient-accent: linear-gradient(135deg, #6d4aff 0%, #8b3dff 100%);
-  --golge-kart: 0 0 0 1px rgb(255 255 255 / 0.04);
-  --yaricap-kart: 1.25rem;
+  --accent-glow: rgba(124, 74, 255, 0.5);
+  --gradient-accent: linear-gradient(120deg, #5f46ff 0%, #8b3dff 58%, #b5359f 100%);
+  --golge-kart: 0 0 0 1px rgb(255 255 255 / 0.07);
+  --golge-kart-ust: 0 0 0 1px rgb(255 255 255 / 0.1), 0 18px 36px -20px rgb(0 0 0 / 0.8);
+  --aura-zemin-1: rgb(109 74 255 / 0.2);
+  --aura-zemin-2: rgb(236 72 153 / 0.09);
+  --yaricap-kart: 1.375rem;
   --yaricap-dugme: 0.875rem;
   --yaricap-girdi: 0.75rem;
 }
 
 .light .panel-modern,
 .light.panel-modern {
-  --bg-base: #f2f2f7;
+  --bg-base: #f4f4f9;
   --bg-surface: #ffffff;
   --bg-elevated: #f2f2f7; /* kartın (beyaz) üstünde iz, düğme, girdi zemini görünsün */
   --border: #e5e5ea;
@@ -699,12 +702,17 @@ a {
   --text-body: #3a3a44;
   --text-muted: #6e6e78;
   --accent-soft: #5b36f5;
-  --golge-kart: 0 1px 2px rgb(16 16 32 / 0.04), 0 6px 20px -10px rgb(16 16 32 / 0.12);
+  --golge-kart:
+    0 0 0 1px rgb(16 16 40 / 0.035), 0 1px 2px rgb(16 16 40 / 0.04),
+    0 10px 26px -16px rgb(16 16 40 / 0.16);
+  --golge-kart-ust: 0 0 0 1px rgb(16 16 40 / 0.05), 0 22px 40px -22px rgb(16 16 40 / 0.3);
+  --aura-zemin-1: rgb(109 74 255 / 0.13);
+  --aura-zemin-2: rgb(236 72 153 / 0.07);
 }
 
 @media (prefers-color-scheme: light) {
   html:not(.dark):not(.light) .panel-modern {
-    --bg-base: #f2f2f7;
+    --bg-base: #f4f4f9;
     --bg-surface: #ffffff;
     --bg-elevated: #f2f2f7; /* kartın (beyaz) üstünde iz, düğme, girdi zemini görünsün */
     --border: #e5e5ea;
@@ -714,24 +722,59 @@ a {
     --text-body: #3a3a44;
     --text-muted: #6e6e78;
     --accent-soft: #5b36f5;
-    --golge-kart: 0 1px 2px rgb(16 16 32 / 0.04), 0 6px 20px -10px rgb(16 16 32 / 0.12);
+    --golge-kart:
+      0 0 0 1px rgb(16 16 40 / 0.035), 0 1px 2px rgb(16 16 40 / 0.04),
+      0 10px 26px -16px rgb(16 16 40 / 0.16);
+    --golge-kart-ust: 0 0 0 1px rgb(16 16 40 / 0.05), 0 22px 40px -22px rgb(16 16 40 / 0.3);
+    --aura-zemin-1: rgb(109 74 255 / 0.13);
+    --aura-zemin-2: rgb(236 72 153 / 0.07);
   }
 }
 
 .panel-modern {
+  position: relative;
+  isolation: isolate;
   background-color: var(--bg-base);
   color: var(--text-body);
 }
 
-.panel-modern :is(h1, h2, h3, h4, h5, h6) {
+/* Zeminin üstünde çok hafif sabit ışık: düz gri yerine derinlik. Yalnızca boyanır, hareket etmez. */
+.panel-modern::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(60rem 26rem at 85% -8%, var(--aura-zemin-1), transparent 70%),
+    radial-gradient(40rem 22rem at -5% 4%, var(--aura-zemin-2), transparent 70%);
+}
+
+.panel-modern :is(h4, h5, h6) {
   font-family: var(--font-inter), sans-serif;
   font-weight: 600;
   letter-spacing: -0.022em;
 }
 
+/* Karakter başlıkta: Space Grotesk. Metin ve sayı Inter: rakamları tutarda daha temiz okunur. */
+.panel-modern :is(h1, h2, h3) {
+  font-family: var(--font-display), var(--font-inter), sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.028em;
+}
+
 .panel-modern .tabular {
   font-family: inherit;
   letter-spacing: -0.01em;
+}
+
+.panel-modern .tabular.font-semibold {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.022em;
+}
+.panel-modern .sayi-buyuk {
+  font-weight: 650;
+  letter-spacing: -0.04em;
 }
 
 .panel-modern svg.lucide {
@@ -756,7 +799,7 @@ a {
 @keyframes panel-giris {
   from {
     opacity: 0;
-    transform: translateY(8px);
+    transform: translateY(14px);
   }
   to {
     opacity: 1;
@@ -780,8 +823,21 @@ a {
   }
 }
 
-.panel-modern #panel-icerik > * {
-  animation: panel-giris 0.32s var(--ease-brand) both;
+.panel-modern #panel-icerik > * > * {
+  animation: panel-giris 0.5s var(--ease-brand) backwards;
+}
+/* Kademeli giriş: üstten alta akar; uzun listede son öğeyi bekletmez. */
+.panel-modern #panel-icerik > * > :nth-child(2) {
+  animation-delay: 50ms;
+}
+.panel-modern #panel-icerik > * > :nth-child(3) {
+  animation-delay: 100ms;
+}
+.panel-modern #panel-icerik > * > :nth-child(4) {
+  animation-delay: 150ms;
+}
+.panel-modern #panel-icerik > * > :nth-child(n + 5) {
+  animation-delay: 200ms;
 }
 .panel-modern .grafik-cizgi {
   stroke-dasharray: 1;
@@ -832,7 +888,10 @@ a {
 @media (prefers-reduced-motion: reduce) {
   .panel-modern
     :is(
-      #panel-icerik > *,
+      #panel-icerik > * > *,
+      .aura::before,
+      .isaret-tam[aria-pressed='true'] svg,
+      .cekmece-gir,
       .grafik-cizgi,
       .grafik-dolgu,
       .gezinme-cizgisi,
@@ -844,6 +903,341 @@ a {
   }
   .panel-modern .grafik-cizgi {
     stroke-dasharray: none;
+  }
+  .panel-modern .dock-hap,
+  .panel-modern a.rounded-card {
+    transition: none;
+  }
+  .acilis {
+    display: none !important;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   AURA — 2026-11-01. Sahibinin isteği: "wow dedirtecek, profesyonel, estetik".
+   Her ana bölümün kendi renk dünyası ve koyu, ışıltılı ana kartı var; ana kart
+   iki temada da aynı koyu mürekkep zeminde kalır, sayfanın odağı olur.
+   §5.2.1 korunuyor: WebGL/shader yok; hareket yalnızca transform ve opacity.
+   Kart içindeki yazı rengi `--text-*` üzerinden gelir, bileşen değişmeden okunur.
+   -------------------------------------------------------------------------- */
+.aura {
+  --text-primary: #ffffff;
+  --text-body: rgb(255 255 255 / 0.88);
+  --text-muted: rgb(255 255 255 / 0.72);
+  --accent: #c9bcff;
+  --accent-soft: #e2dbff;
+  --border: rgb(255 255 255 / 0.14);
+  --border-hover: rgb(255 255 255 / 0.24);
+  --border-strong: rgb(255 255 255 / 0.4);
+  --bg-elevated: rgb(255 255 255 / 0.1);
+  --bg-surface: rgb(255 255 255 / 0.08);
+  --bg-base: rgb(255 255 255 / 0.06);
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  border-radius: var(--radius-card);
+  background: #100d26;
+  color: #ffffff;
+  box-shadow:
+    inset 0 0 0 1px rgb(255 255 255 / 0.1),
+    0 26px 50px -28px var(--aura-golge, rgb(91 61 255 / 0.75));
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.aura::before {
+  content: '';
+  position: absolute;
+  inset: -35%;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(52% 58% at 74% 26%, var(--aura-1), transparent 74%),
+    radial-gradient(54% 60% at 24% 72%, var(--aura-2), transparent 74%),
+    radial-gradient(40% 46% at 84% 80%, var(--aura-3), transparent 74%);
+  animation: aura-suzul 20s ease-in-out infinite alternate;
+  will-change: transform;
+}
+@keyframes aura-suzul {
+  from {
+    transform: translate3d(-3%, -2%, 0) rotate(0deg);
+  }
+  to {
+    transform: translate3d(3%, 3%, 0) rotate(8deg);
+  }
+}
+.aura-gun {
+  --aura-1: rgb(109 74 255 / 0.62);
+  --aura-2: rgb(14 116 200 / 0.48);
+  --aura-3: rgb(219 39 119 / 0.34);
+  --aura-golge: rgb(91 61 255 / 0.7);
+}
+.aura-para {
+  --aura-1: rgb(5 150 105 / 0.62);
+  --aura-2: rgb(8 112 150 / 0.52);
+  --aura-3: rgb(101 130 20 / 0.36);
+  --aura-golge: rgb(5 150 105 / 0.6);
+}
+.aura-hayat {
+  --aura-1: rgb(139 61 255 / 0.66);
+  --aura-2: rgb(79 70 229 / 0.5);
+  --aura-3: rgb(192 38 150 / 0.42);
+  --aura-golge: rgb(139 61 255 / 0.7);
+}
+.aura-spor {
+  --aura-1: rgb(234 88 12 / 0.6);
+  --aura-2: rgb(190 18 80 / 0.48);
+  --aura-3: rgb(180 110 10 / 0.4);
+  --aura-golge: rgb(234 88 12 / 0.55);
+}
+.aura-saglik {
+  --aura-1: rgb(225 29 92 / 0.56);
+  --aura-2: rgb(14 116 200 / 0.5);
+  --aura-3: rgb(124 58 237 / 0.42);
+  --aura-golge: rgb(225 29 92 / 0.5);
+}
+
+/* Bölüm üstü küçük başlık. */
+.ust-etiket {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Vurgu yazısı: `--accent` beyaz metnin ZEMİNİ için koyu; koyu temada yazı olarak
+   2,9:1 kalıyordu. Yazıda `--accent-soft` iki temada da ≥ 4.5:1. */
+.panel-modern .text-accent {
+  color: var(--accent-soft);
+}
+
+/* Ana kart içindeki cam kutucuk. */
+.cam-kutu {
+  border-radius: 1rem;
+  background: rgb(255 255 255 / 0.08);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
+}
+
+.su-hizli {
+  color: #e0f2fe;
+  background: rgb(125 211 252 / 0.2);
+  box-shadow: inset 0 0 0 1px rgb(125 211 252 / 0.3);
+}
+
+/* Dokunuş ve üzerine gelme. */
+.panel-modern a.rounded-card {
+  transition:
+    transform 0.25s var(--ease-brand),
+    box-shadow 0.25s var(--ease-brand);
+}
+.panel-modern a.rounded-card:active {
+  transform: scale(0.985);
+}
+@media (hover: hover) {
+  .panel-modern a.rounded-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--golge-kart-ust);
+  }
+}
+.panel-modern :is(a, button).bg-gradient-accent {
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.28),
+    0 10px 22px -12px var(--accent-glow);
+}
+
+/* Sekme şeridi: bütün alt gezinmeler aynı dil. Taşan sekme kenarda kesilmez, solar. */
+.sekme-seridi {
+  margin: 0 -1rem -0.5rem;
+  padding: 0.125rem 1rem 0.875rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 0.875rem,
+    #000 calc(100% - 1.5rem),
+    transparent
+  );
+}
+.sekme-seridi::-webkit-scrollbar {
+  display: none;
+}
+.sekme {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  gap: 0.375rem;
+  border-radius: 999px;
+  padding-inline: 1rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-body);
+  background: var(--bg-surface);
+  box-shadow: var(--golge-kart);
+  transition:
+    color 0.2s,
+    transform 0.2s var(--ease-brand);
+}
+.sekme:hover {
+  color: var(--text-primary);
+}
+.sekme:active {
+  transform: scale(0.96);
+}
+.sekme[aria-current='page'] {
+  color: #ffffff;
+  background: var(--gradient-accent);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.28),
+    0 10px 20px -12px var(--accent-glow);
+}
+/* Süzgeç ve aralık düğmelerinin seçili hâli de aynı: sayfa başına tek vurgu dili. */
+.panel-modern .border-accent\/40.bg-accent\/12 {
+  border-color: transparent;
+  color: #ffffff;
+  background: var(--gradient-accent);
+  box-shadow: 0 8px 16px -10px var(--accent-glow);
+}
+.sekme[aria-current='page'] .text-muted {
+  color: rgb(255 255 255 / 0.82);
+}
+
+/* Alt sekme: etkin göstergesi sekmeler arasında kayar. */
+.dock-hap {
+  position: absolute;
+  top: 0.5rem;
+  left: 0.25rem;
+  width: calc((100% - 0.5rem) / 5);
+  height: 2rem;
+  pointer-events: none;
+  transition: transform 0.45s cubic-bezier(0.34, 1.45, 0.64, 1);
+}
+.dock-hap::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  left: 50%;
+  width: 3.5rem;
+  margin-left: -1.75rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--accent) 15%, transparent);
+}
+
+/* Alışkanlık işareti: tamamlanınca simge yaylanır. */
+@keyframes isaret-yayla {
+  0% {
+    transform: scale(0.4);
+  }
+  60% {
+    transform: scale(1.22);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.isaret-tam[aria-pressed='true'] {
+  background: linear-gradient(140deg, #10b981, #047857);
+  border-color: transparent;
+  box-shadow: 0 8px 18px -8px rgb(5 150 105 / 0.8);
+}
+.isaret-tam[aria-pressed='true'] svg {
+  animation: isaret-yayla 0.4s var(--ease-brand);
+}
+
+/* Yan menü. */
+.marka-isaret {
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.625rem;
+  font-family: var(--font-display), sans-serif;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  background: var(--gradient-accent);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.3),
+    0 8px 18px -8px var(--accent-glow);
+}
+.menu-oge {
+  position: relative;
+}
+.menu-oge[aria-current='page'] {
+  background: color-mix(in oklab, var(--accent) 12%, transparent);
+}
+.menu-oge[aria-current='page']::before {
+  content: '';
+  position: absolute;
+  inset-block: 0.5rem;
+  left: 0;
+  width: 3px;
+  border-radius: 999px;
+  background: var(--gradient-accent);
+}
+@keyframes cekmece-gir {
+  from {
+    transform: translateX(-100%);
+  }
+}
+.panel-modern .cekmece-gir {
+  animation: cekmece-gir 0.32s var(--ease-brand) both;
+}
+
+/* Açılış: ana ekrandan açılınca kısa marka anı. Tarayıcı sekmesinde yok; dokunuşu
+   hiç engellemez (`pointer-events: none`) ve JS olmadan kendiliğinden kaybolur. */
+.acilis {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  place-items: center;
+  pointer-events: none;
+  background: radial-gradient(70% 45% at 50% 42%, rgb(109 74 255 / 0.5), transparent 72%), #0b0a1a;
+  animation: acilis-kapan 0.42s ease 0.6s forwards;
+}
+@media (display-mode: standalone) {
+  .acilis {
+    display: grid;
+  }
+}
+.acilis-marka {
+  display: flex;
+  width: 5rem;
+  height: 5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 1.5rem;
+  font-family: var(--font-display), sans-serif;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  color: #ffffff;
+  background: linear-gradient(120deg, #5f46ff 0%, #8b3dff 58%, #b5359f 100%);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.32),
+    0 24px 60px -16px rgb(124 74 255 / 0.9);
+  animation: acilis-marka 0.6s var(--ease-brand) both;
+}
+@keyframes acilis-marka {
+  from {
+    opacity: 0;
+    transform: scale(0.82);
+  }
+}
+@keyframes acilis-kapan {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+
+@media print {
+  .panel-modern::before,
+  .acilis {
+    display: none;
   }
 }
 

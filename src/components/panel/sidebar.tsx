@@ -21,9 +21,7 @@ function MenuIcerigi({ pathname }: { pathname: string }) {
     <nav aria-label="Panel menüsü" className="flex flex-col gap-6">
       {PANEL_GRUPLARI.map((grup) => (
         <div key={grup.title} className="flex flex-col gap-1">
-          <p className="tabular text-muted px-2 pb-1 text-[0.6875rem] tracking-wider uppercase">
-            {grup.title}
-          </p>
+          <p className="ust-etiket px-3 pb-1">{grup.title}</p>
 
           <ul className="flex flex-col gap-0.5">
             {grup.items.map((item) => {
@@ -51,9 +49,9 @@ function MenuIcerigi({ pathname }: { pathname: string }) {
                     href={item.href}
                     aria-current={aktif ? 'page' : undefined}
                     className={cn(
-                      'focus-ring ease-brand duration-micro rounded-btn flex items-center gap-2.5 px-2 py-2 text-sm transition-colors',
+                      'menu-oge focus-ring ease-brand duration-micro rounded-btn flex items-center gap-2.5 px-3 py-2 text-sm transition-colors',
                       aktif
-                        ? 'bg-elevated text-primary font-medium'
+                        ? 'text-primary font-medium'
                         : 'text-body hover:bg-elevated hover:text-primary',
                     )}
                   >
@@ -73,8 +71,8 @@ function MenuIcerigi({ pathname }: { pathname: string }) {
 /**
  * Panel kenar çubuğu — masaüstünde sabit, mobilde ÇEKMECE (T-032).
  *
- * §5.2.1: panelde WebGL/shader/ağır efekt YOK. Buradaki tek hareket 150 ms'lik
- * renk/kaydırma geçişi. Panel bir çalışma aracı; her etkileşim anlık hissetmeli.
+ * §5.2.1: panelde WebGL/shader/ağır efekt YOK. Buradaki hareket renk geçişi ve
+ * çekmecenin kayarak girişi. Panel bir çalışma aracı; her etkileşim anlık hissetmeli.
  *
  * ÇEKMECE ERİŞİLEBİLİRLİĞİ: `role="dialog"` + `aria-modal`, ESC ile kapanır
  * (kabuk hallediyor), perde tıklaması kapatır ve perde `aria-hidden` — ekran
@@ -91,13 +89,16 @@ export function Sidebar() {
           içerikten çalıyor (A4'te içerik alanı ~688 px). */}
       <aside
         data-yazdirmada-gizle
-        className="border-line bg-surface hidden w-60 shrink-0 border-r lg:block"
+        className="border-line/70 bg-surface/70 hidden w-60 shrink-0 border-r backdrop-blur-xl lg:block"
       >
         <div className="sticky top-0 flex h-dvh flex-col gap-6 overflow-y-auto p-4">
           <Link
             href="/panel"
-            className="focus-ring rounded-btn font-display text-primary px-2 text-base font-bold"
+            className="focus-ring rounded-btn font-display text-primary flex items-center gap-2.5 px-1 text-base font-bold tracking-tight"
           >
+            <span aria-hidden="true" className="marka-isaret">
+              AE
+            </span>
             Panel
           </Link>
 
@@ -113,7 +114,7 @@ export function Sidebar() {
             aria-hidden="true"
             tabIndex={-1}
             onClick={kapat}
-            className="bg-canvas/70 absolute inset-0 backdrop-blur-sm"
+            className="hizli-ortu bg-canvas/70 absolute inset-0 backdrop-blur-sm"
           />
 
           {/*
@@ -134,13 +135,16 @@ export function Sidebar() {
             role="dialog"
             aria-modal="true"
             aria-label="Panel menüsü"
-            className="border-line bg-surface absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col gap-6 overflow-y-auto border-r p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]"
+            className="cekmece-gir border-line bg-surface absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col gap-6 overflow-y-auto border-r p-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(1rem,env(safe-area-inset-bottom))]"
           >
             <div className="flex items-center justify-between">
               <Link
                 href="/panel"
-                className="focus-ring rounded-btn font-display text-primary px-2 text-base font-bold"
+                className="focus-ring rounded-btn font-display text-primary flex items-center gap-2.5 px-1 text-base font-bold tracking-tight"
               >
+                <span aria-hidden="true" className="marka-isaret">
+                  AE
+                </span>
                 Panel
               </Link>
 

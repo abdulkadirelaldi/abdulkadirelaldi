@@ -57,7 +57,7 @@ export default async function SporPage() {
           {acik && (
             <Link
               href={`/panel/spor/oturum/${acik.id}`}
-              className="focus-ring rounded-card bg-accent flex items-center justify-between gap-3 p-4 text-white"
+              className="aura aura-spor focus-ring flex items-center justify-between gap-3 p-4"
             >
               <span className="flex flex-col">
                 <span className="text-sm opacity-90">Devam eden antrenman</span>
@@ -91,8 +91,8 @@ export default async function SporPage() {
                   <li
                     key={gun.id}
                     className={cn(
-                      'rounded-card border p-4',
-                      bugunku ? 'border-accent bg-accent/8' : 'border-line bg-surface',
+                      'p-4',
+                      bugunku ? 'aura aura-spor' : 'rounded-card border-line bg-surface border',
                     )}
                   >
                     <div className="flex items-start justify-between gap-3">

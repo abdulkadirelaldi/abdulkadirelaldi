@@ -80,22 +80,14 @@ export function HayatUstKarti({
   const iso = (d: Date) => d.toISOString().slice(0, 10);
 
   return (
-    <section
-      aria-label={`${etiket} özeti`}
-      className="rounded-card bg-gradient-accent relative isolate flex flex-col gap-5 overflow-hidden p-5 text-white shadow-[0_16px_40px_-18px_var(--accent-glow)]"
-    >
-      <span
-        aria-hidden="true"
-        className="absolute -top-20 -right-12 -z-10 size-56 rounded-full bg-white/15 blur-2xl"
-      />
-
+    <section aria-label={`${etiket} özeti`} className="aura aura-hayat flex flex-col gap-5 p-5">
       <div className="flex items-center gap-4">
         <div className="flex min-w-0 flex-1 flex-col gap-1">
           <div className="flex items-center gap-1">
             <GunOku href={`/panel/hayat?gun=${iso(onceki)}`} etiket="Önceki gün">
               <ChevronLeft className="size-4" aria-hidden="true" />
             </GunOku>
-            <h2 className="truncate text-lg font-semibold text-white capitalize">{etiket}</h2>
+            <h2 className="truncate text-xl font-semibold text-white capitalize">{etiket}</h2>
             {gun < bugun && (
               <GunOku href={`/panel/hayat?gun=${iso(sonraki)}`} etiket="Sonraki gün">
                 <ChevronRight className="size-4" aria-hidden="true" />
@@ -150,7 +142,7 @@ export function HayatUstKarti({
           );
           const sinif = cn(
             'flex flex-col items-center gap-1 rounded-2xl py-2',
-            secili && 'bg-white/20',
+            secili && 'bg-white/16 shadow-[inset_0_0_0_1px_rgb(255_255_255/0.18)]',
             gelecek && 'opacity-45',
           );
           return (

@@ -1,7 +1,5 @@
 import Link from 'next/link';
 
-import { cn } from '@/lib/utils/cn';
-
 /**
  * SPOR ALT GEZİNMESİ — §4.2 `/panel/spor`, T-114.
  *
@@ -28,7 +26,7 @@ export type SporSekmesi = (typeof SEKMELER)[number]['anahtar'];
 
 export function SporSekmeleri({ secili }: { secili: SporSekmesi }) {
   return (
-    <nav aria-label="Spor bölümleri" className="-mx-1 overflow-x-auto px-1 pb-1">
+    <nav aria-label="Spor bölümleri" className="sekme-seridi">
       <ul className="flex min-w-max gap-1.5">
         {SEKMELER.map((s) => {
           const aktif = s.anahtar === secili;
@@ -37,12 +35,7 @@ export function SporSekmeleri({ secili }: { secili: SporSekmesi }) {
               <Link
                 href={s.href}
                 aria-current={aktif ? 'page' : undefined}
-                className={cn(
-                  'focus-ring ease-brand duration-micro rounded-btn inline-flex items-center border px-3 py-2 text-sm transition-colors',
-                  aktif
-                    ? 'border-accent/40 bg-accent/12 text-accent-soft'
-                    : 'border-line bg-surface text-body hover:border-line-hover hover:text-primary',
-                )}
+                className="focus-ring sekme"
               >
                 {s.etiket}
               </Link>
