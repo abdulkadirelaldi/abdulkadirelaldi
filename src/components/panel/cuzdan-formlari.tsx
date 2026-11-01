@@ -342,7 +342,7 @@ export function BorcFormu({ borc }: { borc?: Omit<BorcDto, 'kalanTl' | 'taksitTl
             placeholder="—"
           />
         </Alan>
-        <Alan etiket="Ödeme günü">
+        <Alan etiket="Ödeme günü" hata={alanHatalari.paymentDay}>
           <Input
             value={gun}
             onChange={(o) => setGun(o.target.value.replace(/\D/g, '').slice(0, 2))}
@@ -628,6 +628,9 @@ export function AkisFormu({
     const amount = tutarOku(tutar, birim);
     if (!amount) return setHata(tutarHatasi(birim));
     if (siklik === 'ONCE' && !tarih) return setHata('Tek seferlik kayıt için tarih seç.');
+    if (siklik === 'WEEKLY' && Number(gun) > 7) {
+      return setHata('Haftanın günü 1 (pazartesi) ile 7 (pazar) arasında olmalı.');
+    }
     const day = gun ? Number(gun) : undefined;
     const ortak = { name: ad, unit: birim, amount, frequency: siklik };
     const tekSefer = siklik === 'ONCE';
@@ -715,7 +718,10 @@ export function AkisFormu({
           </select>
         </Alan>
         {siklik === 'MONTHLY' || siklik === 'WEEKLY' ? (
-          <Alan etiket={siklik === 'MONTHLY' ? 'Ayın günü' : 'Haftanın günü (1=Pzt)'}>
+          <Alan
+            etiket={siklik === 'WEEKLY' ? 'Haftanın günü (1–7)' : 'Ayın günü'}
+            hata={alanHatalari.day}
+          >
             <Input
               value={gun}
               onChange={(o) => setGun(o.target.value.replace(/\D/g, '').slice(0, 2))}

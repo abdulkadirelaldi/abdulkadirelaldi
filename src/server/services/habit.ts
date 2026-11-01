@@ -357,6 +357,7 @@ export async function fetchHabitWeek(
   day: AppDay,
   client: HabitClient = db,
   today: AppDay = appToday(),
+  { seri = true }: { seri?: boolean } = {},
 ): Promise<HabitWeekDto> {
   const week = appWeekRange(day);
   const days = Array.from({ length: 7 }, (_, i) => addAppDays(week.from, i));
@@ -381,13 +382,16 @@ export async function fetchHabitWeek(
       },
       select,
     }),
-    client.habitLog.findMany({
-      where: {
-        habitId: { in: ids },
-        date: { gte: appDayToDate(lookbackFrom), lte: appDayToDate(today) },
-      },
-      select,
-    }),
+    // Seri 400 günlük kayıt ister; yalnızca oran gereken ekran bunu okumaz.
+    seri
+      ? client.habitLog.findMany({
+          where: {
+            habitId: { in: ids },
+            date: { gte: appDayToDate(lookbackFrom), lte: appDayToDate(today) },
+          },
+          select,
+        })
+      : [],
   ]);
 
   const rows = habits.map((habit): HabitWeekRowDto => {

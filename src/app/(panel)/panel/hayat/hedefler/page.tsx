@@ -67,7 +67,10 @@ export default async function HedeflerPage({ searchParams }: SayfaProps) {
       <Topbar
         title="Hedefler"
         actions={
-          <Link href="/panel/hayat/hedefler/yeni" className={buttonClasses({ size: 'sm' })}>
+          <Link
+            href={`/panel/hayat/hedefler/yeni?donem=${sekme.anahtar}`}
+            className={buttonClasses({ size: 'sm' })}
+          >
             <Plus className="size-4" aria-hidden="true" />
             <span className="hidden sm:inline">Ayrıntılı hedef</span>
             <span className="sr-only sm:hidden">Ayrıntılı hedef</span>

@@ -78,6 +78,12 @@ function Ozet({ oturum }: { oturum: OturumDto }) {
       <p className="text-muted text-xs">
         Kalori tahmini: MET × son tartı kilon × süre. Kesin ölçüm değil; nabız verisi yok.
       </p>
+      <Link
+        href={`/panel/spor/${oturum.id}`}
+        className={buttonClasses({ variant: 'secondary', size: 'sm' })}
+      >
+        Setleri ve süreyi düzelt
+      </Link>
 
       <ul className="flex flex-col gap-2">
         {oturum.hareketler.map((h) => (
