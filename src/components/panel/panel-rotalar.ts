@@ -105,6 +105,7 @@ const EK_ETIKETLER: Record<string, string> = {
   '/panel/ayarlar/denetim': 'Denetim kaydı',
   '/panel/spor/egzersizler': 'Egzersizler',
   '/panel/spor/rekorlar': 'Rekorlar',
+  '/panel/spor/program': 'Program',
   '/panel/spor/gelisim': 'Gelişim',
   '/panel/spor/gecmis': 'Geçmiş',
   '/panel/cuzdan/yeni': 'Yeni',
@@ -134,6 +135,7 @@ const HAZIR_EK_YOLLAR: ReadonlySet<string> = new Set([
   '/panel/ayarlar/denetim',
   '/panel/spor/egzersizler',
   '/panel/spor/rekorlar',
+  '/panel/spor/program',
   '/panel/spor/gelisim',
   '/panel/spor/gecmis',
   '/panel/cuzdan/yeni',
@@ -153,12 +155,13 @@ const ETIKETLER: Record<string, string> = {
 };
 
 /**
- * Yol için görünen ad. Bilinmiyorsa segmentin kendisi döner — kayıt kimliği
- * gibi bir segment için ("cmt8uw…") uydurma bir başlık üretmek yanlış olurdu;
- * o durumda sayfa kendi başlığını `PanelUstBaslik` ile veriyor.
+ * Yol için görünen ad. Kayıt kimliği ("cmt8uw…") kullanıcıya gösterilmez: nötr "Ayrıntı"
+ * yazılır, kaydın adını sayfanın başlığı verir. Başka bilinmeyen segment olduğu gibi döner.
  */
 export function rotaEtiketi(yol: string): string {
-  return ETIKETLER[yol] ?? yol.split('/').pop() ?? yol;
+  if (yol in ETIKETLER) return ETIKETLER[yol] as string;
+  const son = yol.split('/').pop() ?? yol;
+  return /^c[a-z0-9]{20,}$/.test(son) ? 'Ayrıntı' : son;
 }
 
 /** Bu yol tıklanabilir mi (sayfa yazıldı mı). */

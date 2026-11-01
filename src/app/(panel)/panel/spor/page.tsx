@@ -75,6 +75,12 @@ export default async function SporPage() {
                 cumartesi yüzme/koşu tek dokunuşla yüklenir.
               </p>
               <ProgramYukleDugmesi />
+              <Link
+                href="/panel/spor/program"
+                className="focus-ring text-accent text-sm font-medium"
+              >
+                Ya da kendi programını oluştur →
+              </Link>
             </section>
           ) : (
             <ul className="flex flex-col gap-3">
@@ -126,6 +132,15 @@ export default async function SporPage() {
                 );
               })}
             </ul>
+          )}
+
+          {program.length > 0 && (
+            <Link
+              href="/panel/spor/program"
+              className="focus-ring text-accent min-h-11 content-center self-center px-3 text-sm font-medium"
+            >
+              Programı düzenle →
+            </Link>
           )}
 
           {sonlar.length > 0 && (
