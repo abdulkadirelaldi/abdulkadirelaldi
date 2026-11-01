@@ -44,6 +44,9 @@ export default function PanelLayout({ children }: { children: ReactNode }) {
   return (
     <PanelKabuk>
       <div className="panel-modern flex min-h-dvh">
+        <div aria-hidden="true" className="acilis">
+          <span className="acilis-marka">AE</span>
+        </div>
         <a
           href="#panel-icerik"
           data-yazdirmada-gizle

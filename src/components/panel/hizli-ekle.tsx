@@ -711,7 +711,7 @@ export function SuHizliDugmesi() {
         type="button"
         disabled={bekliyor}
         onClick={() => void ekle()}
-        className="focus-ring tabular min-h-10 self-start rounded-full bg-sky-500/12 px-3.5 text-sm font-medium text-sky-700 disabled:opacity-60 dark:text-sky-300"
+        className="su-hizli focus-ring tabular min-h-10 self-start rounded-full px-3.5 text-sm font-medium transition-transform active:scale-95 disabled:opacity-60"
       >
         {bekliyor ? 'Ekleniyor…' : '+250 ml su'}
       </button>

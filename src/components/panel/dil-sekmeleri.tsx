@@ -3,7 +3,6 @@ import Link from 'next/link';
 import { icerikYolu } from '@/components/panel/icerik-gorunumleri';
 import { Badge } from '@/components/ui/badge';
 import { DIL_ADI, DILLER, dilMi, type Dil } from '@/i18n/diller';
-import { cn } from '@/lib/utils/cn';
 
 /**
  * DİL SEKMELERİ — ADR-046, panelde içeriği üç dilde yönetmek.
@@ -33,7 +32,7 @@ export function DilSekmeleri({
   korunan?: { durum?: string };
 }) {
   return (
-    <nav aria-label="İçerik dili" className="-mx-1 overflow-x-auto px-1 pb-1">
+    <nav aria-label="İçerik dili" className="sekme-seridi">
       <ul className="flex min-w-max gap-1.5">
         {DILLER.map((dil) => {
           const secili = dil === aktif;
@@ -43,12 +42,7 @@ export function DilSekmeleri({
                 href={icerikYolu(taban, { ...korunan, dil })}
                 hrefLang={dil}
                 aria-current={secili ? 'page' : undefined}
-                className={cn(
-                  'focus-ring ease-brand duration-micro rounded-btn inline-flex items-center gap-1.5 border px-3 py-2 text-sm transition-colors',
-                  secili
-                    ? 'border-accent/40 bg-accent/12 text-accent-soft'
-                    : 'border-line bg-surface text-body hover:border-line-hover hover:text-primary',
-                )}
+                className="focus-ring sekme"
               >
                 <span className="tabular font-medium uppercase">{dil}</span>
                 <span className="text-muted">{DIL_ADI[dil]}</span>

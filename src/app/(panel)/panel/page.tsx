@@ -170,42 +170,45 @@ export default async function BugunPage() {
 
       <main id="panel-icerik" className="flex-1 px-4 py-5 lg:p-6">
         <div className="mx-auto flex max-w-2xl flex-col gap-4">
-          <header className="flex flex-col gap-0.5">
-            <p className="text-muted text-sm capitalize">{tarih}</p>
-            <h2 className="text-primary text-2xl font-semibold">{selamlama(simdi)} 👋</h2>
-          </header>
-
           {/* ── HALKALAR ─────────────────────────────────────────────────── */}
-          <section
-            aria-label="Günün özeti"
-            className="rounded-card border-line bg-surface flex items-center gap-5 border p-5"
-          >
-            <Halkalar
-              oranlar={[
-                aliskanlikToplam ? aliskanlikTamam / aliskanlikToplam : 0,
-                suMl / suHedefMl,
-                haftaHedefi ? haftaAntrenman / haftaHedefi : 0,
-              ]}
-            />
-            <ul className="flex min-w-0 flex-1 flex-col gap-3">
-              <HalkaSatiri href="/panel/hayat" renk="#8b5cf6" etiket="Alışkanlık">
-                {aliskanlikTamam}
-                <span className="text-muted text-sm font-normal"> / {aliskanlikToplam}</span>
-              </HalkaSatiri>
-              <HalkaSatiri href="/panel/saglik" renk="#0ea5e9" etiket="Su">
-                {litreBicim(suMl)}
-                <span className="text-muted text-sm font-normal"> / {litreBicim(suHedefMl)} L</span>
-              </HalkaSatiri>
-              <li>
-                <SuHizliDugmesi />
-              </li>
-              <HalkaSatiri href="/panel/spor" renk="#f97316" etiket="Spor · bu hafta">
-                {haftaAntrenman}
-                {haftaHedefi > 0 && (
-                  <span className="text-muted text-sm font-normal"> / {haftaHedefi}</span>
-                )}
-              </HalkaSatiri>
-            </ul>
+          <section aria-label="Günün özeti" className="aura aura-gun flex flex-col gap-5 p-5">
+            <header className="flex flex-col gap-1">
+              <p className="ust-etiket">{tarih}</p>
+              <h2 className="text-[1.75rem] leading-tight font-semibold text-white">
+                {selamlama(simdi)}
+              </h2>
+            </header>
+            <div className="flex items-center gap-5">
+              <Halkalar
+                oranlar={[
+                  aliskanlikToplam ? aliskanlikTamam / aliskanlikToplam : 0,
+                  suMl / suHedefMl,
+                  haftaHedefi ? haftaAntrenman / haftaHedefi : 0,
+                ]}
+              />
+              <ul className="flex min-w-0 flex-1 flex-col gap-3">
+                <HalkaSatiri href="/panel/hayat" renk="#a78bfa" etiket="Alışkanlık">
+                  {aliskanlikTamam}
+                  <span className="text-muted text-sm font-normal"> / {aliskanlikToplam}</span>
+                </HalkaSatiri>
+                <HalkaSatiri href="/panel/saglik" renk="#38bdf8" etiket="Su">
+                  {litreBicim(suMl)}
+                  <span className="text-muted text-sm font-normal">
+                    {' '}
+                    / {litreBicim(suHedefMl)} L
+                  </span>
+                </HalkaSatiri>
+                <li>
+                  <SuHizliDugmesi />
+                </li>
+                <HalkaSatiri href="/panel/spor" renk="#fb923c" etiket="Spor · bu hafta">
+                  {haftaAntrenman}
+                  {haftaHedefi > 0 && (
+                    <span className="text-muted text-sm font-normal"> / {haftaHedefi}</span>
+                  )}
+                </HalkaSatiri>
+              </ul>
+            </div>
           </section>
 
           {/* ── KALAN ALIŞKANLIKLAR — buradan işaretlenir ─────────────────── */}
@@ -228,7 +231,7 @@ export default async function BugunPage() {
           {acikOturum ? (
             <Link
               href={`/panel/spor/oturum/${acikOturum.id}`}
-              className="focus-ring rounded-card bg-gradient-accent flex items-center gap-4 p-4 text-white shadow-[0_12px_32px_-14px_var(--accent-glow)]"
+              className="aura aura-spor focus-ring rounded-card flex items-center gap-4 p-4"
             >
               <span className="flex size-11 items-center justify-center rounded-full bg-white/20">
                 <Play className="size-5" aria-hidden="true" />
@@ -240,7 +243,12 @@ export default async function BugunPage() {
               <span className="text-sm font-medium">Devam et</span>
             </Link>
           ) : bugununGunu ? (
-            <section className="rounded-card border-line bg-surface flex items-center gap-4 border p-4">
+            <section
+              className={cn(
+                'flex items-center gap-4 p-4',
+                bugunYapildi ? 'rounded-card border-line bg-surface border' : 'aura aura-spor',
+              )}
+            >
               <Rozet ikon={Dumbbell} renk="from-orange-500 to-amber-500" />
               <span className="flex min-w-0 flex-1 flex-col">
                 <span className="text-muted text-xs">
@@ -652,55 +660,71 @@ function HaftaGrafigi({
   );
 }
 
-const HALKA_RENK = ['#8b5cf6', '#0ea5e9', '#f97316'] as const;
+const HALKA_RENK = ['#a78bfa', '#38bdf8', '#fb923c'] as const;
+const HALKA_GECIS = [
+  ['#c4b5fd', '#7c3aed'],
+  ['#7dd3fc', '#0284c7'],
+  ['#fdba74', '#ea580c'],
+] as const;
 
-/**
- * Üç iç içe halka (Apple Fitness benzeri). Oran 0–1'e sıkıştırılır; animasyon
- * yalnızca `stroke-dashoffset` (CSS, `halka-dol`).
- */
+/** Üç iç içe halka; ortada günün ortalaması. Renkli ışıma yalnızca dolu kısımda. */
 function Halkalar({ oranlar }: { oranlar: [number, number, number] }) {
-  const boyut = 112;
-  const kalinlik = 11;
+  const boyut = 148;
+  const kalinlik = 13;
+  const dolular = oranlar.map((o) => Math.min(1, Math.max(0, o)));
+  const ortalama = Math.round((dolular.reduce((t, o) => t + o, 0) / dolular.length) * 100);
   return (
-    <svg
-      width={boyut}
-      height={boyut}
-      viewBox={`0 0 ${boyut} ${boyut}`}
-      className="shrink-0 -rotate-90"
-      aria-hidden="true"
-    >
-      {oranlar.map((oran, i) => {
-        const r = boyut / 2 - kalinlik / 2 - i * (kalinlik + 3);
-        const cevre = 2 * Math.PI * r;
-        const dolu = Math.min(1, Math.max(0, oran));
-        return (
-          <g key={i}>
-            <circle
-              cx={boyut / 2}
-              cy={boyut / 2}
-              r={r}
-              fill="none"
-              stroke={HALKA_RENK[i]}
-              strokeOpacity={0.16}
-              strokeWidth={kalinlik}
-            />
-            <circle
-              cx={boyut / 2}
-              cy={boyut / 2}
-              r={r}
-              fill="none"
-              stroke={HALKA_RENK[i]}
-              strokeWidth={kalinlik}
-              strokeLinecap="round"
-              strokeDasharray={cevre}
-              strokeDashoffset={cevre * (1 - dolu)}
-              className="halka-dol"
-              style={{ ['--halka-cevre' as string]: cevre, animationDelay: `${i * 90}ms` }}
-            />
-          </g>
-        );
-      })}
-    </svg>
+    <div aria-hidden="true" className="relative size-[clamp(7.5rem,38vw,9.25rem)] shrink-0">
+      <svg viewBox={`0 0 ${boyut} ${boyut}`} className="size-full -rotate-90">
+        <defs>
+          {HALKA_GECIS.map(([a, b], i) => (
+            <linearGradient key={i} id={`halka-gecis-${i}`} x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stopColor={b} />
+              <stop offset="100%" stopColor={a} />
+            </linearGradient>
+          ))}
+        </defs>
+        {dolular.map((dolu, i) => {
+          const r = boyut / 2 - kalinlik / 2 - i * (kalinlik + 4);
+          const cevre = 2 * Math.PI * r;
+          return (
+            <g key={i}>
+              <circle
+                cx={boyut / 2}
+                cy={boyut / 2}
+                r={r}
+                fill="none"
+                stroke={HALKA_RENK[i]}
+                strokeOpacity={0.17}
+                strokeWidth={kalinlik}
+              />
+              {dolu > 0 && (
+                <circle
+                  cx={boyut / 2}
+                  cy={boyut / 2}
+                  r={r}
+                  fill="none"
+                  stroke={`url(#halka-gecis-${i})`}
+                  strokeWidth={kalinlik}
+                  strokeLinecap="round"
+                  strokeDasharray={cevre}
+                  strokeDashoffset={cevre * (1 - dolu)}
+                  className="halka-dol"
+                  style={{
+                    ['--halka-cevre' as string]: cevre,
+                    animationDelay: `${150 + i * 110}ms`,
+                    filter: `drop-shadow(0 0 5px ${HALKA_RENK[i]})`,
+                  }}
+                />
+              )}
+            </g>
+          );
+        })}
+      </svg>
+      <span className="tabular absolute inset-0 flex items-center justify-center text-sm font-semibold text-white">
+        %{ortalama}
+      </span>
+    </div>
   );
 }
 

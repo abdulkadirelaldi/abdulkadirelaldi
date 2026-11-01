@@ -39,12 +39,9 @@ export function SaglikHedefKarti({ hedef }: { hedef: SaglikHedefiDto | null }) {
   };
 
   return (
-    <section
-      aria-labelledby="hedef-baslik"
-      className="rounded-card border-line bg-surface flex flex-col gap-3 border p-4"
-    >
+    <section aria-labelledby="hedef-baslik" className="aura aura-saglik flex flex-col gap-3 p-4">
       <div className="flex items-center gap-2">
-        <span className="flex size-8 items-center justify-center rounded-[0.6rem] bg-linear-to-br from-rose-500 to-pink-500 text-white">
+        <span className="cam-kutu flex size-8 items-center justify-center rounded-[0.6rem] text-white">
           <Target className="size-4" aria-hidden="true" />
         </span>
         <h2 id="hedef-baslik" className="text-primary flex-1 text-base font-semibold">
@@ -101,7 +98,7 @@ export function SaglikHedefKarti({ hedef }: { hedef: SaglikHedefiDto | null }) {
         hedef && (
           <>
             <p className="text-primary flex items-baseline gap-2">
-              <span className="tabular text-2xl font-semibold tracking-tight">
+              <span className="tabular sayi-buyuk text-3xl font-semibold">
                 {tr(hedef.hedefKg.replace(/\.?0+$/, ''))} kg
               </span>
               {hedef.kalanKg !== null && (
@@ -122,7 +119,7 @@ export function SaglikHedefKarti({ hedef }: { hedef: SaglikHedefiDto | null }) {
                 className="bg-elevated h-2.5 overflow-hidden rounded-full"
               >
                 <div
-                  className="h-full rounded-full bg-linear-to-r from-rose-500 to-pink-500 transition-[width] duration-700"
+                  className="h-full rounded-full bg-linear-to-r from-rose-300 to-pink-400 transition-[width] duration-700"
                   style={{ width: `${hedef.yuzde}%` }}
                 />
               </div>

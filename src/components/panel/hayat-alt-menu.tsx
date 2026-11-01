@@ -1,7 +1,5 @@
 import Link from 'next/link';
 
-import { cn } from '@/lib/utils/cn';
-
 /**
  * HAYAT ALT MENÜSÜ — §4.2 `/panel/hayat`'ın dört yüzeyi arasında gezinme.
  *
@@ -27,7 +25,7 @@ export type HayatBolumu = (typeof OGELER)[number]['anahtar'];
 
 export function HayatAltMenu({ aktif }: { aktif: HayatBolumu }) {
   return (
-    <nav aria-label="Hayat bölümleri" className="-mx-1 overflow-x-auto px-1 pb-1">
+    <nav aria-label="Hayat bölümleri" className="sekme-seridi">
       <ul className="flex min-w-max gap-1.5">
         {OGELER.map((oge) => {
           const secili = oge.anahtar === aktif;
@@ -36,12 +34,7 @@ export function HayatAltMenu({ aktif }: { aktif: HayatBolumu }) {
               <Link
                 href={oge.href}
                 aria-current={secili ? 'page' : undefined}
-                className={cn(
-                  'focus-ring ease-brand duration-micro inline-flex min-h-10 items-center rounded-full px-4 text-sm font-medium transition-colors',
-                  secili
-                    ? 'bg-accent text-white shadow-sm'
-                    : 'bg-surface text-body hover:text-primary shadow-[var(--golge-kart)]',
-                )}
+                className="focus-ring sekme"
               >
                 {oge.etiket}
               </Link>
@@ -69,7 +62,7 @@ export function HayatGorunumSekmeleri({
   yol: (anahtar: string) => string;
 }) {
   return (
-    <nav aria-label={etiket} className="-mx-1 overflow-x-auto px-1 pb-1">
+    <nav aria-label={etiket} className="sekme-seridi">
       <ul className="flex min-w-max gap-1.5">
         {gorunumler.map((g) => {
           const secili = g.anahtar === aktif;
@@ -78,12 +71,7 @@ export function HayatGorunumSekmeleri({
               <Link
                 href={yol(g.anahtar)}
                 aria-current={secili ? 'page' : undefined}
-                className={cn(
-                  'focus-ring ease-brand duration-micro rounded-btn inline-flex items-center border px-3 py-1.5 text-sm transition-colors',
-                  secili
-                    ? 'border-accent/40 bg-accent/12 text-accent-soft'
-                    : 'border-line bg-surface text-body hover:border-line-hover hover:text-primary',
-                )}
+                className="focus-ring sekme"
               >
                 {g.etiket}
               </Link>

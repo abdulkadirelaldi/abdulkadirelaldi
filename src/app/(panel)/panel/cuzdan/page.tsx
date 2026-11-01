@@ -13,7 +13,7 @@ import {
 } from '@/components/panel/cuzdan-bicim';
 import { gunAy } from '@/components/panel/hayat-bicim';
 import { OdemeOnay } from '@/components/panel/odeme-onay';
-import { paraBicim } from '@/components/panel/para-bicim';
+import { paraBicim, tutarYaziBoyu } from '@/components/panel/para-bicim';
 import { Topbar } from '@/components/panel/topbar';
 import { buttonClasses } from '@/components/ui/button';
 import {
@@ -83,24 +83,35 @@ export default async function CuzdanPage() {
       <main id="panel-icerik" className="flex-1 px-4 py-4 lg:p-6">
         <div className="mx-auto flex max-w-2xl flex-col gap-5">
           {/* ── NET ───────────────────────────────────────────────────── */}
-          <section className="rounded-card bg-gradient-accent relative isolate flex flex-col gap-3 overflow-hidden p-5 text-white shadow-[0_12px_32px_-12px_var(--accent-glow)]">
-            {/* Dekoratif ışık — içerik değil. */}
-            <span
-              aria-hidden="true"
-              className="absolute -top-16 -right-10 -z-10 size-48 rounded-full bg-white/15 blur-2xl"
-            />
-            <span className="text-sm opacity-90">Net varlık</span>
-            <span className="tabular text-[2.125rem] leading-none font-semibold tracking-tight">
-              {paraBicim(ozet.netTl, 'TRY')}
-            </span>
-            <div className="grid grid-cols-2 gap-3 text-sm">
-              <div className="flex flex-col">
-                <span className="opacity-80">Varlıklar</span>
-                <span className="tabular font-medium">{paraBicim(ozet.varlikTl, 'TRY')}</span>
+          <section className="aura aura-para flex flex-col gap-4 p-5">
+            <div className="flex flex-col gap-1.5">
+              <span className="ust-etiket">Net varlık</span>
+              <span className="tabular sayi-buyuk text-[clamp(1.875rem,9.5vw,2.625rem)] leading-none font-semibold whitespace-nowrap">
+                {paraBicim(ozet.netTl, 'TRY')}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2.5 text-sm">
+              <div className="cam-kutu flex min-w-0 flex-col gap-0.5 p-3">
+                <span className="text-muted text-xs">Varlıklar</span>
+                <span
+                  className={cn(
+                    'tabular font-semibold whitespace-nowrap',
+                    tutarYaziBoyu(paraBicim(ozet.varlikTl, 'TRY'), 'text-base'),
+                  )}
+                >
+                  {paraBicim(ozet.varlikTl, 'TRY')}
+                </span>
               </div>
-              <div className="flex flex-col">
-                <span className="opacity-80">Borçlar</span>
-                <span className="tabular font-medium">{paraBicim(ozet.borcTl, 'TRY')}</span>
+              <div className="cam-kutu flex min-w-0 flex-col gap-0.5 p-3">
+                <span className="text-muted text-xs">Borçlar</span>
+                <span
+                  className={cn(
+                    'tabular font-semibold whitespace-nowrap',
+                    tutarYaziBoyu(paraBicim(ozet.borcTl, 'TRY'), 'text-base'),
+                  )}
+                >
+                  {paraBicim(ozet.borcTl, 'TRY')}
+                </span>
               </div>
             </div>
             {eksi && <span className="text-xs opacity-90">Borçların varlıklarından fazla.</span>}

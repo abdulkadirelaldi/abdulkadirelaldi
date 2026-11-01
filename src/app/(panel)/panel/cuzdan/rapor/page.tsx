@@ -82,9 +82,9 @@ export default async function CuzdanRaporPage({ searchParams }: SayfaProps) {
             )}
           </nav>
 
-          <section className="rounded-card bg-gradient-accent flex flex-col gap-1 p-5 text-white">
-            <span className="text-sm opacity-90">Ay sonunda kalan (tahmini)</span>
-            <span className="tabular text-3xl font-semibold tracking-tight">
+          <section className="aura aura-para flex flex-col gap-1.5 p-5">
+            <span className="ust-etiket">Ay sonunda kalan (tahmini)</span>
+            <span className="tabular sayi-buyuk text-[clamp(1.75rem,9vw,2.25rem)] leading-none font-semibold whitespace-nowrap">
               {paraBicim(ozet.kalanTl, 'TRY')}
             </span>
             {eksi && <span className="text-xs opacity-90">Bu ay giderler gelirin üstünde.</span>}
