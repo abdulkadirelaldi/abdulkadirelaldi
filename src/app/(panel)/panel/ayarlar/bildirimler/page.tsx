@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 
 import { BildirimAyarlari } from '@/components/panel/bildirim-ayarlari';
 import { Topbar } from '@/components/panel/topbar';
+import { ALISKANLIK_SAATI, SU_HEDEFI_ML, SU_SAATLERI } from '@/lib/hedefler';
 import { auth } from '@/server/auth';
 import { db } from '@/server/db';
 import { vapidAyarlari } from '@/server/services/bildirim';
@@ -31,6 +32,9 @@ export default async function BildirimlerPage() {
               su: tercih?.su ?? true,
               rekor: tercih?.rekor ?? true,
               haftalik: tercih?.haftalik ?? true,
+              suHedefMl: tercih?.suHedefMl ?? SU_HEDEFI_ML,
+              suSaatleri: tercih?.suSaatleri ?? [...SU_SAATLERI],
+              aliskanlikSaati: tercih?.aliskanlikSaati ?? ALISKANLIK_SAATI,
             }}
           />
         </div>

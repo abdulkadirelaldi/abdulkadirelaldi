@@ -1,7 +1,7 @@
 import webpush from 'web-push';
 
 import { miktarBicim } from '@/components/panel/cuzdan-bicim';
-import { SU_HEDEFI_ML } from '@/lib/hedefler';
+import { ALISKANLIK_SAATI, litreBicim, SU_HEDEFI_ML, SU_SAATLERI } from '@/lib/hedefler';
 import { guvenliHata } from '@/lib/security/guvenli-log';
 import { db } from '@/server/db';
 import type { WalletUnit } from '@/types';
@@ -31,9 +31,10 @@ import { fetchIslenenBorclar, fetchIslenenGiderler } from './odeme-onay';
  * NE ZAMAN (İstanbul saati):
  *   borç       09–21 · ödeme gününden 2 gün önce ve ödeme günü
  *   gider      09–21 · aylık: 2 gün önce ve günü · yıllık: 7 gün önce ve günü
- *   alışkanlık 21–23 · işaretlenmemiş alışkanlık kaldıysa
- *   su         11, 15, 18 (2 saatlik pencere) · bugün 3,5 L'nin altındaysa
+ *   alışkanlık seçilen saatten gün sonuna · işaretlenmemiş alışkanlık kaldıysa
+ *   su         seçilen saatler (2 saatlik pencere) · bugün hedefin altındaysa
  *   haftalık   pazar 20–23 · hafta boş değilse
+ * Varsayılan saatler ve su hedefi `lib/hedefler.ts`te; kişisel değer `Tercih`te.
  * Rekor bildirimi zamanlayıcıdan değil set yazılırken gider (`spor-gelisim.ts`).
  * Pencere dışında gönderilmez: sunucu 19:00'da kalkarsa sabahın su
  * hatırlatması yığılıp gelmez.
@@ -41,8 +42,6 @@ import { fetchIslenenBorclar, fetchIslenenGiderler } from './odeme-onay';
  * ANAHTARLAR: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `VAPID_SUBJECT`. Yoksa
  * özellik kapalı; ekran söyler.
  */
-
-const SU_SAATLERI = [11, 15, 18] as const;
 
 export interface Vapid {
   publicKey: string;
@@ -71,6 +70,9 @@ export interface Tercih {
   aliskanlik: boolean;
   su: boolean;
   haftalik?: boolean;
+  suHedefMl?: number;
+  suSaatleri?: readonly number[];
+  aliskanlikSaati?: number;
 }
 
 export interface PlanGirdisi {
@@ -155,7 +157,8 @@ export function planla(g: PlanGirdisi): Bildirim[] {
     }
   }
 
-  if (g.tercih.aliskanlik && g.saat >= 21 && g.kalanAliskanliklar.length > 0) {
+  const aliskanlikSaati = g.tercih.aliskanlikSaati ?? ALISKANLIK_SAATI;
+  if (g.tercih.aliskanlik && g.saat >= aliskanlikSaati && g.kalanAliskanliklar.length > 0) {
     const n = g.kalanAliskanliklar.length;
     sonuc.push({
       tur: 'aliskanlik',
@@ -166,14 +169,16 @@ export function planla(g: PlanGirdisi): Bildirim[] {
     });
   }
 
-  const suSaati = [...SU_SAATLERI].reverse().find((s) => g.saat >= s && g.saat < s + 2);
-  if (g.tercih.su && suSaati !== undefined && (g.suMl ?? 0) < SU_HEDEFI_ML) {
-    const litre = ((g.suMl ?? 0) / 1000).toLocaleString('tr-TR');
+  const suHedefi = g.tercih.suHedefMl ?? SU_HEDEFI_ML;
+  const suSaati = [...(g.tercih.suSaatleri ?? SU_SAATLERI)]
+    .sort((a, b) => b - a)
+    .find((s) => g.saat >= s && g.saat < s + 2);
+  if (g.tercih.su && suSaati !== undefined && (g.suMl ?? 0) < suHedefi) {
     sonuc.push({
       tur: 'su',
       anahtar: `s${suSaati}`,
       baslik: 'Su içmeyi unutma 💧',
-      govde: `Bugün ${litre} L içtin, hedef 3,5 L.`,
+      govde: `Bugün ${litreBicim(g.suMl ?? 0)} L içtin, hedef ${litreBicim(suHedefi)} L.`,
       url: '/panel',
     });
   }

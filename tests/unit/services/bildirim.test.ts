@@ -66,6 +66,26 @@ describe('planla — ne zaman ne gider', () => {
     expect(planla({ ...temel, saat: 15, suMl: 3500 })).toEqual([]);
   });
 
+  it('su: kişisel saat ve hedef', () => {
+    const tercih = { ...temel.tercih, suHedefMl: 2000, suSaatleri: [18, 9] };
+    const az = { ...temel, tercih, suMl: 1500 };
+    expect(planla({ ...az, saat: 11 })).toEqual([]);
+    expect(planla({ ...az, saat: 9 })).toEqual([
+      expect.objectContaining({ anahtar: 's9', govde: 'Bugün 1,5 L içtin, hedef 2 L.' }),
+    ]);
+    // Sıralı gelmese de en yakın geçmiş saat seçilir.
+    expect(planla({ ...az, saat: 19 }).map((b) => b.anahtar)).toEqual(['s18']);
+    // Varsayılan hedefin altında ama kişisel hedefe ulaşılmış: hatırlatma yok.
+    expect(planla({ ...az, saat: 9, suMl: 2000 })).toEqual([]);
+  });
+
+  it('alışkanlık: kişisel saat', () => {
+    const tercih = { ...temel.tercih, aliskanlikSaati: 19 };
+    const kalan = { ...temel, tercih, kalanAliskanliklar: ['Kitap oku'] };
+    expect(planla({ ...kalan, saat: 18 })).toEqual([]);
+    expect(planla({ ...kalan, saat: 19 }).map((b) => b.anahtar)).toEqual(['aksam']);
+  });
+
   it('kapalı tercih gönderilmez', () => {
     const kapali = { borc: false, aliskanlik: false, su: false };
     expect(

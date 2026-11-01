@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import { useEffect, useState, type ReactNode } from 'react';
 
+import { litreBicim } from '@/lib/hedefler';
 import { cn } from '@/lib/utils/cn';
 import {
   bildirimAboneOlAction,
@@ -26,8 +27,18 @@ type Tercih = {
   su: boolean;
   rekor: boolean;
   haftalik: boolean;
+  suHedefMl: number;
+  suSaatleri: number[];
+  aliskanlikSaati: number;
 };
 type Destek = 'kontrol' | 'yok' | 'anaEkran' | 'var';
+
+const SU_HEDEFLERI = [1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000];
+const SU_SAAT_SECENEKLERI = Array.from({ length: 16 }, (_, i) => i + 7); // 07–22
+const ALISKANLIK_SAATLERI = [18, 19, 20, 21, 22, 23];
+const EN_COK_SU_SAATI = 6;
+
+const saatBicim = (s: number) => `${String(s).padStart(2, '0')}:00`;
 
 /** VAPID genel anahtarı (base64url) → `applicationServerKey`. */
 function anahtar(base64url: string): Uint8Array<ArrayBuffer> {
@@ -139,14 +150,32 @@ export function BildirimAyarlari({
     }
   };
 
-  const degistir = async (alan: keyof Tercih) => {
-    const yeni = { ...tercih, [alan]: !tercih[alan] };
+  const kaydet = async (yeni: Tercih) => {
+    const onceki = tercih;
     setTercih(yeni);
-    const sonuc = await bildirimTercihAction(yeni);
-    if (!sonuc.ok) {
-      setTercih(tercih);
-      setMesaj({ ton: 'hata', metin: sonuc.error.message });
+    try {
+      const sonuc = await bildirimTercihAction(yeni);
+      if (!sonuc.ok) {
+        setTercih(onceki);
+        setMesaj({ ton: 'hata', metin: sonuc.error.message });
+      }
+    } catch {
+      setTercih(onceki);
+      setMesaj({ ton: 'hata', metin: 'Bağlantı kurulamadı. Yeniden dene.' });
     }
+  };
+
+  const degistir = (alan: 'borc' | 'aliskanlik' | 'su' | 'rekor' | 'haftalik') =>
+    kaydet({ ...tercih, [alan]: !tercih[alan] });
+
+  const suSaatiDegistir = (saat: number) => {
+    const secili = tercih.suSaatleri.includes(saat);
+    void kaydet({
+      ...tercih,
+      suSaatleri: secili
+        ? tercih.suSaatleri.filter((s) => s !== saat)
+        : [...tercih.suSaatleri, saat].sort((a, b) => a - b),
+    });
   };
 
   const test = async () => {
@@ -237,7 +266,7 @@ export function BildirimAyarlari({
           ikon={<Sparkles className="size-4" aria-hidden="true" />}
           renk="from-violet-500 to-purple-500"
           baslik="Kalan alışkanlıklar"
-          aciklama="Akşam 21:00, işaretlenmemiş varsa"
+          aciklama={`${saatBicim(tercih.aliskanlikSaati)}, işaretlenmemiş varsa`}
           acik={tercih.aliskanlik}
           onClick={() => void degistir('aliskanlik')}
         />
@@ -245,7 +274,7 @@ export function BildirimAyarlari({
           ikon={<Droplet className="size-4" aria-hidden="true" />}
           renk="from-sky-500 to-blue-600"
           baslik="Su hatırlatması"
-          aciklama="11:00, 15:00, 18:00 — 3,5 L'ye ulaşmadıysan"
+          aciklama={`${tercih.suSaatleri.map(saatBicim).join(', ')} — ${litreBicim(tercih.suHedefMl)} L'ye ulaşmadıysan`}
           acik={tercih.su}
           onClick={() => void degistir('su')}
         />
@@ -265,6 +294,73 @@ export function BildirimAyarlari({
           acik={tercih.haftalik}
           onClick={() => void degistir('haftalik')}
         />
+      </section>
+
+      <section
+        aria-label="Saatler ve su hedefi"
+        className="rounded-card border-line bg-surface flex flex-col gap-4 border p-5"
+      >
+        <label className="flex items-center justify-between gap-3">
+          <span className="text-primary text-sm font-medium">Günlük su hedefi</span>
+          <select
+            value={tercih.suHedefMl}
+            onChange={(e) => void kaydet({ ...tercih, suHedefMl: Number(e.target.value) })}
+            className="focus-ring rounded-input border-line-strong bg-elevated text-primary tabular min-h-10 border px-3 text-sm"
+          >
+            {[...new Set([...SU_HEDEFLERI, tercih.suHedefMl])]
+              .sort((a, b) => a - b)
+              .map((ml) => (
+                <option key={ml} value={ml}>
+                  {litreBicim(ml)} L
+                </option>
+              ))}
+          </select>
+        </label>
+
+        <label className="flex items-center justify-between gap-3">
+          <span className="text-primary text-sm font-medium">Alışkanlık hatırlatması</span>
+          <select
+            value={tercih.aliskanlikSaati}
+            onChange={(e) => void kaydet({ ...tercih, aliskanlikSaati: Number(e.target.value) })}
+            className="focus-ring rounded-input border-line-strong bg-elevated text-primary tabular min-h-10 border px-3 text-sm"
+          >
+            {[...new Set([...ALISKANLIK_SAATLERI, tercih.aliskanlikSaati])]
+              .sort((a, b) => a - b)
+              .map((s) => (
+                <option key={s} value={s}>
+                  {saatBicim(s)}
+                </option>
+              ))}
+          </select>
+        </label>
+
+        <fieldset className="flex flex-col gap-2">
+          <legend className="text-primary text-sm font-medium">Su hatırlatma saatleri</legend>
+          <p className="text-muted text-xs">En az 1, en çok {EN_COK_SU_SAATI} saat.</p>
+          <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
+            {SU_SAAT_SECENEKLERI.map((s) => {
+              const secili = tercih.suSaatleri.includes(s);
+              const kilitli = secili
+                ? tercih.suSaatleri.length === 1
+                : tercih.suSaatleri.length >= EN_COK_SU_SAATI;
+              return (
+                <button
+                  key={s}
+                  type="button"
+                  aria-pressed={secili}
+                  disabled={kilitli}
+                  onClick={() => suSaatiDegistir(s)}
+                  className={cn(
+                    'focus-ring rounded-btn tabular min-h-10 text-sm font-medium disabled:opacity-50',
+                    secili ? 'bg-accent text-white' : 'bg-elevated text-primary',
+                  )}
+                >
+                  {saatBicim(s)}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
       </section>
     </div>
   );

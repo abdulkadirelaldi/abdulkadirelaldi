@@ -73,3 +73,13 @@ export const TUTAR_YOK = '—';
 export function paraBicimVeyaYok(tutar: string | null, birim: Currency): string {
   return tutar === null ? TUTAR_YOK : paraBicim(tutar, birim);
 }
+
+/**
+ * Dar kartta tutarın yazı boyutu (2026-11-01). Kırpılan tutar yanlış okunur
+ * (`1.234.56…`), bu yüzden uzadıkça kırpılmak yerine küçülür. SAF.
+ */
+export function tutarYaziBoyu(metin: string, normal: string): string {
+  if (metin.length >= 14) return 'text-sm';
+  if (metin.length >= 12) return 'text-base';
+  return normal;
+}

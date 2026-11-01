@@ -1,6 +1,6 @@
 'use server';
 
-import { otomatikIsaretle } from '@/server/services/habit-gun';
+import { suAliskanliginiIsaretle } from '@/server/services/habit-gun';
 import { createHealthLogSchema, entityIdSchema, updateHealthLogSchema } from '@/lib/schemas';
 import { db } from '@/server/db';
 import {
@@ -66,9 +66,13 @@ function changedFieldNames(input: Record<string, unknown>): string {
 }
 
 /** Form su girdiyse alışkanlık da güncellenir; işaretlenemese de kayıt başarılıdır. */
-async function suAliskanligi(dto: HealthLogDto, su: number | null | undefined): Promise<void> {
+async function suAliskanligi(
+  actorId: string,
+  dto: HealthLogDto,
+  su: number | null | undefined,
+): Promise<void> {
   if (su === undefined) return;
-  await otomatikIsaretle('SU', dto.date, su, true).catch(() => undefined);
+  await suAliskanliginiIsaretle(actorId, dto.date, su, true).catch(() => undefined);
 }
 
 export async function createHealthLogAction(raw: unknown): Promise<ApiResponse<HealthLogDto>> {
@@ -95,7 +99,7 @@ export async function createHealthLogAction(raw: unknown): Promise<ApiResponse<H
     }
 
     const dto = await createHealthLog(parsed.data);
-    await suAliskanligi(dto, parsed.data.waterMl);
+    await suAliskanligi(actorId, dto, parsed.data.waterMl);
 
     await writeAuditLog(
       {
@@ -131,7 +135,7 @@ export async function updateHealthLogAction(raw: unknown): Promise<ApiResponse<H
 
   try {
     const dto = await updateHealthLog(parsed.data);
-    await suAliskanligi(dto, parsed.data.waterMl);
+    await suAliskanligi(actorId, dto, parsed.data.waterMl);
 
     await writeAuditLog(
       {
