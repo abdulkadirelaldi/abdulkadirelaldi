@@ -62,6 +62,25 @@ function vade(donem: string, gun: number): AppDay {
 const gunFarki = (a: string, b: string) =>
   Math.round((Date.parse(`${a}T00:00:00Z`) - Date.parse(`${b}T00:00:00Z`)) / 86_400_000);
 
+/**
+ * Elle ödeme hangi taksidi karşılar: vadesi en yakın dönem. 1 Kasım taksidi 30 Ekim'de
+ * ödenirse Kasım'ı kapatır. Ödeme günü yoksa takvim ayı. SAF.
+ */
+function odemeDonemi(gun: AppDay, odemeGunu: number | null | undefined): string {
+  const buAy = gun.slice(0, 7);
+  if (!odemeGunu) return buAy;
+  const adaylar = [
+    addAppDays(`${buAy}-01` as AppDay, -1).slice(0, 7),
+    buAy,
+    addAppDays(vade(buAy, 31), 1).slice(0, 7),
+  ];
+  return adaylar.reduce((en, aday) =>
+    Math.abs(gunFarki(vade(aday, odemeGunu), gun)) < Math.abs(gunFarki(vade(en, odemeGunu), gun))
+      ? aday
+      : en,
+  );
+}
+
 /** `[geçen ay, bu ay, gelecek ay]`. SAF. */
 function donemler(bugun: AppDay): [string, string, string] {
   const buAy = bugun.slice(0, 7);
@@ -107,6 +126,9 @@ export function bekleyenleriSec(
   return sonuc.sort((a, b) => a.kala - b.kala);
 }
 
+/** Dönemin ilk gününden bir hafta önce: ay sonunda erken ödenen taksit de okunur. */
+const addAppDaysOnce = (donem: string) => appDayToDate(addAppDays(`${donem}-01` as AppDay, -7));
+
 const para = (d: unknown): string => toMeasureString(d as never, 2) ?? '0.00';
 type Client = typeof db;
 
@@ -125,18 +147,18 @@ async function islenenKumesi(
       select: { kaynakTur: true, kaynakId: true, donem: true },
     }),
     client.walletDebtPayment.findMany({
-      where: { date: { gte: appDayToDate(`${taranan[0]}-01` as AppDay) } },
+      where: { date: { gte: addAppDaysOnce(taranan[0]) } },
       select: {
         debtId: true,
         date: true,
         amount: true,
-        debt: { select: { monthlyPayment: true } },
+        debt: { select: { monthlyPayment: true, paymentDay: true } },
       },
     }),
   ]);
   const ayToplami = new Map<string, { toplam: number; taksit: number }>();
   for (const o of elle) {
-    const anahtar = `BORC:${o.debtId}:${dateToAppDay(o.date).slice(0, 7)}`;
+    const anahtar = `BORC:${o.debtId}:${odemeDonemi(dateToAppDay(o.date), o.debt.paymentDay)}`;
     ayToplami.set(anahtar, {
       toplam: (ayToplami.get(anahtar)?.toplam ?? 0) + Number(para(o.amount)),
       taksit: Number(para(o.debt.monthlyPayment)),
@@ -205,6 +227,17 @@ export async function fetchIslenenBorclar(
   const kume = await islenenKumesi(client, bugun);
   return new Set(
     [...kume].filter((k) => k.startsWith('BORC:')).map((k) => k.slice('BORC:'.length)),
+  );
+}
+
+/** Bildirim planı için: işlenmiş giderler `akışId:YYYY-MM`. */
+export async function fetchIslenenGiderler(
+  client: Pick<Client, 'walletOdeme' | 'walletDebtPayment'> = db,
+  bugun: AppDay = appToday(),
+): Promise<Set<string>> {
+  const kume = await islenenKumesi(client, bugun);
+  return new Set(
+    [...kume].filter((k) => k.startsWith('AKIS:')).map((k) => k.slice('AKIS:'.length)),
   );
 }
 

@@ -278,6 +278,52 @@ describe('fetchBekleyenOdemeler', () => {
   });
 });
 
+describe('elle ödeme dönemi (2026-11-01)', () => {
+  const istemci = (gun: string, tutar: string, odemeGunu: number) =>
+    ({
+      walletDebt: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            id: 'a',
+            name: 'A',
+            unit: 'TRY',
+            monthlyPayment: decimal('100.00'),
+            remainingAmount: decimal('900.00'),
+            paymentDay: odemeGunu,
+            createdAt: new Date('2026-01-01T00:00:00Z'),
+          },
+        ]),
+      },
+      walletFlow: { findMany: vi.fn().mockResolvedValue([]) },
+      walletOdeme: { findMany: vi.fn().mockResolvedValue([]) },
+      walletDebtPayment: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            debtId: 'a',
+            date: new Date(`${gun}T00:00:00Z`),
+            amount: decimal(tutar),
+            debt: { monthlyPayment: decimal('100.00'), paymentDay: odemeGunu },
+          },
+        ]),
+      },
+    }) as never;
+
+  it('⚠️ 1 Aralık taksiti 29 Kasımda ödenince Aralık sorulmaz', async () => {
+    const s = await fetchBekleyenOdemeler(istemci('2026-11-29', '100.00', 1), '2026-11-29');
+    expect(s.filter((x) => x.donem === '2026-12')).toEqual([]);
+  });
+
+  it('ay ortasındaki geç ödeme kendi ayını kapatır', async () => {
+    const s = await fetchBekleyenOdemeler(istemci('2026-11-20', '100.00', 15), '2026-11-20');
+    expect(s.filter((x) => x.donem === '2026-11')).toEqual([]);
+  });
+
+  it('küçük ara ödeme yine kapatmaz', async () => {
+    const s = await fetchBekleyenOdemeler(istemci('2026-11-29', '10.00', 1), '2026-11-29');
+    expect(s.map((x) => x.donem)).toContain('2026-12');
+  });
+});
+
 describe('bildirim: ödenmiş taksit hatırlatılmaz', () => {
   it('odenen kümesi', () => {
     const temel = {

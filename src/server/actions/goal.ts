@@ -6,6 +6,7 @@ import {
   GoalRuleError,
   createGoal,
   deleteGoal,
+  hedefiTasi,
   updateGoal,
   type GoalDto,
 } from '@/server/services/goal';
@@ -136,5 +137,26 @@ export async function deleteGoalAction(raw: unknown): Promise<ApiResponse<{ id: 
     return ok({ id: dto.id });
   } catch (error) {
     return toFailure('goal:delete', error);
+  }
+}
+
+/** Biten dönemden kalan hedefi bugünün dönemine taşır. */
+export async function hedefiTasiAction(raw: unknown): Promise<ApiResponse<{ id: string }>> {
+  const actorId = await currentActorId();
+  if (!actorId) return unauthorized();
+  const parsed = parseOrFail(entityIdSchema, raw);
+  if (!parsed.ok) return parsed.failure;
+  const { id } = parsed.data;
+
+  try {
+    await hedefiTasi(id);
+    await writeAuditLog(
+      { actorId, action: 'UPDATE', entity: 'Goal', entityId: id, diff: { tasindi: true } },
+      db,
+    );
+    return ok({ id });
+  } catch (error) {
+    if (error instanceof GoalRuleError) return fail('VALIDATION_ERROR', error.message);
+    return toFailure('goal:tasi', error);
   }
 }

@@ -10,13 +10,14 @@ import {
   addAppDays,
   appDayToDate,
   appToday,
+  dateToAppDay,
   startOfAppWeek,
   toMeasureString,
   type AppDay,
 } from './_shared';
 import { fetchHabitDay } from './habit-gun';
 import { fetchHaftalikOzet, ozetMetni } from './haftalik-ozet';
-import { fetchIslenenBorclar } from './odeme-onay';
+import { fetchIslenenBorclar, fetchIslenenGiderler } from './odeme-onay';
 
 /**
  * BİLDİRİMLER (2026-10-30) — telefona push.
@@ -29,6 +30,7 @@ import { fetchIslenenBorclar } from './odeme-onay';
  *
  * NE ZAMAN (İstanbul saati):
  *   borç       09–21 · ödeme gününden 2 gün önce ve ödeme günü
+ *   gider      09–21 · aylık: 2 gün önce ve günü · yıllık: 7 gün önce ve günü
  *   alışkanlık 21–23 · işaretlenmemiş alışkanlık kaldıysa
  *   su         11, 15, 18 (2 saatlik pencere) · bugün 3,5 L'nin altındaysa
  *   haftalık   pazar 20–23 · hafta boş değilse
@@ -81,6 +83,16 @@ export interface PlanGirdisi {
   suMl: number | null;
   /** Ödenmiş ya da atlanmış taksitler: `borçId:YYYY-MM` — hatırlatılmaz. */
   odenen?: ReadonlySet<string>;
+  /** Düzenli giderler: aylıkta ayın günü, yıllıkta `MM-GG`. */
+  giderler?: {
+    id: string;
+    ad: string;
+    tutar: string;
+    ayinGunu: number | null;
+    yillik: string | null;
+  }[];
+  /** İşlenmiş aylık giderler: `akışId:YYYY-MM`. */
+  giderOdenen?: ReadonlySet<string>;
   /** Yalnızca pazar akşamı dolar; boş haftada `null`. */
   haftalikGovde?: string | null;
 }
@@ -115,6 +127,28 @@ export function planla(g: PlanGirdisi): Bildirim[] {
             kala === 0
               ? `${b.ad}${b.tutar ? ` · ${b.tutar}` : ''}`
               : `${b.ad} — 2 gün sonra${b.tutar ? ` · ${b.tutar}` : ''}`,
+          url: '/panel/cuzdan',
+        });
+      }
+    }
+  }
+
+  if (g.tercih.borc && g.saat >= 9 && g.saat < 21) {
+    for (const c of g.giderler ?? []) {
+      const kalalar = c.yillik ? ([7, 0] as const) : ([2, 0] as const);
+      for (const kala of kalalar) {
+        const hedef = addAppDays(g.gun, kala);
+        const uyuyor = c.yillik
+          ? hedef.slice(5) === c.yillik
+          : c.ayinGunu !== null &&
+            Number(hedef.slice(8, 10)) === Math.min(c.ayinGunu, sonGun(hedef));
+        if (!uyuyor) continue;
+        if (!c.yillik && g.giderOdenen?.has(`${c.id}:${hedef.slice(0, 7)}`)) continue;
+        sonuc.push({
+          tur: 'borc',
+          anahtar: `gider:${c.id}:${hedef}`,
+          baslik: kala === 0 ? 'Bugün ödeme günü' : 'Ödeme yaklaşıyor',
+          govde: kala === 0 ? `${c.ad} · ${c.tutar}` : `${c.ad} — ${kala} gün sonra · ${c.tutar}`,
           url: '/panel/cuzdan',
         });
       }
@@ -167,7 +201,7 @@ const SAAT = new Intl.DateTimeFormat('en-GB', {
 async function planGirdisi(userId: string, simdi: Date): Promise<PlanGirdisi> {
   const gun = appToday(simdi);
   const saat = Number(SAAT.format(simdi));
-  const [tercih, borclar, gunluk, saglik] = await Promise.all([
+  const [tercih, borclar, gunluk, saglik, giderler] = await Promise.all([
     db.bildirimTercihi.findUnique({ where: { userId } }),
     db.walletDebt.findMany({
       where: { isClosed: false, paymentDay: { not: null } },
@@ -175,6 +209,18 @@ async function planGirdisi(userId: string, simdi: Date): Promise<PlanGirdisi> {
     }),
     fetchHabitDay(gun, db, gun),
     db.healthLog.findUnique({ where: { date: appDayToDate(gun) }, select: { waterMl: true } }),
+    db.walletFlow.findMany({
+      where: { kind: 'EXPENSE', isActive: true, frequency: { in: ['MONTHLY', 'YEARLY'] } },
+      select: {
+        id: true,
+        name: true,
+        frequency: true,
+        day: true,
+        date: true,
+        amount: true,
+        unit: true,
+      },
+    }),
   ]);
   return {
     gun,
@@ -194,6 +240,14 @@ async function planGirdisi(userId: string, simdi: Date): Promise<PlanGirdisi> {
       .map((i) => i.name),
     suMl: saglik?.waterMl ?? null,
     odenen: await fetchIslenenBorclar(),
+    giderOdenen: await fetchIslenenGiderler(),
+    giderler: giderler.map((c) => ({
+      id: c.id,
+      ad: c.name,
+      tutar: miktarBicim(toMeasureString(c.amount, 2) ?? '0.00', c.unit as WalletUnit),
+      ayinGunu: c.frequency === 'MONTHLY' ? c.day : null,
+      yillik: c.frequency === 'YEARLY' && c.date ? dateToAppDay(c.date).slice(5) : null,
+    })),
     haftalikGovde: haftalikZamani(gun, saat)
       ? ozetMetni(await fetchHaftalikOzet(gun, db, gun))
       : null,

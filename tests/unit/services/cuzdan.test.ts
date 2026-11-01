@@ -5,6 +5,7 @@ import { fetchAylikRapor } from '@/server/services/cuzdan-rapor';
 
 import {
   addDebtPayment,
+  araCuzdan,
   aylikTutar,
   deleteDebtPayment,
   kalanTaksit,
@@ -659,5 +660,37 @@ describe('butceOzeti — aylık bütçe (2026-10-31)', () => {
     const l = await fetchButceLimitleri(client);
     expect(decimalKalanlar(l)).toEqual([]);
     expect(l).toEqual([{ kategori: 'Market', limitTl: '5000.00' }]);
+  });
+});
+
+describe('araCuzdan (2026-11-01)', () => {
+  const satir = (id: string) => ({
+    id,
+    name: 'Fatura',
+    kind: 'EXPENSE',
+    frequency: 'ONCE',
+    unit: 'TRY',
+    amount: decimal('10.00'),
+    date: new Date('2026-10-05T00:00:00Z'),
+    category: 'Fatura',
+  });
+
+  it('büyük-küçük harf duyarsız arar; Decimal sızmaz', async () => {
+    const findMany = vi.fn().mockResolvedValue([satir('a')]);
+    const s = await araCuzdan('fat', { walletFlow: { findMany } } as never);
+    expect(findMany.mock.calls[0]?.[0].where.OR[0]).toEqual({
+      name: { contains: 'fat', mode: 'insensitive' },
+    });
+    expect(decimalKalanlar(s)).toEqual([]);
+    expect(s.fazlasiVar).toBe(false);
+  });
+
+  it('tavan aşılınca söyler', async () => {
+    const findMany = vi
+      .fn()
+      .mockResolvedValue(Array.from({ length: 101 }, (_, i) => satir(String(i))));
+    const s = await araCuzdan('fat', { walletFlow: { findMany } } as never);
+    expect(s.kalemler).toHaveLength(100);
+    expect(s.fazlasiVar).toBe(true);
   });
 });

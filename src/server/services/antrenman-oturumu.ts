@@ -453,14 +453,19 @@ export async function fetchProgram(client: Client = db): Promise<ProgramGunuDto[
 /** Açık (bitmemiş) oturum varsa kimliği ve günün adı. */
 export async function fetchActiveSession(
   client: Client = db,
-): Promise<{ id: string; gunAdi: string | null; startedAt: string } | null> {
+): Promise<{ id: string; gunAdi: string | null; startedAt: string; gun: AppDay | null } | null> {
   const w = await client.workout.findFirst({
     where: { startedAt: { not: null }, finishedAt: null },
     orderBy: { startedAt: 'desc' },
-    select: { id: true, startedAt: true, programDay: { select: { name: true } } },
+    select: { id: true, date: true, startedAt: true, programDay: { select: { name: true } } },
   });
   return w && w.startedAt
-    ? { id: w.id, gunAdi: w.programDay?.name ?? null, startedAt: w.startedAt.toISOString() }
+    ? {
+        id: w.id,
+        gunAdi: w.programDay?.name ?? null,
+        startedAt: w.startedAt.toISOString(),
+        gun: w.date ? dateToAppDay(w.date) : null,
+      }
     : null;
 }
 
@@ -714,7 +719,27 @@ export async function fetchSession(
  * YAZMALAR
  * ======================================================================== */
 
-/** Oturum başlatır — açık oturum varsa ONU döndürür (ikinci oturum açılmaz). */
+/**
+ * Başka günden açık kalan oturumu kapatır: süre son sete kadar sayılır. Hiç set
+ * girilmemişse boş kayıt silinir; haftalık antrenman sayısını şişirmesin.
+ */
+async function eskiOturumuKapat(id: string, client: Client): Promise<void> {
+  const son = await client.workoutSet.findFirst({
+    where: { workoutId: id },
+    orderBy: { createdAt: 'desc' },
+    select: { createdAt: true },
+  });
+  if (!son) {
+    await client.workout.delete({ where: { id } });
+    return;
+  }
+  await finishSession(id, client, son.createdAt);
+}
+
+/**
+ * Oturum başlatır. Bugünkü açık oturum varsa ONU döndürür (ikinci oturum açılmaz);
+ * başka günden kalanı kapatıp bugünün programını başlatır.
+ */
 export async function startSession(
   dayId: string,
   client: Client = db,
@@ -722,7 +747,8 @@ export async function startSession(
   simdi: Date = new Date(),
 ): Promise<{ id: string; yeni: boolean }> {
   const acik = await fetchActiveSession(client);
-  if (acik) return { id: acik.id, yeni: false };
+  if (acik && (acik.gun === null || acik.gun === bugun)) return { id: acik.id, yeni: false };
+  if (acik) await eskiOturumuKapat(acik.id, client);
 
   const gun = await client.programDay.findUnique({
     where: { id: dayId },

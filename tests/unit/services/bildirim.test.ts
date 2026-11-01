@@ -90,3 +90,44 @@ describe('vapidAyarlari', () => {
     });
   });
 });
+
+describe('planla · düzenli gider (2026-11-01)', () => {
+  const kira = { id: 'k', ad: 'Kira', tutar: '8.000,00 ₺', ayinGunu: 5, yillik: null };
+  const sigorta = { id: 's', ad: 'Sigorta', tutar: '3.000,00 ₺', ayinGunu: null, yillik: '11-15' };
+
+  it('aylık: 2 gün önce ve günü; başka gün yok', () => {
+    expect(planla({ ...temel, gun: '2026-11-03', giderler: [kira] })[0]).toMatchObject({
+      baslik: 'Ödeme yaklaşıyor',
+      govde: 'Kira — 2 gün sonra · 8.000,00 ₺',
+    });
+    expect(planla({ ...temel, gun: '2026-11-05', giderler: [kira] })[0]).toMatchObject({
+      baslik: 'Bugün ödeme günü',
+    });
+    expect(planla({ ...temel, gun: '2026-11-04', giderler: [kira] })).toEqual([]);
+  });
+
+  it('⚠️ onaylanan ay hatırlatılmaz', () => {
+    expect(
+      planla({
+        ...temel,
+        gun: '2026-11-05',
+        giderler: [kira],
+        giderOdenen: new Set(['k:2026-11']),
+      }),
+    ).toEqual([]);
+  });
+
+  it('yıllık: 7 gün önce ve günü', () => {
+    expect(planla({ ...temel, gun: '2026-11-08', giderler: [sigorta] })[0]?.govde).toContain(
+      '7 gün sonra',
+    );
+    expect(planla({ ...temel, gun: '2026-11-15', giderler: [sigorta] })).toHaveLength(1);
+    expect(planla({ ...temel, gun: '2026-11-10', giderler: [sigorta] })).toEqual([]);
+  });
+
+  it('tercih kapalıysa ve gece gönderilmez', () => {
+    const kapali = { ...temel.tercih, borc: false };
+    expect(planla({ ...temel, gun: '2026-11-05', tercih: kapali, giderler: [kira] })).toEqual([]);
+    expect(planla({ ...temel, gun: '2026-11-05', saat: 23, giderler: [kira] })).toEqual([]);
+  });
+});

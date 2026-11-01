@@ -37,6 +37,55 @@ describe('ONERILEN_PROGRAM — sahibinin PDF programı', () => {
   });
 });
 
+describe('startSession · başka günden açık kalan (2026-11-01)', () => {
+  const kurulum = (sonSet: { createdAt: Date } | null) => {
+    const create = vi.fn().mockResolvedValue({ id: 'yeni' });
+    const update = vi.fn();
+    const del = vi.fn();
+    const baslangic = new Date('2026-10-30T15:00:00Z');
+    return {
+      create,
+      update,
+      del,
+      client: {
+        workout: {
+          findFirst: vi.fn().mockResolvedValue({
+            id: 'eski',
+            date: new Date('2026-10-30T00:00:00Z'),
+            startedAt: baslangic,
+            programDay: null,
+          }),
+          findUnique: vi
+            .fn()
+            .mockResolvedValue({ startedAt: baslangic, finishedAt: null, type: 'GYM' }),
+          create,
+          update,
+          delete: del,
+        },
+        workoutSet: { findFirst: vi.fn().mockResolvedValue(sonSet) },
+        programDay: {
+          findUnique: vi.fn().mockResolvedValue({ id: 'g', exercises: [] }),
+        },
+        healthLog: { findFirst: vi.fn().mockResolvedValue(null) },
+      } as never,
+    };
+  };
+
+  it('⚠️ süre son sete kadar sayılır, bugünün programı başlar', async () => {
+    const k = kurulum({ createdAt: new Date('2026-10-30T15:45:00Z') });
+    expect(await startSession('g', k.client, '2026-10-31')).toEqual({ id: 'yeni', yeni: true });
+    expect(k.update.mock.calls[0]?.[0].data.durationMin).toBe(45);
+    expect(k.del).not.toHaveBeenCalled();
+  });
+
+  it('hiç set yoksa boş kayıt silinir', async () => {
+    const k = kurulum(null);
+    await startSession('g', k.client, '2026-10-31');
+    expect(k.del).toHaveBeenCalledWith({ where: { id: 'eski' } });
+    expect(k.update).not.toHaveBeenCalled();
+  });
+});
+
 describe('startSession', () => {
   it('⚠️ açık oturum varsa YENİSİNİ AÇMAZ, onu döndürür', async () => {
     const create = vi.fn();

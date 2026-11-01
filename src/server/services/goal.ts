@@ -366,6 +366,20 @@ export async function deleteGoal(
   return toDto(row, today);
 }
 
+/** Biten dönemden kalan hedefi bugünün dönemine taşır; ilerlemesi korunur. */
+export async function hedefiTasi(
+  id: string,
+  client: Pick<typeof db, 'goal'> = db,
+  today: AppDay = appToday(),
+): Promise<void> {
+  const hedef = await client.goal.findUnique({ where: { id }, select: { period: true } });
+  if (!hedef?.period) throw new GoalRuleError('Yalnızca dönemli hedef taşınabilir.');
+  await client.goal.update({
+    where: { id },
+    data: { periodKey: donemAnahtari(hedef.period as GoalPeriod, today) },
+  });
+}
+
 /** Dönemi geçmiş hedef Bugün'de görünmez; uzun vadeli her zaman günceldir. SAF. */
 export function guncelHedefMi(
   hedef: Pick<GoalDto, 'period' | 'periodKey'>,
