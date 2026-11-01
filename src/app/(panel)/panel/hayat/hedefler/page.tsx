@@ -156,7 +156,12 @@ async function Donemli({
         </Link>
       </div>
 
-      <DonemHedefleri hedefler={liste.items} period={donem} periodKey={anahtar} />
+      <DonemHedefleri
+        hedefler={liste.items}
+        period={donem}
+        periodKey={anahtar}
+        gecmisDonem={anahtar < simdiki}
+      />
     </>
   );
 }

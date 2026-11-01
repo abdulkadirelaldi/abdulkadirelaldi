@@ -374,6 +374,49 @@ export async function fetchOdemeHesaplari(
   }));
 }
 
+export interface AramaSonucu {
+  kalemler: {
+    id: string;
+    name: string;
+    kind: WalletFlowKind;
+    frequency: WalletFrequency;
+    unit: WalletUnit;
+    amount: string;
+    date: AppDay | null;
+    category: string | null;
+  }[];
+  /** Tavan yüzünden kesildi mi. */
+  fazlasiVar: boolean;
+}
+
+const ARAMA_TAVANI = 100;
+
+/** Gelir ve gider kalemlerinde ad, kişi ve kategoriye göre arama, yeniden eskiye. */
+export async function araCuzdan(
+  q: string,
+  client: Pick<Client, 'walletFlow'> = db,
+): Promise<AramaSonucu> {
+  const icerir = { contains: q, mode: 'insensitive' as const };
+  const satirlar = await client.walletFlow.findMany({
+    where: { OR: [{ name: icerir }, { counterparty: icerir }, { category: icerir }] },
+    orderBy: [{ date: { sort: 'desc', nulls: 'last' } }, { createdAt: 'desc' }],
+    take: ARAMA_TAVANI + 1,
+  });
+  return {
+    kalemler: satirlar.slice(0, ARAMA_TAVANI).map((a) => ({
+      id: a.id,
+      name: a.name,
+      kind: a.kind as WalletFlowKind,
+      frequency: a.frequency as WalletFrequency,
+      unit: a.unit as WalletUnit,
+      amount: para(a.amount),
+      date: a.date ? dateToAppDay(a.date) : null,
+      category: a.category,
+    })),
+    fazlasiVar: satirlar.length > ARAMA_TAVANI,
+  };
+}
+
 export interface CuzdanArsivi {
   hesaplar: { id: string; name: string; unit: WalletUnit; balance: string }[];
   borclar: { id: string; name: string; unit: WalletUnit; totalAmount: string }[];

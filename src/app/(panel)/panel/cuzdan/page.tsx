@@ -1,4 +1,4 @@
-import { ChartColumn, ChevronRight, Plus } from 'lucide-react';
+import { ChartColumn, ChevronRight, Plus, Search } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
@@ -62,13 +62,22 @@ export default async function CuzdanPage() {
       <Topbar
         title="Cüzdan"
         actions={
-          <Link
-            href="/panel/cuzdan/rapor"
-            className={buttonClasses({ size: 'sm', variant: 'secondary' })}
-          >
-            <ChartColumn className="size-4" aria-hidden="true" />
-            Aylık rapor
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/panel/cuzdan/ara"
+              aria-label="Cüzdan'da ara"
+              className={buttonClasses({ size: 'sm', variant: 'secondary' })}
+            >
+              <Search className="size-4" aria-hidden="true" />
+            </Link>
+            <Link
+              href="/panel/cuzdan/rapor"
+              className={buttonClasses({ size: 'sm', variant: 'secondary' })}
+            >
+              <ChartColumn className="size-4" aria-hidden="true" />
+              Aylık rapor
+            </Link>
+          </div>
         }
       />
       <main id="panel-icerik" className="flex-1 px-4 py-4 lg:p-6">

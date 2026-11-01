@@ -3,10 +3,15 @@
 import { Check, Plus, Trash2 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition, type FormEvent } from 'react';
+import { useEffect, useState, useTransition, type FormEvent } from 'react';
 
 import { Input } from '@/components/ui/input';
-import { createGoalAction, deleteGoalAction, updateGoalAction } from '@/server/actions/goal';
+import {
+  createGoalAction,
+  deleteGoalAction,
+  hedefiTasiAction,
+  updateGoalAction,
+} from '@/server/actions/goal';
 import type { GoalDto } from '@/server/services/goal';
 import type { GoalPeriod } from '@/types';
 import { cn } from '@/lib/utils/cn';
@@ -18,14 +23,18 @@ import { cn } from '@/lib/utils/cn';
  * TAMAMLAMAK (tek dokunuş). Ayrıntılı düzenleme (açıklama, kategori, ilerleme)
  * hedefin kendi sayfasında.
  */
+const BAGLANTI_HATASI = 'Bağlantı kurulamadı. Yeniden dene.';
+
 export function DonemHedefleri({
   hedefler,
   period,
   periodKey,
+  gecmisDonem = false,
 }: {
   hedefler: GoalDto[];
   period: GoalPeriod;
   periodKey: string;
+  gecmisDonem?: boolean;
 }) {
   const router = useRouter();
   const [baslik, setBaslik] = useState('');
@@ -38,10 +47,14 @@ export function DonemHedefleri({
     if (!temiz) return;
     setHata(null);
     basla(async () => {
-      const sonuc = await createGoalAction({ title: temiz, period, periodKey });
-      if (!sonuc.ok) return setHata(sonuc.error.message);
-      setBaslik('');
-      router.refresh();
+      try {
+        const sonuc = await createGoalAction({ title: temiz, period, periodKey });
+        if (!sonuc.ok) return setHata(sonuc.error.message);
+        setBaslik('');
+        router.refresh();
+      } catch {
+        setHata(BAGLANTI_HATASI);
+      }
     });
   };
 
@@ -84,7 +97,7 @@ export function DonemHedefleri({
           </p>
           <ul className="flex flex-col gap-2">
             {hedefler.map((h) => (
-              <HedefSatiri key={h.id} hedef={h} />
+              <HedefSatiri key={h.id} hedef={h} tasinabilir={gecmisDonem} />
             ))}
           </ul>
         </>
@@ -93,7 +106,7 @@ export function DonemHedefleri({
   );
 }
 
-function HedefSatiri({ hedef }: { hedef: GoalDto }) {
+function HedefSatiri({ hedef, tasinabilir }: { hedef: GoalDto; tasinabilir: boolean }) {
   const router = useRouter();
   const [tamam, setTamam] = useState(hedef.status === 'ACHIEVED');
   const [silOnay, setSilOnay] = useState(false);
@@ -105,16 +118,41 @@ function HedefSatiri({ hedef }: { hedef: GoalDto }) {
     setTamam(yeni);
     setHata(null);
     basla(async () => {
-      const sonuc = await updateGoalAction(
-        yeni
-          ? { id: hedef.id, status: 'ACHIEVED', progress: 100 }
-          : { id: hedef.id, status: 'ACTIVE', progress: 0 },
-      );
-      if (!sonuc.ok) {
+      try {
+        const sonuc = await updateGoalAction(
+          yeni
+            ? { id: hedef.id, status: 'ACHIEVED', progress: 100 }
+            : { id: hedef.id, status: 'ACTIVE', progress: 0 },
+        );
+        if (!sonuc.ok) {
+          setTamam(!yeni);
+          return setHata(sonuc.error.message);
+        }
+        router.refresh();
+      } catch {
         setTamam(!yeni);
-        return setHata(sonuc.error.message);
+        setHata(BAGLANTI_HATASI);
       }
-      router.refresh();
+    });
+  };
+
+  // iOS düğmeye odak vermeyebilir: onay yalnızca `onBlur` ile sönmesin.
+  useEffect(() => {
+    if (!silOnay) return;
+    const t = setTimeout(() => setSilOnay(false), 5000);
+    return () => clearTimeout(t);
+  }, [silOnay]);
+
+  const tasi = () => {
+    setHata(null);
+    basla(async () => {
+      try {
+        const sonuc = await hedefiTasiAction({ id: hedef.id });
+        if (!sonuc.ok) return setHata(sonuc.error.message);
+        router.refresh();
+      } catch {
+        setHata(BAGLANTI_HATASI);
+      }
     });
   };
 
@@ -125,9 +163,13 @@ function HedefSatiri({ hedef }: { hedef: GoalDto }) {
       return;
     }
     basla(async () => {
-      const sonuc = await deleteGoalAction({ id: hedef.id });
-      if (!sonuc.ok) return setHata(sonuc.error.message);
-      router.refresh();
+      try {
+        const sonuc = await deleteGoalAction({ id: hedef.id });
+        if (!sonuc.ok) return setHata(sonuc.error.message);
+        router.refresh();
+      } catch {
+        setHata(BAGLANTI_HATASI);
+      }
     });
   };
 
@@ -161,6 +203,18 @@ function HedefSatiri({ hedef }: { hedef: GoalDto }) {
       >
         {hedef.title}
       </Link>
+
+      {tasinabilir && !tamam && (
+        <button
+          type="button"
+          onClick={tasi}
+          disabled={bekliyor}
+          aria-label={`${hedef.title}: bu döneme taşı`}
+          className="focus-ring text-accent min-h-11 shrink-0 rounded-full px-2 text-xs font-medium"
+        >
+          Bu döneme taşı
+        </button>
+      )}
 
       <button
         type="button"

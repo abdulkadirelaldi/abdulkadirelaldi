@@ -661,3 +661,19 @@ describe('guncelHedefMi (2026-11-01)', () => {
     expect(g({ period: 'YEARLY', periodKey: '2025' }, '2026-10-31')).toBe(false);
   });
 });
+
+describe('hedefiTasi (2026-11-01)', () => {
+  it('bugünün dönemine taşır', async () => {
+    const update = vi.fn();
+    const client = {
+      goal: { findUnique: vi.fn().mockResolvedValue({ period: 'MONTHLY' }), update },
+    } as never;
+    await hedefModulu.hedefiTasi('g', client, '2026-11-01');
+    expect(update.mock.calls[0]?.[0].data).toEqual({ periodKey: '2026-11' });
+  });
+
+  it('⚠️ uzun vadeli taşınmaz', async () => {
+    const client = { goal: { findUnique: vi.fn().mockResolvedValue({ period: null }) } } as never;
+    await expect(hedefModulu.hedefiTasi('g', client, '2026-11-01')).rejects.toThrow('dönemli');
+  });
+});
