@@ -64,7 +64,7 @@ export function AltSekmeler() {
  * ANINDA TEPKİ (2026-10-30). Panel sayfaları sunucuda üretiliyor; dokunuş ile
  * yeni sayfa arasında geçen sürede ekran hiç değişmezse telefonda "dondu" gibi
  * görünüyordu. `useLinkStatus` dokunulan bağlantının beklemede olduğunu söyler:
- * hap hemen o sekmeye geçer ve üstte ince bir ilerleme çizgisi akar.
+ * hap hemen o sekmeye geçer. Üstteki ilerleme çizgisi `gezinme-gostergesi.tsx`te.
  *
  * `loading.tsx` DENENDİ ve geri alındı: sayfayı Suspense'e sarıp akışla
  * gönderiyordu; `router.push` + `router.refresh` yapan kaydet/sil akışları
@@ -73,17 +73,14 @@ export function AltSekmeler() {
 function SekmeSimgesi({ aktif, children }: { aktif: boolean; children: ReactNode }) {
   const { pending } = useLinkStatus();
   return (
-    <>
-      <span
-        className={cn(
-          'ease-brand flex h-8 w-14 items-center justify-center rounded-full transition-all duration-300',
-          (aktif || pending) && 'bg-accent/12',
-          pending && 'text-accent animate-pulse',
-        )}
-      >
-        {children}
-      </span>
-      {pending && <span aria-hidden="true" className="gezinme-cizgisi" />}
-    </>
+    <span
+      className={cn(
+        'ease-brand flex h-8 w-14 items-center justify-center rounded-full transition-all duration-300',
+        (aktif || pending) && 'bg-accent/12',
+        pending && 'text-accent animate-pulse',
+      )}
+    >
+      {children}
+    </span>
   );
 }

@@ -38,6 +38,13 @@ const tercihSchema = z.object({
   su: z.boolean(),
   rekor: z.boolean(),
   haftalik: z.boolean(),
+  suHedefMl: z.number().int().min(500).max(10000),
+  suSaatleri: z
+    .array(z.number().int().min(0).max(23))
+    .min(1)
+    .max(6)
+    .transform((s) => [...new Set(s)].sort((a, b) => a - b)),
+  aliskanlikSaati: z.number().int().min(0).max(23),
 });
 
 export async function bildirimAboneOlAction(raw: unknown): Promise<ApiResponse<{ ok: true }>> {

@@ -1096,13 +1096,19 @@ model PushAbonelik {
 
 /// Hangi bildirimlerin isteneceği — kullanıcı başına tek satır.
 model BildirimTercihi {
-  userId     String   @id
-  borc       Boolean  @default(true)
-  aliskanlik Boolean  @default(true)
-  su         Boolean  @default(true)
-  rekor      Boolean  @default(true)
-  haftalik   Boolean  @default(true)
-  updatedAt  DateTime @updatedAt
+  userId          String   @id
+  borc            Boolean  @default(true)
+  aliskanlik      Boolean  @default(true)
+  su              Boolean  @default(true)
+  rekor           Boolean  @default(true)
+  haftalik        Boolean  @default(true)
+  /// Günlük su hedefi. Hatırlatma, Bugün halkası ve alışkanlık işaretleme bunu okur.
+  suHedefMl       Int      @default(3500)
+  /// Su hatırlatmasının saatleri (İstanbul, 0–23).
+  suSaatleri      Int[]    @default([11, 15, 18])
+  /// Kalan alışkanlık hatırlatmasının başladığı saat.
+  aliskanlikSaati Int      @default(21)
+  updatedAt       DateTime @updatedAt
 
   @@map("bildirim_tercihi")
 }

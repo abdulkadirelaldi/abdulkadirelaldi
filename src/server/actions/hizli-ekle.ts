@@ -20,7 +20,7 @@ import {
   kuyrukGunu,
   OdemeHatasi,
 } from '@/server/services/cuzdan';
-import { otomatikIsaretle } from '@/server/services/habit-gun';
+import { suAliskanliginiIsaretle } from '@/server/services/habit-gun';
 import { gununKaydinaEkle, sonTarti } from '@/server/services/health-log';
 
 import { currentActorId, toFailure, unauthorized } from './_shared';
@@ -137,9 +137,11 @@ export async function hizliSuAction(
     );
     if (sonuc === null) return ok({ waterMl: null });
     // Alışkanlık işaretlenemese de su kaydı başarılıdır.
-    await otomatikIsaretle('SU', kuyrukGunu(parsed.data.gun, appToday()), sonuc.waterMl).catch(
-      () => undefined,
-    );
+    await suAliskanliginiIsaretle(
+      actorId,
+      kuyrukGunu(parsed.data.gun, appToday()),
+      sonuc.waterMl,
+    ).catch(() => undefined);
     await writeAuditLog(
       {
         actorId,
@@ -168,7 +170,7 @@ export async function suGeriAlAction(
   try {
     const gun = kuyrukGunu(parsed.data.gun, appToday());
     const sonuc = await gununKaydinaEkle(gun, { suMl: -parsed.data.ml });
-    await otomatikIsaretle('SU', gun, sonuc.waterMl, true).catch(() => undefined);
+    await suAliskanliginiIsaretle(actorId, gun, sonuc.waterMl, true).catch(() => undefined);
     await writeAuditLog(
       {
         actorId,

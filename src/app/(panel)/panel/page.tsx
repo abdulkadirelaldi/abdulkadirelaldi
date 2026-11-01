@@ -21,11 +21,12 @@ import { miktarBicim } from '@/components/panel/cuzdan-bicim';
 import { GunlukListe } from '@/components/panel/gunluk-liste';
 import { SuHizliDugmesi } from '@/components/panel/hizli-ekle';
 import { OdemeOnay } from '@/components/panel/odeme-onay';
-import { paraBicim } from '@/components/panel/para-bicim';
+import { paraBicim, tutarYaziBoyu } from '@/components/panel/para-bicim';
 import { BaslatDugmesi } from '@/components/panel/spor-dugmeleri';
 import { Topbar } from '@/components/panel/topbar';
-import { SU_HEDEFI_ML } from '@/lib/hedefler';
+import { litreBicim } from '@/lib/hedefler';
 import { cn } from '@/lib/utils/cn';
+import { auth } from '@/server/auth';
 import { addAppDays, appToday, type AppDay } from '@/server/services/_shared';
 import {
   fetchActiveSession,
@@ -36,7 +37,7 @@ import { fetchContactMessages } from '@/server/services/contact-message';
 import { fetchCuzdan } from '@/server/services/cuzdan';
 import { fetchGoals, guncelHedefMi } from '@/server/services/goal';
 import { fetchHabitWeek, gunOranlari } from '@/server/services/habit';
-import { fetchHabitDay } from '@/server/services/habit-gun';
+import { fetchHabitDay, fetchSuHedefi } from '@/server/services/habit-gun';
 import { fetchHealthTrend } from '@/server/services/health-log';
 import { fetchBekleyenOdemeler } from '@/server/services/odeme-onay';
 
@@ -76,7 +77,9 @@ const kisaTarih = (gun: AppDay) => KISA.format(new Date(`${gun}T00:00:00Z`));
 export default async function BugunPage() {
   const bugun = appToday();
   const pazartesi = addAppDays(bugun, -(haftaGunu(bugun) - 1));
+  const session = await auth();
   const [
+    suHedefMl,
     aliskanlik,
     gunluk,
     saglik,
@@ -88,6 +91,7 @@ export default async function BugunPage() {
     hedefler,
     odemeler,
   ] = await Promise.all([
+    fetchSuHedefi(session?.user?.id),
     fetchHabitWeek(bugun),
     fetchHabitDay(bugun, undefined, bugun),
     fetchHealthTrend({ from: addAppDays(bugun, -29), to: bugun }),
@@ -179,7 +183,7 @@ export default async function BugunPage() {
             <Halkalar
               oranlar={[
                 aliskanlikToplam ? aliskanlikTamam / aliskanlikToplam : 0,
-                suMl / SU_HEDEFI_ML,
+                suMl / suHedefMl,
                 haftaHedefi ? haftaAntrenman / haftaHedefi : 0,
               ]}
             />
@@ -189,8 +193,8 @@ export default async function BugunPage() {
                 <span className="text-muted text-sm font-normal"> / {aliskanlikToplam}</span>
               </HalkaSatiri>
               <HalkaSatiri href="/panel/saglik" renk="#0ea5e9" etiket="Su">
-                {(suMl / 1000).toLocaleString('tr-TR')}
-                <span className="text-muted text-sm font-normal"> / 3,5 L</span>
+                {litreBicim(suMl)}
+                <span className="text-muted text-sm font-normal"> / {litreBicim(suHedefMl)} L</span>
               </HalkaSatiri>
               <li>
                 <SuHizliDugmesi />
@@ -329,7 +333,12 @@ export default async function BugunPage() {
               renk="from-violet-500 to-indigo-500"
               baslik="Net varlık"
             >
-              <span className="tabular text-primary truncate text-xl font-semibold tracking-tight">
+              <span
+                className={cn(
+                  'tabular text-primary font-semibold tracking-tight whitespace-nowrap',
+                  tutarYaziBoyu(paraBicim(cuzdan.ozet.netTl, 'TRY'), 'text-xl'),
+                )}
+              >
                 {paraBicim(cuzdan.ozet.netTl, 'TRY')}
               </span>
               <span className="text-muted text-xs">

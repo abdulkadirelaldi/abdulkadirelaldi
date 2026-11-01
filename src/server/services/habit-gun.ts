@@ -253,6 +253,21 @@ export const ONERILEN_ALISKANLIKLAR: ReadonlyArray<{
 ];
 
 /**
+ * Kişisel su hedefi; ayar satırı yoksa varsayılan (2026-11-01).
+ */
+export async function fetchSuHedefi(
+  userId: string | null | undefined,
+  client: Pick<typeof db, 'bildirimTercihi'> = db,
+): Promise<number> {
+  if (!userId) return SU_HEDEFI_ML;
+  const tercih = await client.bildirimTercihi.findUnique({
+    where: { userId },
+    select: { suHedefMl: true },
+  });
+  return tercih?.suHedefMl ?? SU_HEDEFI_ML;
+}
+
+/**
  * Kayıttan kendiliğinden işaretler. Spor: antrenman bitince tam. Su: içilen orana göre
  * (3,5 L hedefi, 7 bardaklık alışkanlıkta 1,5 L = 3 bardak). Elle girilenin altına inmez;
  * `kesin` geri almada kullanılır.
@@ -263,6 +278,7 @@ export async function otomatikIsaretle(
   suMl: number | null = null,
   kesin = false,
   client: GunClient = db,
+  suHedefMl: number = SU_HEDEFI_ML,
 ): Promise<void> {
   const habits = await client.habit.findMany({
     where: { ...AKTIF, otoKaynak: kaynak },
@@ -272,7 +288,7 @@ export async function otomatikIsaretle(
   for (const h of habits) {
     const hedef = h.targetPerDay ?? 1;
     const yeni =
-      kaynak === 'SPOR' ? hedef : Math.min(hedef, Math.floor(((suMl ?? 0) * hedef) / SU_HEDEFI_ML));
+      kaynak === 'SPOR' ? hedef : Math.min(hedef, Math.floor(((suMl ?? 0) * hedef) / suHedefMl));
     const mevcut = await client.habitLog.findUnique({
       where: { habitId_date: { habitId: h.id, date } },
       select: { count: true },
@@ -284,6 +300,16 @@ export async function otomatikIsaretle(
       update: { count: yeni, missed: false },
     });
   }
+}
+
+/** Su kaydı değişince: kullanıcının kendi hedefiyle işaretler. */
+export async function suAliskanliginiIsaretle(
+  userId: string,
+  gun: AppDay,
+  suMl: number | null,
+  kesin = false,
+): Promise<void> {
+  await otomatikIsaretle('SU', gun, suMl, kesin, db, await fetchSuHedefi(userId));
 }
 
 /** Hiç (arşivsiz) alışkanlık yokken önerilen listeyi ekler; varsa dokunmaz. */

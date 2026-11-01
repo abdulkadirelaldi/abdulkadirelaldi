@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 
 import { gunAy } from '@/components/panel/hayat-bicim';
-import { paraBicim } from '@/components/panel/para-bicim';
+import { paraBicim, tutarYaziBoyu } from '@/components/panel/para-bicim';
 import { Topbar } from '@/components/panel/topbar';
 import { TrendGrafigi } from '@/components/panel/trend-grafigi';
 import { cn } from '@/lib/utils/cn';
@@ -245,11 +245,18 @@ export default async function CuzdanRaporPage({ searchParams }: SayfaProps) {
 }
 
 function Kutu({ etiket, deger, ton }: { etiket: string; deger: string; ton: string }) {
+  const metin = paraBicim(deger, 'TRY');
   return (
     <div className="rounded-card border-line bg-surface flex min-w-0 flex-col gap-1 border p-3.5">
       <dt className="text-muted text-xs">{etiket}</dt>
-      <dd className={cn('tabular truncate text-lg font-semibold tracking-tight', ton)}>
-        {paraBicim(deger, 'TRY')}
+      <dd
+        className={cn(
+          'tabular font-semibold tracking-tight whitespace-nowrap',
+          tutarYaziBoyu(metin, 'text-lg'),
+          ton,
+        )}
+      >
+        {metin}
       </dd>
     </div>
   );

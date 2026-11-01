@@ -95,6 +95,12 @@ describe('otomatikIsaretle (2026-11-01)', () => {
     expect(c.habitLog.upsert.mock.calls[0]?.[0].create.count).toBe(3);
   });
 
+  it('kişisel su hedefi: 2 L hedefte 1 L, 7 bardağın 3ü', async () => {
+    const c = istemci(null, 7);
+    await otomatikIsaretle('SU', '2026-10-30', 1000, false, c as never, 2000);
+    expect(c.habitLog.upsert.mock.calls[0]?.[0].create.count).toBe(3);
+  });
+
   it('hedef aşılmaz', async () => {
     const c = istemci(null, 7);
     await otomatikIsaretle('SU', '2026-10-30', 9000, false, c as never);
