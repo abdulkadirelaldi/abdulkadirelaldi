@@ -15,6 +15,10 @@ set -euo pipefail
 
 SUNUCU=${SUNUCU:-root@187.77.66.202}
 SITE_URL=${SITE_URL:-https://abdulkadirelaldi.com}
+# Bağlantı canlı mı diye 30 sn'de bir yoklanır; 2 dakika yanıt yoksa ssh hata verir.
+# Yoklama yokken gönderim sırasında Mac ağ değiştirince ssh ölü bağlantıyı
+# sonsuza kadar bekledi (2026-11-01: 1 saat 40 dakika, hata vermeden).
+SSH_SECENEK=(-o ServerAliveInterval=30 -o ServerAliveCountMax=4)
 cd "$(dirname "$0")/../.."
 
 if [ -n "$(git status --porcelain -- src prisma scripts package.json pnpm-lock.yaml Dockerfile)" ]; then
@@ -30,7 +34,7 @@ if [ "${YEREL:-}" = 1 ]; then
       -t "aelaldi-$hedef:$SURUM" -t "aelaldi-$hedef:latest" --load .
   done
   docker save "aelaldi-uygulama:$SURUM" "aelaldi-uygulama:latest" \
-    "aelaldi-araclar:$SURUM" "aelaldi-araclar:latest" | gzip -1 | ssh "$SUNUCU" 'gunzip | docker load'
+    "aelaldi-araclar:$SURUM" "aelaldi-araclar:latest" | gzip -1 | ssh "${SSH_SECENEK[@]}" "$SUNUCU" 'gunzip | docker load'
 else
   # GitHub yalnızca İTİLMİŞ commit'i derleyebilir.
   DAL=$(git rev-parse --abbrev-ref HEAD)
@@ -78,7 +82,7 @@ else
     | curl -fsS -K - -o /dev/null -w '%{redirect_url}' \
       "https://api.github.com/repos/$DEPO/actions/artifacts/$YAPIT/zip")
   [ -n "$IMZALI" ] || { echo "Yapıt indirme adresi alınamadı." >&2; exit 1; }
-  printf '%s' "$IMZALI" | ssh "$SUNUCU" 'set -euo pipefail
+  printf '%s' "$IMZALI" | ssh "${SSH_SECENEK[@]}" "$SUNUCU" 'set -euo pipefail
     adres=$(cat)
     zip=$(mktemp /tmp/aelaldi-imaj.XXXXXX)
     trap "rm -f \"$zip\"" EXIT
@@ -89,7 +93,7 @@ fi
 
 # Eski sürümler: güncel + bir önceki (geri dönüş için) kalır, gerisi silinir.
 # Her sürüm ~2,6 GB; disk müşteri siteleri ve mailcow ile paylaşılıyor.
-ssh "$SUNUCU" "cd /opt/aelaldi && docker compose up -d --remove-orphans && \
+ssh "${SSH_SECENEK[@]}" "$SUNUCU" "cd /opt/aelaldi && docker compose up -d --remove-orphans && \
   for r in aelaldi-uygulama aelaldi-araclar; do \
     docker images \$r --format '{{.Tag}}' | grep -vx latest | tail -n +3 | xargs -r -I{} docker rmi \$r:{} >/dev/null; \
   done; docker image prune -f >/dev/null"
