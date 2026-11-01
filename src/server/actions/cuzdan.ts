@@ -13,6 +13,7 @@ import {
   walletDebtSchema,
   walletFlowSchema,
 } from '@/lib/schemas';
+import { walletTransferSchema } from '@/lib/schemas/wallet';
 import { db } from '@/server/db';
 import {
   addDebtPayment,
@@ -25,8 +26,11 @@ import {
   createWalletAccount,
   createWalletDebt,
   createWalletFlow,
+  createWalletTransfer,
+  deleteWalletTransfer,
   deleteWalletDebt,
   deleteWalletFlow,
+  OdemeHatasi as CuzdanHatasi,
   updateWalletAccount,
   updateWalletDebt,
   updateWalletFlow,
@@ -69,6 +73,7 @@ async function kaydet<T>(
     );
     return ok(sonuc);
   } catch (error) {
+    if (error instanceof CuzdanHatasi) return fail('VALIDATION_ERROR', error.message);
     return toFailure(etiket, error);
   }
 }
@@ -264,7 +269,7 @@ export async function createWalletFlowAction(raw: unknown) {
     actorId,
     v,
     { action: 'CREATE', entity: 'WalletFlow', kimlik: (s) => s.id },
-    () => createWalletFlow(v),
+    () => db.$transaction((tx) => createWalletFlow(v, tx)),
     'wallet:flow:create',
   );
 }
@@ -296,6 +301,39 @@ export async function deleteWalletFlowAction(raw: unknown) {
     { action: 'DELETE', entity: 'WalletFlow', kimlik: () => v.id },
     () => deleteWalletFlow(v.id),
     'wallet:flow:delete',
+  );
+}
+
+export async function createWalletTransferAction(raw: unknown) {
+  const actorId = await currentActorId();
+  if (!actorId) return unauthorized();
+  const parsed = parseOrFail(walletTransferSchema, raw);
+  if (!parsed.ok) return parsed.failure;
+  const v = parsed.data;
+  return kaydet(
+    actorId,
+    v,
+    { action: 'CREATE', entity: 'WalletTransfer', kimlik: (s) => s.id },
+    () => createWalletTransfer(v),
+    'wallet:transfer:create',
+  );
+}
+
+export async function deleteWalletTransferAction(raw: unknown) {
+  const actorId = await currentActorId();
+  if (!actorId) return unauthorized();
+  const parsed = parseOrFail(entityIdSchema, raw);
+  if (!parsed.ok) return parsed.failure;
+  const v = parsed.data;
+  return kaydet(
+    actorId,
+    v,
+    { action: 'DELETE', entity: 'WalletTransfer', kimlik: () => v.id },
+    async () => {
+      await deleteWalletTransfer(v.id);
+      return { id: v.id };
+    },
+    'wallet:transfer:delete',
   );
 }
 

@@ -83,9 +83,11 @@ export const walletFlowSchema = z.object({
   date: dayDateSchema.optional(),
   category: shortTextSchema.optional(),
   note: mediumTextSchema.optional(),
+  hesapId: cuidSchema.optional(),
 });
 export const updateWalletFlowSchema = walletFlowSchema.partial().extend({
   id: cuidSchema,
+  hesapId: cuidSchema.nullable().optional(),
   counterparty: shortTextSchema.nullable().optional(),
   day: z.number().int().min(1).max(31).nullable().optional(),
   date: dayDateSchema.nullable().optional(),
@@ -115,10 +117,25 @@ export const HARCAMA_KATEGORILERI = [
   'Diğer',
 ] as const;
 
+export const walletTransferSchema = z
+  .object({
+    kaynakId: cuidSchema,
+    hedefId: cuidSchema,
+    amount: tutar.refine((v) => Number(v) > 0, { error: 'Tutar sıfırdan büyük olmalı.' }),
+    gun: dayDateSchema,
+    note: shortTextSchema.optional(),
+  })
+  .refine((d) => d.kaynakId !== d.hedefId, {
+    error: 'Kaynak ve hedef hesap aynı olamaz.',
+    path: ['hedefId'],
+  });
+export type WalletTransferInput = z.infer<typeof walletTransferSchema>;
+
 export const hizliHarcamaSchema = z.object({
   tutar: tutar.refine((v) => Number(v) > 0, { error: 'Tutar sıfırdan büyük olmalı.' }),
   ne: ad,
   kategori: z.enum(HARCAMA_KATEGORILERI).default('Diğer'),
+  hesapId: cuidSchema.optional(),
 });
 export type HizliHarcamaInput = z.infer<typeof hizliHarcamaSchema>;
 

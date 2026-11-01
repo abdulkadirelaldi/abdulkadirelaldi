@@ -964,6 +964,8 @@ model WalletFlow {
   category     String?
   note         String?
   isActive     Boolean         @default(true)
+  /// Tek seferlik kalemin yansıdığı hesap; boşsa bakiyeye dokunulmaz.
+  hesapId      String?
   /// Düzenli kalem sonlandırıldı: bu aydan önceki aylar raporda korunur.
   bitisGunu    DateTime?       @db.Date
 
@@ -1035,6 +1037,21 @@ model NetVarlikKaydi {
   netTl    Decimal  @db.Decimal(14, 2)
 
   @@map("net_varlik_kaydi")
+}
+
+/// Hesaplar arası transfer (2026-11-01): net varlığı ve gelir-gideri değiştirmez.
+model WalletTransfer {
+  id       String   @id @default(cuid())
+  kaynakId String
+  hedefId  String
+  amount   Decimal  @db.Decimal(14, 2)
+  gun      DateTime @db.Date
+  note     String?
+
+  createdAt DateTime @default(now())
+
+  @@index([gun])
+  @@map("wallet_transfer")
 }
 
 /// Son bilinen kur — canlı kaynak düşerse bu gösterilir (zamanıyla).

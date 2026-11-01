@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 
 import { AkisFormu, BorcFormu, HesapFormu } from '@/components/panel/cuzdan-formlari';
 import { Topbar } from '@/components/panel/topbar';
+import { fetchSecilebilirHesaplar } from '@/server/services/cuzdan';
 
 export const metadata: Metadata = {
   title: 'Cüzdan · yeni',
@@ -16,6 +17,7 @@ const BASLIK = { hesap: 'Yeni hesap', borc: 'Yeni borç', gelir: 'Yeni gelir', g
 export default async function CuzdanYeniPage({ searchParams }: SayfaProps) {
   const ham = (await searchParams).tur;
   const tur = (typeof ham === 'string' && ham in BASLIK ? ham : 'hesap') as keyof typeof BASLIK;
+  const hesaplar = tur === 'gelir' || tur === 'gider' ? await fetchSecilebilirHesaplar() : [];
   return (
     <>
       <Topbar title={BASLIK[tur]} />
@@ -23,8 +25,8 @@ export default async function CuzdanYeniPage({ searchParams }: SayfaProps) {
         <div className="mx-auto max-w-xl">
           {tur === 'hesap' && <HesapFormu />}
           {tur === 'borc' && <BorcFormu />}
-          {tur === 'gelir' && <AkisFormu tur="INCOME" />}
-          {tur === 'gider' && <AkisFormu tur="EXPENSE" />}
+          {tur === 'gelir' && <AkisFormu tur="INCOME" hesaplar={hesaplar} />}
+          {tur === 'gider' && <AkisFormu tur="EXPENSE" hesaplar={hesaplar} />}
         </div>
       </main>
     </>
