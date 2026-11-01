@@ -323,6 +323,16 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     kanit: [],
     not: "2026-11-01 haftalık özet. `?hafta=` tarih doğrulanır, gelecek ve bozuk değer bu haftaya düşer. Hesap ve pazar bildirimi `tests/unit/services/haftalik-ozet.test.ts`te. ÖLÇÜLMEYEN: e2e'de içerik yok; gerçek telefona bildirim.",
   },
+  '/panel/spor/program': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: "2026-11-01 program günleri ve yeni gün. Okuma `fetchProgram`. ÖLÇÜLMEYEN: e2e'de içerik yok; akış `antrenman-program` birim testleri ve elle tarayıcıda.",
+  },
+  '/panel/spor/program/[id]': {
+    kapilar: ['kapsanmiyor'],
+    kanit: [],
+    not: "2026-11-01 gün bilgileri ve hareketleri düzenleme. `[id]` cuid doğrulanır; arşivli gün 404. ÖLÇÜLMEYEN: e2e'de içerik yok.",
+  },
   '/panel/spor/gelisim': {
     kapilar: ['kapsanmiyor'],
     kanit: [],
