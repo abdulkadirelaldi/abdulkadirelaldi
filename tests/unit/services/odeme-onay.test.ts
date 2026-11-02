@@ -338,3 +338,42 @@ describe('bildirim: ödenmiş taksit hatırlatılmaz', () => {
     expect(planla({ ...temel, odenen: new Set(['b:2026-10']) })).toEqual([]);
   });
 });
+
+describe('⚠️ onay ödemesi sonraki taksiti gizlemez', () => {
+  it("25 Kasım'da onaylanan 1 Kasım taksiti Aralık'ı kapatmaz", async () => {
+    const client = {
+      walletDebt: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            id: 'b',
+            name: 'Kredi',
+            monthlyPayment: decimal('1000.00'),
+            paymentDay: 1,
+            remainingAmount: decimal('9000.00'),
+            unit: 'TRY',
+            createdAt: new Date('2026-01-01T00:00:00Z'),
+          },
+        ]),
+      },
+      walletFlow: { findMany: vi.fn().mockResolvedValue([]) },
+      walletOdeme: {
+        findMany: vi
+          .fn()
+          .mockResolvedValue([{ kaynakTur: 'BORC', kaynakId: 'b', donem: '2026-11' }]),
+      },
+      walletDebtPayment: {
+        findMany: vi.fn().mockResolvedValue([
+          {
+            debtId: 'b',
+            date: new Date('2026-11-25T00:00:00Z'),
+            amount: decimal('1000.00'),
+            note: 'Aylık ödeme',
+            debt: { monthlyPayment: decimal('1000.00'), paymentDay: 1 },
+          },
+        ]),
+      },
+    } as never;
+    const liste = await fetchBekleyenOdemeler(client, '2026-11-28');
+    expect(liste.map((o) => o.donem)).toEqual(['2026-12']);
+  });
+});

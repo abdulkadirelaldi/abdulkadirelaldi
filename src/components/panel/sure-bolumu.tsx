@@ -35,7 +35,9 @@ function dakikaOku(metin: string, enAz: number): number | null {
 export function SureBolumu({
   habitId,
   gun,
-  sayac,
+  baslangic,
+  setBaslangic,
+  yenile,
   hedef,
   count,
   renk,
@@ -47,7 +49,9 @@ export function SureBolumu({
 }: {
   habitId: string;
   gun: string;
-  sayac: string | null;
+  baslangic: string | null;
+  setBaslangic: (deger: string | null) => void;
+  yenile: () => void;
   hedef: number;
   count: number;
   renk: string;
@@ -57,7 +61,6 @@ export function SureBolumu({
   duzelt: (toplam: number) => void;
   sayacSonucu: (yeniToplam: number) => void;
 }) {
-  const [baslangic, setBaslangic] = useState(sayac);
   const [simdi, setSimdi] = useState<number | null>(null);
   const [duzenle, setDuzenle] = useState(false);
   const [deger, setDeger] = useState('');
@@ -74,7 +77,9 @@ export function SureBolumu({
 
   const gecenSn =
     baslangic && simdi ? Math.max(0, Math.floor((simdi - Date.parse(baslangic)) / 1000)) : 0;
-  const goster = count + Math.floor(gecenSn / 60);
+  // Geçmiş günün satırına bugün akan sayaç eklenmez; sayaç yalnızca bugünde görünür.
+  const sayacGorunur = bugunMu && baslangic !== null;
+  const goster = count + (sayacGorunur ? Math.floor(gecenSn / 60) : 0);
   const fazla = goster - hedef;
   const mesgul = bekliyor || sayacBekliyor;
 
@@ -83,8 +88,9 @@ export function SureBolumu({
     basla(async () => {
       try {
         const sonuc = await sayacBaslatAction({ habitId });
-        if (sonuc.ok) setBaslangic(sonuc.data.baslangic);
-        else setHata(sonuc.error.message);
+        if (!sonuc.ok) return setHata(sonuc.error.message);
+        setBaslangic(sonuc.data.baslangic);
+        yenile();
       } catch {
         setHata('Bağlantı kurulamadı. Yeniden dene.');
       }
@@ -191,7 +197,7 @@ export function SureBolumu({
         </form>
       ) : (
         <div className="flex flex-wrap items-center gap-2">
-          {baslangic ? (
+          {sayacGorunur ? (
             <button
               type="button"
               disabled={mesgul}
@@ -247,7 +253,7 @@ export function SureBolumu({
       {duzenle && uzunDk === null && (
         <form onSubmit={duzeltKaydet} className="flex items-center gap-2">
           <label className="text-muted text-xs" htmlFor={`toplam-${habitId}`}>
-            Bugünün toplamı (dk)
+            Günün toplamı (dk)
           </label>
           <input
             id={`toplam-${habitId}`}

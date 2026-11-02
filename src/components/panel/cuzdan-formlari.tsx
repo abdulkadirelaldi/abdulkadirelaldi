@@ -163,7 +163,13 @@ export function HesapFormu({ hesap }: { hesap?: Omit<HesapDto, 'tl'> }) {
     if (balance === null) return setHata(tutarHatasi(birim));
     gonder(() =>
       hesap
-        ? updateWalletAccountAction({ id: hesap.id, name: ad, kind: tur, balance })
+        ? updateWalletAccountAction({
+            id: hesap.id,
+            name: ad,
+            kind: tur,
+            balance,
+            ...(birim !== hesap.unit ? { unit: birim } : {}),
+          })
         : createWalletAccountAction({ name: ad, kind: tur, unit: birim, balance }),
     );
   };
@@ -196,7 +202,6 @@ export function HesapFormu({ hesap }: { hesap?: Omit<HesapDto, 'tl'> }) {
           <select
             value={birim}
             onChange={(o) => setBirim(o.target.value as WalletUnit)}
-            disabled={Boolean(hesap)}
             className={SECIM}
           >
             {BIRIMLER.map((b) => (
@@ -207,6 +212,11 @@ export function HesapFormu({ hesap }: { hesap?: Omit<HesapDto, 'tl'> }) {
           </select>
         </Alan>
       </div>
+      {hesap && birim !== hesap.unit && (
+        <p role="status" className="text-warning -mt-2 text-xs">
+          Birim değişir ama miktar çevrilmez: yanlış birimi düzeltmek içindir. Miktarı kontrol et.
+        </p>
+      )}
       <Alan
         etiket={birim === 'TRY' ? 'Bakiye (₺)' : `Miktar (${BIRIM_ADI[birim]})`}
         hata={alanHatalari.balance}

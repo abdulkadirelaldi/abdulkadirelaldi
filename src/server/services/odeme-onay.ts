@@ -130,6 +130,9 @@ export function bekleyenleriSec(
 const addAppDaysOnce = (donem: string) => appDayToDate(addAppDays(`${donem}-01` as AppDay, -7));
 
 const para = (d: unknown): string => toMeasureString(d as never, 2) ?? '0.00';
+
+/** Onaydan yazılan ödeme satırının notu; dönemi `WalletOdeme` satırında kesin kayıtlı. */
+const ONAY_NOTU = 'Aylık ödeme';
 type Client = typeof db;
 
 /**
@@ -152,12 +155,16 @@ async function islenenKumesi(
         debtId: true,
         date: true,
         amount: true,
+        note: true,
         debt: { select: { monthlyPayment: true, paymentDay: true } },
       },
     }),
   ]);
   const ayToplami = new Map<string, { toplam: number; taksit: number }>();
   for (const o of elle) {
+    // Onay ödemesini tarihten döneme çevirmek yanlış: 25 Kasım'da kapanan 1 Kasım taksiti
+    // en yakın vade sayılan Aralık'a yazılıyor, Aralık taksiti listeden kayboluyordu.
+    if (o.note === ONAY_NOTU) continue;
     const anahtar = `BORC:${o.debtId}:${odemeDonemi(dateToAppDay(o.date), o.debt.paymentDay)}`;
     ayToplami.set(anahtar, {
       toplam: (ayToplami.get(anahtar)?.toplam ?? 0) + Number(para(o.amount)),
@@ -288,7 +295,7 @@ export async function odemeIsle(
             debtId: girdi.kaynakId,
             date: bugun,
             amount: tutar,
-            note: 'Aylık ödeme',
+            note: ONAY_NOTU,
             ...(girdi.hesapId ? { hesapId: girdi.hesapId } : {}),
           },
           tx,
@@ -386,7 +393,7 @@ async function borcOdemesiniGeriAl(
   tx: Pick<Client, 'walletDebt' | 'walletDebtPayment'>,
 ): Promise<void> {
   const odeme = await tx.walletDebtPayment.findFirst({
-    where: { debtId, date: gun, amount: tutar, note: 'Aylık ödeme' },
+    where: { debtId, date: gun, amount: tutar, note: ONAY_NOTU },
     select: { id: true },
   });
   if (odeme) await tx.walletDebtPayment.delete({ where: { id: odeme.id } });

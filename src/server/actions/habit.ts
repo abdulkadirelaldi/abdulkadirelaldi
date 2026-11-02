@@ -64,6 +64,11 @@ import { currentActorId, toFailure, unauthorized } from './_shared';
 
 /** Arşivlenmiş ya da bulunamayan alışkanlığa yazma — kullanıcı metni. */
 function blockedFailure(error: HabitWriteBlockedError): ApiFailure {
+  if (error.reason === 'SURELI_DEGIL') {
+    return fail('VALIDATION_ERROR', 'Bu alışkanlık süreli değil.', {
+      habitId: 'Alışkanlık süreli değil.',
+    });
+  }
   return error.reason === 'ARCHIVED'
     ? fail(
         'VALIDATION_ERROR',

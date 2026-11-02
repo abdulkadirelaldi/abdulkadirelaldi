@@ -7,6 +7,7 @@ import {
   dayDateSchema,
   decimalSchema,
   mediumTextSchema,
+  partialWithoutDefaults,
   shortTextSchema,
 } from './common';
 
@@ -25,7 +26,13 @@ export const walletAccountSchema = z.object({
   unit: birim.default('TRY'),
   balance: tutar,
 });
-export const updateWalletAccountSchema = walletAccountSchema.partial().extend({ id: cuidSchema });
+/*
+ * ⚠️ `.partial()` DEĞİL: varsayılanları korur ve göndermeyen forma `unit: 'TRY'` ekler.
+ * Altın hesabının adını düzenlemek onu TL hesabına çeviriyordu (2026-11-02).
+ */
+export const updateWalletAccountSchema = partialWithoutDefaults(walletAccountSchema).extend({
+  id: cuidSchema,
+});
 
 export const walletDebtSchema = z
   .object({
@@ -85,7 +92,7 @@ export const walletFlowSchema = z.object({
   note: mediumTextSchema.optional(),
   hesapId: cuidSchema.optional(),
 });
-export const updateWalletFlowSchema = walletFlowSchema.partial().extend({
+export const updateWalletFlowSchema = partialWithoutDefaults(walletFlowSchema).extend({
   id: cuidSchema,
   hesapId: cuidSchema.nullable().optional(),
   counterparty: shortTextSchema.nullable().optional(),

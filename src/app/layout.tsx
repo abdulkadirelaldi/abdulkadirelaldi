@@ -8,6 +8,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { DIL_BASLIGI, dilMi, VARSAYILAN_DIL } from '@/i18n/diller';
 import { SITE_NAME } from '@/lib/constants';
 import { cn } from '@/lib/utils/cn';
+import { getSiteUrl } from '@/server/services/_shared/site-url';
 
 import './globals.css';
 
@@ -86,6 +87,9 @@ const jetBrainsMono = localFont({
 });
 
 export const metadata: Metadata = {
+  // Göreli `og:image` adresleri buna göre tamlanır. Yoksa Next yerel adrese düşüyor ve
+  // paylaşım görselleri `http://localhost:3000/...` çıkıyordu (2026-11-02).
+  metadataBase: new URL(getSiteUrl()),
   title: {
     default: SITE_NAME,
     template: `%s · ${SITE_NAME}`,

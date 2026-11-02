@@ -12,10 +12,12 @@ vi.mock('@/server/db', () => ({ db: dbMock }));
 
 import { sureBicim } from '@/components/panel/hayat-bicim';
 import { createHabitSchema } from '@/lib/schemas/habit';
+import { archiveHabit } from '@/server/services/habit';
 import {
   sayaciBaslat,
   sayaciDurdur,
   setHabitDayCount,
+  setHabitDayStatus,
   sureEkle,
   toggleHabitDay,
 } from '@/server/services/habit-log';
@@ -85,6 +87,21 @@ describe('sayaciDurdur', () => {
     dbMock.habit.updateMany.mockResolvedValue({ count: 0 });
     expect(await sayaciDurdur({ habitId: HABIT }, simdi)).toEqual({ durum: 'YOK' });
     expect(dbMock.habitLog.upsert).not.toHaveBeenCalled();
+    // Kapatma okunan başlangıca bağlı: gecikmiş istek yeni sayacı kapatamaz.
+    expect(dbMock.habit.updateMany.mock.calls[0]?.[0].where).toEqual({
+      id: HABIT,
+      sayacBaslangic: dakikaOnce(20),
+    });
+  });
+
+  it('yarım dakikadan kısa sayaç kapanır, süre yazmaz', async () => {
+    yazilabilir({ sayacBaslangic: new Date(simdi.getTime() - 10_000) });
+    dbMock.habitLog.findUnique.mockResolvedValue(null);
+    expect(await sayaciDurdur({ habitId: HABIT }, simdi)).toMatchObject({
+      durum: 'KAYDEDILDI',
+      eklenen: 0,
+    });
+    expect(dbMock.habitLog.upsert).not.toHaveBeenCalled();
   });
 
   it('çalışan sayaç yoksa bir şey yazmaz', async () => {
@@ -98,13 +115,22 @@ describe('sayaciBaslat', () => {
     const baslangic = dakikaOnce(5);
     yazilabilir({ sayacBaslangic: baslangic });
     expect(await sayaciBaslat(HABIT, simdi)).toBe(baslangic.toISOString());
-    expect(dbMock.habit.update).not.toHaveBeenCalled();
+    // Yazma yalnızca kapalı sayaca: iki cihaz yarışında ilk başlangıç kalır.
+    expect(dbMock.habit.updateMany.mock.calls[0]?.[0].where).toEqual({
+      id: HABIT,
+      sayacBaslangic: null,
+    });
   });
 
   it('kapalıysa başlatır', async () => {
     yazilabilir();
     expect(await sayaciBaslat(HABIT, simdi)).toBe(simdi.toISOString());
-    expect(dbMock.habit.update.mock.calls[0]?.[0].data).toEqual({ sayacBaslangic: simdi });
+    expect(dbMock.habit.updateMany.mock.calls[0]?.[0].data).toEqual({ sayacBaslangic: simdi });
+  });
+
+  it('süreli olmayan alışkanlıkta başlamaz', async () => {
+    yazilabilir({ sureli: false });
+    await expect(sayaciBaslat(HABIT, simdi)).rejects.toMatchObject({ reason: 'SURELI_DEGIL' });
   });
 });
 
@@ -114,6 +140,21 @@ describe('sonradan ekleme ve sınırlar', () => {
     dbMock.habitLog.findUnique.mockResolvedValue({ count: 40 });
     const r = await sureEkle({ habitId: HABIT, date: '2026-11-02', dakika: 30 });
     expect(r.count).toBe(70);
+  });
+
+  it('süreli olmayan alışkanlığa süre eklenmez', async () => {
+    yazilabilir({ sureli: false });
+    await expect(
+      sureEkle({ habitId: HABIT, date: '2026-11-02', dakika: 30 }),
+    ).rejects.toMatchObject({
+      reason: 'SURELI_DEGIL',
+    });
+  });
+
+  it('⚠️ elle işaretleme açık sayacı kapatır: süre iki kez sayılmaz', async () => {
+    yazilabilir({ sayacBaslangic: dakikaOnce(30) });
+    await setHabitDayStatus({ habitId: HABIT, date: '2026-11-02', durum: 'YAPTIM' });
+    expect(dbMock.habit.updateMany.mock.calls[0]?.[0].data).toEqual({ sayacBaslangic: null });
   });
 
   it('bir günü geçmez', async () => {
@@ -137,6 +178,21 @@ describe('sonradan ekleme ve sınırlar', () => {
     dbMock.habitLog.findUnique.mockResolvedValue(null);
     const r = await toggleHabitDay({ habitId: HABIT, date: '2026-11-02' });
     expect(r.count).toBe(30);
+  });
+});
+
+describe('arşiv', () => {
+  it('⚠️ arşivlemek açık sayacı kapatır', async () => {
+    const update = vi.fn().mockResolvedValue({
+      id: HABIT,
+      createdAt: simdi,
+      updatedAt: simdi,
+    });
+    await archiveHabit({ id: HABIT, isArchived: true }, { habit: { update } } as never);
+    expect(update.mock.calls[0]?.[0].data).toEqual({ isArchived: true, sayacBaslangic: null });
+    update.mockClear();
+    await archiveHabit({ id: HABIT, isArchived: false }, { habit: { update } } as never);
+    expect(update.mock.calls[0]?.[0].data).toEqual({ isArchived: false });
   });
 });
 
