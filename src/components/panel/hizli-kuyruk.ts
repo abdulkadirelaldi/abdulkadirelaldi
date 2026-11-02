@@ -14,10 +14,12 @@ export interface KuyrukKaydi {
   id: string;
   tur: KuyrukTuru;
   girdi: Record<string, unknown>;
+  /** Sunucu hatasıyla kaç kez işlenemedi. */
+  deneme?: number;
 }
 
 /** `tamam` gönderildi · `red` sunucu kabul etmiyor, yeniden denemek boşuna · `bekle` sonra dene. */
-export type GonderimSonucu = 'tamam' | 'red' | 'bekle';
+export type GonderimSonucu = 'tamam' | 'red' | 'bekle' | 'atla';
 
 const ANAHTAR = 'ae-hizli-kuyruk';
 export const KUYRUK_OLAYI = 'ae-kuyruk-degisti';
@@ -53,6 +55,31 @@ export function kuyrugaEkle(tur: KuyrukTuru, girdi: Record<string, unknown>): bo
 
 export const kuyruguYaz = yaz;
 
+const REDDEDILEN_ANAHTAR = 'ae-reddedilen-kayitlar';
+
+/** Eklenemeyen kayıtlar cihazda durur: uygulama kapanınca harcama izsiz kaybolmasın. */
+export function reddedilenleriOku(): KuyrukKaydi[] {
+  try {
+    const ham = window.localStorage.getItem(REDDEDILEN_ANAHTAR);
+    const veri: unknown = ham ? JSON.parse(ham) : [];
+    return Array.isArray(veri) ? (veri as KuyrukKaydi[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function reddedilenleriYaz(kayitlar: readonly KuyrukKaydi[]): void {
+  try {
+    if (kayitlar.length === 0) window.localStorage.removeItem(REDDEDILEN_ANAHTAR);
+    else window.localStorage.setItem(REDDEDILEN_ANAHTAR, JSON.stringify(kayitlar));
+  } catch {
+    // Yazılamazsa ekranda durur; uygulama kapanana kadar görünür.
+  }
+}
+
+/** Sunucu bu kadar kez hata verirse kayıt sırayı kapatmaz, eklenemeyenlere geçer. */
+export const EN_COK_DENEME = 5;
+
 /** Kaydın kullanıcıya gösterilen özeti: tutar ve gün. SAF. */
 export function kayitOzeti(k: KuyrukKaydi): string {
   const g = k.girdi;
@@ -65,8 +92,9 @@ export function kayitOzeti(k: KuyrukKaydi): string {
 }
 
 /**
- * Sırayla gönderir; ilk `bekle`de durur (ağ yine yok). Dönen: kalanlar ve kaç
- * kaydın reddedildiği. Fırlatan gönderici `bekle` sayılır. SAF.
+ * Sırayla gönderir; ilk `bekle`de durur (ağ yine yok). `atla`: sunucu bu kaydı işleyemedi, sıra
+ * kapanmasın diye arkasındakiler sürer; `EN_COK_DENEME`den sonra reddedilir. Dönen: kalanlar ve
+ * kaç kaydın reddedildiği. Fırlatan gönderici `bekle` sayılır. SAF.
  */
 export async function kuyruguIsle(
   kayitlar: readonly KuyrukKaydi[],
@@ -74,12 +102,20 @@ export async function kuyruguIsle(
 ): Promise<{ kalan: KuyrukKaydi[]; gonderilen: number; reddedilen: KuyrukKaydi[] }> {
   let gonderilen = 0;
   const reddedilen: KuyrukKaydi[] = [];
+  const atlanan: KuyrukKaydi[] = [];
   for (let i = 0; i < kayitlar.length; i += 1) {
     const kayit = kayitlar[i] as KuyrukKaydi;
     const sonuc = await gonder(kayit).catch((): GonderimSonucu => 'bekle');
-    if (sonuc === 'bekle') return { kalan: kayitlar.slice(i), gonderilen, reddedilen };
+    if (sonuc === 'bekle') {
+      return { kalan: [...atlanan, ...kayitlar.slice(i)], gonderilen, reddedilen };
+    }
     if (sonuc === 'tamam') gonderilen += 1;
-    else reddedilen.push(kayit);
+    else if (sonuc === 'red') reddedilen.push(kayit);
+    else {
+      const deneme = (kayit.deneme ?? 0) + 1;
+      if (deneme >= EN_COK_DENEME) reddedilen.push(kayit);
+      else atlanan.push({ ...kayit, deneme });
+    }
   }
-  return { kalan: [], gonderilen, reddedilen };
+  return { kalan: atlanan, gonderilen, reddedilen };
 }

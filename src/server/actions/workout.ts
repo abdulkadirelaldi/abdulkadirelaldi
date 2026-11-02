@@ -1,7 +1,10 @@
 'use server';
 
+import { guvenliHata } from '@/lib/security/guvenli-log';
+import { sporIsaretiniGeriAl } from '@/server/services/habit-gun';
 import { createWorkoutSchema, entityIdSchema, updateWorkoutSchema } from '@/lib/schemas';
 import { db } from '@/server/db';
+import { dateToAppDay } from '@/server/services/_shared';
 import {
   createWorkout,
   deleteWorkout,
@@ -183,6 +186,11 @@ export async function deleteWorkoutAction(
   if (!parsed.ok) return parsed.failure;
 
   try {
+    // Silmeden önce: o günün spor alışkanlığı işareti antrenmanla birlikte geri alınacak.
+    const silinecek = await db.workout.findUnique({
+      where: { id: parsed.data.id },
+      select: { date: true },
+    });
     const { silinen, records } = await runInTransaction(async (tx) => {
       // 1. SİLMEDEN ÖNCE — sonra bu soru cevapsız kalır.
       const exerciseIds = await workoutAffectedExerciseIds(parsed.data.id, tx);
@@ -195,6 +203,16 @@ export async function deleteWorkoutAction(
 
       return { silinen: sonuc, records: hesap };
     });
+
+    if (silinecek) {
+      // Alışkanlık düzeltilemese de antrenman silinmiştir; hata kayda geçer.
+      await sporIsaretiniGeriAl(dateToAppDay(silinecek.date)).catch((error: unknown) =>
+        guvenliHata(
+          '[spor] işaret geri alınamadı:',
+          error instanceof Error ? error.message : error,
+        ),
+      );
+    }
 
     await writeAuditLog(
       {

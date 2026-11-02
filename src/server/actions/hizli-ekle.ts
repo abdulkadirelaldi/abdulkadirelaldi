@@ -23,7 +23,13 @@ import {
 import { suAliskanliginiIsaretle } from '@/server/services/habit-gun';
 import { gununKaydinaEkle, sonTarti } from '@/server/services/health-log';
 
+import { guvenliHata } from '@/lib/security/guvenli-log';
+
 import { currentActorId, toFailure, unauthorized } from './_shared';
+
+/** Alışkanlık işaretlenemese de su kaydı başarılıdır; hata yutulmaz, kayda geçer. */
+const isaretHatasi = (error: unknown) =>
+  guvenliHata('[hizli] alışkanlık işaretlenemedi:', error instanceof Error ? error.message : error);
 
 /**
  * HIZLI EKLEME (2026-10-30) — her ekrandaki "+" düğmesi. Üç sık iş tek
@@ -141,7 +147,7 @@ export async function hizliSuAction(
       actorId,
       kuyrukGunu(parsed.data.gun, appToday()),
       sonuc.waterMl,
-    ).catch(() => undefined);
+    ).catch(isaretHatasi);
     await writeAuditLog(
       {
         actorId,
@@ -170,7 +176,7 @@ export async function suGeriAlAction(
   try {
     const gun = kuyrukGunu(parsed.data.gun, appToday());
     const sonuc = await gununKaydinaEkle(gun, { suMl: -parsed.data.ml });
-    await suAliskanliginiIsaretle(actorId, gun, sonuc.waterMl, true).catch(() => undefined);
+    await suAliskanliginiIsaretle(actorId, gun, sonuc.waterMl, true).catch(isaretHatasi);
     await writeAuditLog(
       {
         actorId,

@@ -20,9 +20,13 @@ export function OnerilenAliskanliklar() {
         disabled={bekliyor}
         onClick={() =>
           basla(async () => {
-            const sonuc = await createSuggestedHabitsAction();
-            if (!sonuc.ok) return setHata(sonuc.error.message);
-            router.refresh();
+            try {
+              const sonuc = await createSuggestedHabitsAction();
+              if (!sonuc.ok) return setHata(sonuc.error.message);
+              router.refresh();
+            } catch {
+              setHata('Bağlantı kurulamadı. Yeniden dene.');
+            }
           })
         }
         className={buttonClasses({ size: 'lg' })}

@@ -98,8 +98,10 @@ export async function fetchHabitDay(
   client: GunClient = db,
   bugun: AppDay = appToday(),
 ): Promise<GunlukListeDto> {
-  const gunSonu = appDayToDate(addAppDays(gun, 1));
-  const habits = await client.habit.findMany({
+  // Sorgu bir gün geniş, kesin eleme aşağıda İstanbul gününe göre: `createdAt` bir an, UTC gece
+  // yarısıyla karşılaştırılsa 00:00-03:00 arası açılan alışkanlık önceki günde görünürdü.
+  const gunSonu = appDayToDate(addAppDays(gun, 2));
+  const satirlar = await client.habit.findMany({
     where: { ...AKTIF, createdAt: { lt: gunSonu } },
     select: {
       id: true,
@@ -110,9 +112,11 @@ export async function fetchHabitDay(
       targetPerWeek: true,
       sureli: true,
       sayacBaslangic: true,
+      createdAt: true,
     },
     orderBy: SIRA,
   });
+  const habits = satirlar.filter((h) => appToday(h.createdAt) <= gun);
   const logs = await client.habitLog.findMany({
     where: { habitId: { in: habits.map((h) => h.id) }, date: appDayToDate(gun) },
     select: { habitId: true, count: true, missed: true },
@@ -134,7 +138,7 @@ export async function fetchHabitDay(
       : [];
   const gunSirasi = differenceInAppDays(pazartesi, gun);
 
-  const items = habits.map(({ targetPerWeek, sayacBaslangic, sureli, ...h }) => {
+  const items = habits.map(({ targetPerWeek, sayacBaslangic, sureli, createdAt: _c, ...h }) => {
     const l = kayit.get(h.id);
     const count = l?.count ?? 0;
     const durum = gunDurumu(count, l?.missed ?? false, h.targetPerDay);
@@ -207,7 +211,7 @@ export async function fetchHabitReport(
   let toplamGun = 0;
   let toplamYapildi = 0;
   const satirlar = habits.map((h) => {
-    const baslangic = dateToAppDay(h.createdAt);
+    const baslangic = appToday(h.createdAt);
     const durumlar = gunler.map((g) => {
       if (g < baslangic) return null;
       const l = kayit.get(`${h.id}|${g}`);
@@ -308,6 +312,21 @@ export async function otomatikIsaretle(
       update: { count: yeni, missed: false },
     });
   }
+}
+
+/** Antrenman silinince: o gün başka biten antrenman yoksa spor işareti de kalkar. */
+export async function sporIsaretiniGeriAl(gun: AppDay, client: typeof db = db): Promise<void> {
+  const kalan = await client.workout.count({
+    where: { date: appDayToDate(gun), finishedAt: { not: null } },
+  });
+  if (kalan > 0) return;
+  const habits = await client.habit.findMany({
+    where: { ...AKTIF, otoKaynak: 'SPOR' },
+    select: { id: true },
+  });
+  await client.habitLog.deleteMany({
+    where: { habitId: { in: habits.map((h) => h.id) }, date: appDayToDate(gun) },
+  });
 }
 
 /** Su kaydı değişince: kullanıcının kendi hedefiyle işaretler. */

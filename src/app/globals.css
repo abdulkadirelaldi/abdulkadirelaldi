@@ -487,9 +487,10 @@
    ekranda bütün form alanları en az 16 px. Katmansız kural: Tailwind'in
    `text-sm` yardımcısı katman içinde, bu onu ezer — masaüstünde dokunulmuyor. */
 @media (pointer: coarse) {
-  input,
+  input:not(.text-lg, .text-xl, .text-2xl, .text-3xl, .text-4xl),
   select,
   textarea {
+    /* Büyük yazılı tutar alanları hariç: `1em` üst öğeyi okur, 3xl'lik alan 16 px'e düşüyordu. */
     font-size: max(16px, 1em);
   }
 }
@@ -556,15 +557,19 @@ a {
   :root.dark,
   :root.light,
   .site-kurumsal,
-  .panel-acik {
+  .panel-acik,
+  .panel-modern,
+  .light .panel-modern,
+  .light.panel-modern,
+  html:not(.dark):not(.light) .panel-modern {
     --bg-base: #ffffff;
     --bg-surface: #ffffff;
     --bg-elevated: #ffffff;
     --text-primary: #000000;
     --text-body: #1a1a1a;
     --text-muted: #4a4a4a;
-    --border-line: #b4b4b4;
-    --border-line-hover: #b4b4b4;
+    --border: #b4b4b4;
+    --border-hover: #b4b4b4;
     /* Vurgu METNİ sitenin koyu mavisi: kâğıtta da okunur, gri tonda da ayrışır. */
     --accent-soft: #1d4ed8;
     color-scheme: light;
@@ -681,6 +686,7 @@ a {
   --accent-blue: #8b3dff;
   --accent-glow: rgba(124, 74, 255, 0.5);
   --gradient-accent: linear-gradient(120deg, #5f46ff 0%, #8b3dff 58%, #b5359f 100%);
+  --uzeri-durum: #0a0a0f;
   --golge-kart: 0 0 0 1px rgb(255 255 255 / 0.07);
   --golge-kart-ust: 0 0 0 1px rgb(255 255 255 / 0.1), 0 18px 36px -20px rgb(0 0 0 / 0.8);
   --aura-zemin-1: rgb(109 74 255 / 0.2);
@@ -706,6 +712,7 @@ a {
     0 0 0 1px rgb(16 16 40 / 0.035), 0 1px 2px rgb(16 16 40 / 0.04),
     0 10px 26px -16px rgb(16 16 40 / 0.16);
   --golge-kart-ust: 0 0 0 1px rgb(16 16 40 / 0.05), 0 22px 40px -22px rgb(16 16 40 / 0.3);
+  --uzeri-durum: #ffffff;
   --aura-zemin-1: rgb(109 74 255 / 0.13);
   --aura-zemin-2: rgb(236 72 153 / 0.07);
 }
@@ -726,6 +733,7 @@ a {
       0 0 0 1px rgb(16 16 40 / 0.035), 0 1px 2px rgb(16 16 40 / 0.04),
       0 10px 26px -16px rgb(16 16 40 / 0.16);
     --golge-kart-ust: 0 0 0 1px rgb(16 16 40 / 0.05), 0 22px 40px -22px rgb(16 16 40 / 0.3);
+    --uzeri-durum: #ffffff;
     --aura-zemin-1: rgb(109 74 255 / 0.13);
     --aura-zemin-2: rgb(236 72 153 / 0.07);
   }
@@ -926,6 +934,10 @@ a {
   --text-muted: rgb(255 255 255 / 0.72);
   --accent: #c9bcff;
   --accent-soft: #e2dbff;
+  /* Açık temanın koyu durum renkleri bu zeminde okunmuyordu. */
+  --danger: #fda4af;
+  --warning: #fcd34d;
+  --success: #6ee7b7;
   --border: rgb(255 255 255 / 0.14);
   --border-hover: rgb(255 255 255 / 0.24);
   --border-strong: rgb(255 255 255 / 0.4);
@@ -1009,6 +1021,12 @@ a {
    2,9:1 kalıyordu. Yazıda `--accent-soft` iki temada da ≥ 4.5:1. */
 .panel-modern .text-accent {
   color: var(--accent-soft);
+}
+
+/* Durum renkli düğmede yazı: koyu temada kırmızı ve yeşil açık ton, beyaz yazı 2,8:1 ve 1,9:1
+   kalıyordu. Koyuda koyu yazı (≥ 7:1), açıkta beyaz. */
+.panel-modern :is(.bg-danger, .bg-success).text-white {
+  color: var(--uzeri-durum);
 }
 
 /* Ana kart içindeki cam kutucuk. */
@@ -1238,6 +1256,11 @@ a {
   .panel-modern::before,
   .acilis {
     display: none;
+  }
+  /* Kartların çerçevesi gölgeden geliyor; kâğıtta gölge basılmaz. */
+  .panel-modern :is(.surface-card, .rounded-card.border) {
+    border-color: #b4b4b4;
+    box-shadow: none;
   }
 }
 

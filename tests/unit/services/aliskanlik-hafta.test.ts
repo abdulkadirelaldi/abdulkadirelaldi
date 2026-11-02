@@ -53,6 +53,7 @@ describe('fetchHabitDay · haftalık alan', () => {
           color: null,
           targetPerDay: null,
           targetPerWeek: 3,
+          createdAt: new Date('2026-01-01T00:00:00Z'),
         },
       ]),
     },

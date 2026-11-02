@@ -3,7 +3,9 @@
 import { X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useRef } from 'react';
 
+import { useOdakTuzagi } from '@/components/panel/odak-tuzagi';
 import { useMenuDurumu } from '@/components/panel/panel-kabuk';
 import { PANEL_GRUPLARI } from '@/components/panel/panel-rotalar';
 import { cn } from '@/lib/utils/cn';
@@ -13,7 +15,7 @@ import { cn } from '@/lib/utils/cn';
  * kırıntı yolu da aynı listeden okuduğu için etiketler ayrışamıyor.
  */
 
-function MenuIcerigi({ pathname }: { pathname: string }) {
+function MenuIcerigi({ pathname, secildi }: { pathname: string; secildi?: () => void }) {
   const aktifMi = (href: string) =>
     href === '/panel' ? pathname === '/panel' : pathname.startsWith(href);
 
@@ -48,6 +50,8 @@ function MenuIcerigi({ pathname }: { pathname: string }) {
                   <Link
                     href={item.href}
                     aria-current={aktif ? 'page' : undefined}
+                    // Bulunulan sayfaya dokununca adres değişmez, çekmece yine kapansın.
+                    onClick={secildi}
                     className={cn(
                       'menu-oge focus-ring ease-brand duration-micro rounded-btn flex items-center gap-2.5 px-3 py-2 text-sm transition-colors',
                       aktif
@@ -81,6 +85,8 @@ function MenuIcerigi({ pathname }: { pathname: string }) {
 export function Sidebar() {
   const pathname = usePathname();
   const { acik, kapat } = useMenuDurumu();
+  const cekmece = useRef<HTMLDivElement>(null);
+  useOdakTuzagi(acik, cekmece, kapat);
 
   return (
     <>
@@ -131,6 +137,8 @@ export function Sidebar() {
             demek — tek satırlık bir düzeltmenin kararı değil.
           */}
           <div
+            ref={cekmece}
+            tabIndex={-1}
             id="panel-menu"
             role="dialog"
             aria-modal="true"
@@ -158,7 +166,7 @@ export function Sidebar() {
               </button>
             </div>
 
-            <MenuIcerigi pathname={pathname} />
+            <MenuIcerigi pathname={pathname} secildi={kapat} />
 
             {/* Telefonda üst çubukta "Siteye dön" yok (yer darlığı) — burada. */}
             <Link

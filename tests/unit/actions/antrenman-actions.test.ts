@@ -61,6 +61,7 @@ const { dbMock, izle } = vi.hoisted(() => {
       update: vi.fn().mockResolvedValue(exSatir),
     },
     workout: {
+      findUnique: vi.fn().mockResolvedValue(null),
       create: vi.fn().mockResolvedValue(wSatir),
       update: vi.fn().mockResolvedValue(wSatir),
       delete: vi.fn().mockImplementation(() => {

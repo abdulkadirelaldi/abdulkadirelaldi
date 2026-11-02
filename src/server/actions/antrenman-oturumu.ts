@@ -1,5 +1,6 @@
 'use server';
 
+import { guvenliHata } from '@/lib/security/guvenli-log';
 import { otomatikIsaretle } from '@/server/services/habit-gun';
 import * as z from 'zod';
 
@@ -11,14 +12,7 @@ import {
   OturumHatasi,
   startSession,
 } from '@/server/services/antrenman-oturumu';
-import {
-  appToday,
-  fail,
-  ok,
-  parseOrFail,
-  writeAuditLog,
-  type ApiResponse,
-} from '@/server/services/_shared';
+import { fail, ok, parseOrFail, writeAuditLog, type ApiResponse } from '@/server/services/_shared';
 
 import { currentActorId, toFailure, unauthorized } from './_shared';
 
@@ -100,7 +94,13 @@ export async function finishSessionAction(
   try {
     const sonuc = await finishSession(parsed.data.id);
     // Alışkanlık işaretlenemese de antrenman bitmiştir.
-    await otomatikIsaretle('SPOR', appToday()).catch(() => undefined);
+    // Gece yarısını geçen antrenman başladığı güne yazılır: işaret de o güne gider.
+    await otomatikIsaretle('SPOR', sonuc.gun).catch((error: unknown) =>
+      guvenliHata(
+        '[spor] alışkanlık işaretlenemedi:',
+        error instanceof Error ? error.message : error,
+      ),
+    );
     await writeAuditLog(
       {
         actorId,

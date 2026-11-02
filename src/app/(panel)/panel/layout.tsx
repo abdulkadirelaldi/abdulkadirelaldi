@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import { AltSekmeler } from '@/components/panel/alt-sekmeler';
 import { CevrimdisiSeridi } from '@/components/panel/cevrimdisi-seridi';
 import { GezinmeGostergesi } from '@/components/panel/gezinme-gostergesi';
+import { GunTazeleyici } from '@/components/panel/gun-tazeleyici';
 import { HizliEkle } from '@/components/panel/hizli-ekle';
 import { PanelKabuk } from '@/components/panel/panel-kabuk';
 import { Sidebar } from '@/components/panel/sidebar';
@@ -63,6 +64,7 @@ export default function PanelLayout({ children }: { children: ReactNode }) {
         </div>
 
         <GezinmeGostergesi />
+        <GunTazeleyici />
         <AltSekmeler />
         <HizliEkle />
         <CevrimdisiSeridi />

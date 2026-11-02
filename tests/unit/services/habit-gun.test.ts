@@ -46,8 +46,31 @@ describe('fetchHabitDay', () => {
   it('liste sahibinin sırasıyla, o gün henüz yokken eklenenler hariç', async () => {
     const { client, habitFindMany } = istemci(
       [
-        { id: 'a', name: 'Diş', icon: '🪥', color: null, targetPerDay: 2 },
-        { id: 'b', name: 'Kitap', icon: '📖', color: null, targetPerDay: null },
+        {
+          id: 'a',
+          name: 'Diş',
+          icon: '🪥',
+          color: null,
+          targetPerDay: 2,
+          createdAt: new Date('2026-01-01T00:00:00Z'),
+        },
+        {
+          id: 'b',
+          name: 'Kitap',
+          icon: '📖',
+          color: null,
+          targetPerDay: null,
+          createdAt: new Date('2026-01-01T00:00:00Z'),
+        },
+        // 30 Ekim 01:00 İstanbul = 29 Ekim 22:00 UTC: 29 Ekim listesine girmez.
+        {
+          id: 'c',
+          name: 'Gece açılan',
+          icon: null,
+          color: null,
+          targetPerDay: null,
+          createdAt: new Date('2026-10-29T22:00:00Z'),
+        },
       ],
       [
         { habitId: 'a', count: 1, missed: false },
@@ -58,8 +81,9 @@ describe('fetchHabitDay', () => {
 
     const arg = habitFindMany.mock.calls[0]?.[0];
     expect(arg.orderBy[0]).toEqual({ order: 'asc' });
-    // Gün SONUNDAN önce oluşturulmuş olmalı — ertesi günün gece yarısı.
-    expect(arg.where.createdAt).toEqual({ lt: gunTarihi('2026-10-30') });
+    // Sorgu geniş, kesin eleme İstanbul gününe göre: `c` ertesi gün açıldı.
+    expect(arg.where.createdAt).toEqual({ lt: gunTarihi('2026-10-31') });
+    expect(sonuc.items.map((i) => i.id)).toEqual(['a', 'b']);
 
     expect(sonuc.items.map((i) => i.durum)).toEqual(['EKSIK', 'YAPILMADI']);
     expect(sonuc.ozet).toMatchObject({ toplam: 2, eksik: 1, yapilmadi: 1, yapildi: 0 });
