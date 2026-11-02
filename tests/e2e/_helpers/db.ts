@@ -262,6 +262,21 @@ export async function hizliSondaSil(onek: string): Promise<number> {
   return silinen;
 }
 
+/** Para akışı e2e'sinin hesap ve borçlarını açar. */
+export async function cuzdanSondaKur(
+  onek: string,
+): Promise<{ hesapA: string; hesapB: string; borcId: string }> {
+  return runTask('cuzdanSondaKur', JSON.stringify({ onek }));
+}
+
+export async function cuzdanSondaSil(onek: string): Promise<number> {
+  const { silinen } = await runTask<{ silinen: number }>(
+    'cuzdanSondaSil',
+    JSON.stringify({ onek }),
+  );
+  return silinen;
+}
+
 /** Face ID e2e izlerini siler — gerekçe `db-task.ts` → `passkeySondaSil`. */
 export async function passkeySondaSil(kimlikler: string[]): Promise<number> {
   const { silinen } = await runTask<{ silinen: number }>(

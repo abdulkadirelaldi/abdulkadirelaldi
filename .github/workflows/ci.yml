@@ -245,6 +245,19 @@ jobs:
           DATABASE_URL: postgresql://ci:ci@localhost:5432/aelaldi_ci
         run: pnpm exec prisma migrate deploy
 
+      # Şemada olup göçü unutulan sütun, taklitli testleri geçer ve kapsanmayan rotada canlıda
+      # 500 verir. Göç zinciri şemayla birebir aynı olmalı.
+      - name: Göç ve şema aynı mı (prisma migrate diff)
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/aelaldi_ci
+        run: pnpm exec prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
+
+      # İşlem geri alma, eşsizlik kısıtı ve eşzamanlılık yalnızca gerçek Postgres'te ölçülür.
+      - name: Gerçek veritabanı testleri (para ve sayaç)
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/aelaldi_ci
+        run: pnpm test:integration
+
       # Seed yönetici hesabını açar; `auth.spec.ts` onunla giriş yapıyor.
       # 2FA'yı KAPALI bırakır (T-013b, bilinçli) — §8.1 kapısının test ettiği
       # başlangıç durumu tam olarak budur.

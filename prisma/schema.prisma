@@ -938,17 +938,20 @@ model WalletDebt {
 model WalletDebtPayment {
   id String @id @default(cuid())
 
-  debtId  String
-  debt    WalletDebt @relation(fields: [debtId], references: [id], onDelete: Cascade)
-  date    DateTime   @db.Date
-  amount  Decimal    @db.Decimal(14, 2)
-  note    String?
+  debtId     String
+  debt       WalletDebt @relation(fields: [debtId], references: [id], onDelete: Cascade)
+  date       DateTime   @db.Date
+  amount     Decimal    @db.Decimal(14, 2)
+  note       String?
   /// Düşülen hesap: ödeme silinince iade için. Boşsa hesaba dokunulmamıştır.
-  hesapId String?
+  hesapId    String?
+  /// Hesap başka birimdeyse hesaptan çıkan tutar (hesabın biriminde): iade bu tutarla yapılır.
+  hesapTutar Decimal?   @db.Decimal(14, 2)
 
   createdAt DateTime @default(now())
 
   @@index([debtId, date])
+  @@index([date])
   @@map("wallet_debt_payment")
 }
 
@@ -1030,6 +1033,7 @@ model WalletOdeme {
   createdAt DateTime @default(now())
 
   @@unique([kaynakTur, kaynakId, donem])
+  @@index([donem])
   @@map("wallet_odeme")
 }
 
@@ -1129,6 +1133,7 @@ model BildirimKaydi {
   createdAt DateTime @default(now())
 
   @@unique([tur, anahtar, gun])
+  @@index([gun])
   @@map("bildirim_kaydi")
 }
 

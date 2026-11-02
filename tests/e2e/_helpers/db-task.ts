@@ -337,6 +337,46 @@ const komutlar: Record<string, (arg?: string) => Promise<unknown>> = {
     return { silinen: akis.count };
   },
 
+  /** Para akışı e2e'si için iki hesap ve bir borç açar (2026-11-02). */
+  async cuzdanSondaKur(arg) {
+    const { onek } = JSON.parse(arg ?? '{}') as { onek: string };
+    const hesap = (ad: string, balance: string) =>
+      db.walletAccount.create({
+        data: { name: `${onek}${ad}`, kind: 'BANK', unit: 'TRY', balance },
+        select: { id: true },
+      });
+    const [a, b] = await Promise.all([hesap('A', '3000.00'), hesap('B', '500.00')]);
+    const borc = await db.walletDebt.create({
+      data: {
+        name: `${onek}borc`,
+        unit: 'TRY',
+        totalAmount: '5000.00',
+        remainingAmount: '5000.00',
+        monthlyPayment: '1000.00',
+      },
+      select: { id: true },
+    });
+    return { hesapA: a.id, hesapB: b.id, borcId: borc.id };
+  },
+
+  /** Para akışı e2e izlerini siler: AD önekine göre. */
+  async cuzdanSondaSil(arg) {
+    const { onek } = JSON.parse(arg ?? '{}') as { onek: string };
+    if (!onek || onek.length < 4)
+      throw new Error('cuzdanSondaSil: en az 4 karakterlik önek zorunlu.');
+    const hesaplar = await db.walletAccount.findMany({
+      where: { name: { startsWith: onek } },
+      select: { id: true },
+    });
+    const idler = hesaplar.map((h) => h.id);
+    await db.walletTransfer.deleteMany({
+      where: { OR: [{ kaynakId: { in: idler } }, { hedefId: { in: idler } }] },
+    });
+    await db.walletDebt.deleteMany({ where: { name: { startsWith: onek } } });
+    const silinen = await db.walletAccount.deleteMany({ where: { id: { in: idler } } });
+    return { silinen: silinen.count };
+  },
+
   /**
    * Face ID e2e'sinin eklediği passkey'i siler (2026-10-30). Ölçüt testin
    * SANAL CİHAZININ kimlik bilgisi kimliği: masaüstü ve mobil projeleri aynı
