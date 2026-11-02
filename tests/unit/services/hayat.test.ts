@@ -253,6 +253,7 @@ describe('alışkanlık yönetimi', () => {
       name: 'Su',
       targetPerWeek: 7,
       targetPerDay: 8,
+      sureli: false,
       color: null,
       icon: null,
       order: 0,

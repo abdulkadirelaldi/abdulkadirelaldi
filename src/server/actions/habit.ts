@@ -5,7 +5,10 @@ import {
   createHabitLogSchema,
   createHabitSchema,
   moveHabitSchema,
+  sayacBaslatSchema,
+  sayacDurdurSchema,
   setHabitDayStatusSchema,
+  sureEkleSchema,
   toggleHabitLogSchema,
   updateHabitSchema,
 } from '@/lib/schemas';
@@ -14,10 +17,14 @@ import { archiveHabit, createHabit, updateHabit, type HabitDto } from '@/server/
 import { createSuggestedHabits, moveHabit } from '@/server/services/habit-gun';
 import {
   HabitWriteBlockedError,
+  sayaciBaslat,
+  sayaciDurdur,
   setHabitDayCount,
   setHabitDayStatus,
+  sureEkle,
   toggleHabitDay,
   type HabitDayResult,
+  type SayacSonucu,
 } from '@/server/services/habit-log';
 import {
   buildDiff,
@@ -218,6 +225,69 @@ export async function setHabitDayStatusAction(raw: unknown): Promise<ApiResponse
   } catch (error) {
     if (error instanceof HabitWriteBlockedError) return blockedFailure(error);
     return toFailure('habitLog:status', error);
+  }
+}
+
+/** Süreli alışkanlığa sonradan dakika ekler. */
+export async function sureEkleAction(raw: unknown): Promise<ApiResponse<HabitDayResult>> {
+  const actorId = await currentActorId();
+  if (!actorId) return unauthorized();
+
+  const parsed = parseOrFail(sureEkleSchema, raw);
+  if (!parsed.ok) return parsed.failure;
+
+  try {
+    const sonuc = await sureEkle(parsed.data);
+    await writeDayAudit(actorId, sonuc);
+    return ok(sonuc);
+  } catch (error) {
+    if (error instanceof HabitWriteBlockedError) return blockedFailure(error);
+    return toFailure('habitLog:sureEkle', error);
+  }
+}
+
+/** Sayacı başlatır; başlangıç zamanını döner. */
+export async function sayacBaslatAction(raw: unknown): Promise<ApiResponse<{ baslangic: string }>> {
+  const actorId = await currentActorId();
+  if (!actorId) return unauthorized();
+
+  const parsed = parseOrFail(sayacBaslatSchema, raw);
+  if (!parsed.ok) return parsed.failure;
+
+  try {
+    const baslangic = await sayaciBaslat(parsed.data.habitId);
+    await writeAuditLog(
+      {
+        actorId,
+        action: 'UPDATE',
+        entity: 'Habit',
+        entityId: parsed.data.habitId,
+        diff: { sayac: 'BASLADI' },
+      },
+      db,
+    );
+    return ok({ baslangic });
+  } catch (error) {
+    if (error instanceof HabitWriteBlockedError) return blockedFailure(error);
+    return toFailure('habit:sayacBaslat', error);
+  }
+}
+
+/** Sayacı durdurur; çok uzun açık kaldıysa süreyi yazmadan sorar. */
+export async function sayacDurdurAction(raw: unknown): Promise<ApiResponse<SayacSonucu>> {
+  const actorId = await currentActorId();
+  if (!actorId) return unauthorized();
+
+  const parsed = parseOrFail(sayacDurdurSchema, raw);
+  if (!parsed.ok) return parsed.failure;
+
+  try {
+    const sonuc = await sayaciDurdur(parsed.data);
+    if (sonuc.durum === 'KAYDEDILDI') await writeDayAudit(actorId, sonuc.sonuc);
+    return ok(sonuc);
+  } catch (error) {
+    if (error instanceof HabitWriteBlockedError) return blockedFailure(error);
+    return toFailure('habit:sayacDurdur', error);
   }
 }
 

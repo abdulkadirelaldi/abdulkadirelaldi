@@ -7,6 +7,7 @@ import type * as z from 'zod';
 
 import { Alan, BOS_ISE_YOK, SAYI_YA_DA_YOK, bosaltilanlariNullYap } from '@/components/panel/alan';
 import { ArsivleDugmesi } from '@/components/panel/arsivle-dugmesi';
+import { sureBicim } from '@/components/panel/hayat-bicim';
 import { FormKabugu, usePanelForm } from '@/components/panel/panel-form';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -44,13 +45,15 @@ import type { HabitDto } from '@/server/services/habit';
 type AliskanlikFormGirdi = z.input<typeof createHabitSchema>;
 
 const RENK_BICIMI = /^#[0-9a-fA-F]{6}$/;
+const HAZIR_SURELER = [15, 30, 45, 60, 90, 120];
 
 function baslangic(kayit: HabitDto | undefined): AliskanlikFormGirdi {
-  if (!kayit) return { name: '', targetPerWeek: 7, isActive: true, icon: '' };
+  if (!kayit) return { name: '', targetPerWeek: 7, sureli: false, isActive: true, icon: '' };
   return {
     name: kayit.name,
     targetPerWeek: kayit.targetPerWeek,
     targetPerDay: kayit.targetPerDay ?? undefined,
+    sureli: kayit.sureli,
     color: kayit.color ?? undefined,
     icon: kayit.icon ?? '',
     isActive: kayit.isActive,
@@ -89,10 +92,12 @@ export function AliskanlikFormu({ kayit }: { kayit?: HabitDto }) {
 
   const {
     register,
+    setValue,
     watch,
     formState: { errors },
   } = form;
   const renk = watch('color');
+  const sureli = watch('sureli');
 
   const arsivdenCikar = async () => {
     if (!kayit) return;
@@ -194,12 +199,14 @@ export function AliskanlikFormu({ kayit }: { kayit?: HabitDto }) {
 
             <Alan
               id="targetPerDay"
-              etiket="Günlük hedef (kez)"
+              etiket={sureli ? 'Günlük hedef (dakika)' : 'Günlük hedef (kez)'}
               hata={errors.targetPerDay?.message}
               yardim={
-                duzenleme
-                  ? 'Gün içinde kaç KEZ (ör. 8 bardak su). Boşaltmak alışkanlığı yapıldı/yapılmadı türüne çevirir.'
-                  : 'Gün içinde kaç KEZ (ör. 8 bardak su). Boş bırakılırsa "yapıldı/yapılmadı" yeterli.'
+                sureli
+                  ? 'Gün içinde kaç DAKİKA. 1 saat = 60, yarım saat = 30.'
+                  : duzenleme
+                    ? 'Gün içinde kaç KEZ (ör. 8 bardak su). Boşaltmak alışkanlığı yapıldı/yapılmadı türüne çevirir.'
+                    : 'Gün içinde kaç KEZ (ör. 8 bardak su). Boş bırakılırsa "yapıldı/yapılmadı" yeterli.'
               }
             >
               {(b) => (
@@ -208,7 +215,7 @@ export function AliskanlikFormu({ kayit }: { kayit?: HabitDto }) {
                   type="number"
                   inputMode="numeric"
                   min={1}
-                  max={100}
+                  max={sureli ? 1440 : 100}
                   className="tabular w-28"
                   {...b}
                   {...register('targetPerDay', SAYI_YA_DA_YOK)}
@@ -216,6 +223,36 @@ export function AliskanlikFormu({ kayit }: { kayit?: HabitDto }) {
               )}
             </Alan>
           </div>
+
+          <label className="flex w-fit items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="focus-ring accent-accent size-4"
+              {...register('sureli')}
+            />
+            Hedef süre olsun (kitap oku 30 dk, ders çalış 1 saat)
+          </label>
+          {sureli && (
+            <div className="-mt-1 flex flex-wrap gap-1.5">
+              {HAZIR_SURELER.map((dk) => (
+                <button
+                  key={dk}
+                  type="button"
+                  onClick={() =>
+                    setValue('targetPerDay', dk, { shouldDirty: true, shouldValidate: true })
+                  }
+                  className="focus-ring bg-elevated text-body min-h-10 rounded-full px-3.5 text-sm font-medium"
+                >
+                  {sureBicim(dk)}
+                </button>
+              ))}
+            </div>
+          )}
+          {sureli && kayit && !kayit.sureli && kayit.targetPerDay !== null && (
+            <p className="text-warning -mt-1 text-xs">
+              Eski günlerdeki sayılar dakika olarak okunacak.
+            </p>
+          )}
 
           <Alan
             id="otoKaynak"

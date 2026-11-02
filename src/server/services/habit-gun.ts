@@ -49,6 +49,10 @@ export interface GunlukAliskanlikDto {
   icon: string | null;
   color: string | null;
   targetPerDay: number | null;
+  /** `targetPerDay` ve `count` dakika. */
+  sureli: boolean;
+  /** Çalışan sayacın başlangıcı (ISO). */
+  sayacBaslangic: string | null;
   count: number;
   durum: GunDurumu;
   /** Bugün gerekli mi: haftalık hedef kalan günlere sığıyorsa değil. */
@@ -104,6 +108,8 @@ export async function fetchHabitDay(
       color: true,
       targetPerDay: true,
       targetPerWeek: true,
+      sureli: true,
+      sayacBaslangic: true,
     },
     orderBy: SIRA,
   });
@@ -128,7 +134,7 @@ export async function fetchHabitDay(
       : [];
   const gunSirasi = differenceInAppDays(pazartesi, gun);
 
-  const items = habits.map(({ targetPerWeek, ...h }) => {
+  const items = habits.map(({ targetPerWeek, sayacBaslangic, sureli, ...h }) => {
     const l = kayit.get(h.id);
     const count = l?.count ?? 0;
     const durum = gunDurumu(count, l?.missed ?? false, h.targetPerDay);
@@ -138,6 +144,8 @@ export async function fetchHabitDay(
     ).length;
     return {
       ...h,
+      sureli: sureli ?? false,
+      sayacBaslangic: sayacBaslangic?.toISOString() ?? null,
       count,
       durum,
       gerekli: durum === 'YAPILDI' || gunGerekliMi(hedef, onceki, gunSirasi),

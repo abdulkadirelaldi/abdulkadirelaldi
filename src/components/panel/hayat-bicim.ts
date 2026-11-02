@@ -18,6 +18,14 @@ import type { GoalStatus } from '@/types';
  */
 
 /** Pazartesiden pazara (ADR-016 — hafta pazartesi başlar). */
+/** 30 → "30 dk", 60 → "1 sa", 90 → "1 sa 30 dk". SAF. */
+export function sureBicim(dakika: number): string {
+  const saat = Math.floor(dakika / 60);
+  const kalan = dakika % 60;
+  if (saat === 0) return `${kalan} dk`;
+  return kalan === 0 ? `${saat} sa` : `${saat} sa ${kalan} dk`;
+}
+
 export const HAFTA_GUNLERI_KISA = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'] as const;
 
 const AYLAR_UZUN = [

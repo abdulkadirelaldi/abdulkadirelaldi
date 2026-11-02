@@ -12,6 +12,7 @@ import {
  * `Habit` (ADR-021).
  * `targetPerWeek` = haftada kaç GÜN, `targetPerDay` = gün içinde kaç KEZ
  * (örn. 8 bardak su). Referans veri: silinmez, arşivlenir (ADR-017).
+ * `sureli` iken `targetPerDay` günlük DAKİKA hedefidir (2026-11-02).
  */
 const habitBase = z.object({
   name: shortTextSchema.min(1, { error: 'Alışkanlık adı zorunludur.' }),
@@ -25,8 +26,9 @@ const habitBase = z.object({
     .number()
     .int()
     .min(1, { error: 'Günlük hedef en az 1 olmalıdır.' })
-    .max(100, { error: 'Günlük hedef geçersiz.' })
+    .max(1440, { error: 'Günlük hedef geçersiz.' })
     .optional(),
+  sureli: z.boolean().default(false),
   color: z
     .string()
     .regex(/^#[0-9a-fA-F]{6}$/, { error: 'Renk #RRGGBB biçiminde olmalıdır.' })
@@ -38,7 +40,15 @@ const habitBase = z.object({
   otoKaynak: z.enum(['SU', 'SPOR']).optional(),
 });
 
-export const createHabitSchema = habitBase;
+export const createHabitSchema = habitBase.superRefine((v, ctx) => {
+  if (v.sureli && v.targetPerDay === undefined) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['targetPerDay'],
+      message: 'Süreli hedef için günlük dakika yaz.',
+    });
+  }
+});
 /*
  * TEMİZLENEBİLİR ALANLAR — `null` = "boşalt", `undefined` = "dokunma" (T-031
  * kuralı). `partialWithoutDefaults` alanı yalnızca VERİLMEYEBİLİR yapıyordu;

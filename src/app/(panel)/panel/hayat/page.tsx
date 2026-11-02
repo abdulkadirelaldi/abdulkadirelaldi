@@ -4,6 +4,7 @@ import Link from 'next/link';
 
 import { GunlukListe } from '@/components/panel/gunluk-liste';
 import { HayatAltMenu } from '@/components/panel/hayat-alt-menu';
+import { sureBicim } from '@/components/panel/hayat-bicim';
 import { HayatIstatistik, HayatUstKarti } from '@/components/panel/hayat-ust';
 import { IsiHaritasi, Seriler } from '@/components/panel/hayat-seri';
 import { OnerilenAliskanliklar } from '@/components/panel/onerilen-aliskanliklar';
@@ -119,7 +120,12 @@ export default async function HayatPage({ searchParams }: SayfaProps) {
             </section>
           ) : (
             <>
-              <GunlukListe gun={gun} items={liste.items} seriler={seriMetinleri} />
+              <GunlukListe
+                gun={gun}
+                bugunMu={gun === liste.bugun}
+                items={liste.items}
+                seriler={seriMetinleri}
+              />
 
               <GunRaporu liste={liste} etiket={etiket} />
 
@@ -184,7 +190,13 @@ function GunRaporu({ liste, etiket }: { liste: GunlukListeDto; etiket: string })
           {eksik.length > 0 && (
             <li>
               <span className="text-warning font-medium">Eksik kaldı: </span>
-              {eksik.map((i) => `${i.name} (${i.count}/${i.targetPerDay})`).join(', ')}
+              {eksik
+                .map((i) =>
+                  i.sureli
+                    ? `${i.name} (${sureBicim(i.count)} / ${sureBicim(i.targetPerDay ?? 0)})`
+                    : `${i.name} (${i.count}/${i.targetPerDay})`,
+                )
+                .join(', ')}
             </li>
           )}
           {isaretsiz.length > 0 && (

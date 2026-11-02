@@ -55,6 +55,8 @@ export interface HabitDto {
   targetPerWeek: number;
   /** Gün içinde kaç KEZ; `null` → "yapıldı/yapılmadı" yeterli. */
   targetPerDay: number | null;
+  /** `targetPerDay` dakika (2026-11-02). */
+  sureli: boolean;
   color: string | null;
   icon: string | null;
   /** Günlük listedeki sıra — küçük önce (2026-10-29). */
@@ -72,6 +74,7 @@ const HABIT_SELECT = {
   name: true,
   targetPerWeek: true,
   targetPerDay: true,
+  sureli: true,
   color: true,
   icon: true,
   order: true,
@@ -95,6 +98,7 @@ interface HabitRow {
   createdAt: Date;
   updatedAt: Date;
   otoKaynak?: string | null;
+  sureli?: boolean;
 }
 
 interface HabitLogRow {
@@ -122,6 +126,7 @@ export interface HabitClient {
         name: string;
         targetPerWeek: number;
         targetPerDay: number | null;
+        sureli: boolean;
         color: string | null;
         icon: string | null;
         order: number;
@@ -154,6 +159,7 @@ function toDto(row: HabitRow): HabitDto {
     name: row.name,
     targetPerWeek: row.targetPerWeek,
     targetPerDay: row.targetPerDay,
+    sureli: row.sureli ?? false,
     color: row.color,
     icon: row.icon,
     order: row.order,
@@ -439,6 +445,7 @@ export async function createHabit(
       name: input.name,
       targetPerWeek: input.targetPerWeek,
       targetPerDay: input.targetPerDay ?? null,
+      sureli: input.sureli,
       color: input.color ?? null,
       icon: input.icon?.trim() ? input.icon : null,
       order: input.order,
@@ -472,6 +479,7 @@ export async function updateHabit(
       ...(fields.name !== undefined ? { name: fields.name } : {}),
       ...(fields.targetPerWeek !== undefined ? { targetPerWeek: fields.targetPerWeek } : {}),
       ...(fields.targetPerDay !== undefined ? { targetPerDay: fields.targetPerDay } : {}),
+      ...(fields.sureli !== undefined ? { sureli: fields.sureli } : {}),
       ...(fields.color !== undefined ? { color: fields.color } : {}),
       ...(fields.icon !== undefined ? { icon: fields.icon?.trim() ? fields.icon : null } : {}),
       ...(fields.isActive !== undefined ? { isActive: fields.isActive } : {}),
