@@ -5,8 +5,8 @@ name: Izleme
 
 on:
   schedule:
-    # İki saatte bir: depo özel; ayda ~360 dakika, ücretsiz 2000 dakikanın içinde CI'a yer kalır.
-    - cron: '7 */2 * * *'
+    # Yarım saatte bir: depo herkese açık, Actions dakikası sayılmıyor.
+    - cron: '7,37 * * * *'
   workflow_dispatch:
 
 permissions:

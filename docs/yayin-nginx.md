@@ -1,6 +1,6 @@
 # Yayın — paylaşımlı sunucu (nginx + Docker)
 
-Site **187.77.66.202** üzerinde, `https://abdulkadirelaldi.com` adresinde yayında
+Site paylaşımlı bir sunucuda (`$SUNUCU`, bkz. `~/.config/aelaldi/sunucu`), `https://abdulkadirelaldi.com` adresinde yayında
 (2026-10-22). Bu belge o kurulumu ve sonraki güncellemeleri anlatır.
 Coolify kurulumu için `docs/yayin.md`; bu sunucu için **o yol kullanılmıyor**.
 
@@ -61,7 +61,7 @@ Kontrol:
 İçerik dosyaları (`scripts/icerik/*`) değiştiyse ardından:
 
 ```bash
-ssh root@187.77.66.202 'cd /opt/aelaldi && docker compose exec -T araclar \
+ssh "$SUNUCU" 'cd /opt/aelaldi && docker compose exec -T araclar \
   node --import ./scripts/yedek-register.mjs scripts/icerik-yukle.ts --esitle && docker compose up -d --force-recreate uygulama'
 ```
 
@@ -75,7 +75,7 @@ korur; sayfalar önbellek süresi dolana kadar eski içeriği gösterir.
 Şifre kimseye söylenmez, sohbete yazılmaz; sunucuda gizli girişle okunur:
 
 ```bash
-ssh root@187.77.66.202
+ssh "$SUNUCU"
 cd /opt/aelaldi
 read -rsp "Panel şifresi: " ADMIN_PASSWORD; echo
 export ADMIN_PASSWORD
@@ -107,7 +107,7 @@ Bildirimler → "Bildirimleri aç" (iPhone'da panel ana ekrandan açılmış olm
 `uretim-baslat.ts` var olan hesabın şifresine dokunmaz; sıfırlama ayrı betik:
 
 ```bash
-ssh root@187.77.66.202
+ssh "$SUNUCU"
 cd /opt/aelaldi
 read -rsp "Yeni şifre: " ADMIN_PASSWORD; echo
 export ADMIN_PASSWORD
@@ -141,7 +141,7 @@ Uzak şifreli yedek için cron'a ekle (`crontab -e`):
 `/opt/aelaldi/.env` sunucuda `openssl rand` ile üretildi; hiçbir yere
 yazdırılmadı. **`TOTP_ENCRYPTION_KEY` ve `BACKUP_ENCRYPTION_KEY`i parola
 yöneticisine kopyala** — kaybolursa 2FA ve şifreli yedekler açılamaz:
-`ssh root@187.77.66.202 cat /opt/aelaldi/.env`.
+`ssh "$SUNUCU" cat /opt/aelaldi/.env`.
 
 ## Geri yükleme (yerel yedekten)
 

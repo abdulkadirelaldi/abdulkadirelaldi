@@ -14,7 +14,9 @@
 #    Kesinti: konteynerin yeniden başlama süresi (birkaç saniye).
 set -euo pipefail
 
-SUNUCU=${SUNUCU:-root@187.77.66.202}
+# Hedef depoda değil, bu makinede: ~/.config/aelaldi/sunucu (içinde `kullanıcı@adres`) ya da $SUNUCU.
+SUNUCU=${SUNUCU:-$(cat "$HOME/.config/aelaldi/sunucu" 2>/dev/null || true)}
+[ -n "$SUNUCU" ] || { echo "Sunucu adresi yok: ~/.config/aelaldi/sunucu dosyasını oluşturun." >&2; exit 1; }
 SITE_URL=${SITE_URL:-https://abdulkadirelaldi.com}
 # Bağlantı canlı mı diye 30 sn'de bir yoklanır; 2 dakika yanıt yoksa ssh hata verir.
 # Yoklama yokken gönderim sırasında Mac ağ değiştirince ssh ölü bağlantıyı

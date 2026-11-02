@@ -2,6 +2,13 @@
 
 Kişisel site (public portföy/CV) ve tek kullanıcılı yönetim paneli — tek Next.js uygulaması.
 
+Canlı: [abdulkadirelaldi.com](https://abdulkadirelaldi.com). Üç dilli site (TR, EN, DE) ve girişin
+arkasında bütçe, alışkanlık, antrenman ve sağlık takibi yapan, telefona kurulabilen, çevrimdışı
+kayıt alan bir panel.
+
+Next.js 15, TypeScript, PostgreSQL, Prisma, Tailwind; testler Vitest (birim ve gerçek PostgreSQL
+entegrasyon) ile Playwright (uçtan uca). Kodun büyük bölümü Claude Code ile yazıldı.
+
 > **Tek doğruluk kaynağı [PROGRAM.md](PROGRAM.md)'dir.** Mimari kararlar
 > [docs/DECISIONS.md](docs/DECISIONS.md), durum [docs/STATUS.md](docs/STATUS.md).
 

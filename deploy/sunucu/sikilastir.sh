@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Sunucu sıkılaştırma — SUNUCUDA, root olarak, SİTE SAHİBİ çalıştırır (BİR KEZ).
 #
-#   ssh root@187.77.66.202 'bash -s' < deploy/sunucu/sikilastir.sh
+#   ssh "$SUNUCU" 'bash -s' < deploy/sunucu/sikilastir.sh
 #
 # 1. SSH: şifreyle giriş KAPALI, root yalnızca anahtarla. `sshd_config.d`de İLK
 #    eşleşen kazanır; 50-cloud-init.conf `PasswordAuthentication yes` diyordu ve
@@ -12,7 +12,7 @@
 #
 # KİLİTLENME KORUMASI: authorized_keys boşsa hiçbir şey değişmez; sshd -t /
 # nginx -t geçmezse değişiklik geri alınır. Açık oturumlar kapanmaz — bitince
-# YENİ bir terminalde `ssh root@187.77.66.202` ile girişi deneyin.
+# YENİ bir terminalde `ssh "$SUNUCU"` ile girişi deneyin.
 set -euo pipefail
 
 if [ ! -s /root/.ssh/authorized_keys ]; then

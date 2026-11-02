@@ -1691,7 +1691,7 @@ Site iki uzman (profesör, fullstack) ve beş ziyaretçi gözüyle incelendi; ko
 
 ## 🚀 SİTE YAYINDA — https://abdulkadirelaldi.com (Orkestra Şefi, 2026-10-22)
 
-Sunucu (187.77.66.202) boş değildi: müşteri siteleri (nginx, 80/443) ve mailcow çalışıyor,
+Sunucu boş değildi: müşteri siteleri (nginx, 80/443) ve mailcow çalışıyor,
 1 CPU / 3,8 GB RAM. Coolify bu yüzden KURULMADI (80/443 çakışması, bellek). Kurulum
 askarmedikal.com ile aynı düzende: Docker (yalnızca 127.0.0.1:3400) + mevcut nginx +
 certbot. Ayrıntı ve güncelleme: **docs/yayin-nginx.md**, betik `deploy/sunucu/gonder.sh`.

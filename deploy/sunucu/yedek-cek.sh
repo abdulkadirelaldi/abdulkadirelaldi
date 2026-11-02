@@ -8,7 +8,9 @@
 # yedek değildir. 60 gün saklanır.
 set -euo pipefail
 
-SUNUCU=${SUNUCU:-root@187.77.66.202}
+# Hedef depoda değil, bu makinede: ~/.config/aelaldi/sunucu (içinde `kullanıcı@adres`) ya da $SUNUCU.
+SUNUCU=${SUNUCU:-$(cat "$HOME/.config/aelaldi/sunucu" 2>/dev/null || true)}
+[ -n "$SUNUCU" ] || { echo "Sunucu adresi yok: ~/.config/aelaldi/sunucu dosyasını oluşturun." >&2; exit 1; }
 HEDEF=${HEDEF:-$HOME/Yedekler/aelaldi}
 SAKLA_GUN=60
 mkdir -p "$HEDEF"
