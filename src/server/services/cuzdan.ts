@@ -22,6 +22,7 @@ import {
   type AppDay,
 } from './_shared';
 import {
+  hesabaFarkYansit,
   hesabaYansit,
   OdemeHatasi,
   ONAY_NOTU,
@@ -96,12 +97,17 @@ export function vade(donem: string, gun: number): AppDay {
   return `${donem}-${String(Math.min(gun, son)).padStart(2, '0')}` as AppDay;
 }
 
+/** Vadeye bu kadar gün yakın ödeme o taksidi kapatır; daha uzağı kendi takvim ayında kalır. */
+const YAKIN_ODEME_GUNU = 7;
+
 export const gunFarki = (a: string, b: string) =>
   Math.round((Date.parse(`${a}T00:00:00Z`) - Date.parse(`${b}T00:00:00Z`)) / 86_400_000);
 
 /**
- * Elle ödeme hangi taksidi karşılar: vadesi en yakın dönem. 1 Kasım taksidi 30 Ekim'de
- * ödenirse Kasım'ı kapatır. Ödeme günü yoksa takvim ayı. SAF.
+ * Elle ödeme hangi taksidi karşılar: vadesine 7 günden yakın olduğu dönem, yoksa kendi takvim ayı.
+ * 1 Kasım taksidi 30 Ekim'de ödenirse Kasım; 28 Ekim taksidi 2 Kasım'da ödenirse Ekim. 17 Kasım'daki
+ * ödeme iki vadeye de uzak: Kasım'da kalır, 14 gün sonraki Aralık'a kaymaz. Ödeme günü yoksa takvim
+ * ayı. Pencere `islenenKumesi` ve `fetchCuzdan` sorgularıyla aynı. SAF.
  */
 export function odemeDonemi(gun: AppDay, odemeGunu: number | null | undefined): string {
   const buAy = gun.slice(0, 7);
@@ -111,11 +117,9 @@ export function odemeDonemi(gun: AppDay, odemeGunu: number | null | undefined): 
     buAy,
     addAppDays(vade(buAy, 31), 1).slice(0, 7),
   ];
-  return adaylar.reduce((en, aday) =>
-    Math.abs(gunFarki(vade(aday, odemeGunu), gun)) < Math.abs(gunFarki(vade(en, odemeGunu), gun))
-      ? aday
-      : en,
-  );
+  const uzaklik = (donem: string) => Math.abs(gunFarki(vade(donem, odemeGunu), gun));
+  const enYakin = adaylar.reduce((en, aday) => (uzaklik(aday) < uzaklik(en) ? aday : en));
+  return uzaklik(enYakin) <= YAKIN_ODEME_GUNU ? enYakin : buAy;
 }
 
 /**
@@ -708,6 +712,8 @@ export async function createWalletFlow(
 export async function updateWalletFlow(input: UpdateWalletFlowInput, client: Client = db) {
   const { id, date, hesapId, ...alanlar } = input;
   return client.$transaction(async (tx) => {
+    // Aynı kalemi iki cihaz aynı anda düzenlerse ikincisi güncel değeri okusun.
+    await tx.$queryRaw`SELECT 1 FROM "wallet_flow" WHERE "id" = ${id} FOR UPDATE`;
     const eski = await tx.walletFlow.findUnique({
       where: { id },
       select: { kind: true, frequency: true, amount: true, unit: true, hesapId: true },
@@ -735,7 +741,23 @@ export async function updateWalletFlow(input: UpdateWalletFlowInput, client: Cli
       Number(eskiEtki.amount) !== Number(yeniEtki.amount) ||
       eskiEtki.unit !== yeniEtki.unit ||
       (eskiEtki.hesapId ?? null) !== (yeniEtki.hesapId ?? null);
-    if (paraDegisti) {
+    const yalnizTutar =
+      eskiEtki.kind === yeniEtki.kind &&
+      eskiEtki.frequency === 'ONCE' &&
+      yeniEtki.frequency === 'ONCE' &&
+      eskiEtki.unit === yeniEtki.unit &&
+      eskiEtki.hesapId &&
+      eskiEtki.hesapId === yeniEtki.hesapId;
+    if (paraDegisti && yalnizTutar) {
+      await hesabaFarkYansit(
+        eskiEtki.hesapId as string,
+        eskiEtki.kind,
+        eskiEtki.unit,
+        eskiEtki.amount,
+        yeniEtki.amount,
+        tx,
+      );
+    } else if (paraDegisti) {
       await yansimayiGeriAl(eskiEtki, tx);
       await hesabaYansit(yeniEtki, tx);
     }

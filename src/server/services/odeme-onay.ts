@@ -15,6 +15,7 @@ import {
 import {
   borcaGeriEkle,
   borcOdemesiYaz,
+  borcuKilitle,
   hesabaIade,
   hesaptanDus,
   gunFarki,
@@ -238,6 +239,8 @@ export async function odemeIsle(
 ): Promise<{ yeni: boolean }> {
   try {
     await client.$transaction(async (tx) => {
+      // Okumadan önce kilit: iki dönemi aynı anda onaylamak kalan borcu iki kez düşmesin.
+      if (girdi.kaynakTur === 'BORC') await borcuKilitle(girdi.kaynakId, tx);
       const kaynak =
         girdi.kaynakTur === 'BORC'
           ? await tx.walletDebt.findUnique({
@@ -359,10 +362,11 @@ export async function odemeGeriAl(
 
     const tutar = toMeasureString(kayit.tutar, 2);
     if (kayit.durum === 'ODENDI' && tutar) {
-      if (kayit.hesapId) await hesabaIade(kayit.hesapId, tutar, tx);
+      // Kilit sırası her yolda borç, sonra hesap: karşılıklı beklemede kalınmasın.
       if (kayit.kaynakTur === 'BORC') {
         await borcOdemesiniGeriAl(kayit.kaynakId, kayit.gun, tutar, tx);
       }
+      if (kayit.hesapId) await hesabaIade(kayit.hesapId, tutar, tx);
     }
     await tx.walletOdeme.delete({ where: { kaynakTur_kaynakId_donem: anahtar } });
     return { geriAlindi: true };

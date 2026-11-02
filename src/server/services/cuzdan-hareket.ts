@@ -180,8 +180,9 @@ export async function deleteDebtPayment(id: string, client: Client = db): Promis
           })
         : null;
     const hesapId = odeme.hesapId ?? onay?.hesapId ?? null;
-    if (hesapId) await hesabaIade(hesapId, odeme.hesapTutar ? para(odeme.hesapTutar) : tutar, tx);
+    // Kilit sırası her yolda borç, sonra hesap.
     await borcaGeriEkle(odeme.debtId, tutar, tx);
+    if (hesapId) await hesabaIade(hesapId, odeme.hesapTutar ? para(odeme.hesapTutar) : tutar, tx);
     if (onay) await tx.walletOdeme.delete({ where: { id: onay.id } });
     await tx.walletDebtPayment.delete({ where: { id } });
   });
@@ -217,12 +218,46 @@ export async function yansimayiGeriAl(
   return hesaptanDus(k.hesapId, k.unit, k.amount, tx);
 }
 
+/**
+ * Yönden bağımsız sabit sıra: A→B ile B→A aynı anda gelince karşılıklı beklenmesin. `hesaptanDus`
+ * ve `hesabaIade` aynı işlemde yeniden kilitler; bu bekletmez.
+ */
+async function ikiHesabiKilitle(
+  a: string,
+  b: string,
+  tx: Pick<Client, '$queryRaw'>,
+): Promise<void> {
+  for (const id of [a, b].sort()) await hesabiKilitle(id, tx);
+}
+
+/**
+ * Tutarı düzeltilen tek seferlik kalemin farkı. Önce eskiyi geri alıp yeniyi uygulamak ara adımda
+ * bakiyeyi aşıyordu: 600 ₺ kalmış hesapta 1000 ₺'lik geliri 900'e düzeltmek reddediliyordu.
+ */
+export async function hesabaFarkYansit(
+  hesapId: string,
+  kind: HesapEtkisi['kind'],
+  unit: WalletUnit,
+  eskiTutar: string,
+  yeniTutar: string,
+  tx: Pick<Client, 'walletAccount' | '$queryRaw'>,
+): Promise<void> {
+  const artis = subtractMoney(yeniTutar, eskiTutar);
+  const artti = !artis.startsWith('-');
+  const fark = artti ? artis : artis.slice(1);
+  if (Number(fark) === 0) return;
+  // Gelir artışı ya da gider azalışı hesaba ekler; tersi düşer.
+  if (artti === (kind === 'INCOME')) return hesabaIade(hesapId, fark, tx);
+  return hesaptanDus(hesapId, unit, fark, tx);
+}
+
 /** Hesaplar arası aktarım: yalnızca aynı birim, kaynak eksiye düşmez. */
 export async function createWalletTransfer(
   input: WalletTransferInput,
   client: Client = db,
 ): Promise<{ id: string }> {
   return client.$transaction(async (tx) => {
+    await ikiHesabiKilitle(input.kaynakId, input.hedefId, tx);
     const hedef = await tx.walletAccount.findUnique({
       where: { id: input.hedefId },
       select: { unit: true, isArchived: true },
@@ -248,6 +283,7 @@ export async function deleteWalletTransfer(id: string, client: Client = db): Pro
   await client.$transaction(async (tx) => {
     const t = await tx.walletTransfer.findUnique({ where: { id } });
     if (!t) throw new OdemeHatasi('Transfer bulunamadı.');
+    await ikiHesabiKilitle(t.kaynakId, t.hedefId, tx);
     const kaynak = await tx.walletAccount.findUnique({
       where: { id: t.kaynakId },
       select: { unit: true },

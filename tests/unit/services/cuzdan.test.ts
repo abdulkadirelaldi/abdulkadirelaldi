@@ -9,6 +9,7 @@ import {
   aylikTutar,
   deleteDebtPayment,
   donemOdenen,
+  odemeDonemi,
   kalanTaksit,
   butceOzeti,
   fetchButceLimitleri,
@@ -401,6 +402,22 @@ describe('deleteDebtPayment (2026-11-01)', () => {
   it('ödeme yoksa anlaşılır hata', async () => {
     const { client } = kurulum(null as never);
     await expect(deleteDebtPayment('o1', client)).rejects.toThrow('bulunamadı');
+  });
+});
+
+describe('odemeDonemi', () => {
+  it.each([
+    ['2026-10-30', 1, '2026-11'], // 2 gün önceden: sıradaki taksit
+    ['2026-10-25', 1, '2026-11'], // 7 gün önceden: sınır
+    ['2026-10-24', 1, '2026-10'], // 8 gün önceden: kendi ayı
+    ['2026-11-17', 1, '2026-11'], // ⚠️ geç ödeme kasımda kalır, aralığa kaymaz
+    ['2026-11-10', 20, '2026-11'], // vadeden 10 gün önce: kendi ayı
+    ['2026-11-02', 28, '2026-10'], // gecikmiş ekim taksiti
+    ['2026-11-01', 1, '2026-11'], // tam vadesinde
+    ['2026-02-28', 31, '2026-02'], // kısa ayda son gün
+    ['2026-11-20', null, '2026-11'], // ödeme günü yok: takvim ayı
+  ])('%s, ödeme günü %s → %s', (gun, odemeGunu, beklenen) => {
+    expect(odemeDonemi(gun as never, odemeGunu)).toBe(beklenen);
   });
 });
 

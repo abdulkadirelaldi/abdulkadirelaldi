@@ -288,9 +288,6 @@ const DENETIM_ISTISNALARI: Record<string, string> = {
   'src/server/actions/passkey.ts → passkeyGirisSecenekleriAction':
     'GİRİŞ ÖNCESİ meydan okuma — kullanıcı verisi değişmez. Girişin kendisi (başarılı ' +
     've başarısız) `login_attempt`e yazılıyor, kilit politikası denetim kaydı düşüyor.',
-  'src/server/actions/passkey.ts → passkeyKayitSecenekleriAction':
-    'HAZIRLIK — yalnızca meydan okuma üretir. Passkey EKLENDİĞİNDE `passkeyKaydetAction` ' +
-    'denetim kaydı yazar.',
   'src/server/actions/totp.ts → getTotpStatus':
     'OKUMA — ekranın açılış durumu; mutasyon değil, denetlenecek bir değişiklik yok.',
 };

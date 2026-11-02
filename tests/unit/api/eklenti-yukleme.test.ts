@@ -285,7 +285,10 @@ function dosyaVar(entity: string) {
 
 describe('⚠️ sunum — kim görebilir', () => {
   it('PROJE görseli OTURUMSUZ 200, kalıcı ve herkese açık önbellek', async () => {
-    dbMock.project.findUnique.mockResolvedValue({ status: 'PUBLISHED' });
+    dbMock.project.findUnique.mockResolvedValue({
+      status: 'PUBLISHED',
+      publishedAt: new Date('2026-01-01T00:00:00Z'),
+    });
     authMock.mockResolvedValue(null);
     dosyaVar('PROJECT');
     const yanit = await sun();

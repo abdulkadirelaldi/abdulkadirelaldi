@@ -406,6 +406,8 @@ export async function verifyTotpWithRecovery(
   code: string,
   client: TotpConsumerClient,
   now: Date = new Date(),
+  /** Girişte kod harcanır. Şifre değiştirip hemen aynı kodla giriş yapmak engellenmesin. */
+  kodHarca = true,
 ): Promise<boolean> {
   // T-013a/T2b — `decryptSecret` FIRLATABİLİR (kurcalanmış veya anahtar değişmiş).
   let secret: string | null = null;
@@ -418,7 +420,7 @@ export async function verifyTotpWithRecovery(
   }
 
   if (secret && (await verifyTotpToken(code, secret))) {
-    return totpKodunuHarca(user.id, code, client, now);
+    return kodHarca ? totpKodunuHarca(user.id, code, client, now) : true;
   }
 
   // TOTP tutmadı — kurtarma kodu olabilir (ADR-013).

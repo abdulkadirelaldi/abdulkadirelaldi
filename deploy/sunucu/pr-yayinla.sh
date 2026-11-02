@@ -32,18 +32,22 @@ echo "--- #$n $(date)"
 if [ "$(gh pr view "$n" --json state -q .state)" != MERGED ]; then
   gh pr update-branch "$n" 2>&1 | tail -1
   sleep 30
-  while :; do
+  # En çok 90 dakika: kontrol hiç gelmezse sonsuza kadar beklenmez.
+  for _ in $(seq 90); do
     cikti=$(gh pr checks "$n" 2>&1)
     if echo "$cikti" | grep -qE $'\t(fail|cancel)'; then
       echo "KIRMIZI #$n"
       echo "$cikti" | cut -f1,2
       exit 1
     fi
-    if echo "$cikti" | grep -q $'\tpass' && ! echo "$cikti" | grep -qE $'\t(pending|queued)'; then
+    # Kapı görünmeden birleştirme: hızlı işler bitince CI başlamamış olabilir.
+    if echo "$cikti" | grep -qE $'^Kapı.*\tpass' && ! echo "$cikti" | grep -qE $'\t(pending|queued)'; then
+      hazir=1
       break
     fi
     sleep 60
   done
+  [ "${hazir:-}" = 1 ] || { echo "#$n kontrolleri 90 dakikada bitmedi"; exit 1; }
   gh pr merge "$n" --merge 2>&1 | tail -1
   sleep 10
   [ "$(gh pr view "$n" --json state -q .state)" = MERGED ] || { echo "#$n birleşmedi"; exit 1; }
@@ -56,7 +60,8 @@ if [ "$(git rev-parse --abbrev-ref HEAD)" = main ]; then
   git pull -q --ff-only origin main || exit 1
   bash deploy/sunucu/gonder.sh
 else
-  git worktree add -q "$KOPYA" main || exit 1
+  # `-f`: elektrik kesintisinde silinemeyen eski kopya yeniden çalıştırmayı engellemesin.
+  git worktree add -q -f "$KOPYA" main || exit 1
   (cd "$KOPYA" && git pull -q --ff-only origin main && bash deploy/sunucu/gonder.sh)
 fi
 rc=$?

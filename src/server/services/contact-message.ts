@@ -137,8 +137,9 @@ export async function countRecentContactMessages(
   now: Date,
   client: ContactMessageClient = db,
 ): Promise<number> {
+  // Spam sayılmaz: e-posta göndermez, botlar gerçek ziyaretçinin hakkını tüketmesin.
   return client.contactMessage.count({
-    where: { createdAt: { gte: contactRateWindowStart(now) } },
+    where: { isSpam: false, createdAt: { gte: contactRateWindowStart(now) } },
   });
 }
 

@@ -136,7 +136,8 @@ export async function GET(): Promise<NextResponse<ApiResponse<HealthData>>> {
         db: 'up',
         uptime: Math.round(process.uptime() * 1000) / 1000,
         zamanlayici: nabizDurumu(
-          process.env.NODE_ENV === 'production' && Boolean(process.env.VAPID_PUBLIC_KEY),
+          process.env.NODE_ENV === 'production' &&
+            Boolean(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY),
           process.uptime(),
         ),
         disk,

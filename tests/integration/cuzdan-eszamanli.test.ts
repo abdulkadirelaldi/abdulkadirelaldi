@@ -3,9 +3,11 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { db } from '@/server/db';
 import {
   addDebtPayment,
+  createWalletFlow,
   deleteDebtPayment,
   deleteWalletDebt,
   hesaptanDus,
+  updateWalletFlow,
 } from '@/server/services/cuzdan';
 import { odemeGeriAl, odemeIsle } from '@/server/services/odeme-onay';
 
@@ -106,6 +108,18 @@ describe('ödeme onayı', () => {
     expect(await db.walletDebtPayment.count({ where: { debtId: borc.id } })).toBe(1);
   });
 
+  it('⚠️ iki dönem aynı anda onaylanınca kalan borçtan fazlası düşülmez', async () => {
+    const hesap = await hesapAc('3000.00');
+    const borc = await borcAc('1000.00');
+    await Promise.allSettled(
+      ['2026-10', '2026-11'].map((donem) =>
+        odemeIsle({ ...onay(borc.id, hesap.id), donem }, db, GUN),
+      ),
+    );
+    expect(await bakiye(hesap.id)).toBe('2000.00');
+    expect(await kalan(borc.id)).toBe('0.00');
+  });
+
   it('geri alma her şeyi tam olarak eski hâline getirir', async () => {
     const hesap = await hesapAc('3000.00');
     const borc = await borcAc('5000.00');
@@ -139,6 +153,77 @@ describe('ödeme onayı', () => {
     expect(await bakiye(hesap.id)).toBe('2000.00');
     expect(await kalan(borc.id)).toBe('4000.00');
     expect(await db.walletOdeme.count({ where: { kaynakId: borc.id } })).toBe(1);
+  });
+});
+
+describe('kalem düzeltme', () => {
+  afterAll(async () => {
+    await db.walletFlow.deleteMany({ where: { name: { startsWith: ONEK } } });
+  });
+
+  it('⚠️ harcanmış geliri düzeltmek reddedilmez, yalnızca fark yansır', async () => {
+    const hesap = await hesapAc('0.00');
+    const k = await db.$transaction((tx) =>
+      createWalletFlow(
+        {
+          kind: 'INCOME',
+          name: `${ONEK}-gelir`,
+          unit: 'TRY',
+          amount: '1000.00',
+          frequency: 'ONCE',
+          date: GUN,
+          hesapId: hesap.id,
+        } as never,
+        tx,
+      ),
+    );
+    await db.$transaction((tx) => hesaptanDus(hesap.id, 'TRY', '400.00', tx));
+    await updateWalletFlow({ id: k.id, amount: '900.00' } as never);
+    expect(await bakiye(hesap.id)).toBe('500.00');
+  });
+
+  it('fark bakiyeyi aşıyorsa reddedilir, bakiye değişmez', async () => {
+    const hesap = await hesapAc('0.00');
+    const k = await db.$transaction((tx) =>
+      createWalletFlow(
+        {
+          kind: 'INCOME',
+          name: `${ONEK}-gelir`,
+          unit: 'TRY',
+          amount: '1000.00',
+          frequency: 'ONCE',
+          date: GUN,
+          hesapId: hesap.id,
+        } as never,
+        tx,
+      ),
+    );
+    await db.$transaction((tx) => hesaptanDus(hesap.id, 'TRY', '950.00', tx));
+    await expect(updateWalletFlow({ id: k.id, amount: '900.00' } as never)).rejects.toThrow();
+    expect(await bakiye(hesap.id)).toBe('50.00');
+  });
+
+  it('aynı kalemin aynı anda iki düzeltmesi bakiyeyi kaydırmaz', async () => {
+    const hesap = await hesapAc('1000.00');
+    const k = await db.$transaction((tx) =>
+      createWalletFlow(
+        {
+          kind: 'INCOME',
+          name: `${ONEK}-gelir`,
+          unit: 'TRY',
+          amount: '100.00',
+          frequency: 'ONCE',
+          date: GUN,
+          hesapId: hesap.id,
+        } as never,
+        tx,
+      ),
+    );
+    await Promise.all(
+      ['200.00', '300.00'].map((amount) => updateWalletFlow({ id: k.id, amount } as never)),
+    );
+    const son = await db.walletFlow.findUniqueOrThrow({ where: { id: k.id } });
+    expect(await bakiye(hesap.id)).toBe((1000 + Number(son.amount)).toFixed(2));
   });
 });
 

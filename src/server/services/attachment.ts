@@ -429,22 +429,19 @@ export interface AttachmentServeDto {
 }
 
 /** Sunum ucunun okuması — `checksum` ETag olarak kullanılıyor. */
+function yayinda(satir: { status: string; publishedAt: Date | null } | null): boolean {
+  // İleri tarihli yayın henüz kamuya açık değil: `publishedWhere` ile aynı kural.
+  return satir?.status === 'PUBLISHED' && (satir.publishedAt?.getTime() ?? 0) <= Date.now();
+}
+
 /**
  * Eklentinin bağlı olduğu içerik yayında mı. Taslak proje ve yazının görseli henüz kamuya
  * ait değildir: kimliği bilinse bile oturumsuz sunulmaz (2026-11-02).
  */
 export async function eklentiYayindaMi(entity: string, entityId: string): Promise<boolean> {
-  if (entity === 'PROJECT') {
-    const satir = await db.project.findUnique({
-      where: { id: entityId },
-      select: { status: true },
-    });
-    return satir?.status === 'PUBLISHED';
-  }
-  if (entity === 'POST') {
-    const satir = await db.post.findUnique({ where: { id: entityId }, select: { status: true } });
-    return satir?.status === 'PUBLISHED';
-  }
+  const secim = { where: { id: entityId }, select: { status: true, publishedAt: true } };
+  if (entity === 'PROJECT') return yayinda(await db.project.findUnique(secim));
+  if (entity === 'POST') return yayinda(await db.post.findUnique(secim));
   return true;
 }
 

@@ -84,11 +84,14 @@ function Satir({
   // Sunucudan yeni veri gelince satır tazelenir: su kaydı alışkanlığı işaretlediğinde ya da
   // başka cihazda değiştiğinde eski değer kalmasın. Süren yazma varken dokunulmaz.
   const [sonVeri, setSonVeri] = useState(item);
-  if (item !== sonVeri && !bekliyor) {
+  // Yazma sürerken gelen veri yazmadan önce üretilmiştir: atılır, yazmanın kendi tazelemesi gelir.
+  if (item !== sonVeri) {
     setSonVeri(item);
-    setCount(item.count);
-    setDurum(item.durum);
-    setBaslangic(item.sayacBaslangic);
+    if (!bekliyor) {
+      setCount(item.count);
+      setDurum(item.durum);
+      setBaslangic(item.sayacBaslangic);
+    }
   }
 
   useEffect(() => {

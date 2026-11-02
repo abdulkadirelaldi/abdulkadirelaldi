@@ -97,7 +97,7 @@ export const TOTP_SETUP_RATE_LIMIT = {
  */
 export const AUTH_FAILURE_CONTEXTS = {
   /** 2FA kurulumu ve kurtarma kodu yenileme — `actions/totp.ts`. */
-  totpSetup: ['TOTP_SETUP_CONFIRM', 'BACKUP_CODES_REGENERATE'],
+  totpSetup: ['TOTP_SETUP_CONFIRM', 'BACKUP_CODES_REGENERATE', 'PASSKEY_KAYIT'],
   /** Şifre değiştirme — `actions/password.ts` (T-042s). */
   changePassword: ['CHANGE_PASSWORD'],
 } as const;
