@@ -339,6 +339,81 @@ const komutlar: Record<string, (arg?: string) => Promise<unknown>> = {
     return { silinen: akis.count };
   },
 
+  /** Bütün rotalar e2e'si: her detay sayfası için bir kayıt. Önekli olanlar sonra silinir. */
+  async rotaSondaKur(arg) {
+    const { onek } = JSON.parse(arg ?? '{}') as { onek: string };
+    const bugun = new Date(`${new Date().toISOString().slice(0, 10)}T00:00:00Z`);
+    const ilk = async <T extends { id: string }>(
+      bul: () => Promise<T | null>,
+      ac: () => Promise<T>,
+    ): Promise<string> => ((await bul()) ?? (await ac())).id;
+    const metin = (d: Record<string, unknown>) => ({ ...d });
+
+    const oturum = await db.workout.create({
+      data: { date: bugun, note: onek, startedAt: new Date() },
+      select: { id: true },
+    });
+    const antrenman = await db.workout.create({
+      data: { date: bugun, note: onek, startedAt: new Date(), finishedAt: new Date() },
+      select: { id: true },
+    });
+    return {
+      oturum: oturum.id,
+      antrenman: antrenman.id,
+      hesap: await ilk(
+        () => db.walletAccount.findFirst({ where: { isArchived: false }, select: { id: true } }),
+        () =>
+          db.walletAccount.create({
+            data: { name: `${onek}hesap`, kind: 'BANK', unit: 'TRY', balance: '0.00' },
+            select: { id: true },
+          }),
+      ),
+      akis: await ilk(
+        () => db.walletFlow.findFirst({ select: { id: true } }),
+        () =>
+          db.walletFlow.create({
+            data: metin({
+              name: `${onek}akis`,
+              kind: 'EXPENSE',
+              unit: 'TRY',
+              amount: '1.00',
+              frequency: 'MONTHLY',
+              day: 1,
+            }) as never,
+            select: { id: true },
+          }),
+      ),
+      programGunu: await ilk(
+        () => db.programDay.findFirst({ where: { isArchived: false }, select: { id: true } }),
+        () =>
+          db.programDay.create({
+            data: { name: `${onek}gun`, isArchived: false },
+            select: { id: true },
+          }),
+      ),
+      saglik: (await db.healthLog.findFirstOrThrow({ select: { id: true } })).id,
+      egzersiz: (await db.exercise.findFirstOrThrow({ select: { id: true } })).id,
+      aliskanlik: (await db.habit.findFirstOrThrow({ select: { id: true } })).id,
+      hedef: (await db.goal.findFirstOrThrow({ select: { id: true } })).id,
+      gunluk: (await db.journalEntry.findFirstOrThrow({ select: { id: true } })).id,
+      deneyim: (await db.experience.findFirstOrThrow({ select: { id: true } })).id,
+      yetenek: (await db.skill.findFirstOrThrow({ select: { id: true } })).id,
+      hizmet: (await db.service.findFirstOrThrow({ select: { id: true } })).id,
+      yazi: (await db.post.findFirstOrThrow({ select: { id: true } })).id,
+    };
+  },
+
+  async rotaSondaSil(arg) {
+    const { onek } = JSON.parse(arg ?? '{}') as { onek: string };
+    if (!onek || onek.length < 4)
+      throw new Error('rotaSondaSil: en az 4 karakterlik önek zorunlu.');
+    const w = await db.workout.deleteMany({ where: { note: onek } });
+    await db.walletFlow.deleteMany({ where: { name: { startsWith: onek } } });
+    await db.walletAccount.deleteMany({ where: { name: { startsWith: onek } } });
+    await db.programDay.deleteMany({ where: { name: { startsWith: onek } } });
+    return { silinen: w.count };
+  },
+
   /** Para akışı e2e'si için iki hesap ve bir borç açar (2026-11-02). */
   async cuzdanSondaKur(arg) {
     const { onek } = JSON.parse(arg ?? '{}') as { onek: string };
