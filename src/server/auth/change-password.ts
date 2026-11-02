@@ -38,7 +38,8 @@ export interface ChangePasswordUserRecord {
 }
 
 export interface ChangePasswordClient extends TotpConsumerClient, TotpAuditReader {
-  user: {
+  passkey: { deleteMany(args: { where: { userId: string } }): Promise<{ count: number }> };
+  user: TotpConsumerClient['user'] & {
     findUnique(args: { where: { id: string } }): Promise<ChangePasswordUserRecord | null>;
     update(args: {
       where: { id: string };
@@ -177,6 +178,10 @@ export async function changePassword(
       writesValidFrom: now,
     },
   });
+
+  // Şifre genelde bir şüphe üzerine değişir. Saldırganın eklemiş olabileceği Face ID şifreyi ve
+  // kodu atlar; bu yüzden kayıtlı passkey'ler silinir, sahibi yeniden ekler.
+  await client.passkey.deleteMany({ where: { userId } });
 
   return { ok: true };
 }

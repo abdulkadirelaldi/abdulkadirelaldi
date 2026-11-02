@@ -429,6 +429,25 @@ export interface AttachmentServeDto {
 }
 
 /** Sunum ucunun okuması — `checksum` ETag olarak kullanılıyor. */
+/**
+ * Eklentinin bağlı olduğu içerik yayında mı. Taslak proje ve yazının görseli henüz kamuya
+ * ait değildir: kimliği bilinse bile oturumsuz sunulmaz (2026-11-02).
+ */
+export async function eklentiYayindaMi(entity: string, entityId: string): Promise<boolean> {
+  if (entity === 'PROJECT') {
+    const satir = await db.project.findUnique({
+      where: { id: entityId },
+      select: { status: true },
+    });
+    return satir?.status === 'PUBLISHED';
+  }
+  if (entity === 'POST') {
+    const satir = await db.post.findUnique({ where: { id: entityId }, select: { status: true } });
+    return satir?.status === 'PUBLISHED';
+  }
+  return true;
+}
+
 export async function fetchAttachmentForServing(id: string): Promise<AttachmentServeDto | null> {
   return db.attachment.findUnique({
     where: { id },

@@ -40,6 +40,8 @@ declare module 'next-auth' {
      * geçersizleştirmeden muaf tutardı.
      */
     tokenIssuedAt?: number;
+    /** Jetonun 2FA alanı; `false` = kurulum tamamlanmamış. */
+    tfa?: boolean;
   }
 }
 

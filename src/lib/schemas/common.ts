@@ -238,7 +238,11 @@ export const percentSchema = z
 
 export const optionalUrlSchema = z
   .url({ error: 'Geçerli bir bağlantı adresi girin (https:// ile başlamalı).' })
-  .max(2048, { error: 'Bağlantı adresi çok uzun.' });
+  .max(2048, { error: 'Bağlantı adresi çok uzun.' })
+  // `javascript:` da geçerli URL'dir; bağlantı olarak basılan alana giremez.
+  .refine((v) => /^https?:\/\//i.test(v), {
+    error: 'Bağlantı adresi http:// ya da https:// ile başlamalı.',
+  });
 
 /**
  * E-posta.

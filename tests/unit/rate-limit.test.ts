@@ -78,54 +78,57 @@ describe('isLocked', () => {
 });
 
 describe('applyLockoutPolicy — eşiğin altı', () => {
-  it('4 başarısızlıkta kilitlemez ve hiçbir şey yazmaz', async () => {
+  it('19 başarısızlıkta kilitlemez ve hiçbir şey yazmaz', async () => {
     const { client, userUpdate, auditCreate } = sahteClient();
 
     const karar = await applyLockoutPolicy(
       girdi(),
-      { countRecentFailures: vi.fn().mockResolvedValue(4), client },
+      { countRecentFailures: vi.fn().mockResolvedValue(19), client },
       SIMDI,
     );
 
-    expect(karar).toEqual({ locked: false, failures: 4 });
+    expect(karar).toEqual({ locked: false, failures: 19 });
     expect(userUpdate).not.toHaveBeenCalled();
     expect(auditCreate).not.toHaveBeenCalled();
   });
 
-  it('sayım YALNIZCA IP üzerinden ve 15 dakikalık pencerede yapılır', async () => {
+  it('sayım hesap başına ve 15 dakikalık pencerede yapılır', async () => {
     const { client } = sahteClient();
     const say = vi.fn().mockResolvedValue(0);
 
     await applyLockoutPolicy(girdi(), { countRecentFailures: say, client }, SIMDI);
 
-    expect(say).toHaveBeenCalledWith({ ip: IP }, new Date('2026-08-05T11:45:00.000Z'));
+    expect(say).toHaveBeenCalledWith(
+      { emailHash: EPOSTA_OZETI },
+      new Date('2026-08-05T11:45:00.000Z'),
+    );
   });
 });
 
 describe('applyLockoutPolicy — eşiğe ulaşınca kilitler', () => {
-  it('5. başarısız denemede kilit uygulanır', async () => {
+  it('hesap eşiğinde (20) kilit uygulanır', async () => {
     const { client, userUpdate } = sahteClient();
 
     const karar = await applyLockoutPolicy(
       girdi(),
-      { countRecentFailures: vi.fn().mockResolvedValue(5), client },
+      { countRecentFailures: vi.fn().mockResolvedValue(20), client },
       SIMDI,
     );
 
     expect(karar.locked).toBe(true);
-    expect(karar).toMatchObject({ failures: 5, applied: true });
+    expect(karar).toMatchObject({ failures: 20, applied: true });
     expect(userUpdate).toHaveBeenCalledWith({
       where: { id: KULLANICI_ID },
       data: { lockedUntil: new Date('2026-08-05T12:15:00.000Z') },
     });
   });
 
-  it('eşiğin üstünde de kilitler (5 kaçırılmışsa 6 yakalar)', async () => {
+  it('eşiğin üstünde de kilitler', async () => {
     const { client, userUpdate } = sahteClient();
 
     const karar = await applyLockoutPolicy(
       girdi(),
-      { countRecentFailures: vi.fn().mockResolvedValue(9), client },
+      { countRecentFailures: vi.fn().mockResolvedValue(25), client },
       SIMDI,
     );
 
@@ -140,7 +143,7 @@ describe('ADR-022 — kilit AuditLog kaydı', () => {
 
     await applyLockoutPolicy(
       girdi(),
-      { countRecentFailures: vi.fn().mockResolvedValue(5), client },
+      { countRecentFailures: vi.fn().mockResolvedValue(20), client },
       SIMDI,
     );
 
@@ -165,7 +168,7 @@ describe('ADR-022 — kilit AuditLog kaydı', () => {
 
     await applyLockoutPolicy(
       girdi(),
-      { countRecentFailures: vi.fn().mockResolvedValue(5), client },
+      { countRecentFailures: vi.fn().mockResolvedValue(20), client },
       SIMDI,
     );
 
@@ -177,14 +180,14 @@ describe('ADR-022 — kilit AuditLog kaydı', () => {
 
     await applyLockoutPolicy(
       girdi(),
-      { countRecentFailures: vi.fn().mockResolvedValue(7), client },
+      { countRecentFailures: vi.fn().mockResolvedValue(22), client },
       SIMDI,
     );
 
     expect(auditCreate.mock.calls[0]?.[0]?.data.diff).toEqual({
       lockedUntil: '2026-08-05T12:15:00.000Z',
       reason: 'LOGIN_RATE_LIMIT',
-      failedAttempts: 7,
+      failedAttempts: 22,
       windowMinutes: 15,
       lockMinutes: 15,
     });
@@ -199,7 +202,7 @@ describe('ADR-022 — kilit AuditLog kaydı', () => {
 
     await applyLockoutPolicy(
       { ip: IP, emailHash: EPOSTA_OZETI, userId: KULLANICI_ID },
-      { countRecentFailures: vi.fn().mockResolvedValue(5), client },
+      { countRecentFailures: vi.fn().mockResolvedValue(20), client },
       SIMDI,
     );
 
@@ -237,7 +240,7 @@ describe('applyLockoutPolicy — dayanıklılık (asla fırlatmaz)', () => {
 
     const karar = await applyLockoutPolicy(
       girdi(),
-      { countRecentFailures: vi.fn().mockResolvedValue(5), client },
+      { countRecentFailures: vi.fn().mockResolvedValue(20), client },
       SIMDI,
     );
 
@@ -257,7 +260,7 @@ describe('applyLockoutPolicy — dayanıklılık (asla fırlatmaz)', () => {
 
     const karar = await applyLockoutPolicy(
       girdi(),
-      { countRecentFailures: vi.fn().mockResolvedValue(5), client },
+      { countRecentFailures: vi.fn().mockResolvedValue(20), client },
       SIMDI,
     );
 
@@ -274,7 +277,7 @@ describe('applyLockoutPolicy — dayanıklılık (asla fırlatmaz)', () => {
 
     const karar = await applyLockoutPolicy(
       girdi(null),
-      { countRecentFailures: vi.fn().mockResolvedValue(5), client },
+      { countRecentFailures: vi.fn().mockResolvedValue(20), client },
       SIMDI,
     );
 

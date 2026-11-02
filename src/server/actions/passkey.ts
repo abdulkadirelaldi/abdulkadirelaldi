@@ -13,6 +13,8 @@ import {
   PasskeyHatasi,
   rpCoz,
 } from '@/server/auth/passkey';
+import { ipGrubu } from '@/lib/security/rate-limit';
+import { verifyTotpWithRecovery } from '@/server/auth/credentials';
 import { db } from '@/server/db';
 import { fail, ok, parseOrFail, writeAuditLog, type ApiResponse } from '@/server/services/_shared';
 
@@ -23,6 +25,8 @@ import { currentActorId, toFailure, unauthorized } from './_shared';
  * GİRİŞ, Auth.js'in `passkey` sağlayıcısında (`server/auth.ts`) — oturum
  * jetonu şifreli girişle aynı yoldan basılır.
  */
+
+const kayitBaslatSchema = z.object({ totpKodu: z.string().trim().min(6).max(16).optional() });
 
 const kayitSchema = z.object({
   // Tarayıcının ürettiği yanıt; yapısını SimpleWebAuthn doğrular. Burada yalnızca
@@ -47,9 +51,11 @@ function passkeyHatasi(baglam: string, error: unknown) {
 }
 
 /** Oturum açıkken: "Face ID ekle" için seçenekler. */
-export async function passkeyKayitSecenekleriAction() {
+export async function passkeyKayitSecenekleriAction(raw: unknown) {
   const actorId = await currentActorId();
   if (!actorId) return unauthorized();
+  const parsed = parseOrFail(kayitBaslatSchema, raw);
+  if (!parsed.ok) return parsed.failure;
 
   const taraf = await rp();
   if (!taraf) return fail('FORBIDDEN', 'Bu adresten passkey eklenemez.');
@@ -57,8 +63,23 @@ export async function passkeyKayitSecenekleriAction() {
   try {
     const kullanici = await db.user.findUniqueOrThrow({
       where: { id: actorId },
-      select: { id: true, email: true, name: true },
+      select: {
+        id: true,
+        email: true,
+        name: true,
+        totpSecret: true,
+        totpBackupCodes: true,
+        totpConfirmedAt: true,
+      },
     });
+    // Passkey şifreyi ve kodu atlar: ele geçirilen oturum kendine kalıcı giriş ekleyemesin.
+    // Meydan okuma burada verildiği için kod kapısı bütün kayıt akışının önünde.
+    const kod = parsed.data.totpKodu;
+    if (kullanici.totpConfirmedAt && !(kod && (await verifyTotpWithRecovery(kullanici, kod, db)))) {
+      return fail('VALIDATION_ERROR', 'Doğrulama kodu yanlış ya da az önce kullanıldı.', {
+        totpKodu: 'Kod geçersiz.',
+      });
+    }
     return ok(await kayitSecenekleri(kullanici, taraf));
   } catch (error) {
     return passkeyHatasi('passkey:kayit-secenek', error);
@@ -130,7 +151,9 @@ export async function passkeyGirisSecenekleriAction() {
   const taraf = await rp();
   if (!taraf) return fail('FORBIDDEN', 'Bu adresten Face ID ile giriş yapılamaz.');
   try {
-    return ok(await girisSecenekleri(taraf));
+    const baslik = await headers();
+    const ip = baslik.get('x-forwarded-for')?.split(',')[0]?.trim() || baslik.get('x-real-ip');
+    return ok(await girisSecenekleri(taraf, db, new Date(), ip ? ipGrubu(ip) : null));
   } catch (error) {
     return passkeyHatasi('passkey:giris-secenek', error);
   }

@@ -1,4 +1,12 @@
-import { applyLockoutPolicy, type LockoutClient } from '@/lib/security/rate-limit';
+import { createHash } from 'node:crypto';
+
+import {
+  applyLockoutPolicy,
+  ipGrubu,
+  LOGIN_RATE_LIMIT,
+  rateLimitWindowStart,
+  type LockoutClient,
+} from '@/lib/security/rate-limit';
 import { TWO_FACTOR_CLAIM } from '@/lib/security/two-factor';
 import { db } from '@/server/db';
 import type { Prisma } from '@/server/generated/prisma/client';
@@ -82,12 +90,19 @@ export interface TotpVerifiable {
 /** Kurtarma kodu TÜKETİMİ için gereken asgari yazma yüzeyi. */
 export interface TotpConsumerClient {
   user: {
-    update(args: { where: { id: string }; data: { totpBackupCodes?: string[] } }): Promise<unknown>;
+    updateMany(args: {
+      where: Record<string, unknown>;
+      data: { totpBackupCodes?: string[]; totpSonKod?: string; totpSonZaman?: Date };
+    }): Promise<{ count: number }>;
   };
 }
 
+/** Aynı anda en çok bu kadar Argon2 doğrulaması; `mem_limit: 512m` içinde güvenli. */
+const EN_COK_ESZAMANLI_ARGON = 8;
+let argonMesgul = 0;
+
 export interface AuthClient extends LoginAttemptClient, LockoutClient {
-  user: {
+  user: TotpConsumerClient['user'] & {
     findUnique(args: { where: { email: string } }): Promise<AuthUserRecord | null>;
     update(args: {
       where: { id: string };
@@ -201,6 +216,24 @@ export async function authenticateUser(
   now: Date = new Date(),
 ): Promise<AuthenticateResult> {
   const emailHash = hashEmail(input.email);
+  const ip = ipGrubu(input.ip);
+
+  // IP engeli Argon2'DEN ÖNCE: engelliyken tahmin sürmesin, bellek ve CPU harcanmasın. Şifre
+  // doğru da yanlış da aynı yanıt: engel şifre hakkında bilgi vermez. Sayılamıyorsa akış sürer.
+  const ipDenemesi = await countRecentFailures({ ip }, rateLimitWindowStart(now), client).catch(
+    () => 0,
+  );
+  if (ipDenemesi >= LOGIN_RATE_LIMIT.maxFailures) return { ok: false, reason: 'ACCOUNT_LOCKED' };
+
+  // Hesap eşiği de var olmayan e-postada aynı çalışır: kilit yanıtı hesabın varlığını ele vermez.
+  const hesapDenemesi = await countRecentFailures(
+    { emailHash },
+    rateLimitWindowStart(now),
+    client,
+  ).catch(() => 0);
+  if (hesapDenemesi >= LOGIN_RATE_LIMIT.hesapMaxFailures) {
+    return { ok: false, reason: 'ACCOUNT_LOCKED' };
+  }
 
   const user = await client.user.findUnique({
     where: { email: input.email.trim().toLowerCase() },
@@ -222,10 +255,10 @@ export async function authenticateUser(
    * hata yolunu değiştirmez. Kilit yazılamazsa loglar ve devam eder.
    */
   const fail = async (reason: AuthFailureReason): Promise<AuthenticateResult> => {
-    await recordLoginAttempt({ ip: input.ip, emailHash, success: false }, client);
+    await recordLoginAttempt({ ip, emailHash, success: false }, client);
 
     await applyLockoutPolicy(
-      { ip: input.ip, emailHash, userId: user?.id ?? null },
+      { ip, emailHash, userId: user?.id ?? null },
       {
         countRecentFailures: (filter, since) => countRecentFailures(filter, since, client),
         client,
@@ -236,21 +269,30 @@ export async function authenticateUser(
     return { ok: false, reason };
   };
 
-  // --- 1 + 2: kullanıcı ve şifre -------------------------------------------
-  if (!user) {
-    await payVerificationCost(input.password);
-    return fail('INVALID_CREDENTIALS');
-  }
-
-  // T-013a/T2a — HASH ÖNCE, şifre sonra. Ters yazılırsa sessizce hep false döner.
-  const passwordValid = await verifyPassword(user.passwordHash, input.password);
-  if (!passwordValid) {
-    return fail('INVALID_CREDENTIALS');
-  }
-
   // --- 3: hesap kilidi (politika T-014'te, SAYGI burada) --------------------
-  if (user.lockedUntil && user.lockedUntil.getTime() > now.getTime()) {
-    return fail('ACCOUNT_LOCKED');
+  // Şifreden ÖNCE: kilitliyken yanıt şifrenin doğruluğunu ele vermez, tahmin de ilerlemez.
+  if (user?.lockedUntil && user.lockedUntil.getTime() > now.getTime()) {
+    return { ok: false, reason: 'ACCOUNT_LOCKED' };
+  }
+
+  // Argon2 deneme başına ~19 MiB: eşzamanlı istekler uygulamanın belleğini bitirmesin.
+  if (argonMesgul >= EN_COK_ESZAMANLI_ARGON) return { ok: false, reason: 'ACCOUNT_LOCKED' };
+
+  // --- 1 + 2: kullanıcı ve şifre -------------------------------------------
+  argonMesgul += 1;
+  let passwordValid = false;
+  try {
+    if (user) {
+      // T-013a/T2a — HASH ÖNCE, şifre sonra. Ters yazılırsa sessizce hep false döner.
+      passwordValid = await verifyPassword(user.passwordHash, input.password);
+    } else {
+      await payVerificationCost(input.password);
+    }
+  } finally {
+    argonMesgul -= 1;
+  }
+  if (!user || !passwordValid) {
+    return fail('INVALID_CREDENTIALS');
   }
 
   // --- 5: iki faktör (§8.1 — v1'de zorunlu) --------------------------------
@@ -258,11 +300,12 @@ export async function authenticateUser(
   if (user.totpConfirmedAt && user.totpSecret) {
     if (!input.totpCode) {
       // Doğrulama kodu istenir. Bu noktaya YALNIZCA şifre doğruysa gelinir,
-      // dolayısıyla numaralandırma sızıntısı oluşturmaz.
-      return fail('TOTP_REQUIRED');
+      // dolayısıyla numaralandırma sızıntısı oluşturmaz. Başarısız deneme DEĞİL: her olağan
+      // giriş bu adımdan geçer, sayılsa 5 normal girişte IP engellenirdi.
+      return { ok: false, reason: 'TOTP_REQUIRED' };
     }
 
-    const totpAccepted = await verifyTotpWithRecovery(user, input.totpCode, client);
+    const totpAccepted = await verifyTotpWithRecovery(user, input.totpCode, client, now);
     if (!totpAccepted) {
       return fail('INVALID_TOTP');
     }
@@ -295,7 +338,7 @@ export async function authenticateUser(
     );
   }
 
-  await recordLoginAttempt({ ip: input.ip, emailHash, success: true }, client);
+  await recordLoginAttempt({ ip, emailHash, success: true }, client);
 
   return {
     ok: true,
@@ -322,10 +365,47 @@ export async function authenticateUser(
  * değiştirme akışının `lockedUntil`, `LoginAttempt` ya da e-postayla arama
  * yüzeyine ihtiyacı yok. Geniş tipler orada gereksiz bir taklit yükü olurdu.
  */
+/** Doğrulama kodu ±1 adım (30 sn) geçerli: bu süre boyunca aynı kod ikinci kez kabul edilmez. */
+const TOTP_TEKRAR_PENCERESI_MS = 90_000;
+
+/**
+ * Kabul edilen kodu harcar: gözetlenen ya da oltalanan kod pencere içinde yeniden kullanılamaz.
+ * Koşullu yazma: aynı kodla eşzamanlı iki istekten yalnızca biri geçer.
+ */
+async function totpKodunuHarca(
+  userId: string,
+  code: string,
+  client: TotpConsumerClient,
+  now: Date,
+): Promise<boolean> {
+  const ozet = createHash('sha256').update(code).digest('hex');
+  try {
+    const yazilan = await client.user.updateMany({
+      where: {
+        id: userId,
+        OR: [
+          { totpSonKod: null },
+          { totpSonKod: { not: ozet } },
+          { totpSonZaman: { lt: new Date(now.getTime() - TOTP_TEKRAR_PENCERESI_MS) } },
+        ],
+      },
+      data: { totpSonKod: ozet, totpSonZaman: now },
+    });
+    return yazilan.count > 0;
+  } catch (error) {
+    guvenliHata(
+      '[auth] doğrulama kodu kaydedilemedi:',
+      error instanceof Error ? error.message : error,
+    );
+    return false;
+  }
+}
+
 export async function verifyTotpWithRecovery(
   user: TotpVerifiable,
   code: string,
   client: TotpConsumerClient,
+  now: Date = new Date(),
 ): Promise<boolean> {
   // T-013a/T2b — `decryptSecret` FIRLATABİLİR (kurcalanmış veya anahtar değişmiş).
   let secret: string | null = null;
@@ -338,7 +418,7 @@ export async function verifyTotpWithRecovery(
   }
 
   if (secret && (await verifyTotpToken(code, secret))) {
-    return true;
+    return totpKodunuHarca(user.id, code, client, now);
   }
 
   // TOTP tutmadı — kurtarma kodu olabilir (ADR-013).
@@ -351,12 +431,14 @@ export async function verifyTotpWithRecovery(
     return false;
   }
 
-  // Kod TÜKETİLİR: kalıcı bir arka kapıya dönüşmemeli.
+  // Kod TÜKETİLİR: kalıcı bir arka kapıya dönüşmemeli. Koşullu yazma: aynı kodla eşzamanlı iki
+  // istekten yalnızca biri listeyi değiştirebilir, öteki reddedilir.
   try {
-    await client.user.update({
-      where: { id: user.id },
+    const yazilan = await client.user.updateMany({
+      where: { id: user.id, totpBackupCodes: { equals: user.totpBackupCodes } },
       data: { totpBackupCodes: result.remainingHashes },
     });
+    if (yazilan.count === 0) return false;
   } catch (error) {
     // Tüketim yazılamadıysa girişi REDDET — aksi hâlde kod sınırsız kullanılabilir.
     guvenliHata(
@@ -402,6 +484,8 @@ export function extractClientIp(request: Request | undefined): string {
 
 /** JWT'nin bu katmanın umursadığı alanları. */
 export interface SessionClaims {
+  /** Giriş anı (sn): yenilemelerde değişmez. */
+  authTime?: number;
   sub?: string | undefined;
   /**
    * `null` DA KABUL EDİLİR: Auth.js'in `DefaultJWT` tipi bu alanları
@@ -434,6 +518,7 @@ export function applyLoginClaims<T extends SessionClaims>(token: T, user: LoginC
   token.email = user.email ?? undefined;
   token.name = user.name ?? undefined;
   token[TWO_FACTOR_CLAIM] = user.tfa;
+  token.authTime = Math.floor(Date.now() / 1000);
   return token;
 }
 

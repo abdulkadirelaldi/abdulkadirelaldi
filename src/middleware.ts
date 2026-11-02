@@ -253,6 +253,10 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
  */
 export const config = {
   matcher: [
+    // Korunan yollar ayrıca: aşağıdaki desen dosya uzantısını atlıyor, `/panel/x/a.png` ara
+    // katmandan geçmeden sayfaya ulaşıyordu.
+    '/panel/:path*',
+    '/api/v1/panel/:path*',
     '/((?!api/v1/health(?:/|$)|_next/static|_next/image|favicon\\.ico|robots\\.txt|sitemap\\.xml|rss\\.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|avif|ico|woff|woff2|ttf|otf|map)$).*)',
   ],
 };

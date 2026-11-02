@@ -10,7 +10,7 @@ import {
 } from '@simplewebauthn/server';
 import { isoBase64URL } from '@simplewebauthn/server/helpers';
 
-import { applyLockoutPolicy, isLocked } from '@/lib/security/rate-limit';
+import { applyLockoutPolicy } from '@/lib/security/rate-limit';
 import { guvenliHata } from '@/lib/security/guvenli-log';
 import { db } from '@/server/db';
 
@@ -32,13 +32,17 @@ import { countRecentFailures, hashEmail, recordLoginAttempt } from './login-atte
  * - Beklenen köken (origin) ve RP kimliği SABİT: üretimde yalnızca site adresi.
  *   Geliştirmede ek olarak `http://localhost:*` (IP adresi WebAuthn'da RP olamaz).
  * - Başarısız giriş, şifreli girişle AYNI kilit politikasına sayılır (§8.4).
- * - Kilitli hesap passkey ile de açılmaz.
+ * - Hesap kilidi passkey'i kapatmaz: kilit şifre denemelerine karşıdır. Başkası şifre deneyerek
+ *   sahibini Face ID'den de atamasın (2026-11-02).
  * - Passkey eklemek oturum + yazma kapısı ister (eylem katmanı) ve denetlenir.
  */
 
 const CHALLENGE_OMRU_MS = 5 * 60_000;
 const RP_ADI = 'AE Panel';
-const ACIK_GIRIS_TAVANI = 100;
+/** IP başına açık meydan okuma: tek kaynak Face ID girişini kapatamasın. */
+const IP_BASINA_ACIK_GIRIS = 10;
+/** Bütün IP'ler için üst sınır: tabloyu doldurma girişimi burada durur. */
+const ACIK_GIRIS_TAVANI = 1000;
 
 type Amac = 'kayit' | 'giris';
 
@@ -95,6 +99,7 @@ async function challengeSakla(
   userId: string | null,
   client: PasskeyClient,
   simdi: Date,
+  ip: string | null = null,
 ): Promise<void> {
   // Süresi geçenleri temizle — tablo büyümesin.
   await client.webAuthnChallenge.deleteMany({ where: { expiresAt: { lt: simdi } } });
@@ -103,6 +108,7 @@ async function challengeSakla(
       challenge,
       purpose: amac,
       userId,
+      ip,
       expiresAt: new Date(simdi.getTime() + CHALLENGE_OMRU_MS),
     },
   });
@@ -225,13 +231,20 @@ export async function girisSecenekleri(
   rp: Rp,
   client: PasskeyClient = db,
   simdi: Date = new Date(),
+  ip: string | null = null,
 ): Promise<PublicKeyCredentialRequestOptionsJSON> {
   // Giriş öncesi, oturumsuz çağrılır: açık meydan okuma sayısına TAVAN — tabloyu
   // doldurma girişimi burada durur (süresi geçenler her üretimde siliniyor).
   const acik = await client.webAuthnChallenge.count({
     where: { purpose: 'giris', expiresAt: { gt: simdi } },
   });
-  if (acik >= ACIK_GIRIS_TAVANI) {
+  const ipAcik =
+    ip === null
+      ? 0
+      : await client.webAuthnChallenge.count({
+          where: { purpose: 'giris', ip, expiresAt: { gt: simdi } },
+        });
+  if (acik >= ACIK_GIRIS_TAVANI || ipAcik >= IP_BASINA_ACIK_GIRIS) {
     throw new PasskeyHatasi('SURESI_DOLDU', 'Çok fazla deneme. Birazdan yeniden dene.');
   }
 
@@ -286,10 +299,6 @@ export async function girisDogrula(
   if (!passkey) {
     return basarisiz(new PasskeyHatasi('BILINMEYEN', 'Bu cihaz kayıtlı değil.'));
   }
-  if (isLocked(passkey.user.lockedUntil, simdi)) {
-    return basarisiz(new PasskeyHatasi('KILITLI', 'Hesap geçici olarak kilitli.'));
-  }
-
   const sonuc = await verifyAuthenticationResponse({
     response: yanit,
     expectedChallenge: challenge,

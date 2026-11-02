@@ -284,7 +284,7 @@ test.describe('§8.4 — 5. başarısız denemede kilit', () => {
    * (BULGU-005) gerçekten devrede olduğunu uçtan uca kanıtlar: politika yalnız
    * birim testinde çalışıp üretimde hiç çağrılmıyor olsaydı bu test kırılırdı.
    */
-  test('beş yanlış şifre → kilit → ACCOUNT_LOCKED istemciye ulaşıyor', async ({ page }) => {
+  test('beş yanlış şifre → IP engeli → ACCOUNT_LOCKED istemciye ulaşıyor', async ({ page }) => {
     const { email, password } = adminCredentials();
     await page.goto('/giris');
 
@@ -293,9 +293,10 @@ test.describe('§8.4 — 5. başarısız denemede kilit', () => {
       await expect(errorAlert(page)).toBeVisible();
     }
 
-    expect(await isAccountLocked(), '5. denemeden sonra hesap kilitli olmalı').toBe(true);
+    // Hesaba kilit YAZILMAZ: tek IP'den deneyen sahibini kilitleyemez, yalnızca kendini engeller.
+    expect(await isAccountLocked()).toBe(false);
 
-    // DOĞRU şifreyle bile girilemez — kilit şifreden bağımsızdır.
+    // DOĞRU şifreyle bile girilemez — engel şifreden bağımsızdır.
     await fillCredentials(page, email, password);
 
     await expect(errorAlert(page)).toHaveText(AUTH_ERROR_MESSAGES.ACCOUNT_LOCKED);

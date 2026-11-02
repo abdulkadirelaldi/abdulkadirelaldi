@@ -1,6 +1,7 @@
 import { guvenliHata } from './lib/security/guvenli-log';
 import { bildirimTuru } from './server/services/bildirim';
 import { netVarlikKaydet } from './server/services/cuzdan-rapor';
+import { gunlukTemizlik } from './server/services/temizlik';
 
 /**
  * Zamanlayıcılar (bildirim, net varlık) — YALNIZCA Node çalışma zamanı (`instrumentation.ts`
@@ -22,4 +23,8 @@ if (process.env.NODE_ENV === 'production') {
   const netTur = () => netVarlikKaydet().catch(hataYaz('net-varlik'));
   setInterval(netTur, 60 * 60_000).unref();
   setTimeout(netTur, 60_000).unref();
+
+  const temizlikTuru = () => gunlukTemizlik().catch(hataYaz('temizlik'));
+  setInterval(temizlikTuru, 24 * 60 * 60_000).unref();
+  setTimeout(temizlikTuru, 5 * 60_000).unref();
 }

@@ -43,7 +43,7 @@ export default async function GuvenlikAyarlariPage() {
 
       <main id="panel-icerik" className="flex-1 p-4 lg:p-6">
         <div className="flex max-w-2xl flex-col gap-4">
-          <PasskeyYonetimi passkeyler={passkeyler} />
+          <PasskeyYonetimi passkeyler={passkeyler} kodGerekli={status.enabled} />
 
           <SessionProvider session={session}>
             <TotpSetup

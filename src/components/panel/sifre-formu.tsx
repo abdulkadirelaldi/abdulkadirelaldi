@@ -111,7 +111,10 @@ export function SifreFormu({ ikiAdimliAcik }: { ikiAdimliAcik: boolean }) {
             className="rounded-card border-success/40 bg-success/8 flex items-start gap-2.5 border px-4 py-3"
           >
             <CheckCircle2 className="text-success mt-0.5 size-4 shrink-0" aria-hidden="true" />
-            <p className="text-success text-sm">{ADR_035_MESAJ}</p>
+            <p className="text-success text-sm">
+              {ADR_035_MESAJ} Kayıtlı Face ID cihazları da kaldırıldı; Ayarlar → Güvenlik’ten
+              yeniden ekleyebilirsiniz.
+            </p>
           </div>
         )}
 

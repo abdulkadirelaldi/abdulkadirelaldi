@@ -2,6 +2,7 @@ import { auth } from '@/server/auth';
 import {
   PUBLIC_ATTACHMENT_ENTITIES,
   fetchAttachmentForServing,
+  eklentiYayindaMi,
 } from '@/server/services/attachment';
 import { getObjectBytes } from '@/server/storage/r2';
 import { guvenliHata } from '@/lib/security/guvenli-log';
@@ -59,7 +60,9 @@ export async function GET(
     const dosya = await fetchAttachmentForServing(id);
     if (!dosya) return bulunamadi();
 
-    const herkeseAcik = PUBLIC_ATTACHMENT_ENTITIES.has(dosya.entity);
+    const herkeseAcik =
+      PUBLIC_ATTACHMENT_ENTITIES.has(dosya.entity) &&
+      (await eklentiYayindaMi(dosya.entity, dosya.entityId));
     if (!herkeseAcik) {
       const oturum = await auth();
       if (!oturum?.user?.id) return bulunamadi();

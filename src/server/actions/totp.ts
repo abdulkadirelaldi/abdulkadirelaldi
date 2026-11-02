@@ -15,7 +15,7 @@ import {
 import { db } from '@/server/db';
 import { writeAuditLog } from '@/server/services/_shared';
 
-import { currentActorId } from './_shared';
+import { currentActorId, kurulumActorId } from './_shared';
 import {
   enableTotp,
   findUserTotpRecord,
@@ -123,7 +123,7 @@ export async function getTotpStatus(): Promise<TotpStatus> {
 export async function startTotpSetup(): Promise<
   TotpResult<{ secret: string; otpauthUri: string }>
 > {
-  const userId = await currentActorId();
+  const userId = await kurulumActorId();
   if (!userId) return totpFail('UNAUTHORIZED');
 
   try {
@@ -168,7 +168,7 @@ export async function startTotpSetup(): Promise<
  * ======================================================================== */
 
 export async function confirmTotpSetup(totpCode: string): Promise<TotpResult<BackupCodesPayload>> {
-  const userId = await currentActorId();
+  const userId = await kurulumActorId();
   if (!userId) return totpFail('UNAUTHORIZED');
 
   // §8.8 — girdi Zod ile doğrulanır. Biçim hatası da geçersiz koddur.

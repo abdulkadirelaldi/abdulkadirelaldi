@@ -2,7 +2,8 @@ import NextAuth, { CredentialsSignin } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import * as z from 'zod';
 
-import { SESSION_MAX_AGE_SECONDS } from '@/lib/security/session';
+import { oturumBittiMi, SESSION_MAX_AGE_SECONDS } from '@/lib/security/session';
+import { readTwoFactorClaim } from '@/lib/security/two-factor';
 import { loginSchema } from '@/lib/schemas';
 
 import {
@@ -198,6 +199,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       // Normal istek yolunda veritabanına GİDİLMEZ.
       if (trigger === 'update') return refreshTwoFactorClaim(token, getTotpState);
 
+      // Bu özellikten önce açılmış oturumda giriş anı `iat`tir ve bir daha ilerlemez.
+      const girisAni = typeof token.authTime === 'number' ? token.authTime : token.iat;
+      if (typeof girisAni === 'number') {
+        token.authTime = girisAni;
+        if (oturumBittiMi(girisAni, SESSION_MAX_AGE_SECONDS, Math.floor(Date.now() / 1000))) {
+          return null;
+        }
+      }
       return token;
     },
 
@@ -217,7 +226,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
        * Burada yalnızca jetonun kendi alanı kopyalanıyor; kararı yazma kapısı
        * (`currentActorId`) veriyor.
        */
-      session.tokenIssuedAt = typeof token.iat === 'number' ? token.iat : undefined;
+      // Giriş anı, `iat` değil: yenilemeyle ileri alınıp şifre değişikliği damgasını aşamaz.
+      const girisAni = typeof token.authTime === 'number' ? token.authTime : token.iat;
+      session.tokenIssuedAt = typeof girisAni === 'number' ? girisAni : undefined;
+      session.tfa = readTwoFactorClaim(token) ?? undefined;
       return session;
     },
   },
