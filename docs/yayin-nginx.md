@@ -78,7 +78,8 @@ korur; sayfalar önbellek süresi dolana kadar eski içeriği gösterir.
 ssh root@187.77.66.202
 cd /opt/aelaldi
 read -rsp "Panel şifresi: " ADMIN_PASSWORD; echo
-docker compose exec -T -e ADMIN_PASSWORD="$ADMIN_PASSWORD" araclar \
+export ADMIN_PASSWORD
+docker compose exec -T -e ADMIN_PASSWORD araclar \
   node --import ./scripts/yedek-register.mjs scripts/uretim-baslat.ts
 unset ADMIN_PASSWORD
 # [baslat] yönetici: oluşturuldu · profil: zaten vardı
@@ -109,7 +110,8 @@ Bildirimler → "Bildirimleri aç" (iPhone'da panel ana ekrandan açılmış olm
 ssh root@187.77.66.202
 cd /opt/aelaldi
 read -rsp "Yeni şifre: " ADMIN_PASSWORD; echo
-docker compose exec -T -e ADMIN_PASSWORD="$ADMIN_PASSWORD" araclar \
+export ADMIN_PASSWORD
+docker compose exec -T -e ADMIN_PASSWORD araclar \
   node --import ./scripts/yedek-register.mjs scripts/sifre-sifirla.ts
 unset ADMIN_PASSWORD
 # [sifirla] şifre güncellendi · oturumlar kapatıldı · 2FA: korundu

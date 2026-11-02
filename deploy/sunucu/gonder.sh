@@ -3,6 +3,7 @@
 #
 #   deploy/sunucu/gonder.sh            # GitHub'da derle + gönder + göç + yeniden başlat
 #   YEREL=1 deploy/sunucu/gonder.sh    # yedek yol: bu Mac'te QEMU ile derle (yavaş)
+#   ACIL=1  deploy/sunucu/gonder.sh    # CI kapısını atla: yalnızca canlı acil düzeltmesinde
 #
 # 1. İki imaj linux/amd64 için GitHub Actions'ta derlenir (.github/workflows/imaj.yml;
 #    benzetim yok, katman önbelleği var). Sunucuda derlenmez: 1 CPU, orada
@@ -26,6 +27,28 @@ if [ -n "$(git status --porcelain -- src prisma scripts package.json pnpm-lock.y
   exit 1
 fi
 SURUM=$(git rev-parse --short=9 HEAD)
+
+# CI KAPISI (2026-11-02): yalnızca main'de ve CI'ı yeşil commit yayına çıkar. İki yeşil PR
+# birleşince main kırmızı olabilir; dal ya da kırmızı commit canlıya gidemez. CI sürüyorsa beklenir.
+if [ "${ACIL:-}" != 1 ]; then
+  [ "$(git rev-parse --abbrev-ref HEAD)" = main ] || { echo "Yalnızca main yayınlanır." >&2; exit 1; }
+  git fetch -q origin main
+  ISTENEN=$(git rev-parse HEAD)
+  [ "$ISTENEN" = "$(git rev-parse origin/main)" ] || { echo "HEAD origin/main değil." >&2; exit 1; }
+  for _ in $(seq 60); do
+    KAPI=$(gh api "repos/{owner}/{repo}/commits/$ISTENEN/check-runs?per_page=100" \
+      -q '[.check_runs[] | select(.name | startswith("Kapı"))][0] | "\(.status) \(.conclusion)"' || true)
+    case "$KAPI" in
+      "completed success") break ;;
+      "completed "*) echo "CI kırmızı ($KAPI): yayın durduruldu." >&2; exit 1 ;;
+    esac
+    echo "[gonder] CI bekleniyor: ${KAPI:-başlamadı}"
+    sleep 30
+  done
+  [ "$KAPI" = "completed success" ] || { echo "CI 30 dakikada bitmedi: yayın durduruldu." >&2; exit 1; }
+else
+  echo "[gonder] ⚠️ ACIL=1: CI kapısı atlandı." >&2
+fi
 
 if [ "${YEREL:-}" = 1 ]; then
   for hedef in uygulama araclar; do
@@ -91,10 +114,29 @@ else
       | gunzip | docker load'
 fi
 
+# Göç öncesi yedek: göç geri alınamaz; dosya gece yedeğinden bağımsız ve 7 gün durur. Yedek
+# alınamazsa yayın burada durur, canlı değişmez.
+ssh "${SSH_SECENEK[@]}" "$SUNUCU" "cd /opt/aelaldi && mkdir -p yedek && \
+  docker compose exec -T db sh -c 'pg_dump -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -Fc' > yedek/goc-oncesi-$SURUM.tmp && \
+  mv yedek/goc-oncesi-$SURUM.tmp yedek/goc-oncesi-$SURUM.dump && chmod 600 yedek/goc-oncesi-$SURUM.dump && \
+  find yedek -name 'goc-oncesi-*.dump' -mtime +7 -delete"
+
 # Eski sürümler: güncel + bir önceki (geri dönüş için) kalır, gerisi silinir.
 # Her sürüm ~2,6 GB; disk müşteri siteleri ve mailcow ile paylaşılıyor.
 ssh "${SSH_SECENEK[@]}" "$SUNUCU" "cd /opt/aelaldi && docker compose up -d --remove-orphans && \
   for r in aelaldi-uygulama aelaldi-araclar; do \
     docker images \$r --format '{{.Tag}}' | grep -vx latest | tail -n +3 | xargs -r -I{} docker rmi \$r:{} >/dev/null; \
   done; docker image prune -f >/dev/null"
-echo "[gonder] $SURUM yayında — kontrol: curl -s $SITE_URL/api/v1/health"
+
+# Yeni süreç gerçekten kalktı mı: `uptime` küçük olmalı (eski süreç de `ok` döner) ve veritabanı
+# ayakta. Kalkmadıysa "yayında" denmez; betik hata verir.
+for _ in $(seq 30); do
+  SAGLIK=$(curl -fsS --max-time 8 "$SITE_URL/api/v1/health" || true)
+  if python3 -c "import json, sys; d = json.loads(sys.argv[1])['data']; sys.exit(0 if d['db'] == 'up' and d['uptime'] < 300 else 1)" "$SAGLIK" 2>/dev/null; then
+    echo "[gonder] $SURUM yayında: $SAGLIK"
+    exit 0
+  fi
+  sleep 5
+done
+echo "[gonder] $SURUM YAYINA ÇIKMADI: 150 sn içinde yeni süreç sağlıklı yanıt vermedi." >&2
+exit 1

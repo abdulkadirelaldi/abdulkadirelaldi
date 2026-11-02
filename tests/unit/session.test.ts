@@ -103,6 +103,14 @@ describe('readSession — geçerli oturum', () => {
     });
   });
 
+  it('⚠️ süresi geçmiş giriş anı reddedilir: `exp` yenilense de oturum biter', async () => {
+    const simdi = Math.floor(Date.now() / 1000);
+    getTokenMock.mockResolvedValue({ sub: 'k', authTime: simdi - 25 * 60 * 60 });
+    expect(await readSession(istek(), { isProduction: false, secret: 's' })).toBeNull();
+    getTokenMock.mockResolvedValue({ sub: 'k', authTime: simdi - 60 });
+    expect(await readSession(istek(), { isProduction: false, secret: 's' })).not.toBeNull();
+  });
+
   /** §8.1 — 2FA durumu jetondan okunur; ara katman DB'ye bakmaz (T-014/K1). */
   it('tfa alanını jetondan okur', async () => {
     getTokenMock.mockResolvedValue({ sub: 'k', tfa: true });
