@@ -47,7 +47,7 @@ env:
   NEXT_TELEMETRY_DISABLED: '1'
   # F0'da kapsam eşiği RAPORLANIR, zorlanmaz. F1 sonunda '1' yapılacak —
   # tek satır, tek yer. Ayrıntı: vitest.config.ts.
-  COVERAGE_ENFORCE: '0'
+  COVERAGE_ENFORCE: '1'
 
 jobs:
   # ---------------------------------------------------------------------------
@@ -266,6 +266,14 @@ jobs:
           DATABASE_URL: postgresql://ci:ci@localhost:5432/aelaldi_ci
         run: pnpm db:seed
 
+      # Yedek alınır, boş veritabanına açılır, tablo tablo karşılaştırılır.
+      - name: Yedekten geri dönüş provası
+        env:
+          PG_ARAC: docker run --rm -i --network host -e PGHOST=localhost -e PGPASSWORD=ci postgres:16-alpine
+          PG_KULLANICI: ci
+          PG_VERITABANI: aelaldi_ci
+        run: bash scripts/geri-donus-provasi.sh
+
       - name: Playwright tarayıcı önbelleği
         uses: actions/cache@v6
         id: playwright-cache
@@ -302,7 +310,16 @@ jobs:
 
           const atlanan = rapor.stats?.skipped ?? 0;
           const gecen = rapor.stats?.expected ?? 0;
-          console.log(`geçen=${gecen} atlanan=${atlanan}`);
+          const titrek = rapor.stats?.flaky ?? 0;
+          console.log(`geçen=${gecen} atlanan=${atlanan} titrek=${titrek}`);
+
+          // Spec'ler silinirse ya da koşmazsa da yeşil kalmasın (2026-11-02: 165'ti).
+          if (gecen < 150) {
+            console.error(`Yalnızca ${gecen} e2e testi geçti; en az 150 bekleniyor.`);
+            process.exit(1);
+          }
+          // Titrek test yeniden denemede yeşile dönüyor: gizlenmesin, koşumda görünsün.
+          if (titrek > 0) console.log(`::warning::${titrek} e2e testi yeniden denemede geçti.`);
 
           if (atlanan > 0) {
             console.error(
