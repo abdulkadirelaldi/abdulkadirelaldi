@@ -91,6 +91,19 @@ export interface ReadSessionOptions {
 }
 
 /**
+ * Oturum bitti mi: giriş anına göre, yenilemelerden etkilenmez. `iat` ve `exp` her
+ * `/api/auth/session` çağrısında ileri alınıyor; bu yüzden çalınan çerez süresiz yenilenebilir
+ * ve şifre değişikliğinin yazma damgasını aşabilirdi. SAF.
+ */
+export function oturumBittiMi(
+  authTime: number,
+  maxAgeSeconds: number,
+  nowSeconds: number,
+): boolean {
+  return nowSeconds - authTime > maxAgeSeconds;
+}
+
+/**
  * Geçerli bir oturum varsa kimliğini döner, yoksa `null`.
  *
  * **KAPALI YÖNDE BAŞARISIZ OLUR (fail closed).** `AUTH_SECRET` tanımsızsa veya
@@ -123,6 +136,15 @@ export async function readSession(
 
     const userId = typeof token?.sub === 'string' ? token.sub : null;
     if (!userId) return null;
+
+    // Giriş anından itibaren mutlak süre: `exp` yenilemelerle ileri alınabiliyor.
+    const girisAni = typeof token?.authTime === 'number' ? token.authTime : null;
+    if (
+      girisAni !== null &&
+      oturumBittiMi(girisAni, SESSION_MAX_AGE_SECONDS, Math.floor(Date.now() / 1000))
+    ) {
+      return null;
+    }
 
     return { userId, twoFactorEnabled: readTwoFactorClaim(token) };
   } catch (error) {

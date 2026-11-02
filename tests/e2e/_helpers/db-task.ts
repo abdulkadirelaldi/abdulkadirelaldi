@@ -113,6 +113,8 @@ const komutlar: Record<string, (arg?: string) => Promise<unknown>> = {
         totpSecret: encryptSecret(TEST_TOTP_SECRET),
         totpConfirmedAt: new Date(),
         totpBackupCodes: await hashBackupCodes([...TEST_BACKUP_CODES]),
+        totpSonKod: null,
+        totpSonZaman: null,
       },
     });
 

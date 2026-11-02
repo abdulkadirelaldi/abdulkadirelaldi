@@ -40,7 +40,7 @@ const { authMock, writesRevokedMock, r2Mock, dbMock, revalidateTagMock } = vi.ho
         findUnique: vi.fn(),
       },
       project: { count: vi.fn(), findUnique: vi.fn() },
-      post: { count: vi.fn().mockResolvedValue(1) },
+      post: { count: vi.fn().mockResolvedValue(1), findUnique: vi.fn() },
       profile: { count: vi.fn().mockResolvedValue(1) },
       auditLog: { create: vi.fn(), count: vi.fn() },
     },
@@ -285,6 +285,7 @@ function dosyaVar(entity: string) {
 
 describe('⚠️ sunum — kim görebilir', () => {
   it('PROJE görseli OTURUMSUZ 200, kalıcı ve herkese açık önbellek', async () => {
+    dbMock.project.findUnique.mockResolvedValue({ status: 'PUBLISHED' });
     authMock.mockResolvedValue(null);
     dosyaVar('PROJECT');
     const yanit = await sun();

@@ -24,9 +24,33 @@ import { guvenliHata } from '@/lib/security/guvenli-log';
  * §8.4'ü denetlenemez hale getirir: hangi sayının yürürlükte olduğu koda
  * bakmadan söylenemez. Değişiklik gerekiyorsa yalnızca burası düzenlenir.
  */
+/**
+ * IP'nin sayaç anahtarı. IPv6'da tek kullanıcı bütün /64'e sahiptir: adres değiştirerek sınır
+ * aşılmasın diye ilk dört grup kullanılır. IPv4 aynen, IPv4 eşlemeli IPv6 IPv4'e döner. SAF.
+ */
+export function ipGrubu(ip: string): string {
+  const adres = ip.trim().toLowerCase();
+  if (!adres.includes(':')) return adres;
+  const eslemeli = adres.match(/^::ffff:(\d+\.\d+\.\d+\.\d+)$/);
+  if (eslemeli?.[1]) return eslemeli[1];
+  const [bas = '', son] = adres.split('::');
+  const basGrup = bas ? bas.split(':') : [];
+  const sonGrup = son ? son.split(':') : [];
+  const tam =
+    son === undefined
+      ? basGrup
+      : [...basGrup, ...Array<string>(8 - basGrup.length - sonGrup.length).fill('0'), ...sonGrup];
+  return `${tam.slice(0, 4).join(':')}::/64`;
+}
+
 export const LOGIN_RATE_LIMIT = {
   /** Bu sayıya ULAŞILDIĞINDA kilit uygulanır (5. başarısız deneme kilitler). */
   maxFailures: 5,
+  /**
+   * Hesap başına eşik: dağıtık denemeler için. IP eşiğinden yüksek: tek IP'den gelen saldırgan
+   * hesabı kilitleyemez, yalnızca kendi IP'si engellenir (2026-11-02).
+   */
+  hesapMaxFailures: 20,
   /** Başarısızlıkların sayıldığı geriye dönük pencere. */
   windowMinutes: 15,
   /** Kilidin süresi. */
@@ -167,7 +191,10 @@ export async function applyLockoutPolicy(
   let failures: number;
 
   try {
-    failures = await deps.countRecentFailures({ ip: input.ip }, rateLimitWindowStart(now));
+    failures = await deps.countRecentFailures(
+      { emailHash: input.emailHash },
+      rateLimitWindowStart(now),
+    );
   } catch (error) {
     guvenliHata(
       '[security] başarısız deneme sayımı okunamadı:',
@@ -177,7 +204,7 @@ export async function applyLockoutPolicy(
     return { locked: false, failures: 0 };
   }
 
-  if (failures < LOGIN_RATE_LIMIT.maxFailures) {
+  if (failures < LOGIN_RATE_LIMIT.hesapMaxFailures) {
     return { locked: false, failures };
   }
 

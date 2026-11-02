@@ -370,10 +370,11 @@ describe('§8.7 / §8.14 — T-004 başlıkları korunuyor', () => {
 // ---------------------------------------------------------------------------
 
 describe('middleware — matcher deseni', () => {
-  const matcher = config.matcher[0];
+  const matcher = config.matcher[config.matcher.length - 1] as string;
 
   it('tek bir desen olarak dışa aktarılır', () => {
-    expect(config.matcher).toHaveLength(1);
+    // Korunan yollar ayrıca: genel desen uzantılı yolları atlıyor.
+    expect(config.matcher.slice(0, -1)).toEqual(['/panel/:path*', '/api/v1/panel/:path*']);
     expect(typeof matcher).toBe('string');
   });
 

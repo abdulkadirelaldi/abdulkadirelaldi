@@ -40,10 +40,11 @@ async function kullanici(
 /** `basarisizSayisi` — hız sınırı sayacının döneceği değer (T-046/3a). */
 function istemci(kayit: ChangePasswordUserRecord | null, basarisizSayisi = 0) {
   const findUnique = vi.fn().mockResolvedValue(kayit);
-  const update = vi.fn().mockResolvedValue({});
+  const update = vi.fn().mockResolvedValue({ count: 1 });
   const auditCount = vi.fn().mockResolvedValue(basarisizSayisi);
   const client: ChangePasswordClient = {
-    user: { findUnique, update },
+    user: { findUnique, update, updateMany: update },
+    passkey: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
     auditLog: { count: auditCount },
   };
   return { client, findUnique, update, auditCount };

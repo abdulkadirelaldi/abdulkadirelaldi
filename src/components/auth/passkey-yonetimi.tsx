@@ -35,17 +35,28 @@ function cihazAdi(): string {
  * Eklenen cihazla bir sonraki girişte e-posta, şifre ve doğrulama kodu
  * gerekmez. Kaybolan cihazın passkey'i buradan silinir.
  */
-export function PasskeyYonetimi({ passkeyler }: { passkeyler: PasskeyDto[] }) {
+export function PasskeyYonetimi({
+  passkeyler,
+  kodGerekli = false,
+}: {
+  passkeyler: PasskeyDto[];
+  /** 2FA kuruluysa cihaz eklerken doğrulama kodu sorulur. */
+  kodGerekli?: boolean;
+}) {
   const router = useRouter();
   const [durum, setDurum] = useState<'bos' | 'ekleniyor'>('bos');
   const [mesaj, setMesaj] = useState<{ ton: 'ok' | 'hata'; metin: string } | null>(null);
   const [silinecek, setSilinecek] = useState<string | null>(null);
+  const [kodSor, setKodSor] = useState(false);
+  const [kod, setKod] = useState('');
 
   const ekle = async () => {
     setMesaj(null);
+    if (kodGerekli && !kodSor) return setKodSor(true);
     setDurum('ekleniyor');
     try {
-      const secenek = await passkeyKayitSecenekleriAction();
+      const secenek = await passkeyKayitSecenekleriAction(kodGerekli ? { totpKodu: kod } : {});
+      setKod('');
       if (!secenek.ok) {
         setMesaj({ ton: 'hata', metin: secenek.error.message });
         return;
@@ -57,6 +68,7 @@ export function PasskeyYonetimi({ passkeyler }: { passkeyler: PasskeyDto[] }) {
           ton: 'ok',
           metin: `${sonuc.data.name} eklendi. Artık Face ID ile girebilirsin.`,
         });
+        setKodSor(false);
         router.refresh();
       } else {
         setMesaj({ ton: 'hata', metin: sonuc.error.message });
@@ -127,10 +139,26 @@ export function PasskeyYonetimi({ passkeyler }: { passkeyler: PasskeyDto[] }) {
         </ul>
       )}
 
+      {kodSor && (
+        <label className="flex flex-col gap-1.5 text-sm">
+          <span className="text-primary font-medium">Doğrulama uygulamasındaki kod</span>
+          <input
+            value={kod}
+            onChange={(o) => setKod(o.target.value)}
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            className="focus-ring rounded-input border-line-strong bg-elevated text-primary tabular h-11 border px-3"
+          />
+          <span className="text-muted text-xs">
+            Face ID şifreyi ve kodu atladığı için eklerken bir kez sorulur.
+          </span>
+        </label>
+      )}
+
       <button
         type="button"
         onClick={() => void ekle()}
-        disabled={durum === 'ekleniyor'}
+        disabled={durum === 'ekleniyor' || (kodSor && kod.trim().length < 6)}
         className="focus-ring rounded-btn bg-gradient-accent flex min-h-12 items-center justify-center gap-2 px-4 font-medium text-white active:opacity-80 disabled:opacity-60"
       >
         {durum === 'ekleniyor' ? (

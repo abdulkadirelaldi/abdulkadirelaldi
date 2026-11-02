@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
 import { contactMessageFormSchema } from '@/lib/schemas';
+import { ipGrubu } from '@/lib/security/rate-limit';
 import { extractClientIp } from '@/server/auth/credentials';
 import {
   CONTACT_TIME_TRAP,
@@ -19,9 +20,15 @@ import {
   countRecentContactMessagesByIp,
   createContactMessage,
   type ContactMessageReceiptDto,
+  countRecentContactMessages,
 } from '@/server/services/contact-message';
 import type { ApiResponse } from '@/types';
 import { guvenliUyari } from '@/lib/security/guvenli-log';
+
+/** Form metinleri için fazlasıyla yeterli gövde sınırı. */
+const ILETISIM_EN_COK_BAYT = 32 * 1024;
+/** Bütün IP'ler için saatlik tavan: dağıtık gönderim e-posta kotasını tüketmesin. */
+const ILETISIM_SAATLIK_TAVAN = 30;
 
 /**
  * `/api/v1/iletisim` — §4.1 iletişim formu ucu.
@@ -120,11 +127,20 @@ export async function POST(request: Request): Promise<NextResponse<ApiResponse<u
   const ip = extractClientIp(request);
   // `extractClientIp` başlık yoksa 'unknown' döner. Bunu IP gibi saklamak,
   // vekil başlığı düşen bir kurulumda TÜM ziyaretçileri tek sayaca toplardı.
-  const storedIp = ip === 'unknown' ? null : ip;
+  const storedIp = ip === 'unknown' ? null : ipGrubu(ip);
+
+  // Ayrıştırmadan önce boyut: nginx sınırı 12 MB, küçük formun bunu okumaya ihtiyacı yok.
+  if (Number(request.headers.get('content-length') ?? 0) > ILETISIM_EN_COK_BAYT) {
+    return json(fail('VALIDATION_ERROR', 'Gönderilen veri çok büyük.'), 413);
+  }
 
   let body: unknown;
   try {
-    body = await request.json();
+    const metin = await request.text();
+    if (metin.length > ILETISIM_EN_COK_BAYT) {
+      return json(fail('VALIDATION_ERROR', 'Gönderilen veri çok büyük.'), 413);
+    }
+    body = JSON.parse(metin);
   } catch {
     return json(fail('VALIDATION_ERROR', 'Gönderilen veri okunamadı.'), 400);
   }
@@ -159,6 +175,9 @@ export async function POST(request: Request): Promise<NextResponse<ApiResponse<u
   let acceptedInWindow: number;
   try {
     acceptedInWindow = await countRecentContactMessagesByIp(storedIp, now);
+    if ((await countRecentContactMessages(now)) >= ILETISIM_SAATLIK_TAVAN) {
+      acceptedInWindow = Number.MAX_SAFE_INTEGER;
+    }
   } catch (error) {
     return json(internalError('iletisim:rate', error), 500);
   }

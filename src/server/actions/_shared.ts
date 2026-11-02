@@ -56,8 +56,20 @@ export async function currentActorId(): Promise<string | null> {
   const userId = session?.user?.id;
   if (!userId) return null;
 
+  // §8.1 ara katmana bırakılmaz: 2FA kurulmamış, yalnızca şifreyle açılmış oturum yazamaz.
+  if (session?.tfa === false) return null;
+
   if (await writesRevoked(userId, session?.tokenIssuedAt)) return null;
 
+  return userId;
+}
+
+/** Yalnızca 2FA KURULUM eylemleri: kurulum tam da 2FA henüz yokken yapılır. */
+export async function kurulumActorId(): Promise<string | null> {
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) return null;
+  if (await writesRevoked(userId, session?.tokenIssuedAt)) return null;
   return userId;
 }
 

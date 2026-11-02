@@ -48,6 +48,23 @@ function aiHatasi(baglam: string, error: unknown): ApiFailure {
   return toFailure(baglam, error);
 }
 
+/** Günlük yapay zekâ çağrısı: döngüye giren istemci ya da ele geçen oturum fatura çıkarmasın. */
+const GUNLUK_AI_SINIRI = 30;
+
+async function gunlukSinirAsildi(actorId: string): Promise<boolean> {
+  const sayi = await db.auditLog.count({
+    where: {
+      actorId,
+      action: 'EXPORT',
+      entity: 'HealthLog',
+      createdAt: { gte: new Date(Date.now() - 24 * 60 * 60_000) },
+    },
+  });
+  return sayi >= GUNLUK_AI_SINIRI;
+}
+
+const SINIR_DOLU = 'Bugünkü yapay zekâ hakkın doldu. Yarın yeniden dene.';
+
 const ANAHTAR_YOK = 'Yapay zekâ anahtarı sunucuda tanımlı değil; değerleri elle girebilirsin.';
 
 export async function tartiGorseliOkuAction(raw: unknown): Promise<ApiResponse<TartiOnerisi>> {
@@ -61,6 +78,7 @@ export async function tartiGorseliOkuAction(raw: unknown): Promise<ApiResponse<T
   if (!client) return fail('INTERNAL_ERROR', ANAHTAR_YOK);
 
   try {
+    if (await gunlukSinirAsildi(actorId)) return fail('RATE_LIMITED', SINIR_DOLU);
     await writeAuditLog(
       {
         actorId,
@@ -85,6 +103,7 @@ export async function saglikDegerlendirmesiAction(): Promise<ApiResponse<SaglikD
   if (!client) return fail('INTERNAL_ERROR', ANAHTAR_YOK);
 
   try {
+    if (await gunlukSinirAsildi(actorId)) return fail('RATE_LIMITED', SINIR_DOLU);
     const bugun = appToday();
     const kayitlar = await fetchHealthTrend({
       from: addAppDays(bugun, -(DEGERLENDIRME_GUNU - 1)),

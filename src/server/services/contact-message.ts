@@ -132,6 +132,16 @@ export async function countRecentContactMessagesByIp(
   });
 }
 
+/** Bütün IP'ler için saatlik mesaj sayısı: dağıtık gönderim e-posta kotasını tüketmesin. */
+export async function countRecentContactMessages(
+  now: Date,
+  client: ContactMessageClient = db,
+): Promise<number> {
+  return client.contactMessage.count({
+    where: { createdAt: { gte: contactRateWindowStart(now) } },
+  });
+}
+
 /**
  * Mesajı kaydeder.
  *

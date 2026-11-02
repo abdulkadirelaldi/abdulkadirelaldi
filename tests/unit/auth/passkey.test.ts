@@ -120,14 +120,11 @@ describe('girisDogrula', () => {
     expect(c.loginAttempt.create.mock.calls[0]?.[0].data.success).toBe(false);
   });
 
-  it('kayıtlı olmayan cihaz reddedilir', async () => {
-    const c = istemci({ passkey: null });
-    await expect(girisDogrula(yanit('c'), RP, '1.2.3.4', c, SIMDI)).rejects.toMatchObject({
-      kod: 'BILINMEYEN',
-    });
-  });
-
-  it('⚠️ kilitli hesap passkey ile de AÇILMAZ', async () => {
+  it('⚠️ şifre denemeleriyle konan kilit Face ID girişini kapatmaz', async () => {
+    vi.mocked(verifyAuthenticationResponse).mockResolvedValue({
+      verified: true,
+      authenticationInfo: { newCounter: 5 },
+    } as never);
     const c = istemci({
       passkey: {
         id: 'pk1',
@@ -145,10 +142,16 @@ describe('girisDogrula', () => {
         },
       },
     });
-    await expect(girisDogrula(yanit('c'), RP, '1.2.3.4', c, SIMDI)).rejects.toMatchObject({
-      kod: 'KILITLI',
+    await expect(girisDogrula(yanit('c'), RP, '1.2.3.4', c, SIMDI)).resolves.toMatchObject({
+      id: 'u1',
     });
-    expect(verifyAuthenticationResponse).not.toHaveBeenCalled();
+  });
+
+  it('kayıtlı olmayan cihaz reddedilir', async () => {
+    const c = istemci({ passkey: null });
+    await expect(girisDogrula(yanit('c'), RP, '1.2.3.4', c, SIMDI)).rejects.toMatchObject({
+      kod: 'BILINMEYEN',
+    });
   });
 
   it('imza doğrulanmazsa reddedilir', async () => {
@@ -170,14 +173,29 @@ describe('girisSecenekleri', () => {
         challenge: s.challenge,
         purpose: 'giris',
         userId: null,
+        ip: null,
         expiresAt: new Date('2026-10-30T12:05:00Z'),
       },
     });
   });
 
+  it('⚠️ sınır IP başına: tek kaynak Face ID girişini kapatamaz', async () => {
+    const c = istemci();
+    c.webAuthnChallenge.count.mockImplementation(async (a: { where: { ip?: string } }) =>
+      a.where.ip === '198.51.100.1' ? 10 : 10,
+    );
+    await expect(girisSecenekleri(RP, c, SIMDI, '198.51.100.1')).rejects.toMatchObject({
+      kod: 'SURESI_DOLDU',
+    });
+    c.webAuthnChallenge.count.mockImplementation(async (a: { where: { ip?: string } }) =>
+      a.where.ip ? 0 : 10,
+    );
+    await expect(girisSecenekleri(RP, c, SIMDI, '198.51.100.2')).resolves.toBeDefined();
+  });
+
   it('açık meydan okuma tavanında yeni üretilmez', async () => {
     const c = istemci();
-    c.webAuthnChallenge.count.mockResolvedValue(100);
+    c.webAuthnChallenge.count.mockResolvedValue(1000);
     await expect(girisSecenekleri(RP, c, SIMDI)).rejects.toMatchObject({ kod: 'SURESI_DOLDU' });
     expect(c.webAuthnChallenge.create).not.toHaveBeenCalled();
   });

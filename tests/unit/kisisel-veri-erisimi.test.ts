@@ -181,6 +181,11 @@ const YETKI_ISTISNALARI: Record<string, string> = {
     'GİRİŞ ÖNCESİ — oturum YOKKEN çağrılmak zorunda (Face ID ile giriş). Veri okumaz ' +
     'ya da yazmaz; yalnızca tek kullanımlık, 5 dk ömürlü bir WebAuthn meydan okuması ' +
     'üretir. Açık meydan okuma tavanı serviste; köken onay listesiyle sınırlı.',
+  'src/server/actions/totp.ts → startTotpSetup':
+    '2FA KURULUMU — tam da 2FA henüz yokken çağrılır; `kurulumActorId` oturum ve yazma ' +
+    'iptalini denetler, yalnızca 2FA alanını istemez.',
+  'src/server/actions/totp.ts → confirmTotpSetup':
+    '2FA KURULUMU — `startTotpSetup` ile aynı gerekçe.',
   'src/server/actions/totp.ts → getTotpStatus':
     'OKUMA — mutasyon değil, yetkisizde "kapalı" dönüyor. ADR-035 okumaların iptalini ' +
     'bilerek F6/C`ye bıraktı; yazma iptali okumaya uygulanmaz.',

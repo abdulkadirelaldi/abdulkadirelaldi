@@ -18,6 +18,7 @@ const countRecentContactMessagesByIp = vi.hoisted(() => vi.fn());
 vi.mock('@/server/services/contact-message', () => ({
   createContactMessage,
   countRecentContactMessagesByIp,
+  countRecentContactMessages: vi.fn().mockResolvedValue(0),
 }));
 
 const SIR = 'test-secret-abcdefghijklmnopqrstuvwxyz';

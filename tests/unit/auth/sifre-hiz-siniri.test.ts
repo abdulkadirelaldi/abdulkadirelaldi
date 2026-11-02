@@ -175,10 +175,11 @@ describe('changePassword akışında hız sınırı', () => {
 
   function istemci(kayit: Awaited<ReturnType<typeof kullanici>>, basarisiz: number) {
     const findUnique = vi.fn().mockResolvedValue(kayit);
-    const update = vi.fn().mockResolvedValue({});
+    const update = vi.fn().mockResolvedValue({ count: 1 });
     const count = vi.fn().mockResolvedValue(basarisiz);
     const client: ChangePasswordClient = {
-      user: { findUnique, update },
+      user: { findUnique, update, updateMany: update },
+      passkey: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
       auditLog: { count },
     };
     return { client, findUnique, update, count };
@@ -245,9 +246,10 @@ describe('başarılı değişiklik `writesValidFrom` damgalıyor', () => {
       totpBackupCodes: [],
       writesValidFrom: null,
     });
-    const update = vi.fn().mockResolvedValue({});
+    const update = vi.fn().mockResolvedValue({ count: 1 });
     const client: ChangePasswordClient = {
-      user: { findUnique, update },
+      user: { findUnique, update, updateMany: update },
+      passkey: { deleteMany: vi.fn().mockResolvedValue({ count: 0 }) },
       auditLog: { count: vi.fn().mockResolvedValue(0) },
     };
 

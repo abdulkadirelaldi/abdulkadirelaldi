@@ -9,6 +9,8 @@ import {
 } from '@/server/auth/credentials';
 import { hashEmail } from '@/server/auth/login-attempt';
 import { hashPassword } from '@/server/auth/password';
+import { ipGrubu } from '@/lib/security/rate-limit';
+import { oturumBittiMi } from '@/lib/security/session';
 import { encryptSecret, generateTotpSecret } from '@/server/auth/totp';
 
 /**
@@ -45,11 +47,14 @@ interface Harness {
   auditCreate: ReturnType<typeof vi.fn>;
 }
 
-function harness(user: AuthUserRecord | null, failureCount = 0): Harness {
+/** `failureCount` hesap başına sayım; `ipFailures` IP başına (Argon2 öncesi engel). */
+function harness(user: AuthUserRecord | null, failureCount = 0, ipFailures = 0): Harness {
   const findUnique = vi.fn().mockResolvedValue(user);
-  const update = vi.fn().mockResolvedValue({});
+  const update = vi.fn().mockResolvedValue({ count: 1 });
   const create = vi.fn().mockResolvedValue({});
-  const count = vi.fn().mockResolvedValue(failureCount);
+  const count = vi.fn(async (args: { where: { ip?: string } }) =>
+    args.where.ip ? ipFailures : failureCount,
+  );
   const auditCreate = vi.fn().mockResolvedValue({});
   return {
     findUnique,
@@ -58,7 +63,7 @@ function harness(user: AuthUserRecord | null, failureCount = 0): Harness {
     count,
     auditCreate,
     client: {
-      user: { findUnique, update },
+      user: { findUnique, update, updateMany: update },
       loginAttempt: {
         create,
         count,
@@ -154,11 +159,24 @@ describe('KULLANICI NUMARALANDIRMA KORUMASI', () => {
     expect(spy).toHaveBeenCalledTimes(1);
   });
 
-  it('KİLİTLİ hesapta YANLIŞ şifre, kilidi ele vermez', async () => {
-    // Kilit durumu şifre doğrulanmadan bildirilseydi, hesabın varlığı sızardı.
+  it('⚠️ kilit şifre hakkında bilgi vermez: doğru da yanlış da aynı yanıt', async () => {
     const h = harness(await makeUser({ lockedUntil: new Date('2099-01-01T00:00:00Z') }));
-    const result = await authenticateUser({ email: EMAIL, password: 'yanlis', ip: IP }, h.client);
-    expect(result).toEqual({ ok: false, reason: 'INVALID_CREDENTIALS' });
+    const yanlis = await authenticateUser({ email: EMAIL, password: 'yanlis', ip: IP }, h.client);
+    const dogru = await authenticateUser({ email: EMAIL, password: PASSWORD, ip: IP }, h.client);
+    expect(yanlis).toEqual({ ok: false, reason: 'ACCOUNT_LOCKED' });
+    expect(dogru).toEqual(yanlis);
+  });
+
+  it('⚠️ hesap eşiğinde var olan ve olmayan e-posta aynı yanıtı alır', async () => {
+    const var_ = harness(await makeUser(), 20);
+    const yok = harness(null, 20);
+    const a = await authenticateUser({ email: EMAIL, password: 'x', ip: IP }, var_.client);
+    const b = await authenticateUser(
+      { email: 'yok@example.com', password: 'x', ip: IP },
+      yok.client,
+    );
+    expect(a).toEqual({ ok: false, reason: 'ACCOUNT_LOCKED' });
+    expect(b).toEqual(a);
   });
 });
 
@@ -410,6 +428,63 @@ describe('extractClientIp — §8.4 denetim kaydı', () => {
   });
 });
 
+describe('giriş sınırı (2026-11-02)', () => {
+  it('⚠️ IP engelindeyken şifre DOĞRULANMAZ ve doğru şifre de reddedilir', async () => {
+    const h = harness(await makeUser(), 0, 5);
+    const dogru = await authenticateUser({ email: EMAIL, password: PASSWORD, ip: IP }, h.client);
+    expect(dogru).toEqual({ ok: false, reason: 'ACCOUNT_LOCKED' });
+    expect(h.findUnique).not.toHaveBeenCalled();
+    expect(h.create).not.toHaveBeenCalled();
+  });
+
+  it('⚠️ tek IP hesabı kilitleyemez: IP eşiğinde hesaba kilit yazılmaz', async () => {
+    const h = harness(await makeUser(), 6, 4);
+    await authenticateUser({ email: EMAIL, password: 'yanlis', ip: IP }, h.client);
+    expect(h.update.mock.calls.find((c) => c[0]?.data?.lockedUntil)).toBeUndefined();
+  });
+
+  it('⚠️ kod istenmesi başarısız deneme sayılmaz: olağan girişler IP engeli yaratmaz', async () => {
+    const secret = await generateTotpSecret();
+    const user = await makeUser({
+      totpSecret: encryptSecret(secret),
+      totpConfirmedAt: new Date('2026-01-01T00:00:00Z'),
+    });
+    const h = harness(user);
+    const sonuc = await authenticateUser({ email: EMAIL, password: PASSWORD, ip: IP }, h.client);
+    expect(sonuc).toEqual({ ok: false, reason: 'TOTP_REQUIRED' });
+    expect(h.create).not.toHaveBeenCalled();
+  });
+
+  it('⚠️ aynı doğrulama kodu ikinci kez kabul edilmez', async () => {
+    const secret = await generateTotpSecret();
+    const user = await makeUser({
+      totpSecret: encryptSecret(secret),
+      totpConfirmedAt: new Date('2026-01-01T00:00:00Z'),
+    });
+    const h = harness(user);
+    h.update.mockResolvedValue({ count: 0 });
+    const kod = await currentTotpToken(secret);
+    const sonuc = await authenticateUser(
+      { email: EMAIL, password: PASSWORD, totpCode: kod, ip: IP },
+      h.client,
+    );
+    expect(sonuc).toEqual({ ok: false, reason: 'INVALID_TOTP' });
+  });
+
+  it('IPv6 tek sayaçta: aynı /64 içinden adres değiştirmek sınırı aşmaz', () => {
+    expect(ipGrubu('2001:db8:1:2:aaaa::1')).toBe('2001:db8:1:2::/64');
+    expect(ipGrubu('2001:db8:1:2:bbbb:cccc:dddd:eeee')).toBe('2001:db8:1:2::/64');
+    expect(ipGrubu('2001:db8::1')).toBe('2001:db8:0:0::/64');
+    expect(ipGrubu('::ffff:203.0.113.9')).toBe('203.0.113.9');
+    expect(ipGrubu('203.0.113.9')).toBe('203.0.113.9');
+  });
+
+  it('oturum giriş anından itibaren biter, yenileme uzatmaz', () => {
+    expect(oturumBittiMi(1000, 100, 1100)).toBe(false);
+    expect(oturumBittiMi(1000, 100, 1101)).toBe(true);
+  });
+});
+
 describe('§8.4 kilitleme bağlantısı — BULGU-005 regresyonu', () => {
   it('başarısız denemede applyLockoutPolicy ÇAĞRILIR (sayaç okunur)', async () => {
     const h = harness(await makeUser(), 0);
@@ -432,11 +507,16 @@ describe('§8.4 kilitleme bağlantısı — BULGU-005 regresyonu', () => {
     });
 
     await authenticateUser({ email: EMAIL, password: 'yanlis', ip: IP }, h.client);
-    expect(order).toEqual(['record', 'count']);
+    expect(order.slice(-2)).toEqual(['record', 'count']);
   });
 
   it('EŞİĞE ULAŞILINCA lockedUntil YAZILIR', async () => {
-    const h = harness(await makeUser(), 5); // 5 başarısız deneme sayıldı
+    // Ön kontrol 19'u görür, bu deneme eşiği doldurur.
+    const h = harness(await makeUser(), 0);
+    h.count.mockImplementation(async (args: { where: { ip?: string } }) => {
+      if (args.where.ip) return 0;
+      return h.create.mock.calls.length > 0 ? 20 : 19;
+    });
     await authenticateUser({ email: EMAIL, password: 'yanlis', ip: IP }, h.client);
 
     const lockCall = h.update.mock.calls.find((c) => c[0]?.data?.lockedUntil);
@@ -451,7 +531,11 @@ describe('§8.4 kilitleme bağlantısı — BULGU-005 regresyonu', () => {
   });
 
   it('kilit ADR-022 uyarınca AuditLog’a düşer', async () => {
-    const h = harness(await makeUser(), 5);
+    const h = harness(await makeUser(), 0);
+    h.count.mockImplementation(async (args: { where: { ip?: string } }) => {
+      if (args.where.ip) return 0;
+      return h.create.mock.calls.length > 0 ? 20 : 19;
+    });
     await authenticateUser({ email: EMAIL, password: 'yanlis', ip: IP }, h.client);
 
     expect(h.auditCreate).toHaveBeenCalled();
@@ -462,7 +546,7 @@ describe('§8.4 kilitleme bağlantısı — BULGU-005 regresyonu', () => {
   });
 
   it('var olmayan kullanıcıda sayım yapılır ama kilit YAZILMAZ', async () => {
-    const h = harness(null, 5);
+    const h = harness(null, 20);
     await authenticateUser({ email: 'yok@example.com', password: 'x', ip: IP }, h.client);
     expect(h.count).toHaveBeenCalled();
     expect(h.update).not.toHaveBeenCalled();
@@ -472,7 +556,8 @@ describe('§8.4 kilitleme bağlantısı — BULGU-005 regresyonu', () => {
     const h = harness(await makeUser(), 0);
     const result = await authenticateUser({ email: EMAIL, password: PASSWORD, ip: IP }, h.client);
     expect(result.ok).toBe(true);
-    expect(h.count).not.toHaveBeenCalled();
+    expect(h.auditCreate).not.toHaveBeenCalled();
+    expect(h.update.mock.calls.find((c) => c[0]?.data?.lockedUntil)).toBeUndefined();
   });
 
   it('kilit yazımı DB hatası verse bile giriş akışı çökmez', async () => {
@@ -559,7 +644,13 @@ describe('jeton alanları — §8.1 kapısının şekli (BULGU-008)', () => {
       {},
       { id: 'usr_1', email: EMAIL, name: 'Abdulkadir', tfa: true },
     );
-    expect(token).toEqual({ sub: 'usr_1', email: EMAIL, name: 'Abdulkadir', tfa: true });
+    expect(token).toEqual({
+      sub: 'usr_1',
+      email: EMAIL,
+      name: 'Abdulkadir',
+      tfa: true,
+      authTime: expect.any(Number),
+    });
   });
 
   it('GİRİŞ: tfa false olarak jetona yazılır', async () => {
@@ -567,13 +658,13 @@ describe('jeton alanları — §8.1 kapısının şekli (BULGU-008)', () => {
     expect(applyLoginClaims<SessionClaims>({}, { id: 'usr_1', tfa: false }).tfa).toBe(false);
   });
 
-  it('§8.20 — jetonda YALNIZCA dört alan var', async () => {
+  it('§8.20 — jetonda YALNIZCA bu alanlar var', async () => {
     const { applyLoginClaims } = await import('@/server/auth/credentials');
     const token = applyLoginClaims<SessionClaims>(
       {},
       { id: 'usr_1', email: EMAIL, name: 'Abdulkadir', tfa: true },
     );
-    expect(Object.keys(token).sort()).toEqual(['email', 'name', 'sub', 'tfa']);
+    expect(Object.keys(token).sort()).toEqual(['authTime', 'email', 'name', 'sub', 'tfa']);
   });
 
   it('null email/name undefined’a çevrilir', async () => {
