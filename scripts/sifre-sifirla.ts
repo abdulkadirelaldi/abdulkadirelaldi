@@ -7,7 +7,7 @@ import { closeDatabase, db } from '@/server/db';
 /**
  * PANEL ŞİFRESİNİ SIFIRLA — sunucuda, SİTE SAHİBİ çalıştırır (2026-10-28).
  *
- *   ssh root@187.77.66.202
+ *   ssh "$SUNUCU"
  *   cd /opt/aelaldi
  *   read -rsp "Yeni şifre: " ADMIN_PASSWORD; echo
  *   docker compose exec -T -e ADMIN_PASSWORD="$ADMIN_PASSWORD" araclar \
