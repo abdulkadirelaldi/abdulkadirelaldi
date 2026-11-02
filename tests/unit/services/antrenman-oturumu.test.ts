@@ -158,6 +158,7 @@ describe('finishSession', () => {
     const { client, update } = istemci(decimal('90.00'));
     const s = await finishSession('w', client, new Date('2026-10-30T08:00:30Z'));
     expect(s).toEqual({
+      gun: '2026-10-30',
       durationMin: 61,
       kcal: kaloriHesapla({ dakika: 61, kiloKg: 90, met: 5 }),
       kiloKg: 90,
