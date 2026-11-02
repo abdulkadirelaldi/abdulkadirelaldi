@@ -55,9 +55,12 @@ describe('startSession · başka günden açık kalan (2026-11-01)', () => {
             startedAt: baslangic,
             programDay: null,
           }),
-          findUnique: vi
-            .fn()
-            .mockResolvedValue({ startedAt: baslangic, finishedAt: null, type: 'GYM' }),
+          findUnique: vi.fn().mockResolvedValue({
+            startedAt: baslangic,
+            finishedAt: null,
+            type: 'GYM',
+            date: new Date('2026-10-30T00:00:00Z'),
+          }),
           create,
           update,
           delete: del,
@@ -139,6 +142,7 @@ describe('finishSession', () => {
         workout: {
           findUnique: vi.fn().mockResolvedValue({
             startedAt: new Date('2026-10-30T07:00:00Z'),
+            date: new Date('2026-10-30T00:00:00Z'),
             finishedAt: bitmis ? new Date() : null,
             type: 'GYM',
           }),
@@ -154,6 +158,7 @@ describe('finishSession', () => {
     const { client, update } = istemci(decimal('90.00'));
     const s = await finishSession('w', client, new Date('2026-10-30T08:00:30Z'));
     expect(s).toEqual({
+      gun: '2026-10-30',
       durationMin: 61,
       kcal: kaloriHesapla({ dakika: 61, kiloKg: 90, met: 5 }),
       kiloKg: 90,
@@ -203,6 +208,7 @@ describe('⚠️ hiçbir DTO yüzeyi `Decimal` sızdırmıyor', () => {
           id: 'w',
           startedAt: new Date('2026-10-30T07:00:00Z'),
           finishedAt: null,
+          date: new Date('2026-10-30T00:00:00Z'),
           durationMin: null,
           kcal: null,
           programDay: { name: 'İtiş', focus: null, exercises: [hareket] },

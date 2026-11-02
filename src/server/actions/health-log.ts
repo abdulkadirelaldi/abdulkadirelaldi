@@ -1,5 +1,6 @@
 'use server';
 
+import { guvenliHata } from '@/lib/security/guvenli-log';
 import { suAliskanliginiIsaretle } from '@/server/services/habit-gun';
 import { createHealthLogSchema, entityIdSchema, updateHealthLogSchema } from '@/lib/schemas';
 import { db } from '@/server/db';
@@ -72,7 +73,12 @@ async function suAliskanligi(
   su: number | null | undefined,
 ): Promise<void> {
   if (su === undefined) return;
-  await suAliskanliginiIsaretle(actorId, dto.date, su, true).catch(() => undefined);
+  await suAliskanliginiIsaretle(actorId, dto.date, su, true).catch((error: unknown) =>
+    guvenliHata(
+      '[saglik] alışkanlık işaretlenemedi:',
+      error instanceof Error ? error.message : error,
+    ),
+  );
 }
 
 export async function createHealthLogAction(raw: unknown): Promise<ApiResponse<HealthLogDto>> {

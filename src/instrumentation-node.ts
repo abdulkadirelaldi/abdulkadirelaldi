@@ -1,6 +1,7 @@
 import { guvenliHata } from './lib/security/guvenli-log';
 import { bildirimTuru } from './server/services/bildirim';
 import { netVarlikKaydet } from './server/services/cuzdan-rapor';
+import { hataKaydet } from './server/services/hata-kaydi';
 import { gunlukTemizlik } from './server/services/temizlik';
 
 /**
@@ -9,8 +10,15 @@ import { gunlukTemizlik } from './server/services/temizlik';
  * `web-push` ve Node modülleri girmez). Testte ve geliştirmede kurulmaz.
  */
 if (process.env.NODE_ENV === 'production') {
-  const hataYaz = (ad: string) => (error: unknown) =>
+  // Yalnızca konsola yazılan hata panelde görünmüyordu: Ayarlar → Hatalar'a da düşer.
+  const hataYaz = (ad: string) => (error: unknown) => {
     guvenliHata(`[${ad}] tur başarısız:`, error instanceof Error ? error.message : error);
+    void hataKaydet({
+      kaynak: 'sunucu',
+      ad: `zamanlayici:${ad}`,
+      mesaj: error instanceof Error ? error.message : String(error),
+    }).catch(() => undefined);
+  };
 
   // Bildirim: anahtar yoksa kurulmaz.
   if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {

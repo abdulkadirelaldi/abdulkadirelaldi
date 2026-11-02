@@ -72,3 +72,33 @@ describe('kayitOzeti (2026-11-01)', () => {
     expect(kayitOzeti(k('uyku', { saat: '7.5' }))).toBe('7,5 saat uyku');
   });
 });
+
+describe('sıra kapanmaz (2026-11-02)', () => {
+  const kayit = (id: string, deneme?: number) => ({
+    id,
+    tur: 'su' as const,
+    girdi: { ml: 250 },
+    ...(deneme ? { deneme } : {}),
+  });
+
+  it('⚠️ sunucunun işleyemediği kayıt arkasındakileri bekletmez', async () => {
+    const sonuc = await kuyruguIsle([kayit('a'), kayit('b')], async (k) =>
+      k.id === 'a' ? 'atla' : 'tamam',
+    );
+    expect(sonuc.gonderilen).toBe(1);
+    expect(sonuc.kalan).toEqual([kayit('a', 1)]);
+  });
+
+  it('⚠️ deneme hakkı bitince sessizce silinmez, eklenemeyenlere geçer', async () => {
+    const sonuc = await kuyruguIsle([kayit('a', 4)], async () => 'atla');
+    expect(sonuc.kalan).toEqual([]);
+    expect(sonuc.reddedilen.map((k) => k.id)).toEqual(['a']);
+  });
+
+  it('ağ yoksa (bekle) sıra korunur, atlananlar başta kalır', async () => {
+    const sonuc = await kuyruguIsle([kayit('a'), kayit('b'), kayit('c')], async (k) =>
+      k.id === 'a' ? 'atla' : k.id === 'b' ? 'bekle' : 'tamam',
+    );
+    expect(sonuc.kalan.map((k) => k.id)).toEqual(['a', 'b', 'c']);
+  });
+});

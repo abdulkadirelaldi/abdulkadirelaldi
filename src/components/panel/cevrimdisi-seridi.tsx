@@ -11,6 +11,8 @@ import {
   kuyruguIsle,
   kuyruguOku,
   kuyruguYaz,
+  reddedilenleriOku,
+  reddedilenleriYaz,
   type GonderimSonucu,
   type KuyrukKaydi,
 } from '@/components/panel/hizli-kuyruk';
@@ -31,9 +33,15 @@ async function gonder(k: KuyrukKaydi, oturumKapali: () => void): Promise<Gonderi
           ? await hizliUykuAction(k.girdi)
           : await hizliSuAction(k.girdi);
   if (sonuc.ok) return 'tamam';
-  if (sonuc.error.code === 'UNAUTHORIZED') oturumKapali();
-  // Oturum düşmüş / geçici sunucu hatası: kayıt silinmez, sonra yeniden denenir.
-  return sonuc.error.code === 'VALIDATION_ERROR' ? 'red' : 'bekle';
+  if (sonuc.error.code === 'VALIDATION_ERROR') return 'red';
+  // Oturum düşmüş ya da sınıra takılmış: bütün sıra için geçerli, sonra yeniden denenir.
+  if (sonuc.error.code === 'UNAUTHORIZED') {
+    oturumKapali();
+    return 'bekle';
+  }
+  if (sonuc.error.code === 'RATE_LIMITED') return 'bekle';
+  // Bu kayda özgü sunucu hatası: arkasındakileri bekletmez, deneme sayılır.
+  return 'atla';
 }
 
 /**
@@ -65,7 +73,11 @@ export function CevrimdisiSeridi() {
     const islenen = new Set(kayitlar.map((k) => k.id));
     kuyruguYaz([...kalan, ...kuyruguOku().filter((k) => !islenen.has(k.id))]);
     isleniyor.current = false;
-    if (red.length > 0) setReddedilen((r) => [...r, ...red]);
+    if (red.length > 0) {
+      const tumu = [...reddedilenleriOku(), ...red];
+      reddedilenleriYaz(tumu);
+      setReddedilen(tumu);
+    }
     if (gonderilen > 0) router.refresh();
   }, [router]);
 
@@ -76,7 +88,9 @@ export function CevrimdisiSeridi() {
     const guncelle = () => {
       setCevrimdisi(!navigator.onLine);
       setBekleyen(kuyruguOku().length);
+      setListe(kuyruguOku());
     };
+    setReddedilen(reddedilenleriOku());
     const baglandi = () => {
       guncelle();
       void isle();
@@ -176,7 +190,7 @@ export function CevrimdisiSeridi() {
           )}
           {reddedilen.length > 0 && (
             <div className="flex flex-col gap-2">
-              <p className="text-danger font-medium">Geçersiz olduğu için eklenemedi:</p>
+              <p className="text-danger font-medium">Eklenemedi, yeniden girmen gerekiyor:</p>
               <ul className="flex flex-col gap-1">
                 {reddedilen.map((k) => (
                   <li key={k.id} className="text-primary tabular">
@@ -187,6 +201,7 @@ export function CevrimdisiSeridi() {
               <button
                 type="button"
                 onClick={() => {
+                  reddedilenleriYaz([]);
                   setReddedilen([]);
                   setAcik(false);
                 }}

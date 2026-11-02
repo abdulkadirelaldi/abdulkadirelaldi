@@ -1,5 +1,7 @@
 import * as z from 'zod';
 
+import { HARCAMA_KATEGORILERI } from '@/lib/harcama-kategorileri';
+
 import { WalletAccountKind, WalletFlowKind, WalletFrequency, WalletUnit } from '@/types';
 
 import {
@@ -117,16 +119,7 @@ export type UpdateWalletFlowInput = z.infer<typeof updateWalletFlowSchema>;
 /* Hızlı ekleme (2026-10-30) — panelin "+" düğmesi. */
 
 /** Hazır harcama kategorileri — bütçe ve dağılım bunlarla gruplanır. */
-export const HARCAMA_KATEGORILERI = [
-  'Market',
-  'Yemek',
-  'Ulaşım',
-  'Fatura',
-  'Eğlence',
-  'Sağlık',
-  'Giyim',
-  'Diğer',
-] as const;
+export { HARCAMA_KATEGORILERI };
 
 export const walletTransferSchema = z
   .object({

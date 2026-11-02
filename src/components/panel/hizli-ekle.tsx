@@ -15,11 +15,13 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
+import { useOdakTuzagi } from '@/components/panel/odak-tuzagi';
+
 import { tutarOku } from '@/components/panel/cuzdan-bicim';
 import { gunAy } from '@/components/panel/hayat-bicim';
 import { paraBicim } from '@/components/panel/para-bicim';
 import { istanbulGunu, kuyrugaEkle, type KuyrukTuru } from '@/components/panel/hizli-kuyruk';
-import { HARCAMA_KATEGORILERI } from '@/lib/schemas/wallet';
+import { HARCAMA_KATEGORILERI } from '@/lib/harcama-kategorileri';
 import { cn } from '@/lib/utils/cn';
 import {
   hizliHarcamaAction,
@@ -46,7 +48,13 @@ export function HizliEkle() {
   const [basari, setBasari] = useState<string | null>(null);
   const [geriAl, setGeriAl] = useState<(() => Promise<void>) | null>(null);
 
+  const kapanisZamani = useRef<number | null>(null);
+  const pencere = useRef<HTMLDivElement>(null);
+  useOdakTuzagi(acik, pencere, () => kapat());
   const kapat = () => {
+    // Eski zamanlayıcı yeniden açılan pencereyi ve yazılan değeri kapatmasın.
+    if (kapanisZamani.current !== null) window.clearTimeout(kapanisZamani.current);
+    kapanisZamani.current = null;
     setAcik(false);
     setGorunum('menu');
     setBasari(null);
@@ -114,7 +122,7 @@ export function HizliEkle() {
     setGeriAl(geriAl ? () => geriAl : null);
     if (yenile) router.refresh();
     // Geri alınabiliyorsa düğmeye dokunacak kadar açık kalır.
-    window.setTimeout(kapat, geriAl ? 3500 : 1100);
+    kapanisZamani.current = window.setTimeout(kapat, geriAl ? 3500 : 1100);
   };
 
   return (
@@ -144,6 +152,8 @@ export function HizliEkle() {
             className="hizli-ortu absolute inset-0 bg-black/40"
           />
           <div
+            ref={pencere}
+            tabIndex={-1}
             role="dialog"
             aria-modal="true"
             aria-labelledby="hizli-baslik"
@@ -159,7 +169,7 @@ export function HizliEkle() {
                   type="button"
                   onClick={() => setGorunum('menu')}
                   aria-label="Geri"
-                  className="focus-ring text-muted hover:text-primary -ml-2 flex size-9 items-center justify-center rounded-full"
+                  className="focus-ring text-muted hover:text-primary -ml-2 flex size-11 items-center justify-center rounded-full"
                 >
                   <ChevronLeft className="size-5" aria-hidden="true" />
                 </button>
@@ -171,7 +181,7 @@ export function HizliEkle() {
                 type="button"
                 onClick={kapat}
                 aria-label="Kapat"
-                className="focus-ring bg-elevated text-muted hover:text-primary flex size-9 items-center justify-center rounded-full"
+                className="focus-ring bg-elevated text-muted hover:text-primary flex size-11 items-center justify-center rounded-full"
               >
                 <X className="size-4" aria-hidden="true" />
               </button>
@@ -190,8 +200,17 @@ export function HizliEkle() {
                     onClick={() => {
                       const is = geriAl;
                       setGeriAl(null);
-                      setBasari('Geri alındı');
-                      void is();
+                      setBasari('Geri alınıyor…');
+                      // Sonuç söylenmeden "geri alındı" denmez; kapanış da sonucu bekler.
+                      if (kapanisZamani.current !== null) {
+                        window.clearTimeout(kapanisZamani.current);
+                      }
+                      void is()
+                        .then(() => setBasari('Geri alındı'))
+                        .catch(() => setBasari('Geri alınamadı, su kaydı duruyor'))
+                        .finally(() => {
+                          kapanisZamani.current = window.setTimeout(kapat, 1500);
+                        });
                     }}
                     className="focus-ring bg-elevated text-body mt-1 min-h-11 rounded-full px-5 text-sm font-medium"
                   >
@@ -299,8 +318,16 @@ function kuyrugaAl(
   tamam: (mesaj: string, yenile?: boolean) => void,
   setHata: (mesaj: string) => void,
 ) {
-  if (kuyrugaEkle(tur, girdi)) tamam('Bağlantı yok — gelince kaydedilecek', false);
-  else setHata('Bağlantı yok ve cihaza da yazılamadı. Kayıt alınmadı, yeniden dene.');
+  // Hata bağlantıdan olmayabilir (sunucu 500, yayın sonrası eski sayfa): mesaj durumu söylesin.
+  const sebep = navigator.onLine ? 'Sunucuya ulaşılamadı' : 'Bağlantı yok';
+  if (kuyrugaEkle(tur, girdi)) {
+    tamam(
+      navigator.onLine
+        ? 'Sunucuya ulaşılamadı — sonra yeniden denenecek'
+        : 'Bağlantı yok — gelince kaydedilecek',
+      false,
+    );
+  } else setHata(`${sebep} ve cihaza da yazılamadı. Kayıt alınmadı, yeniden dene.`);
 }
 
 const SON_KATEGORI = 'ae-son-kategori';
@@ -553,7 +580,8 @@ function KiloFormu({ tamam }: { tamam: (m: string, yenile?: boolean) => void }) 
 /** Geri alma: kayıt sunucuya ulaştıysa çıkarılır; sonuç sayfayı yeniler. */
 async function suyuGeriAl(ml: number, gun: string, yenile: () => void): Promise<void> {
   try {
-    await suGeriAlAction({ ml, gun });
+    const sonuc = await suGeriAlAction({ ml, gun });
+    if (!sonuc.ok) throw new Error(sonuc.error.message);
   } finally {
     yenile();
   }

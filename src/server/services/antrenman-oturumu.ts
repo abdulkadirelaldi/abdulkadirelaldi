@@ -782,10 +782,16 @@ export async function finishSession(
   workoutId: string,
   client: Client = db,
   simdi: Date = new Date(),
-): Promise<{ durationMin: number; kcal: number; kiloKg: number; varsayilanKilo: boolean }> {
+): Promise<{
+  durationMin: number;
+  kcal: number;
+  kiloKg: number;
+  varsayilanKilo: boolean;
+  gun: AppDay;
+}> {
   const w = await client.workout.findUnique({
     where: { id: workoutId },
-    select: { startedAt: true, finishedAt: true, type: true },
+    select: { startedAt: true, finishedAt: true, type: true, date: true },
   });
   if (!w || !w.startedAt) throw new OturumHatasi('OTURUM_YOK');
   if (w.finishedAt) throw new OturumHatasi('BITMIS');
@@ -809,5 +815,11 @@ export async function finishSession(
     where: { id: workoutId },
     data: { finishedAt: simdi, durationMin, kcal },
   });
-  return { durationMin, kcal, kiloKg, varsayilanKilo: kiloMetni === null };
+  return {
+    durationMin,
+    kcal,
+    kiloKg,
+    varsayilanKilo: kiloMetni === null,
+    gun: dateToAppDay(w.date),
+  };
 }

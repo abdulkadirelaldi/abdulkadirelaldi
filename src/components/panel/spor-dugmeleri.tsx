@@ -64,9 +64,13 @@ export function ProgramYukleDugmesi() {
         disabled={bekliyor}
         onClick={() =>
           basla(async () => {
-            const sonuc = await createSuggestedProgramAction();
-            if (!sonuc.ok) return setHata(sonuc.error.message);
-            router.refresh();
+            try {
+              const sonuc = await createSuggestedProgramAction();
+              if (!sonuc.ok) return setHata(sonuc.error.message);
+              router.refresh();
+            } catch {
+              setHata('Bağlantı kurulamadı. Yeniden dene.');
+            }
           })
         }
         className={buttonClasses({ size: 'lg' })}

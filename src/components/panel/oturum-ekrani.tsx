@@ -234,9 +234,13 @@ export function OturumEkrani({
     }
     setHata(null);
     basla(async () => {
-      const sonuc = await finishSessionAction({ id: oturum.id });
-      if (!sonuc.ok) return setHata(sonuc.error.message);
-      router.refresh();
+      try {
+        const sonuc = await finishSessionAction({ id: oturum.id });
+        if (!sonuc.ok) return setHata(sonuc.error.message);
+        router.refresh();
+      } catch {
+        setHata('Bağlantı kurulamadı. Antrenman açık duruyor, yeniden dene.');
+      }
     });
   };
 

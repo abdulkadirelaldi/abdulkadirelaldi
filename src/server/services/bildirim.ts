@@ -274,7 +274,8 @@ export async function kullaniciyaGonder(
         await webpush.sendNotification(
           { endpoint: a.endpoint, keys: { p256dh: a.p256dh, auth: a.auth } },
           JSON.stringify({ baslik: b.baslik, govde: b.govde, url: b.url }),
-          { TTL: 60 * 60 },
+          // Yanıt vermeyen uç nokta bütün turu bekletmesin.
+          { TTL: 60 * 60, timeout: 10_000 },
         );
         ulasan += 1;
       } catch (error) {
@@ -304,14 +305,21 @@ export async function bildirimTuru(simdi: Date = new Date()): Promise<number> {
   for (const { userId } of kullanicilar) {
     const girdi = await planGirdisi(userId, simdi);
     for (const b of planla(girdi)) {
-      // Önce KAYIT: eşsizlik ihlali (P2002) = bugün zaten gönderildi → atla.
-      const yeni = await db.bildirimKaydi
+      // Önce KAYIT: eşsizlik ihlali (P2002) = bugün zaten gönderildi → atla. Başka veritabanı
+      // hatası "gönderildi" sayılmaz, yukarı çıkar ve kayda geçer.
+      const kayit = await db.bildirimKaydi
         .create({
           data: { tur: b.tur, anahtar: `${userId}:${b.anahtar}`, gun: appDayToDate(girdi.gun) },
         })
-        .then(() => true)
-        .catch(() => false);
-      if (yeni) gonderilen += await kullaniciyaGonder(userId, b, vapid);
+        .catch((error: unknown) => {
+          if ((error as { code?: string }).code === 'P2002') return null;
+          throw error;
+        });
+      if (!kayit) continue;
+      const ulasan = await kullaniciyaGonder(userId, b, vapid);
+      gonderilen += ulasan;
+      // Hiçbir cihaza ulaşmadıysa kayıt silinir: 5 dakika sonraki tur pencere içinde yeniden dener.
+      if (ulasan === 0) await db.bildirimKaydi.delete({ where: { id: kayit.id } });
     }
   }
   // Eski kayıtları temizle (30 gün) — tablo büyümesin.

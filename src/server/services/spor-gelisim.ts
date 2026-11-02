@@ -144,11 +144,14 @@ async function rekorGonder(userId: string, set: EklenenSet, kg: number): Promise
   if (tercih && !tercih.rekor) return;
 
   const anahtar = `${userId}:${set.exerciseId}:${set.reps}:${kg}`;
-  const yeni = await db.bildirimKaydi
+  const kayit = await db.bildirimKaydi
     .create({ data: { tur: 'rekor', anahtar, gun: appDayToDate(appToday()) } })
-    .then(() => true)
-    .catch(() => false);
-  if (!yeni) return;
+    .catch((error: unknown) => {
+      // Yalnızca eşsizlik "zaten gönderildi" demek; başka hata çağırana çıkar.
+      if ((error as { code?: string }).code === 'P2002') return null;
+      throw error;
+    });
+  if (!kayit) return;
 
   await kullaniciyaGonder(
     userId,
