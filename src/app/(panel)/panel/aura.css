@@ -27,8 +27,7 @@
   border-radius: var(--radius-card);
   background: #100d26;
   color: #ffffff;
-  box-shadow:
-    0 26px 50px -28px var(--aura-golge, rgb(91 61 255 / 0.75));
+  box-shadow: 0 26px 50px -28px var(--aura-golge, rgb(91 61 255 / 0.75));
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
