@@ -31,9 +31,16 @@ export function dilAlternatifleri(
   const varsayilan = adres(VARSAYILAN_DIL);
   if (varsayilan) languages['x-default'] = varsayilan;
 
+  // Görsel verilmezse LinkedIn sayfadan rastgele bir resim seçiyor; ana sayfa paylaşımında
+  // kapak bir projenin görseli çıkıyordu (2026-11-02).
+  const projeSlug = sayfa === 'projeler' ? sluglar?.[dil] : undefined;
+  const ogYolu = projeSlug ? `/og/proje/${projeSlug}` : '/og';
+  const ogAdres = dil === VARSAYILAN_DIL ? ogYolu : `${ogYolu}?dil=${dil}`;
+
   return {
     alternates: { canonical: adres(dil) ?? undefined, languages },
     openGraph: {
+      images: [{ url: ogAdres, width: 1200, height: 630 }],
       locale: OG_BOLGE[dil],
       alternateLocale: DILLER.filter((d) => d !== dil && languages[d]).map((d) => OG_BOLGE[d]),
     },

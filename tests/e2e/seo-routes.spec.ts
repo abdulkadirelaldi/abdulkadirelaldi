@@ -223,6 +223,20 @@ test.describe('§4.1 · OG görseli', () => {
     });
   });
 
+  test('ana sayfa kendi paylaşım görselini gösterir', async ({ page, request }) => {
+    await page.goto('/');
+
+    const adres = await page.locator('meta[property="og:image"]').getAttribute('content');
+    expect(adres).toMatch(/\/og$/);
+
+    const yanit = await request.get(new URL(adres ?? '').pathname);
+    expect(yanit.status()).toBe(200);
+    expect(pngDogrula(await yanit.body())).toMatchObject({
+      genislik: OG_GENISLIK,
+      yukseklik: OG_YUKSEKLIK,
+    });
+  });
+
   test('/og/proje/<slug> → 200 ve PNG', async ({ request }) => {
     /*
      * Slug sitemap'ten okunuyor, ELLE YAZILMIYOR. Sabit bir slug yazsaydık
