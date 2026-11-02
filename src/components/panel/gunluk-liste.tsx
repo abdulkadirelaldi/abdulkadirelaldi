@@ -74,10 +74,22 @@ function Satir({
   const router = useRouter();
   const [count, setCount] = useState(item.count);
   const [durum, setDurum] = useState<GunDurumu>(item.durum);
+  const [baslangic, setBaslangic] = useState(item.sayacBaslangic);
   const [hata, setHata] = useState<string | null>(null);
   const [bekliyor, basla] = useTransition();
   const [silmeOnayi, setSilmeOnayi] = useState<'yaptim' | 'yapmadim' | null>(null);
   const hedef = item.targetPerDay;
+  const sayacAcik = bugunMu && baslangic !== null;
+
+  // Sunucudan yeni veri gelince satır tazelenir: su kaydı alışkanlığı işaretlediğinde ya da
+  // başka cihazda değiştiğinde eski değer kalmasın. Süren yazma varken dokunulmaz.
+  const [sonVeri, setSonVeri] = useState(item);
+  if (item !== sonVeri && !bekliyor) {
+    setSonVeri(item);
+    setCount(item.count);
+    setDurum(item.durum);
+    setBaslangic(item.sayacBaslangic);
+  }
 
   useEffect(() => {
     if (!silmeOnayi) return;
@@ -95,7 +107,11 @@ function Satir({
   const uygula = (
     yeniCount: number,
     yeniMissed: boolean,
-    eylem: () => Promise<{ ok: boolean; error?: { message: string } }>,
+    eylem: () => Promise<{
+      ok: boolean;
+      data?: { count: number; missed: boolean };
+      error?: { message: string };
+    }>,
   ) => {
     const onceki = { count, durum };
     setCount(yeniCount);
@@ -110,6 +126,11 @@ function Satir({
       try {
         const sonuc = await eylem();
         if (!sonuc.ok) return geriDon(sonuc.error?.message ?? 'Kaydedilemedi.');
+        // Sunucunun son sözü: üst sınıra takılan toplam ekranda da doğru görünsün.
+        if (sonuc.data) {
+          setCount(sonuc.data.count);
+          setDurum(durumHesapla(sonuc.data.count, sonuc.data.missed, hedef));
+        }
         router.refresh();
       } catch {
         geriDon('Bağlantı kurulamadı. Yeniden dene.');
@@ -143,8 +164,9 @@ function Satir({
 
   const ton = aliskanlikRengi(item.name, item.color);
   const fazla = item.sureli && hedef !== null ? count - hedef : 0;
-  const durumMetni =
-    durum === 'YAPILDI'
+  const durumMetni = sayacAcik
+    ? 'Sayaç çalışıyor'
+    : durum === 'YAPILDI'
       ? fazla > 0
         ? 'Hedefi aştın'
         : 'Tamamlandı'
@@ -193,7 +215,7 @@ function Satir({
           ton="danger"
           kucuk
           onClick={() => onayla('yapmadim', count > 0, yapmadim)}
-          disabled={bekliyor}
+          disabled={bekliyor || sayacAcik}
         >
           <X className="size-4" />
         </Dugme>
@@ -202,7 +224,7 @@ function Satir({
           aktif={durum === 'YAPILDI'}
           ton="success"
           onClick={() => onayla('yaptim', durum === 'YAPILDI', yaptim)}
-          disabled={bekliyor}
+          disabled={bekliyor || sayacAcik}
         >
           <Check className="size-5" strokeWidth={2.5} />
         </Dugme>
@@ -218,7 +240,9 @@ function Satir({
         <SureBolumu
           habitId={item.id}
           gun={gun}
-          sayac={item.sayacBaslangic}
+          baslangic={baslangic}
+          setBaslangic={setBaslangic}
+          yenile={() => router.refresh()}
           hedef={hedef}
           count={count}
           renk={ton}

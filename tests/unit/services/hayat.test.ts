@@ -271,10 +271,10 @@ describe('alışkanlık yönetimi', () => {
     expect(update.mock.calls[0]?.[0].data).toEqual({ targetPerWeek: 3 });
   });
 
-  it('arşiv YALNIZCA bayrağı değiştiriyor — silme yolu yok', async () => {
+  it('arşiv yalnızca bayrağı ve açık sayacı değiştiriyor — silme yolu yok', async () => {
     const { client, update } = yonetimIstemci();
     await archiveHabit({ id: 'ckabcdefghijklmnopqrstuv', isArchived: true }, client);
-    expect(update.mock.calls[0]?.[0].data).toEqual({ isArchived: true });
+    expect(update.mock.calls[0]?.[0].data).toEqual({ isArchived: true, sayacBaslangic: null });
   });
 });
 

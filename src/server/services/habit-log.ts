@@ -55,7 +55,7 @@ export interface HabitDayResult {
 }
 
 /** Hedef alışkanlık neden yazılamadı — eylem bunu kullanıcı metnine çevirir. */
-export type HabitWriteBlock = 'NOT_FOUND' | 'ARCHIVED';
+export type HabitWriteBlock = 'NOT_FOUND' | 'ARCHIVED' | 'SURELI_DEGIL';
 
 export class HabitWriteBlockedError extends Error {
   constructor(readonly reason: HabitWriteBlock) {
@@ -70,6 +70,10 @@ export interface HabitLogClient {
       where: { id: string };
       select: { targetPerDay: true; isArchived: true; sureli: true };
     }): Promise<{ targetPerDay: number | null; isArchived: boolean; sureli: boolean } | null>;
+    updateMany(args: {
+      where: { id: string; sayacBaslangic: { not: null } };
+      data: { sayacBaslangic: null };
+    }): Promise<{ count: number }>;
   };
   habitLog: {
     findUnique(args: {
@@ -184,7 +188,8 @@ export async function sureEkle(
   input: SureEkleInput,
   client: HabitLogClient = db,
 ): Promise<HabitDayResult> {
-  await requireWritableHabit(input.habitId, client);
+  const habit = await requireWritableHabit(input.habitId, client);
+  if (!habit.sureli) throw new HabitWriteBlockedError('SURELI_DEGIL');
   const mevcut = await client.habitLog.findUnique({
     where: { habitId_date: { habitId: input.habitId, date: appDayToDate(input.date) } },
     select: { count: true },
@@ -195,14 +200,18 @@ export async function sureEkle(
 
 /** Sayacı başlatır. Zaten çalışıyorsa başlangıcına dokunmaz: ikinci cihaz süreyi sıfırlamasın. */
 export async function sayaciBaslat(habitId: string, simdi: Date = new Date()): Promise<string> {
-  await requireWritableHabit(habitId, db);
+  const yazilabilir = await requireWritableHabit(habitId, db);
+  if (!yazilabilir.sureli) throw new HabitWriteBlockedError('SURELI_DEGIL');
+  // Koşullu yazma: iki cihaz aynı anda başlatsa da ilk başlangıç kalır.
+  await db.habit.updateMany({
+    where: { id: habitId, sayacBaslangic: null },
+    data: { sayacBaslangic: simdi },
+  });
   const habit = await db.habit.findUnique({
     where: { id: habitId },
     select: { sayacBaslangic: true },
   });
-  if (habit?.sayacBaslangic) return habit.sayacBaslangic.toISOString();
-  await db.habit.update({ where: { id: habitId }, data: { sayacBaslangic: simdi } });
-  return simdi.toISOString();
+  return (habit?.sayacBaslangic ?? simdi).toISOString();
 }
 
 export type SayacSonucu =
@@ -227,14 +236,16 @@ export async function sayaciDurdur(
   const baslangic = habit?.sayacBaslangic;
   if (!baslangic) return { durum: 'YOK' };
 
-  const gecenDk = Math.max(1, Math.round((simdi.getTime() - baslangic.getTime()) / 60_000));
+  // Yarım dakikadan kısası yanlışlıkla başlatmadır: sayaç kapanır, süre yazılmaz.
+  const gecenDk = Math.round((simdi.getTime() - baslangic.getTime()) / 60_000);
   if (input.dakika === undefined && gecenDk > SAYAC_UZUN_DK) return { durum: 'UZUN', gecenDk };
   const eklenen = input.dakika ?? gecenDk;
   const gun = appToday(baslangic);
 
   return db.$transaction(async (tx) => {
     const kapanan = await tx.habit.updateMany({
-      where: { id: input.habitId, sayacBaslangic: { not: null } },
+      // Okunan başlangıca bağlı: gecikmiş ikinci "durdur" yeni başlatılan sayacı kapatmasın.
+      where: { id: input.habitId, sayacBaslangic: baslangic },
       data: { sayacBaslangic: null },
     });
     if (kapanan.count === 0) return { durum: 'YOK' } as const;
@@ -273,6 +284,14 @@ export async function setHabitDayStatus(
   client: HabitLogClient = db,
 ): Promise<HabitDayResult> {
   const habit = await requireWritableHabit(input.habitId, client);
+
+  // Elle işaretlenen günde açık sayaç kalmasın: sonradan aynı süre ikinci kez eklenirdi.
+  if (habit.sureli) {
+    await client.habit.updateMany({
+      where: { id: input.habitId, sayacBaslangic: { not: null } },
+      data: { sayacBaslangic: null },
+    });
+  }
 
   if (input.durum === 'YAPTIM') {
     return writeCount(input.habitId, input.date, habit.targetPerDay ?? 1, client);

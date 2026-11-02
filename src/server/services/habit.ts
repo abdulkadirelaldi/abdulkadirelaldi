@@ -498,7 +498,8 @@ export async function archiveHabit(
 ): Promise<HabitDto> {
   const row = await client.habit.update({
     where: { id: input.id },
-    data: { isArchived: input.isArchived },
+    // Arşivde sayaç açık kalmaz: durdurma arşive yazamaz, aylar sonra "unutuldu" uyarısı çıkardı.
+    data: { isArchived: input.isArchived, ...(input.isArchived ? { sayacBaslangic: null } : {}) },
     select: HABIT_SELECT,
   });
 
