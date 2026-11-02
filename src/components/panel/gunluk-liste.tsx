@@ -2,10 +2,15 @@
 
 import { Check, Minus, Plus, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
 
 import { AliskanlikRozeti, aliskanlikRengi } from '@/components/panel/aliskanlik-rozeti';
-import { setHabitDayCountAction, setHabitDayStatusAction } from '@/server/actions/habit';
+import { SureBolumu } from '@/components/panel/sure-bolumu';
+import {
+  setHabitDayCountAction,
+  setHabitDayStatusAction,
+  sureEkleAction,
+} from '@/server/actions/habit';
 import type { GunDurumu, GunlukAliskanlikDto } from '@/server/services/habit-gun';
 import { cn } from '@/lib/utils/cn';
 
@@ -31,16 +36,25 @@ export function GunlukListe({
   gun,
   items,
   seriler = {},
+  bugunMu = true,
 }: {
   gun: string;
   items: GunlukAliskanlikDto[];
   /** Alışkanlık kimliği → süren seri metni ("12 gün"). */
   seriler?: Readonly<Record<string, string>>;
+  /** Sayaç yalnızca bugün başlatılır; geçmiş güne süre elle eklenir. */
+  bugunMu?: boolean;
 }) {
   return (
     <ul className="flex flex-col gap-2.5">
       {items.map((item) => (
-        <Satir key={`${gun}-${item.id}`} gun={gun} item={item} seri={seriler[item.id]} />
+        <Satir
+          key={`${gun}-${item.id}`}
+          gun={gun}
+          item={item}
+          seri={seriler[item.id]}
+          bugunMu={bugunMu}
+        />
       ))}
     </ul>
   );
@@ -50,17 +64,33 @@ function Satir({
   gun,
   item,
   seri,
+  bugunMu,
 }: {
   gun: string;
   item: GunlukAliskanlikDto;
   seri: string | undefined;
+  bugunMu: boolean;
 }) {
   const router = useRouter();
   const [count, setCount] = useState(item.count);
   const [durum, setDurum] = useState<GunDurumu>(item.durum);
   const [hata, setHata] = useState<string | null>(null);
   const [bekliyor, basla] = useTransition();
+  const [silmeOnayi, setSilmeOnayi] = useState<'yaptim' | 'yapmadim' | null>(null);
   const hedef = item.targetPerDay;
+
+  useEffect(() => {
+    if (!silmeOnayi) return;
+    const zaman = window.setTimeout(() => setSilmeOnayi(null), 5000);
+    return () => window.clearTimeout(zaman);
+  }, [silmeOnayi]);
+
+  /** Süreli alışkanlıkta yazılı dakikayı silen dokunuş iki adımlı: emek tek dokunuşla gitmesin. */
+  const onayla = (tur: 'yaptim' | 'yapmadim', silerMi: boolean, eylem: () => void) => {
+    if (item.sureli && silerMi && silmeOnayi !== tur) return setSilmeOnayi(tur);
+    setSilmeOnayi(null);
+    eylem();
+  };
 
   const uygula = (
     yeniCount: number,
@@ -112,9 +142,12 @@ function Satir({
   };
 
   const ton = aliskanlikRengi(item.name, item.color);
+  const fazla = item.sureli && hedef !== null ? count - hedef : 0;
   const durumMetni =
     durum === 'YAPILDI'
-      ? 'Tamamlandı'
+      ? fazla > 0
+        ? 'Hedefi aştın'
+        : 'Tamamlandı'
       : durum === 'YAPILMADI'
         ? 'Yapılmadı'
         : durum === 'EKSIK'
@@ -159,7 +192,7 @@ function Satir({
           aktif={durum === 'YAPILMADI'}
           ton="danger"
           kucuk
-          onClick={yapmadim}
+          onClick={() => onayla('yapmadim', count > 0, yapmadim)}
           disabled={bekliyor}
         >
           <X className="size-4" />
@@ -168,14 +201,48 @@ function Satir({
           etiket={`${item.name}: yaptım`}
           aktif={durum === 'YAPILDI'}
           ton="success"
-          onClick={yaptim}
+          onClick={() => onayla('yaptim', durum === 'YAPILDI', yaptim)}
           disabled={bekliyor}
         >
           <Check className="size-5" strokeWidth={2.5} />
         </Dugme>
       </div>
 
-      {hedef !== null && (
+      {silmeOnayi && (
+        <p role="status" className="text-warning text-xs">
+          Yazılı süre silinecek. Onaylamak için yeniden dokun.
+        </p>
+      )}
+
+      {item.sureli && hedef !== null && (
+        <SureBolumu
+          habitId={item.id}
+          gun={gun}
+          sayac={item.sayacBaslangic}
+          hedef={hedef}
+          count={count}
+          renk={ton}
+          bekliyor={bekliyor}
+          bugunMu={bugunMu}
+          ekle={(dk) =>
+            uygula(count + dk, false, () =>
+              sureEkleAction({ habitId: item.id, date: gun, dakika: dk }),
+            )
+          }
+          duzelt={(toplam) =>
+            uygula(toplam, false, () =>
+              setHabitDayCountAction({ habitId: item.id, date: gun, count: toplam }),
+            )
+          }
+          sayacSonucu={(yeni) => {
+            setCount(yeni);
+            setDurum(durumHesapla(yeni, false, hedef));
+            router.refresh();
+          }}
+        />
+      )}
+
+      {!item.sureli && hedef !== null && (
         <div className="flex items-center gap-3">
           <Dugme
             etiket={`${item.name}: bir azalt`}

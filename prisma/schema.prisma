@@ -753,20 +753,25 @@ model PersonalRecord {
 model Habit {
   id String @id @default(cuid())
 
-  name          String
+  name           String
   /// Haftada kaç gün yapılması hedefleniyor.
-  targetPerWeek Int     @default(7)
+  targetPerWeek  Int       @default(7)
   /// Gün içinde kaç kez (örn. 8 bardak su). Yoksa "yapıldı/yapılmadı" yeterli.
-  targetPerDay  Int?
-  color         String?
-  icon          String?
+  targetPerDay   Int?
+  color          String?
+  icon           String?
   /// Günlük listedeki sıra (küçük önce) — sahibi "sırasıyla" işaretliyor.
-  order         Int     @default(0)
-  isActive      Boolean @default(true)
+  order          Int       @default(0)
+  isActive       Boolean   @default(true)
   /// Referans veri: silinmez, arşivlenir (ADR-017).
-  isArchived    Boolean @default(false)
+  isArchived     Boolean   @default(false)
   /// `SU` | `SPOR`: kayıttan kendiliğinden işaretlenir. Boşsa elle.
-  otoKaynak     String?
+  otoKaynak      String?
+  /// Süreli alışkanlık: `targetPerDay` ve `HabitLog.count` DAKİKA taşır. Seri, hafta
+  /// ve rapor hesapları aynı kaldığı için hedefi aşmak da "tamamlandı" sayılır.
+  sureli         Boolean   @default(false)
+  /// Çalışan sayacın başlangıcı. Sunucuda: uygulama kapansa da sayaç sürer.
+  sayacBaslangic DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

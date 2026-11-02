@@ -213,16 +213,17 @@ async function aliskanlikCsv(): Promise<string> {
       date: true,
       count: true,
       missed: true,
-      habit: { select: { name: true, targetPerDay: true } },
+      habit: { select: { name: true, targetPerDay: true, sureli: true } },
     },
   });
   return csv(
-    ['Gün', 'Alışkanlık', 'Sayı', 'Hedef', 'Durum'],
+    ['Gün', 'Alışkanlık', 'Sayı', 'Hedef', 'Birim', 'Durum'],
     isaretler.map((i) => [
       dateToAppDay(i.date),
       i.habit.name,
       i.count,
       i.habit.targetPerDay ?? 1,
+      i.habit.sureli ? 'dakika' : 'kez',
       DURUM_METNI[gunDurumu(i.count, i.missed, i.habit.targetPerDay)],
     ]),
   );

@@ -7,6 +7,7 @@ import { useState } from 'react';
 
 import { AliskanlikRozeti } from '@/components/panel/aliskanlik-rozeti';
 import { ArsivleDugmesi } from '@/components/panel/arsivle-dugmesi';
+import { sureBicim } from '@/components/panel/hayat-bicim';
 import { VeriTablosu, type Sutun } from '@/components/panel/veri-tablosu';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonClasses } from '@/components/ui/button';
@@ -28,7 +29,8 @@ import type { HabitDto } from '@/server/services/habit';
 
 function hedefMetni(h: HabitDto): string {
   const hafta = h.targetPerWeek >= 7 ? 'Her gün' : `Haftada ${h.targetPerWeek} gün`;
-  return h.targetPerDay === null ? hafta : `${hafta} · günde ${h.targetPerDay}`;
+  if (h.targetPerDay === null) return hafta;
+  return `${hafta} · günde ${h.sureli ? sureBicim(h.targetPerDay) : h.targetPerDay}`;
 }
 
 export function AliskanlikListesi({
