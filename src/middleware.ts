@@ -1,3 +1,4 @@
+import { PANEL_BASLIGI, panelYolu } from '@/components/theme';
 import { NextResponse, type NextRequest } from 'next/server';
 
 import { DIL_BASLIGI, dilMi, VARSAYILAN_DIL } from '@/i18n/diller';
@@ -106,6 +107,9 @@ export async function middleware(request: NextRequest): Promise<NextResponse> {
    */
   const istekBasliklari = new Headers(request.headers);
   istekBasliklari.set('x-nonce', nonce);
+  // Başlık dışarıdan da gelebilir: yalnızca gerçek panel yolunda bulunur.
+  istekBasliklari.delete(PANEL_BASLIGI);
+  if (panelYolu(request.nextUrl.pathname)) istekBasliklari.set(PANEL_BASLIGI, '1');
   istekBasliklari.set('Content-Security-Policy', csp);
   const devam = (): NextResponse => NextResponse.next({ request: { headers: istekBasliklari } });
 
