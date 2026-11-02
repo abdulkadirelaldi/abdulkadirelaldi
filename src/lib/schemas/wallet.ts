@@ -77,6 +77,10 @@ export const walletDebtPaymentSchema = z.object({
   amount: tutar.refine((v) => Number(v) > 0, { error: 'Ödeme sıfırdan büyük olmalı.' }),
   note: shortTextSchema.optional(),
   hesapId: cuidSchema.optional(),
+  /** Hesap başka birimdeyse hesaptan gerçekten çıkan tutar (hesabın biriminde). */
+  hesapTutar: tutar
+    .refine((v) => Number(v) > 0, { error: 'Tutar sıfırdan büyük olmalı.' })
+    .optional(),
 });
 
 export const walletFlowSchema = z.object({

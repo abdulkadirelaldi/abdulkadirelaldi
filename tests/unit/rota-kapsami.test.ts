@@ -254,8 +254,8 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     not: "2026-10-30 Cüzdan (muhasebenin yerine): net varlık, bu ayın hesabı, hesaplar/borçlar/gelirler/giderler. Okuma `fetchCuzdan` (kurlar `fetchKurlar`: Truncgil → 10 dk bellek → `PriceQuote` son bilinen, 'bayat' uyarısıyla). CSP paketi geziyor — yükleniyor, ihlal yok. Hesap kuralları `tests/unit/services/cuzdan.test.ts`te (kursuz kalem toplama girmez, borç SATIŞ kuruyla, ödeme kalanı sıfırın altına indirmez). ÖLÇÜLMEYEN: içerik ve canlı kaynak e2e'de yok.",
   },
   '/panel/cuzdan/transfer': {
-    kapilar: ['kapsanmiyor'],
-    kanit: [],
+    kapilar: ['e2e'],
+    kanit: ["'/panel/cuzdan/transfer'"],
     not: "2026-11-01 hesaplar arası transfer ve geri alma. Kurallar `tests/unit/services/cuzdan-hesap.test.ts`te. ÖLÇÜLMEYEN: e2e'de içerik yok.",
   },
   '/panel/cuzdan/ara': {
@@ -284,8 +284,8 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     not: '2026-10-30. `cuidSchema` dışı ya da arşivli kimlik 404. Okuma `fetchWalletAccountById`; yazma `updateWalletAccountAction`, `archiveWalletAccountAction` (iki dokunuşlu onay). ÖLÇÜLMEYEN: e2e yok.',
   },
   '/panel/cuzdan/borc/[id]': {
-    kapilar: ['kapsanmiyor'],
-    kanit: [],
+    kapilar: ['e2e'],
+    kanit: ['/panel/cuzdan/borc/${'],
     not: '2026-10-30. Okuma `fetchWalletDebtById` + `fetchDebtPayments`; ödeme `addDebtPaymentAction` (kalanı düşürür, sıfırda borcu kapatır — servis testinde), düzenleme `updateWalletDebtAction`, silme `deleteWalletDebtAction`. ÖLÇÜLMEYEN: e2e yok.',
   },
   '/panel/cuzdan/akis/[id]': {

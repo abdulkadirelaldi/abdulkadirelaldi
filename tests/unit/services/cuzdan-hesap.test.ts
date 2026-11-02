@@ -17,6 +17,7 @@ const CID = 'ckabcdefghijklmnopqrstuv';
 function kurulum(bakiyeler: Record<string, string>, kalem?: Record<string, unknown>) {
   const hesap = { ...bakiyeler };
   const tx = {
+    $queryRaw: vi.fn(),
     walletAccount: {
       findUnique: vi.fn(({ where }: { where: { id: string } }) => {
         const b = hesap[where.id];
@@ -179,6 +180,7 @@ describe('fetchSonTransferler', () => {
           },
         ]),
       },
+      $queryRaw: vi.fn(),
       walletAccount: {
         findMany: vi.fn().mockResolvedValue([{ id: 'a', name: 'Ziraat', unit: 'TRY' }]),
       },

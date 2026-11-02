@@ -167,7 +167,8 @@ export function HesapFormu({ hesap }: { hesap?: Omit<HesapDto, 'tl'> }) {
             id: hesap.id,
             name: ad,
             kind: tur,
-            balance,
+            // Bakiye yalnızca değiştiyse: form açıkken yapılan ödemenin üstüne yazılmasın.
+            ...(balance !== hesap.balance ? { balance } : {}),
             ...(birim !== hesap.unit ? { unit: birim } : {}),
           })
         : createWalletAccountAction({ name: ad, kind: tur, unit: birim, balance }),
@@ -249,7 +250,14 @@ export function HesapFormu({ hesap }: { hesap?: Omit<HesapDto, 'tl'> }) {
  * BORÇ
  * ======================================================================== */
 
-export function BorcFormu({ borc }: { borc?: Omit<BorcDto, 'kalanTl' | 'taksitTl'> }) {
+export function BorcFormu({
+  borc,
+  odemesiVar = false,
+}: {
+  /** Ödemesi olan borç silinmez, kapatılır. */
+  odemesiVar?: boolean;
+  borc?: Omit<BorcDto, 'kalanTl' | 'taksitTl'>;
+}) {
   const { hata, alanHatalari, bekliyor, gonder, setHata } = useGonder();
   const [ad, setAd] = useState(borc?.name ?? '');
   const [kime, setKime] = useState(borc?.lender ?? '');
@@ -370,13 +378,20 @@ export function BorcFormu({ borc }: { borc?: Omit<BorcDto, 'kalanTl' | 'taksitTl
         </p>
       )}
       <Kaydet bekliyor={bekliyor} />
-      {borc && (
-        <SilDugmesi
-          etiket="Borcu sil"
-          bekliyor={bekliyor}
-          onSil={() => gonder(() => deleteWalletDebtAction({ id: borc.id }))}
-        />
-      )}
+      {borc &&
+        (odemesiVar ? (
+          <SilDugmesi
+            etiket="Borcu kapat"
+            bekliyor={bekliyor}
+            onSil={() => gonder(() => updateWalletDebtAction({ id: borc.id, isClosed: true }))}
+          />
+        ) : (
+          <SilDugmesi
+            etiket="Borcu sil"
+            bekliyor={bekliyor}
+            onSil={() => gonder(() => deleteWalletDebtAction({ id: borc.id }))}
+          />
+        ))}
     </form>
   );
 }
@@ -395,12 +410,21 @@ export function OdemeFormu({
   const { hata, bekliyor, gonder, setHata } = useGonder();
   const [tutar, setTutar] = useState('');
   const [tarih, setTarih] = useState(bugun);
-  const [hesapId, setHesapId] = useState(hesaplar[0]?.id ?? '');
+  const [hesapId, setHesapId] = useState(
+    (hesaplar.find((h) => h.unit === birim) ?? hesaplar[0])?.id ?? '',
+  );
+  const [hesapTutari, setHesapTutari] = useState('');
+  const seciliHesap = hesaplar.find((h) => h.id === hesapId);
+  const farkliBirim = seciliHesap && seciliHesap.unit !== birim ? seciliHesap.unit : null;
 
   const kaydet = (o: FormEvent) => {
     o.preventDefault();
     const amount = tutarOku(tutar, birim);
     if (!amount || Number(amount) <= 0) return setHata(tutarHatasi(birim));
+    const hesapTutar = farkliBirim ? tutarOku(hesapTutari, farkliBirim) : null;
+    if (farkliBirim && (!hesapTutar || Number(hesapTutar) <= 0)) {
+      return setHata(`Hesaptan çıkan tutarı yaz (${BIRIM_ADI[farkliBirim]}).`);
+    }
     gonder(
       () =>
         addDebtPaymentAction({
@@ -408,9 +432,13 @@ export function OdemeFormu({
           date: tarih,
           amount,
           ...(hesapId ? { hesapId } : {}),
+          ...(hesapTutar ? { hesapTutar } : {}),
         }),
       null,
-      () => setTutar(''),
+      () => {
+        setTutar('');
+        setHesapTutari('');
+      },
     );
   };
 
@@ -443,6 +471,16 @@ export function OdemeFormu({
             ))}
             <option value="">Hesaptan düşme</option>
           </select>
+        </Alan>
+      )}
+      {farkliBirim && (
+        <Alan etiket={`Hesaptan çıkan tutar (${BIRIM_ADI[farkliBirim]})`}>
+          <Input
+            value={hesapTutari}
+            onChange={(o) => setHesapTutari(o.target.value)}
+            inputMode="decimal"
+            required
+          />
         </Alan>
       )}
       {hata && (

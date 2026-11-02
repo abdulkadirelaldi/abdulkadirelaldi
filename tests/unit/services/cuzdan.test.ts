@@ -8,6 +8,7 @@ import {
   araCuzdan,
   aylikTutar,
   deleteDebtPayment,
+  donemOdenen,
   kalanTaksit,
   butceOzeti,
   fetchButceLimitleri,
@@ -165,6 +166,7 @@ describe('fetchCuzdan', () => {
   const kur: KurDurumu = { kurlar: kaynagiCozumle(KAYNAK), guncellendi: null, bayat: false };
   const istemci = () =>
     ({
+      $queryRaw: vi.fn(),
       walletAccount: {
         findMany: vi.fn().mockResolvedValue([
           { id: 'a', name: 'Ziraat', kind: 'BANK', unit: 'TRY', balance: decimal('10000.00') },
@@ -255,6 +257,7 @@ describe('addDebtPayment', () => {
         update,
       },
       walletDebtPayment: { create: vi.fn() },
+      $queryRaw: vi.fn(),
       walletAccount: {
         findUnique: vi
           .fn()
@@ -331,6 +334,7 @@ describe('deleteDebtPayment (2026-11-01)', () => {
     const tx = {
       walletDebtPayment: { findUnique: vi.fn().mockResolvedValue(odeme), delete: vi.fn() },
       walletOdeme: { findFirst: vi.fn().mockResolvedValue(onay), delete: vi.fn() },
+      $queryRaw: vi.fn(),
       walletAccount: {
         findUnique: vi.fn().mockResolvedValue({ balance: decimal('100.00') }),
         update: vi.fn(),
@@ -368,10 +372,23 @@ describe('deleteDebtPayment (2026-11-01)', () => {
   });
 
   it('⚠️ aylık onay da silinir: o ay yeniden sorulur; eski kayıtta hesap onaydan okunur', async () => {
-    const { tx, client } = kurulum({ ...odeme, hesapId: null }, { id: 'y1', hesapId: 'h2' });
+    const { tx, client } = kurulum(
+      { ...odeme, hesapId: null, note: 'Aylık ödeme' },
+      { id: 'y1', hesapId: 'h2' },
+    );
     await deleteDebtPayment('o1', client);
     expect(tx.walletAccount.update.mock.calls[0]?.[0].where).toEqual({ id: 'h2' });
     expect(tx.walletOdeme.delete).toHaveBeenCalledWith({ where: { id: 'y1' } });
+  });
+
+  it('⚠️ elle ödeme onaya bağlanmaz: onayın hesabına iade edilmez', async () => {
+    const { tx, client } = kurulum(
+      { ...odeme, hesapId: null, note: null },
+      { id: 'y1', hesapId: 'h2' },
+    );
+    await deleteDebtPayment('o1', client);
+    expect(tx.walletAccount.update).not.toHaveBeenCalled();
+    expect(tx.walletOdeme.delete).not.toHaveBeenCalled();
   });
 
   it('hesapsız ödemede hesaba dokunulmaz; kalan toplamı geçmez', async () => {
@@ -384,6 +401,34 @@ describe('deleteDebtPayment (2026-11-01)', () => {
   it('ödeme yoksa anlaşılır hata', async () => {
     const { client } = kurulum(null as never);
     await expect(deleteDebtPayment('o1', client)).rejects.toThrow('bulunamadı');
+  });
+});
+
+describe('donemOdenen', () => {
+  const borc = { id: 'b', paymentDay: 1 };
+  const elle = (date: string, amount = '1000.00', note: string | null = null) => ({
+    debtId: 'b',
+    date: date as never,
+    amount,
+    note,
+  });
+
+  it('ay sonunda erken ödenen taksit sonraki dönemi kapatır, bu dönemi değil', () => {
+    expect(donemOdenen(borc, [elle('2026-10-30')], [], '2026-11')).toBe('1000.00');
+    expect(donemOdenen(borc, [elle('2026-10-30')], [], '2026-10')).toBe('0.00');
+  });
+
+  it('kasımda ödenen gecikmiş ekim taksiti kasıma sayılmaz', () => {
+    expect(donemOdenen({ id: 'b', paymentDay: 28 }, [elle('2026-11-02')], [], '2026-11')).toBe(
+      '0.00',
+    );
+  });
+
+  it('onay ödemesi tarihten değil kendi döneminden sayılır', () => {
+    const onay = { kaynakTur: 'BORC', kaynakId: 'b', durum: 'ODENDI', tutar: '1000.00' };
+    const satir = elle('2026-11-25', '1000.00', 'Aylık ödeme');
+    expect(donemOdenen(borc, [satir], [onay], '2026-11')).toBe('1000.00');
+    expect(donemOdenen(borc, [satir], [], '2026-12')).toBe('0.00');
   });
 });
 
@@ -452,6 +497,7 @@ describe('tekil okumalar — Decimal sızmaz', () => {
     isActive: true,
   };
   const client = {
+    $queryRaw: vi.fn(),
     walletAccount: { findUnique: vi.fn().mockResolvedValue(hesap) },
     walletDebt: { findUnique: vi.fn().mockResolvedValue(borc) },
     walletFlow: { findUnique: vi.fn().mockResolvedValue(akis) },
@@ -488,6 +534,7 @@ describe('tek seferlik kalemler — yalnızca KENDİ aylarında (2026-10-30)', (
   });
   const istemci = () =>
     ({
+      $queryRaw: vi.fn(),
       walletAccount: { findMany: vi.fn().mockResolvedValue([]) },
       walletDebt: { findMany: vi.fn().mockResolvedValue([]) },
       walletFlow: {
@@ -571,6 +618,7 @@ describe('ay sonunda kalan: Cüzdan ve rapor AYNI sayı (2026-11-01)', () => {
     },
   ];
   const client = {
+    $queryRaw: vi.fn(),
     walletAccount: { findMany: vi.fn().mockResolvedValue([]) },
     walletDebt: { findMany: vi.fn().mockResolvedValue(borclar) },
     walletFlow: {

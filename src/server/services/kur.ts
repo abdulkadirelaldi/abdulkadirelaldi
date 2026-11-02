@@ -116,7 +116,16 @@ async function kaynaktanYenile(
       }),
     ),
   );
-  const durum: KurDurumu = { kurlar, guncellendi: simdi.toISOString(), bayat: false };
+  // Kaynak bir birimi atladıysa son bilinen kuru korunur: kalem "kur yok"a düşüp toplamdan
+  // çıkmasın; o birim eskidiyse `bayat` uyarısı ayrıca çalışır.
+  const satirlar = await client.priceQuote.findMany();
+  const atlanan = satirlar.filter((s) => !(s.unit in kurlar));
+  const eski = atlanan.length > 0 ? satirlardanDurum(atlanan, simdi) : null;
+  const durum: KurDurumu = {
+    kurlar: { ...eski?.kurlar, ...kurlar },
+    guncellendi: simdi.toISOString(),
+    bayat: eski?.bayat ?? false,
+  };
   bellek = { durum, zaman: simdi.getTime() };
   sonHata = 0;
   return durum;
@@ -139,20 +148,29 @@ function arkaPlandaYenile(client: KurClient, getir: typeof fetch, simdi: Date): 
 /** `PriceQuote`taki son bilinen kurlar. Hiç yoksa `null`. */
 async function sonBilinen(client: KurClient, simdi: Date): Promise<KurDurumu | null> {
   const satirlar = await client.priceQuote.findMany();
-  if (satirlar.length === 0) return null;
+  return satirlar.length === 0 ? null : satirlardanDurum(satirlar, simdi);
+}
+
+/** Kur satırları → durum: `bayat`, EN ESKİ satıra göre (bir birim bile eskiyse uyarır). */
+function satirlardanDurum(
+  satirlar: Awaited<ReturnType<KurClient['priceQuote']['findMany']>>,
+  simdi: Date,
+): KurDurumu {
   const kurlar: Partial<Record<WalletUnit, Kur>> = {};
   let enYeni = new Date(0);
+  let enEski = simdi;
   for (const s of satirlar) {
     kurlar[s.unit as WalletUnit] = {
       buying: toMeasureString(s.buying, 4) ?? '0',
       selling: toMeasureString(s.selling, 4) ?? '0',
     };
     if (s.fetchedAt > enYeni) enYeni = s.fetchedAt;
+    if (s.fetchedAt < enEski) enEski = s.fetchedAt;
   }
   return {
     kurlar,
     guncellendi: enYeni.toISOString(),
-    bayat: simdi.getTime() - enYeni.getTime() > BAYAT_MS,
+    bayat: simdi.getTime() - enEski.getTime() > BAYAT_MS,
   };
 }
 

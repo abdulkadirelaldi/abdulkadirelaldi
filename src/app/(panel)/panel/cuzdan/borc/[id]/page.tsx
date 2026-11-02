@@ -7,11 +7,7 @@ import { BorcFormu, OdemeFormu, OdemeSilDugmesi } from '@/components/panel/cuzda
 import { Topbar } from '@/components/panel/topbar';
 import { cuidSchema } from '@/lib/schemas/common';
 import { appToday } from '@/server/services/_shared';
-import {
-  fetchDebtPayments,
-  fetchOdemeHesaplari,
-  fetchWalletDebtById,
-} from '@/server/services/cuzdan';
+import { fetchDebtPayments, fetchTumHesaplar, fetchWalletDebtById } from '@/server/services/cuzdan';
 
 export const metadata: Metadata = {
   title: 'Borç',
@@ -24,7 +20,7 @@ export default async function BorcPage({ params }: { params: Promise<{ id: strin
   if (!cuidSchema.safeParse(id).success) notFound();
   const [borc, odemeler] = await Promise.all([fetchWalletDebtById(id), fetchDebtPayments(id)]);
   if (!borc) notFound();
-  const hesaplar = await fetchOdemeHesaplari(borc.unit);
+  const hesaplar = await fetchTumHesaplar();
 
   return (
     <>
@@ -77,7 +73,7 @@ export default async function BorcPage({ params }: { params: Promise<{ id: strin
 
           <section className="flex flex-col gap-3">
             <h2 className="text-primary text-base font-semibold">Düzenle</h2>
-            <BorcFormu borc={borc} />
+            <BorcFormu borc={borc} odemesiVar={odemeler.length > 0} />
           </section>
         </div>
       </main>

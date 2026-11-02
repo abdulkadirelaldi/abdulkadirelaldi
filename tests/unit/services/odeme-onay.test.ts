@@ -75,6 +75,7 @@ function sahte(s: { borc?: Record<string, unknown>; hesap?: unknown; cakisma?: b
     },
     walletFlow: { findUnique: vi.fn() },
     walletDebtPayment: { create: vi.fn() },
+    $queryRaw: vi.fn(),
     walletAccount: {
       findUnique: vi
         .fn()
@@ -165,6 +166,7 @@ describe('odemeGeriAl', () => {
   const kurulum = (kayit: Record<string, unknown> | null, kalan = '4000.00') => {
     const tx = {
       walletOdeme: { findUnique: vi.fn().mockResolvedValue(kayit), delete: vi.fn() },
+      $queryRaw: vi.fn(),
       walletAccount: {
         findUnique: vi.fn().mockResolvedValue({ balance: decimal('2000.00') }),
         update: vi.fn(),

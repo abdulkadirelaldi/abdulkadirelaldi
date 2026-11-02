@@ -7,10 +7,22 @@ import {
   appDayToDate,
   appToday,
   dateToAppDay,
+  subtractMoney,
+  sumMoney,
   toMeasureString,
   type AppDay,
 } from './_shared';
-import { borcaGeriEkle, borcOdemesiYaz, hesabaIade, hesaptanDus, OdemeHatasi } from './cuzdan';
+import {
+  borcaGeriEkle,
+  borcOdemesiYaz,
+  hesabaIade,
+  hesaptanDus,
+  gunFarki,
+  odemeDonemi,
+  OdemeHatasi,
+  ONAY_NOTU,
+  vade,
+} from './cuzdan';
 
 export { OdemeHatasi };
 
@@ -50,35 +62,6 @@ interface Kaynak {
   gun: number;
   /** Kaynağın eklendiği gün: öncesindeki vade "gecikmiş" sayılmaz. */
   olusturma?: AppDay;
-}
-
-/** O ayın ödeme günü: 31'i kısa ayda son güne düşer. SAF. */
-function vade(donem: string, gun: number): AppDay {
-  const [y, m] = donem.split('-').map(Number) as [number, number];
-  const son = new Date(Date.UTC(y, m, 0)).getUTCDate();
-  return `${donem}-${String(Math.min(gun, son)).padStart(2, '0')}` as AppDay;
-}
-
-const gunFarki = (a: string, b: string) =>
-  Math.round((Date.parse(`${a}T00:00:00Z`) - Date.parse(`${b}T00:00:00Z`)) / 86_400_000);
-
-/**
- * Elle ödeme hangi taksidi karşılar: vadesi en yakın dönem. 1 Kasım taksidi 30 Ekim'de
- * ödenirse Kasım'ı kapatır. Ödeme günü yoksa takvim ayı. SAF.
- */
-function odemeDonemi(gun: AppDay, odemeGunu: number | null | undefined): string {
-  const buAy = gun.slice(0, 7);
-  if (!odemeGunu) return buAy;
-  const adaylar = [
-    addAppDays(`${buAy}-01` as AppDay, -1).slice(0, 7),
-    buAy,
-    addAppDays(vade(buAy, 31), 1).slice(0, 7),
-  ];
-  return adaylar.reduce((en, aday) =>
-    Math.abs(gunFarki(vade(aday, odemeGunu), gun)) < Math.abs(gunFarki(vade(en, odemeGunu), gun))
-      ? aday
-      : en,
-  );
 }
 
 /** `[geçen ay, bu ay, gelecek ay]`. SAF. */
@@ -131,8 +114,6 @@ const addAppDaysOnce = (donem: string) => appDayToDate(addAppDays(`${donem}-01` 
 
 const para = (d: unknown): string => toMeasureString(d as never, 2) ?? '0.00';
 
-/** Onaydan yazılan ödeme satırının notu; dönemi `WalletOdeme` satırında kesin kayıtlı. */
-const ONAY_NOTU = 'Aylık ödeme';
 type Client = typeof db;
 
 /**
@@ -160,20 +141,22 @@ async function islenenKumesi(
       },
     }),
   ]);
-  const ayToplami = new Map<string, { toplam: number; taksit: number }>();
+  const ayToplami = new Map<string, { toplam: string; taksit: string }>();
   for (const o of elle) {
     // Onay ödemesini tarihten döneme çevirmek yanlış: 25 Kasım'da kapanan 1 Kasım taksiti
     // en yakın vade sayılan Aralık'a yazılıyor, Aralık taksiti listeden kayboluyordu.
     if (o.note === ONAY_NOTU) continue;
     const anahtar = `BORC:${o.debtId}:${odemeDonemi(dateToAppDay(o.date), o.debt.paymentDay)}`;
     ayToplami.set(anahtar, {
-      toplam: (ayToplami.get(anahtar)?.toplam ?? 0) + Number(para(o.amount)),
-      taksit: Number(para(o.debt.monthlyPayment)),
+      toplam: sumMoney([ayToplami.get(anahtar)?.toplam ?? '0.00', para(o.amount)]),
+      taksit: para(o.debt.monthlyPayment),
     });
   }
   return new Set([
     ...kayitlar.map((k) => `${k.kaynakTur}:${k.kaynakId}:${k.donem}`),
-    ...[...ayToplami].filter(([, a]) => a.toplam >= a.taksit).map(([anahtar]) => anahtar),
+    ...[...ayToplami]
+      .filter(([, a]) => !subtractMoney(a.toplam, a.taksit).startsWith('-'))
+      .map(([anahtar]) => anahtar),
   ]);
 }
 
@@ -390,7 +373,7 @@ async function borcOdemesiniGeriAl(
   debtId: string,
   gun: Date,
   tutar: string,
-  tx: Pick<Client, 'walletDebt' | 'walletDebtPayment'>,
+  tx: Pick<Client, 'walletDebt' | 'walletDebtPayment' | '$queryRaw'>,
 ): Promise<void> {
   const odeme = await tx.walletDebtPayment.findFirst({
     where: { debtId, date: gun, amount: tutar, note: ONAY_NOTU },

@@ -11,7 +11,7 @@ import {
   toMeasureString,
   type AppDay,
 } from './_shared';
-import { aylikTutar, fetchCuzdan, kalanTaksit } from './cuzdan';
+import { aylikTutar, donemOdenen, fetchCuzdan, kalanTaksit } from './cuzdan';
 import { fetchKurlar, tlKarsiligi, type KurDurumu } from './kur';
 
 /**
@@ -220,20 +220,40 @@ export async function fetchAylikRapor(
       },
     }),
     client.walletDebtPayment.findMany({
-      where: { date: { gte: pencereBas < buAyBas ? pencereBas : buAyBas } },
-      select: { debtId: true, date: true, amount: true, debt: { select: { unit: true } } },
+      // Bir hafta geriden: ay sonunda erken ödenen taksit bu dönemi kapatır (`donemOdenen`).
+      where: {
+        date: {
+          gte:
+            pencereBas < buAyBas
+              ? pencereBas
+              : appDayToDate(addAppDays(bugun.slice(0, 7).concat('-01') as AppDay, -7)),
+        },
+      },
+      select: {
+        debtId: true,
+        date: true,
+        amount: true,
+        note: true,
+        debt: { select: { unit: true } },
+      },
     }),
     client.netVarlikKaydi.findMany({
       where: { gun: { gte: appDayToDate(addAppDays(bugun, -365)) } },
       orderBy: { gun: 'asc' },
     }),
     client.walletOdeme.findMany({
-      where: { durum: 'ATLANDI' },
-      select: { kaynakTur: true, kaynakId: true, donem: true },
+      where: { OR: [{ durum: 'ATLANDI' }, { durum: 'ODENDI', donem: bugun.slice(0, 7) }] },
+      select: { kaynakTur: true, kaynakId: true, donem: true, durum: true, tutar: true },
     }),
     client.walletDebt.findMany({
       where: { isClosed: false },
-      select: { id: true, unit: true, monthlyPayment: true, remainingAmount: true },
+      select: {
+        id: true,
+        unit: true,
+        monthlyPayment: true,
+        remainingAmount: true,
+        paymentDay: true,
+      },
     }),
     kurDurumu ? Promise.resolve(kurDurumu) : fetchKurlar(),
   ]);
@@ -258,16 +278,35 @@ export async function fetchAylikRapor(
   }));
 
   const atlanan = new Set(
-    atlananSatir.filter((o) => o.kaynakTur === 'AKIS').map((o) => `${o.kaynakId}:${o.donem}`),
+    atlananSatir
+      .filter((o) => o.kaynakTur === 'AKIS' && o.durum === 'ATLANDI')
+      .map((o) => `${o.kaynakId}:${o.donem}`),
   );
   const buAy = bugun.slice(0, 7);
   const atlananBorc = new Set(
-    atlananSatir.filter((o) => o.kaynakTur === 'BORC' && o.donem === buAy).map((o) => o.kaynakId),
+    atlananSatir
+      .filter((o) => o.kaynakTur === 'BORC' && o.donem === buAy && o.durum === 'ATLANDI')
+      .map((o) => o.kaynakId),
   );
   const kalanTaksitTl = sumMoney(
     borcSatir.flatMap((b) => {
-      const odenen = sumMoney(
-        odemeler.filter((o) => o.debtId === b.id && ayAdi(o.date) === buAy).map((o) => o.amount),
+      const odenen = donemOdenen(
+        b,
+        odemeSatir.map((o) => ({
+          debtId: o.debtId,
+          date: dateToAppDay(o.date),
+          amount: para(o.amount),
+          note: o.note,
+        })),
+        atlananSatir
+          .filter((o) => o.donem === buAy)
+          .map((o) => ({
+            kaynakTur: o.kaynakTur,
+            kaynakId: o.kaynakId,
+            durum: o.durum,
+            tutar: o.tutar ? para(o.tutar) : null,
+          })),
+        buAy,
       );
       const kalan = kalanTaksit(
         b.monthlyPayment === null ? null : para(b.monthlyPayment),
