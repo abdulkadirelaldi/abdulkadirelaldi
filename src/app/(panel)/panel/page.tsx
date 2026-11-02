@@ -675,7 +675,7 @@ function Halkalar({ oranlar }: { oranlar: [number, number, number] }) {
   const ortalama = Math.round((dolular.reduce((t, o) => t + o, 0) / dolular.length) * 100);
   return (
     <div aria-hidden="true" className="relative size-[clamp(7.5rem,38vw,9.25rem)] shrink-0">
-      <svg viewBox={`0 0 ${boyut} ${boyut}`} className="size-full -rotate-90">
+      <svg viewBox={`0 0 ${boyut} ${boyut}`} className="size-full -rotate-90 overflow-visible">
         <defs>
           {HALKA_GECIS.map(([a, b], i) => (
             <linearGradient key={i} id={`halka-gecis-${i}`} x1="0" y1="0" x2="1" y2="1">

@@ -28,10 +28,19 @@
   background: #100d26;
   color: #ffffff;
   box-shadow:
-    inset 0 0 0 1px rgb(255 255 255 / 0.1),
     0 26px 50px -28px var(--aura-golge, rgb(91 61 255 / 0.75));
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
+}
+/* Kenar çizgisi ışığın ÜSTÜNDE: gölge olarak zeminde kalınca parlak bölgede kayboluyordu. */
+.aura::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  pointer-events: none;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
 }
 .aura::before {
   content: '';

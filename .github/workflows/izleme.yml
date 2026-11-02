@@ -1,11 +1,12 @@
 # Dışarıdan izleme (2026-11-02). Sunucunun dışından, Mac'ten bağımsız. Düşerse iş kırmızı olur ve
 # GitHub depo sahibine e-posta gönderir; ek servis ve sunucu erişimi gerekmez.
-# Zamanlanmış iş tam zamanında koşmayabilir: dakikalık değil, "kapandığını gün içinde öğren" izleme.
+# Zamanlanmış iş tam zamanında koşmayabilir: dakikalık değil, "kapandığını aynı gün öğren" izleme.
 name: Izleme
 
 on:
   schedule:
-    - cron: '7,37 * * * *'
+    # İki saatte bir: depo özel; ayda ~360 dakika, ücretsiz 2000 dakikanın içinde CI'a yer kalır.
+    - cron: '7 */2 * * *'
   workflow_dispatch:
 
 permissions:
