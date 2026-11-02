@@ -3,7 +3,7 @@ import localFont from 'next/font/local';
 import { cookies, headers } from 'next/headers';
 import type { ReactNode } from 'react';
 
-import { parseTheme, THEME_COOKIE, themeClassName } from '@/components/theme';
+import { PANEL_BASLIGI, parseTheme, THEME_COOKIE, themeClassName } from '@/components/theme';
 import { ThemeProvider } from '@/components/theme-provider';
 import { DIL_BASLIGI, dilMi, VARSAYILAN_DIL } from '@/i18n/diller';
 import { SITE_NAME } from '@/lib/constants';
@@ -128,18 +128,17 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
   const theme = parseTheme(cookieStore.get(THEME_COOKIE)?.value);
   // ADR-046 — `<html lang>` middleware'in çözdüğü dilden. Ekran okuyucu telaffuzu
   // ve CSS `text-transform` buna bağlı (Türkçede "i" → "İ", İngilizcede "I").
-  const dilBasligi = (await headers()).get(DIL_BASLIGI);
+  const basliklar = await headers();
+  const dilBasligi = basliklar.get(DIL_BASLIGI);
+  // Seçim yoksa panel koyu başlar: sınıf sunucuda basılır, açık tema bir kare bile görünmez.
+  const temaSinifi =
+    theme === 'system' && basliklar.get(PANEL_BASLIGI) ? 'dark' : themeClassName(theme);
   const dil = dilMi(dilBasligi) ? dilBasligi : VARSAYILAN_DIL;
 
   return (
     <html
       lang={dil}
-      className={cn(
-        spaceGrotesk.variable,
-        inter.variable,
-        jetBrainsMono.variable,
-        themeClassName(theme),
-      )}
+      className={cn(spaceGrotesk.variable, inter.variable, jetBrainsMono.variable, temaSinifi)}
       suppressHydrationWarning
     >
       <body className="min-h-dvh">

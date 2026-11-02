@@ -19,6 +19,14 @@ export type Theme = 'light' | 'dark' | 'system';
 /** Ekrana gerçekten uygulanan tema. */
 export type ResolvedTheme = 'light' | 'dark';
 
+/** Middleware'in panel isteğine koyduğu başlık: seçim yoksa panel koyu başlar (2026-11-02). */
+export const PANEL_BASLIGI = 'x-panel';
+
+/** Panelde seçim yoksa koyu; site sistem tercihine uyar. SAF. */
+export function panelYolu(pathname: string): boolean {
+  return pathname === '/panel' || pathname.startsWith('/panel/');
+}
+
 export const THEMES: readonly Theme[] = ['system', 'light', 'dark'] as const;
 
 /**

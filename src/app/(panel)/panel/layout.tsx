@@ -34,7 +34,11 @@ export const metadata: Metadata = {
  * uzanır, `env(safe-area-inset-*)` değerleri dolu gelir. Üst çubuk ve alt
  * sekmeler bu payı kendileri bırakıyor.
  */
-export const viewport: Viewport = { viewportFit: 'cover' };
+export const viewport: Viewport = {
+  viewportFit: 'cover',
+  // Panel koyu başlar: tarayıcı ve durum çubuğu da aynı zeminde (`--bg-base`, koyu).
+  themeColor: '#08080d',
+};
 
 /**
  * `PanelKabuk` yalnızca MOBİL ÇEKMECENİN durumunu tutar (tek boolean). Kenar

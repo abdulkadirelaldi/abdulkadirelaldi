@@ -1,5 +1,6 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import {
   createContext,
   useCallback,
@@ -11,6 +12,7 @@ import {
 } from 'react';
 
 import {
+  panelYolu,
   THEME_COOKIE,
   THEME_COOKIE_MAX_AGE,
   type ResolvedTheme,
@@ -41,6 +43,8 @@ function applyTheme(theme: Theme): void {
   root.classList.remove('light', 'dark');
   if (theme !== 'system') {
     root.classList.add(theme);
+  } else if (panelYolu(window.location.pathname)) {
+    root.classList.add('dark');
   }
 
   const secure = window.location.protocol === 'https:' ? '; secure' : '';
@@ -62,6 +66,13 @@ export function ThemeProvider({
 }) {
   const [theme, setThemeState] = useState<Theme>(initialTheme);
   const [systemDark, setSystemDark] = useState<boolean | null>(null);
+  const pathname = usePathname();
+  const panelde = panelYolu(pathname);
+
+  // Seçim yokken panel koyu, site sistem tercihinde. Sayfa yenilenmeden geçişte de doğru kalsın.
+  useEffect(() => {
+    if (theme === 'system') document.documentElement.classList.toggle('dark', panelde);
+  }, [theme, panelde]);
 
   // Sistem tercihini izle. `theme === 'system'` iken renkleri zaten CSS medya
   // sorgusu değiştiriyor; buradaki durum yalnızca `resolvedTheme`'i besler.
@@ -82,15 +93,17 @@ export function ThemeProvider({
   const value = useMemo<ThemeContextValue>(() => {
     const resolvedTheme: ResolvedTheme | undefined =
       theme === 'system'
-        ? systemDark === null
-          ? undefined
-          : systemDark
-            ? 'dark'
-            : 'light'
+        ? panelde
+          ? 'dark'
+          : systemDark === null
+            ? undefined
+            : systemDark
+              ? 'dark'
+              : 'light'
         : theme;
 
     return { theme, resolvedTheme, setTheme };
-  }, [theme, systemDark, setTheme]);
+  }, [theme, systemDark, setTheme, panelde]);
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 }

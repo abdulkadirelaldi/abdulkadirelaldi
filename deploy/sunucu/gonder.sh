@@ -30,6 +30,7 @@ SURUM=$(git rev-parse --short=9 HEAD)
 
 # CI KAPISI (2026-11-02): yalnızca main'de ve CI'ı yeşil commit yayına çıkar. İki yeşil PR
 # birleşince main kırmızı olabilir; dal ya da kırmızı commit canlıya gidemez. CI sürüyorsa beklenir.
+# Haftalık zamanlanmış koşu aynı commit'te Kapı'yı atlar (`skipped`): sonuç sayılmaz, push koşusu okunur.
 if [ "${ACIL:-}" != 1 ]; then
   [ "$(git rev-parse --abbrev-ref HEAD)" = main ] || { echo "Yalnızca main yayınlanır." >&2; exit 1; }
   git fetch -q origin main
@@ -37,7 +38,7 @@ if [ "${ACIL:-}" != 1 ]; then
   [ "$ISTENEN" = "$(git rev-parse origin/main)" ] || { echo "HEAD origin/main değil." >&2; exit 1; }
   for _ in $(seq 60); do
     KAPI=$(gh api "repos/{owner}/{repo}/commits/$ISTENEN/check-runs?per_page=100" \
-      -q '[.check_runs[] | select(.name | startswith("Kapı"))][0] | "\(.status) \(.conclusion)"' || true)
+      -q '[.check_runs[] | select((.name | startswith("Kapı")) and .conclusion != "skipped")][0] | "\(.status) \(.conclusion)"' || true)
     case "$KAPI" in
       "completed success") break ;;
       "completed "*) echo "CI kırmızı ($KAPI): yayın durduruldu." >&2; exit 1 ;;

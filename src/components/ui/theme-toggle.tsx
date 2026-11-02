@@ -1,9 +1,10 @@
 'use client';
 
 import { Monitor, Moon, Sun } from 'lucide-react';
+import { usePathname } from 'next/navigation';
 import type { ComponentType } from 'react';
 
-import { THEME_LABELS, type Theme } from '@/components/theme';
+import { panelYolu, THEME_LABELS, type Theme } from '@/components/theme';
 import { useTheme } from '@/components/theme-provider';
 import { cn } from '@/lib/utils/cn';
 
@@ -30,17 +31,21 @@ const NEXT_THEME: Record<Theme, Theme> = {
  */
 export function ThemeToggle({ className }: { className?: string }) {
   const { theme, setTheme } = useTheme();
+  // Panelde "sistem" koyu demek: düğme açık ve koyu arasında tek dokunuşla geçer. Üç adımlı
+  // döngüde koyudan sisteme geçiş ekranda hiçbir şey değiştirmez, düğme bozuk görünürdü.
+  const panelde = panelYolu(usePathname());
+  const gorunen: Theme = panelde && theme === 'system' ? 'dark' : theme;
 
-  const Icon = ICONS[theme];
-  const next = NEXT_THEME[theme];
+  const Icon = ICONS[gorunen];
+  const next: Theme = panelde ? (gorunen === 'dark' ? 'light' : 'dark') : NEXT_THEME[theme];
 
   return (
     <>
       <button
         type="button"
         onClick={() => setTheme(next)}
-        aria-label={`${THEME_LABELS[theme]} açık. ${THEME_LABELS[next]}'na geç`}
-        title={THEME_LABELS[theme]}
+        aria-label={`${THEME_LABELS[gorunen]} açık. ${THEME_LABELS[next]}'na geç`}
+        title={THEME_LABELS[gorunen]}
         className={cn(
           'focus-ring rounded-btn inline-flex size-10 shrink-0 items-center justify-center',
           'border-line bg-surface text-body border',
@@ -52,7 +57,7 @@ export function ThemeToggle({ className }: { className?: string }) {
       </button>
 
       <span aria-live="polite" className="sr-only">
-        {THEME_LABELS[theme]}
+        {THEME_LABELS[gorunen]}
       </span>
     </>
   );
