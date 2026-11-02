@@ -148,15 +148,16 @@ export async function changePassword(
    * TELEFONUNU KAYBEDENİN YOLU AÇIK: `verifyTotpWithRecovery` kurtarma kodunu
    * da kabul ediyor (ADR-013), yani kod şartı kullanıcıyı hesabından etmiyor.
    */
-  if (user.totpConfirmedAt) {
-    if (!input.totpCode) return { ok: false, reason: 'TOTP_REQUIRED' };
-    if (!(await verifyTotpWithRecovery(user, input.totpCode, client))) {
-      return { ok: false, reason: 'INVALID_TOTP' };
-    }
-  }
-
+  // Kurtarma kodu tüketilmeden önce: hiçbir şey değiştirmeyecek istek kodu harcamasın.
   if (await verifyPassword(user.passwordHash, input.newPassword)) {
     return { ok: false, reason: 'SAME_PASSWORD' };
+  }
+
+  if (user.totpConfirmedAt) {
+    if (!input.totpCode) return { ok: false, reason: 'TOTP_REQUIRED' };
+    if (!(await verifyTotpWithRecovery(user, input.totpCode, client, now, false))) {
+      return { ok: false, reason: 'INVALID_TOTP' };
+    }
   }
 
   /*

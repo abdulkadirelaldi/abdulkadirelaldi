@@ -1,4 +1,5 @@
 import { guvenliHata } from './lib/security/guvenli-log';
+import { nabizVur } from './lib/zamanlayici-nabiz';
 import { bildirimTuru } from './server/services/bildirim';
 import { netVarlikKaydet } from './server/services/cuzdan-rapor';
 import { hataKaydet } from './server/services/hata-kaydi';
@@ -22,7 +23,10 @@ if (process.env.NODE_ENV === 'production') {
 
   // Bildirim: anahtar yoksa kurulmaz.
   if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY) {
-    const tur = () => bildirimTuru().catch(hataYaz('bildirim'));
+    const tur = () =>
+      bildirimTuru()
+        .then(() => nabizVur())
+        .catch(hataYaz('bildirim'));
     setInterval(tur, 5 * 60_000).unref();
     setTimeout(tur, 30_000).unref();
   }

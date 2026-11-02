@@ -71,7 +71,13 @@ export function CevrimdisiSeridi() {
     } = await kuyruguIsle(kayitlar, (k) => gonder(k, () => setOturumKapali(true)));
     // Gönderim sürerken eklenen kayıtlar üzerine yazılmasın.
     const islenen = new Set(kayitlar.map((k) => k.id));
-    kuyruguYaz([...kalan, ...kuyruguOku().filter((k) => !islenen.has(k.id))]);
+    const simdiki = kuyruguOku();
+    const duruyor = new Set(simdiki.map((k) => k.id));
+    // Gönderim sürerken silinen kayıt geri gelmesin.
+    kuyruguYaz([
+      ...kalan.filter((k) => duruyor.has(k.id)),
+      ...simdiki.filter((k) => !islenen.has(k.id)),
+    ]);
     isleniyor.current = false;
     if (red.length > 0) {
       const tumu = [...reddedilenleriOku(), ...red];

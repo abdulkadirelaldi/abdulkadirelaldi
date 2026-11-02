@@ -7,6 +7,7 @@ import { NextResponse } from 'next/server';
 import { pingDatabase } from '@/server/db';
 import type { ApiResponse } from '@/types';
 import { guvenliHata } from '@/lib/security/guvenli-log';
+import { nabizDurumu, type NabizDurumu } from '@/lib/zamanlayici-nabiz';
 
 /**
  * GET /api/v1/health — PROGRAM.md §13.6
@@ -38,6 +39,8 @@ interface HealthData {
   db: 'up';
   uptime: number;
   disk: DiskStatus;
+  /** Bildirim zamanlayıcısı dönüyor mu; dış izleme `gecikmis`te alarm verir. */
+  zamanlayici: NabizDurumu;
   timestamp: string;
 }
 
@@ -132,6 +135,11 @@ export async function GET(): Promise<NextResponse<ApiResponse<HealthData>>> {
       data: {
         db: 'up',
         uptime: Math.round(process.uptime() * 1000) / 1000,
+        zamanlayici: nabizDurumu(
+          process.env.NODE_ENV === 'production' &&
+            Boolean(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY),
+          process.uptime(),
+        ),
         disk,
         timestamp: new Date().toISOString(),
       },

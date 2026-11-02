@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { dbMock, dogrulaMock, seceneklerMock } = vi.hoisted(() => ({
+const { dbMock, dogrulaMock, seceneklerMock, sinirMock, denetimMock } = vi.hoisted(() => ({
   dbMock: { user: { findUniqueOrThrow: vi.fn() } },
   dogrulaMock: vi.fn(),
+  sinirMock: vi.fn().mockResolvedValue(false),
+  denetimMock: vi.fn(),
   seceneklerMock: vi.fn().mockResolvedValue({ challenge: 'c' }),
 }));
 
@@ -10,11 +12,19 @@ vi.mock('next/headers', () => ({
   headers: async () => new Headers({ origin: 'https://abdulkadirelaldi.com' }),
 }));
 vi.mock('@/server/db', () => ({ db: dbMock }));
-vi.mock('@/server/auth/credentials', () => ({ verifyTotpWithRecovery: dogrulaMock }));
+vi.mock('@/server/auth/totp', () => ({
+  decryptSecret: () => 'gizli',
+  verifyTotpToken: dogrulaMock,
+}));
+vi.mock('@/server/services/user', () => ({ isTotpSetupRateLimited: sinirMock }));
 vi.mock('@/server/auth/passkey', () => ({
   rpCoz: () => ({ id: 'abdulkadirelaldi.com', origin: 'https://abdulkadirelaldi.com' }),
   kayitSecenekleri: seceneklerMock,
   PasskeyHatasi: class extends Error {},
+}));
+vi.mock('@/server/services/_shared', async (asil) => ({
+  ...(await asil<typeof import('@/server/services/_shared')>()),
+  writeAuditLog: denetimMock,
 }));
 vi.mock('@/server/actions/_shared', () => ({
   currentActorId: async () => 'u1',
@@ -54,6 +64,21 @@ describe('⚠️ Face ID eklemek doğrulama kodu ister', () => {
     const r = await passkeyKayitSecenekleriAction({ totpKodu: '123456' });
     expect(r.ok).toBe(false);
     expect(seceneklerMock).not.toHaveBeenCalled();
+  });
+
+  it('⚠️ yanlış kod kayda geçer ve deneme sınırına sayılır', async () => {
+    dbMock.user.findUniqueOrThrow.mockResolvedValue(kullanici(new Date()));
+    dogrulaMock.mockResolvedValue(false);
+    await passkeyKayitSecenekleriAction({ totpKodu: '123456' });
+    expect(denetimMock.mock.calls[0]?.[0].diff.context).toBe('PASSKEY_KAYIT');
+  });
+
+  it('⚠️ sınır dolunca kod denenmez bile', async () => {
+    dbMock.user.findUniqueOrThrow.mockResolvedValue(kullanici(new Date()));
+    sinirMock.mockResolvedValueOnce(true);
+    const r = await passkeyKayitSecenekleriAction({ totpKodu: '123456' });
+    expect(r.ok).toBe(false);
+    expect(dogrulaMock).not.toHaveBeenCalled();
   });
 
   it('doğru kodla verilir', async () => {

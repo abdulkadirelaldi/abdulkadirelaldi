@@ -6,6 +6,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -70,7 +71,8 @@ export function ThemeProvider({
   const panelde = panelYolu(pathname);
 
   // Seçim yokken panel koyu, site sistem tercihinde. Sayfa yenilenmeden geçişte de doğru kalsın.
-  useEffect(() => {
+  // Boyamadan önce: girişten panele geçişte bir kare açık tema görünmesin.
+  useLayoutEffect(() => {
     if (theme === 'system') document.documentElement.classList.toggle('dark', panelde);
   }, [theme, panelde]);
 

@@ -262,6 +262,33 @@ export async function hizliSondaSil(onek: string): Promise<number> {
   return silinen;
 }
 
+export interface RotaKimlikleri {
+  saglik: string;
+  oturum: string;
+  hesap: string;
+  akis: string;
+  antrenman: string;
+  egzersiz: string;
+  programGunu: string;
+  aliskanlik: string;
+  hedef: string;
+  gunluk: string;
+  deneyim: string;
+  yetenek: string;
+  hizmet: string;
+  yazi: string;
+}
+
+/** Detay sayfaları için kayıt kimlikleri: yoksa önekle açılır, `rotaSondaSil` temizler. */
+export async function rotaSondaKur(onek: string): Promise<RotaKimlikleri> {
+  return runTask('rotaSondaKur', JSON.stringify({ onek }));
+}
+
+export async function rotaSondaSil(onek: string): Promise<number> {
+  const { silinen } = await runTask<{ silinen: number }>('rotaSondaSil', JSON.stringify({ onek }));
+  return silinen;
+}
+
 /** Para akışı e2e'sinin hesap ve borçlarını açar. */
 export async function cuzdanSondaKur(
   onek: string,

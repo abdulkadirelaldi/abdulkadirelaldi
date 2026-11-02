@@ -14,7 +14,8 @@ import {
   rpCoz,
 } from '@/server/auth/passkey';
 import { ipGrubu } from '@/lib/security/rate-limit';
-import { verifyTotpWithRecovery } from '@/server/auth/credentials';
+import { decryptSecret, verifyTotpToken } from '@/server/auth/totp';
+import { isTotpSetupRateLimited } from '@/server/services/user';
 import { db } from '@/server/db';
 import { fail, ok, parseOrFail, writeAuditLog, type ApiResponse } from '@/server/services/_shared';
 
@@ -63,22 +64,31 @@ export async function passkeyKayitSecenekleriAction(raw: unknown) {
   try {
     const kullanici = await db.user.findUniqueOrThrow({
       where: { id: actorId },
-      select: {
-        id: true,
-        email: true,
-        name: true,
-        totpSecret: true,
-        totpBackupCodes: true,
-        totpConfirmedAt: true,
-      },
+      select: { id: true, email: true, name: true, totpSecret: true, totpConfirmedAt: true },
     });
     // Passkey şifreyi ve kodu atlar: ele geçirilen oturum kendine kalıcı giriş ekleyemesin.
     // Meydan okuma burada verildiği için kod kapısı bütün kayıt akışının önünde.
-    const kod = parsed.data.totpKodu;
-    if (kullanici.totpConfirmedAt && !(kod && (await verifyTotpWithRecovery(kullanici, kod, db)))) {
-      return fail('VALIDATION_ERROR', 'Doğrulama kodu yanlış ya da az önce kullanıldı.', {
-        totpKodu: 'Kod geçersiz.',
-      });
+    // Yalnızca uygulamadaki kod, harcanmadan: Face ID ekranı iptal edilirse kod ya da kurtarma
+    // kodu boşa gitmesin. Deneme sınırı yenileme ve kurulumla ortak; ele geçen oturum tahmin edemez.
+    if (kullanici.totpConfirmedAt) {
+      if (await isTotpSetupRateLimited(actorId)) {
+        return fail('RATE_LIMITED', 'Çok fazla yanlış kod. Biraz sonra yeniden dene.');
+      }
+      const kod = parsed.data.totpKodu;
+      const gizli = kullanici.totpSecret ? decryptSecret(kullanici.totpSecret) : null;
+      if (!kod || !gizli || !(await verifyTotpToken(kod, gizli))) {
+        await writeAuditLog(
+          {
+            actorId,
+            action: 'LOGIN_FAILED',
+            entity: 'User',
+            entityId: actorId,
+            diff: { context: 'PASSKEY_KAYIT', reason: 'INVALID_TOTP' },
+          },
+          db,
+        );
+        return fail('VALIDATION_ERROR', 'Doğrulama kodu yanlış.', { totpKodu: 'Kod geçersiz.' });
+      }
     }
     return ok(await kayitSecenekleri(kullanici, taraf));
   } catch (error) {

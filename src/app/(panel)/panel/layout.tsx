@@ -9,6 +9,9 @@ import { HizliEkle } from '@/components/panel/hizli-ekle';
 import { PanelKabuk } from '@/components/panel/panel-kabuk';
 import { Sidebar } from '@/components/panel/sidebar';
 
+// Panelin tasarım katmanı: halka açık sitenin CSS'ine yük olmasın.
+import './aura.css';
+
 /**
  * Panel route group layout — §4.3.
  *

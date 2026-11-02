@@ -192,6 +192,13 @@ const ESLESMELER: Eslesme[] = [
     not: 'Tek seferlik gelir/gider günü — takvim günü, saat yok.',
   },
   {
+    servis: 'src/server/services/cuzdan-hareket.ts',
+    model: 'WalletDebtPayment',
+    alan: 'date',
+    beklenen: 'gun',
+    not: 'Ödeme ve transfer yazımı, `cuzdan.ts`ten ayrıldı (2026-11-02): takvim günü.',
+  },
+  {
     servis: 'src/server/services/cuzdan.ts',
     model: 'WalletDebtPayment',
     alan: 'date',

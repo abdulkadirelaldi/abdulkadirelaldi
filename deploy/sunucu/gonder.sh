@@ -37,7 +37,7 @@ if [ "${ACIL:-}" != 1 ]; then
   ISTENEN=$(git rev-parse HEAD)
   [ "$ISTENEN" = "$(git rev-parse origin/main)" ] || { echo "HEAD origin/main değil." >&2; exit 1; }
   for _ in $(seq 60); do
-    KAPI=$(gh api "repos/{owner}/{repo}/commits/$ISTENEN/check-runs?per_page=100" \
+    KAPI=$(gh api "repos/{owner}/{repo}/commits/$ISTENEN/check-runs?per_page=100&filter=all" \
       -q '[.check_runs[] | select((.name | startswith("Kapı")) and .conclusion != "skipped")][0] | "\(.status) \(.conclusion)"' || true)
     case "$KAPI" in
       "completed success") break ;;
@@ -117,23 +117,28 @@ fi
 
 # Göç öncesi yedek: göç geri alınamaz; dosya gece yedeğinden bağımsız ve 7 gün durur. Yedek
 # alınamazsa yayın burada durur, canlı değişmez.
-ssh "${SSH_SECENEK[@]}" "$SUNUCU" "cd /opt/aelaldi && mkdir -p yedek && \
+ssh "${SSH_SECENEK[@]}" "$SUNUCU" "umask 077; cd /opt/aelaldi && mkdir -p yedek && \
   docker compose exec -T db sh -c 'pg_dump -U \"\$POSTGRES_USER\" -d \"\$POSTGRES_DB\" -Fc' > yedek/goc-oncesi-$SURUM.tmp && \
-  mv yedek/goc-oncesi-$SURUM.tmp yedek/goc-oncesi-$SURUM.dump && chmod 600 yedek/goc-oncesi-$SURUM.dump && \
-  find yedek -name 'goc-oncesi-*.dump' -mtime +7 -delete"
+  mv yedek/goc-oncesi-$SURUM.tmp yedek/goc-oncesi-$SURUM.dump && \
+  find yedek -name 'goc-oncesi-*' -mtime +7 -delete || { rm -f yedek/goc-oncesi-$SURUM.tmp; exit 1; }"
 
 # Eski sürümler: güncel + bir önceki (geri dönüş için) kalır, gerisi silinir.
 # Her sürüm ~2,6 GB; disk müşteri siteleri ve mailcow ile paylaşılıyor.
-ssh "${SSH_SECENEK[@]}" "$SUNUCU" "cd /opt/aelaldi && docker compose up -d --remove-orphans && \
-  for r in aelaldi-uygulama aelaldi-araclar; do \
+# `up` başarısızsa (göç düştüyse) yayın başarısızdır; temizlik hatası değildir.
+IMAJ_ONCE=$(ssh "${SSH_SECENEK[@]}" "$SUNUCU" "docker inspect -f '{{.Image}}' aelaldi-uygulama-1 2>/dev/null || true")
+ssh "${SSH_SECENEK[@]}" "$SUNUCU" "cd /opt/aelaldi && docker compose up -d --remove-orphans"
+IMAJ_SONRA=$(ssh "${SSH_SECENEK[@]}" "$SUNUCU" "docker inspect -f '{{.Image}}' aelaldi-uygulama-1")
+ssh "${SSH_SECENEK[@]}" "$SUNUCU" "for r in aelaldi-uygulama aelaldi-araclar; do \
     docker images \$r --format '{{.Tag}}' | grep -vx latest | tail -n +3 | xargs -r -I{} docker rmi \$r:{} >/dev/null; \
-  done; docker image prune -f >/dev/null"
+  done; docker image prune -f >/dev/null" || echo "[gonder] ⚠️ eski imajlar temizlenemedi" >&2
 
-# Yeni süreç gerçekten kalktı mı: `uptime` küçük olmalı (eski süreç de `ok` döner) ve veritabanı
-# ayakta. Kalkmadıysa "yayında" denmez; betik hata verir.
+# Yeni süreç gerçekten kalktı mı: imaj değiştiyse `uptime` küçük olmalı (eski süreç de `ok` döner),
+# aynı sürüm yeniden yayınlandıysa süreç değişmez. Kalkmadıysa "yayında" denmez; betik hata verir.
+UPTIME_SINIRI=300
+[ "$IMAJ_ONCE" != "$IMAJ_SONRA" ] || UPTIME_SINIRI=100000000
 for _ in $(seq 30); do
   SAGLIK=$(curl -fsS --max-time 8 "$SITE_URL/api/v1/health" || true)
-  if python3 -c "import json, sys; d = json.loads(sys.argv[1])['data']; sys.exit(0 if d['db'] == 'up' and d['uptime'] < 300 else 1)" "$SAGLIK" 2>/dev/null; then
+  if python3 -c "import json, sys; d = json.loads(sys.argv[1])['data']; sys.exit(0 if d['db'] == 'up' and d['uptime'] < float(sys.argv[2]) else 1)" "$SAGLIK" "$UPTIME_SINIRI" 2>/dev/null; then
     echo "[gonder] $SURUM yayında: $SAGLIK"
     exit 0
   fi
