@@ -15,6 +15,8 @@ import {
   toMeasureString,
   type AppDay,
 } from './_shared';
+import { aylikMetni, ayMetni, fetchAylikOzet } from './aylik-ozet';
+import { oncekiAy } from './cuzdan-rapor';
 import { fetchHabitDay } from './habit-gun';
 import { fetchHaftalikOzet, ozetMetni } from './haftalik-ozet';
 import { fetchIslenenBorclar, fetchIslenenGiderler } from './odeme-onay';
@@ -34,6 +36,7 @@ import { fetchIslenenBorclar, fetchIslenenGiderler } from './odeme-onay';
  *   alışkanlık seçilen saatten gün sonuna · işaretlenmemiş alışkanlık kaldıysa
  *   su         seçilen saatler (2 saatlik pencere) · bugün hedefin altındaysa
  *   haftalık   pazar 20–23 · hafta boş değilse
+ *   aylık      ayın 1'i 10–21 · önceki ay boş değilse
  * Varsayılan saatler ve su hedefi `lib/hedefler.ts`te; kişisel değer `Tercih`te.
  * Rekor bildirimi zamanlayıcıdan değil set yazılırken gider (`spor-gelisim.ts`).
  * Pencere dışında gönderilmez: sunucu 19:00'da kalkarsa sabahın su
@@ -57,7 +60,7 @@ export function vapidAyarlari(env: Record<string, string | undefined> = process.
 }
 
 export interface Bildirim {
-  tur: 'borc' | 'aliskanlik' | 'su' | 'haftalik' | 'test';
+  tur: 'borc' | 'aliskanlik' | 'su' | 'haftalik' | 'aylik' | 'test';
   /** Gün içinde tekrarı önleyen anahtar. */
   anahtar: string;
   baslik: string;
@@ -70,6 +73,7 @@ export interface Tercih {
   aliskanlik: boolean;
   su: boolean;
   haftalik?: boolean;
+  aylik?: boolean;
   suHedefMl?: number;
   suSaatleri?: readonly number[];
   aliskanlikSaati?: number;
@@ -97,6 +101,8 @@ export interface PlanGirdisi {
   giderOdenen?: ReadonlySet<string>;
   /** Yalnızca pazar akşamı dolar; boş haftada `null`. */
   haftalikGovde?: string | null;
+  /** Yalnızca ayın 1'inde dolar; önceki ay boşsa `null`. */
+  aylikGovde?: string | null;
 }
 
 /** Ayın son günü — 31'inde ödenen borç şubatta 28'ine düşer. SAF. */
@@ -108,6 +114,11 @@ function sonGun(gun: AppDay): number {
 /** Pazar 20:00–23:00. SAF. */
 function haftalikZamani(gun: AppDay, saat: number): boolean {
   return gun === addAppDays(startOfAppWeek(gun), 6) && saat >= 20 && saat < 23;
+}
+
+/** Ayın 1'i 10:00–21:00. SAF. */
+function aylikZamani(gun: AppDay, saat: number): boolean {
+  return gun.endsWith('-01') && saat >= 10 && saat < 21;
 }
 
 /** Bu saatte gönderilmesi gerekenler. SAF — zamanlayıcının bütün kararı. */
@@ -193,6 +204,17 @@ export function planla(g: PlanGirdisi): Bildirim[] {
     });
   }
 
+  if (g.tercih.aylik !== false && g.aylikGovde && aylikZamani(g.gun, g.saat)) {
+    const ay = oncekiAy(g.gun.slice(0, 7));
+    sonuc.push({
+      tur: 'aylik',
+      anahtar: ay,
+      baslik: `${ayMetni(ay)} raporun hazır 📅`,
+      govde: g.aylikGovde,
+      url: `/panel/aylik?ay=${ay}`,
+    });
+  }
+
   return sonuc;
 }
 
@@ -256,7 +278,22 @@ async function planGirdisi(userId: string, simdi: Date): Promise<PlanGirdisi> {
     haftalikGovde: haftalikZamani(gun, saat)
       ? ozetMetni(await fetchHaftalikOzet(gun, db, gun))
       : null,
+    aylikGovde: await aylikGovdesi(userId, gun, saat),
   };
+}
+
+/**
+ * Ayın 1'inde önceki ayın özeti. Gönderildiyse yeniden hesaplanmaz: tur gün boyu 5 dakikada
+ * bir dönüyor, rapor da haftaları ve Cüzdan'ı okuyor.
+ */
+async function aylikGovdesi(userId: string, gun: AppDay, saat: number): Promise<string | null> {
+  if (!aylikZamani(gun, saat)) return null;
+  const ay = oncekiAy(gun.slice(0, 7));
+  const gonderildi = await db.bildirimKaydi.findFirst({
+    where: { tur: 'aylik', anahtar: `${userId}:${ay}` },
+    select: { id: true },
+  });
+  return gonderildi ? null : aylikMetni(await fetchAylikOzet(ay, db, gun));
 }
 
 /** Kullanıcının tüm cihazlarına gönderir; ölü abonelikleri temizler. Gönderilen cihaz sayısı. */

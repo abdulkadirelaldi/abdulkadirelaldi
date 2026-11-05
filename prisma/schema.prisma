@@ -1116,6 +1116,8 @@ model BildirimTercihi {
   su              Boolean  @default(true)
   rekor           Boolean  @default(true)
   haftalik        Boolean  @default(true)
+  /// Ayın 1'inde önceki ayın özeti (2026-11-05).
+  aylik           Boolean  @default(true)
   /// Günlük su hedefi. Hatırlatma, Bugün halkası ve alışkanlık işaretleme bunu okur.
   suHedefMl       Int      @default(3500)
   /// Su hatırlatmasının saatleri (İstanbul, 0–23).

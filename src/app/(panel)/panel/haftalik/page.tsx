@@ -1,12 +1,10 @@
 import { ChevronLeft, ChevronRight, Dumbbell, Scale, Sparkles, Wallet } from 'lucide-react';
 import type { Metadata } from 'next';
-import Link from 'next/link';
-import type { ReactNode } from 'react';
 
 import { gunAy, HAFTA_GUNLERI_KISA } from '@/components/panel/hayat-bicim';
+import { GezinmeDugmesi, OzetKarti } from '@/components/panel/ozet-karti';
 import { paraBicim } from '@/components/panel/para-bicim';
 import { Topbar } from '@/components/panel/topbar';
-import { cn } from '@/lib/utils/cn';
 import { addAppDays, appToday, startOfAppWeek } from '@/server/services/_shared';
 import { fetchHaftalikOzet } from '@/server/services/haftalik-ozet';
 
@@ -48,25 +46,25 @@ export default async function HaftalikPage({ searchParams }: SayfaProps) {
       <main id="panel-icerik" className="flex-1 px-4 py-4 lg:p-6">
         <div className="mx-auto flex max-w-2xl flex-col gap-4">
           <nav aria-label="Hafta seçimi" className="flex items-center justify-between">
-            <HaftaDugmesi
+            <GezinmeDugmesi
               href={`/panel/haftalik?hafta=${addAppDays(hafta, -7)}`}
               etiket="Önceki hafta"
             >
               <ChevronLeft className="size-5" aria-hidden="true" />
-            </HaftaDugmesi>
+            </GezinmeDugmesi>
             <h2 className="text-primary text-base font-semibold">
               {gunAy(o.bas)} – {gunAy(o.son)}
             </h2>
             {sonraki ? (
-              <HaftaDugmesi href={`/panel/haftalik?hafta=${sonraki}`} etiket="Sonraki hafta">
+              <GezinmeDugmesi href={`/panel/haftalik?hafta=${sonraki}`} etiket="Sonraki hafta">
                 <ChevronRight className="size-5" aria-hidden="true" />
-              </HaftaDugmesi>
+              </GezinmeDugmesi>
             ) : (
               <span className="size-10" aria-hidden="true" />
             )}
           </nav>
 
-          <Kart
+          <OzetKarti
             href="/panel/hayat"
             ikon={<Sparkles className="size-4" aria-hidden="true" />}
             renk="from-violet-500 to-purple-500"
@@ -99,10 +97,10 @@ export default async function HaftalikPage({ searchParams }: SayfaProps) {
                 ))}
               </ol>
             )}
-          </Kart>
+          </OzetKarti>
 
           <div className="grid gap-3 sm:grid-cols-3">
-            <Kart
+            <OzetKarti
               href="/panel/spor/gelisim"
               ikon={<Dumbbell className="size-4" aria-hidden="true" />}
               renk="from-orange-500 to-amber-500"
@@ -114,7 +112,7 @@ export default async function HaftalikPage({ searchParams }: SayfaProps) {
                   : null
               }
             />
-            <Kart
+            <OzetKarti
               href="/panel/cuzdan/rapor"
               ikon={<Wallet className="size-4" aria-hidden="true" />}
               renk="from-emerald-500 to-teal-500"
@@ -126,7 +124,7 @@ export default async function HaftalikPage({ searchParams }: SayfaProps) {
                   : 'Düzenli ödemeler hariç'
               }
             />
-            <Kart
+            <OzetKarti
               href="/panel/saglik"
               ikon={<Scale className="size-4" aria-hidden="true" />}
               renk="from-rose-500 to-pink-500"
@@ -144,67 +142,5 @@ export default async function HaftalikPage({ searchParams }: SayfaProps) {
         </div>
       </main>
     </>
-  );
-}
-
-function Kart({
-  href,
-  ikon,
-  renk,
-  baslik,
-  deger,
-  alt,
-  children,
-}: {
-  href: string;
-  ikon: ReactNode;
-  renk: string;
-  baslik: string;
-  deger: string;
-  alt: string | null;
-  children?: ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      className="focus-ring rounded-card border-line bg-surface flex min-w-0 flex-col gap-1.5 border p-4"
-    >
-      <span className="text-muted flex items-center gap-2 text-sm">
-        <span
-          className={cn(
-            'flex size-7 items-center justify-center rounded-lg bg-gradient-to-br text-white',
-            renk,
-          )}
-        >
-          {ikon}
-        </span>
-        {baslik}
-      </span>
-      <span className="tabular text-primary truncate text-2xl font-semibold tracking-tight">
-        {deger}
-      </span>
-      {alt && <span className="text-muted text-xs">{alt}</span>}
-      {children}
-    </Link>
-  );
-}
-
-function HaftaDugmesi({
-  href,
-  etiket,
-  children,
-}: {
-  href: string;
-  etiket: string;
-  children: ReactNode;
-}) {
-  return (
-    <Link
-      href={href}
-      aria-label={etiket}
-      className="focus-ring bg-surface text-body flex size-10 items-center justify-center rounded-full shadow-[var(--golge-kart)]"
-    >
-      {children}
-    </Link>
   );
 }

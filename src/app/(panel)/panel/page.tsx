@@ -405,6 +405,9 @@ export default async function BugunPage() {
               >
                 Haftalık özet →
               </Link>
+              <Link href="/panel/aylik" className="focus-ring text-accent-soft font-medium">
+                Aylık →
+              </Link>
             </p>
           </section>
 
