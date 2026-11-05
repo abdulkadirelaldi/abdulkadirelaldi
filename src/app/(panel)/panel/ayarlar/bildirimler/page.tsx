@@ -32,6 +32,7 @@ export default async function BildirimlerPage() {
               su: tercih?.su ?? true,
               rekor: tercih?.rekor ?? true,
               haftalik: tercih?.haftalik ?? true,
+              aylik: tercih?.aylik ?? true,
               suHedefMl: tercih?.suHedefMl ?? SU_HEDEFI_ML,
               suSaatleri: tercih?.suSaatleri ?? [...SU_SAATLERI],
               aliskanlikSaati: tercih?.aliskanlikSaati ?? ALISKANLIK_SAATI,

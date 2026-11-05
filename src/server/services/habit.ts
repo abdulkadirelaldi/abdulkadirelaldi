@@ -543,15 +543,29 @@ export function gunOranlari(hafta: HaftaGorunumu): number[] {
   });
 }
 
-/** Geçen günlerin tamamlanma yüzdesi; gerekli gün yoksa `null`. SAF. */
-export function haftaYuzdesi(hafta: HaftaGorunumu, bugun: AppDay): number | null {
+/**
+ * Geçen günlerin gerekli ve tamamlanan sayısı; `aralik` verilirse yalnızca içindeki günler.
+ * Ay özeti bir ayın kenarındaki haftaları böyle keser. SAF.
+ */
+export function gunSayilari(
+  hafta: HaftaGorunumu,
+  bugun: AppDay,
+  aralik?: { bas: AppDay; son: AppDay },
+): { gerekli: number; tamam: number } {
   let gerekli = 0;
   let tamam = 0;
   hafta.days.forEach((gun, i) => {
     if (gun > bugun) return;
+    if (aralik && (gun < aralik.bas || gun > aralik.son)) return;
     const g = gunSayimi(hafta, i);
     gerekli += g.gerekli;
     tamam += g.tamam;
   });
+  return { gerekli, tamam };
+}
+
+/** Geçen günlerin tamamlanma yüzdesi; gerekli gün yoksa `null`. SAF. */
+export function haftaYuzdesi(hafta: HaftaGorunumu, bugun: AppDay): number | null {
+  const { gerekli, tamam } = gunSayilari(hafta, bugun);
   return gerekli === 0 ? null : Math.round((tamam / gerekli) * 100);
 }

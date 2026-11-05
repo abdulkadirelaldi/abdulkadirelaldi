@@ -3,6 +3,7 @@
 import {
   Bell,
   BellOff,
+  CalendarDays,
   ChartColumn,
   Droplet,
   Loader2,
@@ -27,6 +28,7 @@ type Tercih = {
   su: boolean;
   rekor: boolean;
   haftalik: boolean;
+  aylik: boolean;
   suHedefMl: number;
   suSaatleri: number[];
   aliskanlikSaati: number;
@@ -165,7 +167,7 @@ export function BildirimAyarlari({
     }
   };
 
-  const degistir = (alan: 'borc' | 'aliskanlik' | 'su' | 'rekor' | 'haftalik') =>
+  const degistir = (alan: 'borc' | 'aliskanlik' | 'su' | 'rekor' | 'haftalik' | 'aylik') =>
     kaydet({ ...tercih, [alan]: !tercih[alan] });
 
   const suSaatiDegistir = (saat: number) => {
@@ -293,6 +295,14 @@ export function BildirimAyarlari({
           aciklama="Pazar akşamı 20:00"
           acik={tercih.haftalik}
           onClick={() => void degistir('haftalik')}
+        />
+        <Anahtar
+          ikon={<CalendarDays className="size-4" aria-hidden="true" />}
+          renk="from-teal-500 to-emerald-600"
+          baslik="Aylık rapor"
+          aciklama="Her ayın 1'i 10:00 — önceki ayda ne harcadın, ne yaptın"
+          acik={tercih.aylik}
+          onClick={() => void degistir('aylik')}
         />
       </section>
 

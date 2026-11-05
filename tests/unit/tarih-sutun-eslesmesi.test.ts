@@ -223,6 +223,13 @@ const ESLESMELER: Eslesme[] = [
     not: 'Ödeme onayının günü `@db.Date` → `appDayToDate(appToday())`; dönem `YYYY-MM` metin.',
   },
   {
+    servis: 'src/server/services/aylik-ozet.ts',
+    model: 'Workout',
+    alan: 'date',
+    beklenen: 'gun',
+    not: 'Antrenman ve sağlık tarihleri takvim günü; ay sınırı `appDayToDate`, okuma `dateToAppDay`.',
+  },
+  {
     servis: 'src/server/services/haftalik-ozet.ts',
     model: 'Workout',
     alan: 'date',
