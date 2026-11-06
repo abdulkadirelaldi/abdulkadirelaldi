@@ -38,10 +38,14 @@ export function HataListesi({ hatalar }: { hatalar: HataDto[] }) {
               <span
                 className={cn(
                   'rounded-full px-2 py-0.5 font-medium',
-                  h.kaynak === 'sunucu' ? 'bg-danger/12 text-danger' : 'bg-warning/12 text-warning',
+                  h.kaynak === 'sunucu'
+                    ? 'bg-danger/12 text-danger'
+                    : h.kaynak === 'icerik'
+                      ? 'bg-accent/12 text-accent'
+                      : 'bg-warning/12 text-warning',
                 )}
               >
-                {h.kaynak === 'sunucu' ? 'Sunucu' : 'Ekran'}
+                {h.kaynak === 'sunucu' ? 'Sunucu' : h.kaynak === 'icerik' ? 'İçerik' : 'Ekran'}
               </span>
               <span className="text-muted tabular">{ZAMAN.format(new Date(h.son))}</span>
               {h.sayi > 1 && <span className="text-muted tabular ml-auto">{h.sayi} kez</span>}

@@ -339,6 +339,20 @@ const komutlar: Record<string, (arg?: string) => Promise<unknown>> = {
     return { silinen: akis.count };
   },
 
+  /** İngilizce e2e'sinin içerik hatası bildirimlerini siler: o dersin soruları, `sonra`dan beri. */
+  async icerikHatasiSil(arg) {
+    const { dersId, sonra } = JSON.parse(arg ?? '{}') as { dersId: string; sonra: string };
+    if (!dersId || !sonra) throw new Error('icerikHatasiSil: dersId ve sonra zorunlu.');
+    const silinen = await db.hataKaydi.deleteMany({
+      where: {
+        kaynak: 'icerik',
+        ayrinti: { startsWith: `${dersId}-` },
+        ilk: { gte: new Date(sonra) },
+      },
+    });
+    return { silinen: silinen.count };
+  },
+
   /** İngilizce e2e'sinin ders kayıtlarını siler: o dersin, testin başladığı andan sonraki satırları (2026-11-06). */
   async ingilizceSondaSil(arg) {
     const { dersId, sonra } = JSON.parse(arg ?? '{}') as { dersId: string; sonra: string };

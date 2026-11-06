@@ -271,6 +271,15 @@ export async function ingilizceSondaSil(dersId: string, sonra: Date): Promise<nu
   return silinen;
 }
 
+/** İngilizce e2e'sinin içerik hatası bildirimlerini siler. */
+export async function icerikHatasiSil(dersId: string, sonra: Date): Promise<number> {
+  const { silinen } = await runTask<{ silinen: number }>(
+    'icerikHatasiSil',
+    JSON.stringify({ dersId, sonra: sonra.toISOString() }),
+  );
+  return silinen;
+}
+
 export interface RotaKimlikleri {
   saglik: string;
   oturum: string;

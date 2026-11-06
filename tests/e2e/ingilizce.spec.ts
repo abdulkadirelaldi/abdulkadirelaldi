@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 import { dersBul } from '../../src/lib/ingilizce/mufredat';
 import type { Alistirma } from '../../src/lib/ingilizce/tipler';
 
-import { adminCredentials, findAdminUser, ingilizceSondaSil } from './_helpers/db';
+import { adminCredentials, findAdminUser, icerikHatasiSil, ingilizceSondaSil } from './_helpers/db';
 import { applySessionCookie } from './_helpers/session';
 
 /**
@@ -79,6 +79,7 @@ test('ilk ders oynanır, XP kaydedilir', async ({ page, baseURL }) => {
     await page.goto(`/panel/ingilizce/ders/${DERS}`);
     await page.getByRole('button', { name: /Derse başla/ }).click();
 
+    let bildirildi = false;
     for (let tur = 0; tur < ders.alistirmalar.length * 2; tur += 1) {
       if (await page.getByRole('heading', { name: 'Ders bitti!' }).isVisible()) break;
       const id = await page.locator('[data-alistirma]').getAttribute('data-alistirma');
@@ -89,6 +90,14 @@ test('ilk ders oynanır, XP kaydedilir', async ({ page, baseURL }) => {
       await expect(devam).toBeVisible();
       if (a.tur !== 'eslestir')
         await expect(page.getByRole('status')).toContainText(/Harika|Neredeyse/);
+      if (!bildirildi) {
+        bildirildi = true;
+        // İlk geri bildirimde içerik hatası bildirimi: not yazılır, gönderilir, ders sürer.
+        await page.getByRole('button', { name: 'Bu soruda hata var' }).click();
+        await page.getByLabel('Hata notu').fill('e2e deneme bildirimi');
+        await page.getByRole('button', { name: 'Gönder' }).click();
+        await expect(page.getByText('Teşekkürler, bildirim kaydedildi.')).toBeVisible();
+      }
       await devam.click();
     }
 
@@ -97,5 +106,6 @@ test('ilk ders oynanır, XP kaydedilir', async ({ page, baseURL }) => {
     await expect(page.getByText('Günlük hedef')).toBeVisible();
   } finally {
     await ingilizceSondaSil(DERS, baslangic);
+    await icerikHatasiSil(DERS, baslangic);
   }
 });
