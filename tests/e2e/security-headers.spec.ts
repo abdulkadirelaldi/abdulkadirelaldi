@@ -33,7 +33,10 @@ test.describe('§8.14 — taban güvenlik başlıkları', () => {
 
       expect(headers['permissions-policy']).toContain('camera=()');
       expect(headers['permissions-policy']).toContain('geolocation=()');
-      expect(headers['permissions-policy']).toContain('microphone=()');
+      // Panelde konuşma alıştırması için yalnızca aynı köken (2026-11-06).
+      expect(headers['permissions-policy']).toContain(
+        path === '/panel' ? 'microphone=(self)' : 'microphone=()',
+      );
     });
   }
 

@@ -339,6 +339,16 @@ const komutlar: Record<string, (arg?: string) => Promise<unknown>> = {
     return { silinen: akis.count };
   },
 
+  /** İngilizce e2e'sinin ders kayıtlarını siler: o dersin, testin başladığı andan sonraki satırları (2026-11-06). */
+  async ingilizceSondaSil(arg) {
+    const { dersId, sonra } = JSON.parse(arg ?? '{}') as { dersId: string; sonra: string };
+    if (!dersId || !sonra) throw new Error('ingilizceSondaSil: dersId ve sonra zorunlu.');
+    const silinen = await db.ingilizceDers.deleteMany({
+      where: { dersId, createdAt: { gte: new Date(sonra) } },
+    });
+    return { silinen: silinen.count };
+  },
+
   /** Bütün rotalar e2e'si: her detay sayfası için bir kayıt. Önekli olanlar sonra silinir. */
   async rotaSondaKur(arg) {
     const { onek } = JSON.parse(arg ?? '{}') as { onek: string };

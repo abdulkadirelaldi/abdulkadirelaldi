@@ -19,6 +19,7 @@ import { aylikMetni, ayMetni, fetchAylikOzet } from './aylik-ozet';
 import { oncekiAy } from './cuzdan-rapor';
 import { fetchHabitDay } from './habit-gun';
 import { fetchHaftalikOzet, ozetMetni } from './haftalik-ozet';
+import { seriHesapla } from './ingilizce';
 import { fetchIslenenBorclar, fetchIslenenGiderler } from './odeme-onay';
 
 /**
@@ -37,6 +38,7 @@ import { fetchIslenenBorclar, fetchIslenenGiderler } from './odeme-onay';
  *   su         seçilen saatler (2 saatlik pencere) · bugün hedefin altındaysa
  *   haftalık   pazar 20–23 · hafta boş değilse
  *   aylık      ayın 1'i 10–21 · önceki ay boş değilse
+ *   ingilizce  20–22 · seri sürüyor ve bugün ders yoksa
  * Varsayılan saatler ve su hedefi `lib/hedefler.ts`te; kişisel değer `Tercih`te.
  * Rekor bildirimi zamanlayıcıdan değil set yazılırken gider (`spor-gelisim.ts`).
  * Pencere dışında gönderilmez: sunucu 19:00'da kalkarsa sabahın su
@@ -60,7 +62,7 @@ export function vapidAyarlari(env: Record<string, string | undefined> = process.
 }
 
 export interface Bildirim {
-  tur: 'borc' | 'aliskanlik' | 'su' | 'haftalik' | 'aylik' | 'test';
+  tur: 'borc' | 'aliskanlik' | 'su' | 'haftalik' | 'aylik' | 'ingilizce' | 'test';
   /** Gün içinde tekrarı önleyen anahtar. */
   anahtar: string;
   baslik: string;
@@ -74,6 +76,7 @@ export interface Tercih {
   su: boolean;
   haftalik?: boolean;
   aylik?: boolean;
+  ingilizce?: boolean;
   suHedefMl?: number;
   suSaatleri?: readonly number[];
   aliskanlikSaati?: number;
@@ -103,6 +106,8 @@ export interface PlanGirdisi {
   haftalikGovde?: string | null;
   /** Yalnızca ayın 1'inde dolar; önceki ay boşsa `null`. */
   aylikGovde?: string | null;
+  /** İngilizce serisi; bugün ders yapıldıysa ya da seri yoksa 0. Yalnızca akşam dolar. */
+  ingilizceSeri?: number;
 }
 
 /** Ayın son günü — 31'inde ödenen borç şubatta 28'ine düşer. SAF. */
@@ -215,6 +220,16 @@ export function planla(g: PlanGirdisi): Bildirim[] {
     });
   }
 
+  if (g.tercih.ingilizce !== false && (g.ingilizceSeri ?? 0) > 0 && g.saat >= 20 && g.saat < 22) {
+    sonuc.push({
+      tur: 'ingilizce',
+      anahtar: 'seri',
+      baslik: `🔥 ${g.ingilizceSeri} günlük serin bozulmasın`,
+      govde: 'Bugün henüz İngilizce dersi yok. Kısa bir ders seriyi korur.',
+      url: '/panel/ingilizce',
+    });
+  }
+
   return sonuc;
 }
 
@@ -279,7 +294,22 @@ async function planGirdisi(userId: string, simdi: Date): Promise<PlanGirdisi> {
       ? ozetMetni(await fetchHaftalikOzet(gun, db, gun))
       : null,
     aylikGovde: await aylikGovdesi(userId, gun, saat),
+    ingilizceSeri: saat >= 20 && saat < 22 ? await ingilizceSerisi(gun) : 0,
   };
+}
+
+/** Seri sürüyor ve bugün ders yoksa seri uzunluğu; yoksa 0. */
+async function ingilizceSerisi(gun: AppDay): Promise<number> {
+  const gunler = await db.ingilizceDers.findMany({
+    where: { gun: { gte: appDayToDate(addAppDays(gun, -400)) } },
+    select: { gun: true },
+    distinct: ['gun'],
+  });
+  const { seri, bugunYapildi } = seriHesapla(
+    gunler.map((g) => dateToAppDay(g.gun)),
+    gun,
+  );
+  return bugunYapildi ? 0 : seri;
 }
 
 /**

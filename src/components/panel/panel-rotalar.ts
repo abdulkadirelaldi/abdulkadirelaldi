@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   GraduationCap,
   Handshake,
+  Languages,
   LayoutTemplate,
   Mail,
   Newspaper,
@@ -57,6 +58,11 @@ export const PANEL_GRUPLARI: ReadonlyArray<{
       { href: '/panel/spor', label: 'Spor', icon: Dumbbell, hazir: true },
       { href: '/panel/saglik', label: 'Sağlık', icon: Activity, hazir: true },
     ],
+  },
+  {
+    // Ayrı grup: ilk grup telefondaki alt sekmeler, beşte kalmalı.
+    title: 'Gelişim',
+    items: [{ href: '/panel/ingilizce', label: 'İngilizce', icon: Languages, hazir: true }],
   },
   {
     title: 'Site',
@@ -123,6 +129,7 @@ const EK_ETIKETLER: Record<string, string> = {
   '/panel/hayat/rapor': 'Rapor',
   '/panel/haftalik': 'Haftalık özet',
   '/panel/aylik': 'Aylık özet',
+  '/panel/ingilizce/ders': 'Ders',
   /* `/panel/icerik` bir sayfa DEĞİL, yalnızca kırıntı yolundaki ara segment. */
   '/panel/icerik': 'İçerik',
 };

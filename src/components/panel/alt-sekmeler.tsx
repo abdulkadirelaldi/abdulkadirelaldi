@@ -38,6 +38,9 @@ export function AltSekmeler() {
     dokunulan ? s.href === dokunulan : aktifMi(s.href),
   );
 
+  // Ders odak ekranı: geri bildirim paneli alt kenarı kullanıyor.
+  if (pathname.startsWith('/panel/ingilizce/ders/')) return null;
+
   return (
     <nav
       aria-label="Ana sekmeler"

@@ -83,6 +83,17 @@ export const PERMISSIONS_POLICY = [
 ].join(', ');
 
 /**
+ * Panelde mikrofon AYNI KÖKENE açık (2026-11-06): İngilizce konuşma alıştırması tarayıcının
+ * konuşma tanımasını kullanıyor. Yol başına değil panelin tamamına: panel istemci tarafında
+ * gezindiği için politika ilk açılan sayfanın belgesinden gelir, `/panel`den gelinen
+ * İngilizce sayfasında mikrofon kapalı kalırdı. Herkese açık site kapalı kalır.
+ */
+export const PANEL_PERMISSIONS_POLICY = PERMISSIONS_POLICY.replace(
+  'microphone=()',
+  'microphone=(self)',
+);
+
+/**
  * §8.7 — panel yanıtları arama motorlarına kapalı.
  * `robots.txt`'teki `Disallow` yalnızca bir ricadır; başlık bağlayıcıdır.
  */
@@ -127,6 +138,7 @@ export function buildSecurityHeaders(context: SecurityHeaderContext): Record<str
 
   if (isPanelPath(context.pathname)) {
     headers['X-Robots-Tag'] = PANEL_ROBOTS_HEADER;
+    headers['Permissions-Policy'] = PANEL_PERMISSIONS_POLICY;
   }
 
   return headers;

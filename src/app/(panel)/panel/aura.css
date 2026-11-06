@@ -92,6 +92,12 @@
   --aura-3: rgb(124 58 237 / 0.42);
   --aura-golge: rgb(225 29 92 / 0.5);
 }
+.aura-dil {
+  --aura-1: rgb(13 148 136 / 0.6);
+  --aura-2: rgb(37 99 235 / 0.5);
+  --aura-3: rgb(245 158 11 / 0.36);
+  --aura-golge: rgb(13 148 136 / 0.55);
+}
 
 /* Bölüm üstü küçük başlık. */
 .ust-etiket {

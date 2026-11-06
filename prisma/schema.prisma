@@ -1118,6 +1118,8 @@ model BildirimTercihi {
   haftalik        Boolean  @default(true)
   /// Ayın 1'inde önceki ayın özeti (2026-11-05).
   aylik           Boolean  @default(true)
+  /// İngilizce serisi bozulmak üzereyken akşam hatırlatması (2026-11-06).
+  ingilizce       Boolean  @default(true)
   /// Günlük su hedefi. Hatırlatma, Bugün halkası ve alışkanlık işaretleme bunu okur.
   suHedefMl       Int      @default(3500)
   /// Su hatırlatmasının saatleri (İstanbul, 0–23).
@@ -1162,4 +1164,33 @@ model HataKaydi {
 
   @@index([son])
   @@map("hata_kaydi")
+}
+
+/// İngilizce (2026-11-06) — tamamlanan her ders bir satır. Müfredat kodda
+/// (`src/lib/ingilizce`); burada yalnızca kimlikleri. Tekrar dersinin kimliği
+/// `tekrar-<parkur>`. Zayıf soru: son olayı yanlış olan alıştırma (`hatalar` ve
+/// `dogrular` sırayla okunur).
+model IngilizceDers {
+  id        String   @id @default(cuid())
+  dersId    String
+  gun       DateTime @db.Date
+  xp        Int
+  /// En az bir kez yanlış cevaplanan alıştırma kimlikleri.
+  hatalar   String[]
+  /// İlk denemede doğru cevaplananlar.
+  dogrular  String[]
+  createdAt DateTime @default(now())
+
+  @@index([dersId])
+  @@index([gun])
+  @@map("ingilizce_ders")
+}
+
+/// İngilizce günlük XP hedefi — kullanıcı başına tek satır.
+model IngilizceAyar {
+  userId        String   @id
+  gunlukHedefXp Int      @default(20)
+  updatedAt     DateTime @updatedAt
+
+  @@map("ingilizce_ayar")
 }

@@ -74,6 +74,14 @@ describe('buildSecurityHeaders', () => {
     expect(policy).toContain('screen-wake-lock=(self)');
   });
 
+  it('mikrofon YALNIZCA panelde ve yalnızca aynı kökene açık (İngilizce konuşma)', () => {
+    const panel = buildSecurityHeaders(panelContext)['Permissions-Policy'] ?? '';
+    expect(panel).toContain('microphone=(self)');
+    expect(panel).not.toContain('microphone=()');
+    expect(panel).toContain('camera=()');
+    expect(buildSecurityHeaders(publicContext)['Permissions-Policy']).toContain('microphone=()');
+  });
+
   it('§8.7 — X-Robots-Tag YALNIZCA panel yollarına eklenir', () => {
     expect(buildSecurityHeaders(panelContext)['X-Robots-Tag']).toBe(PANEL_ROBOTS_HEADER);
     expect(buildSecurityHeaders(panelContext)['X-Robots-Tag']).toBe('noindex, nofollow');

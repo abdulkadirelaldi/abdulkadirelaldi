@@ -328,6 +328,16 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     kanit: ["'/panel/haftalik',"],
     not: "2026-11-01 haftalık özet. `?hafta=` tarih doğrulanır, gelecek ve bozuk değer bu haftaya düşer. Hesap ve pazar bildirimi `tests/unit/services/haftalik-ozet.test.ts`te. ÖLÇÜLMEYEN: e2e'de içerik yok; gerçek telefona bildirim.",
   },
+  '/panel/ingilizce': {
+    kapilar: ['e2e'],
+    kanit: ["'/panel/ingilizce',"],
+    not: "2026-11-06 İngilizce: üç parkur, ünite yolu, seri ve günlük hedef. `?parkur=` bilinmeyen değerde ilk parkura düşer. İlerleme hesabı `tests/unit/ingilizce/ilerleme.test.ts`, müfredat biçimi `mufredat.test.ts`. ÖLÇÜLMEYEN: e2e'de ders oynanmıyor.",
+  },
+  '/panel/ingilizce/ders/[id]': {
+    kapilar: ['e2e'],
+    kanit: ["'/panel/ingilizce/ders/gunluk-u1-d1',"],
+    not: '2026-11-06 ders oynatıcısı; kilitli ders parkura, boş tekrar parkura döner, bilinmeyen kimlik 404. Değerlendirme `tests/unit/ingilizce/degerlendir.test.ts`. ÖLÇÜLMEYEN: gerçek cihazda sesli okuma ve konuşma tanıma.',
+  },
   '/panel/aylik': {
     kapilar: ['e2e'],
     kanit: ["'/panel/aylik',"],
