@@ -52,8 +52,17 @@ function KontrolDugmesi({
   );
 }
 
-function Baslik({ children }: { children: ReactNode }) {
-  return <h2 className="text-primary text-lg font-semibold tracking-tight">{children}</h2>;
+function Baslik({ children, gorsel }: { children: ReactNode; gorsel?: string }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <h2 className="text-primary text-lg font-semibold tracking-tight">{children}</h2>
+      {gorsel && (
+        <span className="ing-suzul text-5xl leading-none" aria-hidden="true">
+          {gorsel}
+        </span>
+      )}
+    </div>
+  );
 }
 
 function DinleDugmeleri({ cumle, otomatik }: { cumle: string; otomatik?: boolean }) {
@@ -106,7 +115,9 @@ export function SecmeliSoru({ a, kilitli, onCevap }: Ortak & { a: SecmeliAlistir
   );
   return (
     <div className="flex flex-col gap-4">
-      <Baslik>{a.tur === 'bosluk' ? 'Boşluğu doldur' : 'Doğru seçeneği bul'}</Baslik>
+      <Baslik gorsel={a.gorsel}>
+        {a.tur === 'bosluk' ? 'Boşluğu doldur' : 'Doğru seçeneği bul'}
+      </Baslik>
       {a.metin && (
         <div className="bg-elevated text-body rounded-2xl p-4 text-[15px] leading-relaxed whitespace-pre-line">
           {a.metin}
@@ -179,7 +190,7 @@ export function DinleSoru({ a, kilitli, onCevap }: Ortak & { a: DinleAlistirma }
   const sesYok = !okumaVarMi();
   return (
     <div className="flex flex-col gap-4">
-      <Baslik>Duyduğunu yaz</Baslik>
+      <Baslik gorsel={a.gorsel}>Duyduğunu yaz</Baslik>
       <DinleDugmeleri cumle={a.cumle} otomatik />
       {sesYok && (
         <p className="text-muted text-sm">
@@ -198,7 +209,7 @@ export function DinleSoru({ a, kilitli, onCevap }: Ortak & { a: DinleAlistirma }
             type="button"
             disabled={kilitli}
             onClick={() => setSecilen(secilen.filter((s) => s !== i))}
-            className="focus-ring bg-surface border-line text-primary rounded-xl border-2 px-3 py-2 text-[15px] shadow-sm"
+            className="focus-ring bg-surface border-line text-primary ing-belir rounded-xl border-2 px-3 py-2 text-[15px] shadow-sm"
           >
             {kutular.find((x) => x.i === i)!.k}
           </button>
@@ -292,7 +303,7 @@ export function KonusSoru({
 
   return (
     <div className="flex flex-col gap-4">
-      <Baslik>Sesli söyle</Baslik>
+      <Baslik gorsel={a.gorsel}>Sesli söyle</Baslik>
       <div className="flex items-start gap-3">
         <DinleDugmeleri cumle={a.cumle} />
       </div>
@@ -358,7 +369,7 @@ export function YazSoru({ a, kilitli, onCevap }: Ortak & { a: YazAlistirma }) {
   };
   return (
     <div className="flex flex-col gap-4">
-      <Baslik>İngilizceye çevir</Baslik>
+      <Baslik gorsel={a.gorsel}>İngilizceye çevir</Baslik>
       <p className="bg-elevated text-primary rounded-2xl px-4 py-3 text-lg">{a.kaynak}</p>
       <textarea
         value={metin}

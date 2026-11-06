@@ -1,10 +1,34 @@
 import { GUNLUK } from './gunluk';
+import { GUNLUK_EK } from './gunluk-ek';
 import { SINAV } from './sinav';
-import type { Alistirma, Ders, Parkur, ParkurKimligi, Unite } from './tipler';
+import { SINAV_EK } from './sinav-ek';
+import type { Alistirma, Ders, Parkur, ParkurKimligi, Seviye, Unite } from './tipler';
 import { YAZILIM } from './yazilim';
+import { YAZILIM_EK } from './yazilim-ek';
+
+const SEVIYE_SIRASI: readonly Seviye[] = ['A1', 'A2', 'B1', 'B2', 'C1'];
+
+/**
+ * Ek üniteler (2026-11-06) seviyesine göre yerine girer: aynı seviyedeki eski ünitelerden
+ * sonra. Sıralama kararlı; kimlikler değişmez, yalnızca ders yolu uzar.
+ */
+function birlestir(parkur: Parkur, ek: readonly Unite[]): Parkur {
+  const sira = (u: Unite) => SEVIYE_SIRASI.indexOf(u.seviye);
+  return {
+    ...parkur,
+    uniteler: [...parkur.uniteler, ...ek]
+      .map((u, i) => ({ u, i }))
+      .sort((a, b) => sira(a.u) - sira(b.u) || a.i - b.i)
+      .map(({ u }) => u),
+  };
+}
 
 /** Üç parkur, menüdeki sırayla. */
-export const PARKURLAR: readonly Parkur[] = [GUNLUK, YAZILIM, SINAV];
+export const PARKURLAR: readonly Parkur[] = [
+  birlestir(GUNLUK, GUNLUK_EK),
+  birlestir(YAZILIM, YAZILIM_EK),
+  birlestir(SINAV, SINAV_EK),
+];
 
 export interface DersKonumu {
   parkur: Parkur;

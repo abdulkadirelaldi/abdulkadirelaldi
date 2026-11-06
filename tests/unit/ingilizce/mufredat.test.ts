@@ -50,6 +50,24 @@ describe('müfredat', () => {
         expect([...sira].sort((a, b) => a - b)).toEqual(sira);
       });
 
+      it('her ünite ve dersin tek emojilik simgesi var; alıştırma görseli de tek emoji', () => {
+        const emoji = (g: string | undefined) =>
+          g !== undefined &&
+          /\p{Extended_Pictographic}/u.test(g) &&
+          [...g].length <= 4 &&
+          !/[a-zA-Z0-9]/.test(g);
+        for (const u of p.uniteler) {
+          expect(emoji(u.gorsel), `${u.id} simge`).toBe(true);
+          for (const d of u.dersler) {
+            expect(emoji(d.gorsel), `${d.id} simge`).toBe(true);
+            for (const a of d.alistirmalar) {
+              if ('gorsel' in a && a.gorsel !== undefined)
+                expect(emoji(a.gorsel), `${a.id} görsel`).toBe(true);
+            }
+          }
+        }
+      });
+
       it('her ünitede en az üç ders; her ders not ve 8–14 alıştırma, en az üç tür', () => {
         for (const u of p.uniteler) {
           expect(u.dersler.length, u.id).toBeGreaterThanOrEqual(3);
@@ -124,6 +142,19 @@ describe('müfredat', () => {
               break;
             }
           }
+        }
+      });
+
+      it('⚠️ açıklama şıkkı harf ya da sırayla anmaz (şıklar ekranda karışık)', () => {
+        // Harf: büyük harfe duyarlı ("I'd)" yakalanmasın). Sıra sözcükleri: duyarsız.
+        const harf = /(^|[\s("'])[A-E]\)|\b[A-E] (şıkkı|şık|seçene)/;
+        const sira =
+          /(ilk|ikinci|üçüncü|dördüncü|beşinci|birinci|son) (şık|seçenek)|\b(ilki|ikincisi|üçüncüsü|dördüncüsü|beşincisi|sonuncusu)\b/i;
+        for (const { a } of alistirmalar(p)) {
+          if (a.tur !== 'bosluk' && a.tur !== 'secmeli') continue;
+          if (a.secenekler.every((s) => /^[IVX]+$/.test(s))) continue;
+          const metin = a.aciklama.replace(/İ/g, 'i');
+          expect(harf.test(metin) || sira.test(metin), `${a.id}: ${a.aciklama}`).toBe(false);
         }
       });
 

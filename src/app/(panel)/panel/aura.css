@@ -354,3 +354,160 @@
     box-shadow: none;
   }
 }
+
+/* --------------------------------------------------------------------------
+   İNGİLİZCE (2026-11-06) — ders hareketleri. Yalnızca transform ve opacity;
+   "hareketi azalt" açıksa globals.css hepsini anında bitirir.
+   -------------------------------------------------------------------------- */
+@keyframes ing-salla {
+  0%,
+  100% {
+    transform: none;
+  }
+  20%,
+  60% {
+    transform: translateX(-7px);
+  }
+  40%,
+  80% {
+    transform: translateX(7px);
+  }
+}
+.ing-salla {
+  animation: ing-salla 0.42s ease-in-out;
+}
+@keyframes ing-zipla {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.04);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+.ing-zipla {
+  animation: ing-zipla 0.38s var(--ease-brand);
+}
+@keyframes ing-yuksel {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: none;
+  }
+}
+.ing-yuksel {
+  animation: ing-yuksel 0.28s var(--ease-brand);
+}
+@keyframes ing-belir {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.ing-belir {
+  animation: ing-belir 0.22s var(--ease-brand) both;
+}
+@keyframes ing-alev {
+  0%,
+  100% {
+    transform: scale(1) rotate(-3deg);
+  }
+  50% {
+    transform: scale(1.12) rotate(3deg);
+  }
+}
+.ing-alev {
+  transform-origin: 50% 90%;
+  animation: ing-alev 1.6s ease-in-out infinite;
+}
+@keyframes ing-suzul {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+.ing-suzul {
+  animation: ing-suzul 3s ease-in-out infinite;
+}
+/* Şu anki dersin halkası: dışa doğru yayılıp söner. */
+@keyframes ing-nabiz {
+  from {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  to {
+    transform: scale(1.45);
+    opacity: 0;
+  }
+}
+.ing-nabiz::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 9999px;
+  background: var(--accent);
+  animation: ing-nabiz 1.8s ease-out infinite;
+  z-index: -1;
+}
+/* Maskotun göz kırpması. */
+@keyframes ing-kirp {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  95% {
+    transform: scaleY(0.1);
+  }
+}
+.ing-goz {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: ing-kirp 4.5s infinite;
+}
+@keyframes ing-sevin {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0);
+  }
+  30% {
+    transform: translateY(-14px) rotate(-6deg);
+  }
+  60% {
+    transform: translateY(0) rotate(4deg);
+  }
+}
+.ing-sevin {
+  animation: ing-sevin 0.9s var(--ease-brand) 2;
+}
+/* Bitişte konfeti: her parça `--x`, `--d`, `--r` ile kendi yolunda düşer. */
+@keyframes ing-konfeti {
+  from {
+    transform: translate3d(0, -10vh, 0) rotate(0);
+    opacity: 1;
+  }
+  to {
+    transform: translate3d(var(--x), 105vh, 0) rotate(var(--r));
+    opacity: 0.9;
+  }
+}
+.ing-konfeti {
+  position: fixed;
+  top: 0;
+  width: 9px;
+  height: 14px;
+  border-radius: 2px;
+  pointer-events: none;
+  z-index: 70;
+  animation: ing-konfeti var(--d) cubic-bezier(0.2, 0.6, 0.4, 1) forwards;
+}

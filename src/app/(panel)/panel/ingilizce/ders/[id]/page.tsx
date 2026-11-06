@@ -34,6 +34,7 @@ export default async function DersPage({ params }: SayfaProps) {
           dersId={id}
           baslik="Tekrar"
           ust={tekrar.ad}
+          gorsel="🔁"
           not={null}
           alistirmalar={sorular}
           geriHref={`/panel/ingilizce?parkur=${tekrar.id}`}
@@ -54,6 +55,7 @@ export default async function DersPage({ params }: SayfaProps) {
       <DersOynatici
         dersId={konum.ders.id}
         baslik={konum.ders.baslik}
+        gorsel={konum.ders.gorsel}
         ust={`${konum.parkur.ad} · ${konum.unite.seviye} · ${konum.unite.baslik}`}
         not={konum.ders.not}
         alistirmalar={konum.ders.alistirmalar}
