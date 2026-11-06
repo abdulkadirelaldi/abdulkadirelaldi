@@ -38,6 +38,8 @@ test('her panel rotası hatasız açılır ve yatay taşmaz', async ({ page, bas
     `/panel/spor/egzersizler/${k.egzersiz}`,
     '/panel/haftalik',
     '/panel/aylik',
+    '/panel/ingilizce',
+    '/panel/ingilizce/ders/gunluk-u1-d1',
     '/panel/spor/program',
     `/panel/spor/program/${k.programGunu}`,
     '/panel/spor/gelisim',

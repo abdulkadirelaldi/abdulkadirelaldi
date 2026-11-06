@@ -6,6 +6,7 @@ import {
   CalendarDays,
   ChartColumn,
   Droplet,
+  Flame,
   Loader2,
   Sparkles,
   Trophy,
@@ -29,6 +30,7 @@ type Tercih = {
   rekor: boolean;
   haftalik: boolean;
   aylik: boolean;
+  ingilizce: boolean;
   suHedefMl: number;
   suSaatleri: number[];
   aliskanlikSaati: number;
@@ -167,8 +169,9 @@ export function BildirimAyarlari({
     }
   };
 
-  const degistir = (alan: 'borc' | 'aliskanlik' | 'su' | 'rekor' | 'haftalik' | 'aylik') =>
-    kaydet({ ...tercih, [alan]: !tercih[alan] });
+  const degistir = (
+    alan: 'borc' | 'aliskanlik' | 'su' | 'rekor' | 'haftalik' | 'aylik' | 'ingilizce',
+  ) => kaydet({ ...tercih, [alan]: !tercih[alan] });
 
   const suSaatiDegistir = (saat: number) => {
     const secili = tercih.suSaatleri.includes(saat);
@@ -303,6 +306,14 @@ export function BildirimAyarlari({
           aciklama="Her ayın 1'i 10:00 — önceki ayda ne harcadın, ne yaptın"
           acik={tercih.aylik}
           onClick={() => void degistir('aylik')}
+        />
+        <Anahtar
+          ikon={<Flame className="size-4" aria-hidden="true" />}
+          renk="from-amber-500 to-orange-600"
+          baslik="İngilizce serisi"
+          aciklama="20:00 — seri sürüyor ve bugün ders yapmadıysan"
+          acik={tercih.ingilizce}
+          onClick={() => void degistir('ingilizce')}
         />
       </section>
 

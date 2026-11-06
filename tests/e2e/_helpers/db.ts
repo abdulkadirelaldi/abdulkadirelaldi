@@ -262,6 +262,15 @@ export async function hizliSondaSil(onek: string): Promise<number> {
   return silinen;
 }
 
+/** İngilizce e2e'sinin ders kayıtlarını siler (yalnızca `sonra`dan beri o ders). */
+export async function ingilizceSondaSil(dersId: string, sonra: Date): Promise<number> {
+  const { silinen } = await runTask<{ silinen: number }>(
+    'ingilizceSondaSil',
+    JSON.stringify({ dersId, sonra: sonra.toISOString() }),
+  );
+  return silinen;
+}
+
 export interface RotaKimlikleri {
   saglik: string;
   oturum: string;

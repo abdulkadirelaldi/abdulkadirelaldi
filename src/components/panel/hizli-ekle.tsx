@@ -12,7 +12,7 @@ import {
   X,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { useOdakTuzagi } from '@/components/panel/odak-tuzagi';
@@ -43,6 +43,7 @@ type Gorunum = 'menu' | 'harcama' | 'kilo' | 'su' | 'uyku';
 
 export function HizliEkle() {
   const router = useRouter();
+  const pathname = usePathname();
   const [acik, setAcik] = useState(false);
   const [gorunum, setGorunum] = useState<Gorunum>('menu');
   const [basari, setBasari] = useState<string | null>(null);
@@ -124,6 +125,9 @@ export function HizliEkle() {
     // Geri alınabiliyorsa düğmeye dokunacak kadar açık kalır.
     kapanisZamani.current = window.setTimeout(kapat, geriAl ? 3500 : 1100);
   };
+
+  // Ders odak ekranı: düğme geri bildirim panelinin üstüne biniyordu.
+  if (pathname.startsWith('/panel/ingilizce/ders/')) return null;
 
   return (
     <>

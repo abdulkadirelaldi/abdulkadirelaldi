@@ -39,6 +39,7 @@ const tercihSchema = z.object({
   rekor: z.boolean(),
   haftalik: z.boolean(),
   aylik: z.boolean(),
+  ingilizce: z.boolean(),
   suHedefMl: z.number().int().min(500).max(10000),
   suSaatleri: z
     .array(z.number().int().min(0).max(23))
