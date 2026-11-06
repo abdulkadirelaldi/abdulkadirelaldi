@@ -1,6 +1,6 @@
 'use client';
 
-import { BookOpen, Flame, Loader2, Target, X, Zap } from 'lucide-react';
+import { Flame, Loader2, Target, X, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -19,12 +19,16 @@ import {
   YazSoru,
   type Cevap,
 } from './alistirmalar';
+import { Konfeti, Sayac } from './kutlama';
+import { Maskot } from './maskot';
 import { NotMetni } from './not-metni';
 
 interface Props {
   dersId: string;
   baslik: string;
   ust: string;
+  /** Dersin simgesi (emoji). */
+  gorsel: string;
   /** Tekrar dersinde yok. */
   not: string | null;
   alistirmalar: readonly Alistirma[];
@@ -55,6 +59,7 @@ export function DersOynatici({
   dersId,
   baslik,
   ust,
+  gorsel,
   not,
   alistirmalar,
   geriHref,
@@ -69,6 +74,8 @@ export function DersOynatici({
   const [bilinen, setBilinen] = useState<Set<string>>(() => new Set());
   const [hatalar, setHatalar] = useState<Set<string>>(() => new Set());
   const [ilkDogru, setIlkDogru] = useState<Set<string>>(() => new Set());
+  /** Üst üste doğru sayısı: 3 ve katlarında geri bildirimde kutlanır. */
+  const [ustUste, setUstUste] = useState(0);
   const [kayit, setKayit] = useState<
     { durum: 'bekliyor' } | { durum: 'tamam'; sonuc: DersSonucu } | { durum: 'hata'; mesaj: string }
   >({ durum: 'bekliyor' });
@@ -79,6 +86,7 @@ export function DersOynatici({
   const cevapla = (c: Cevap) => {
     if (!simdiki || geri) return;
     const id = simdiki.id;
+    setUstUste((n) => (c.dogru ? n + 1 : 0));
     if (c.dogru) {
       if (!hatalar.has(id)) setIlkDogru((s) => new Set(s).add(id));
       setBilinen((s) => new Set(s).add(id));
@@ -156,13 +164,17 @@ export function DersOynatici({
     return (
       <div className="mx-auto flex w-full max-w-xl flex-col gap-5">
         <div className="flex items-center gap-3">
-          <span className="bg-accent/15 text-accent flex size-11 items-center justify-center rounded-2xl">
-            <BookOpen className="size-5" aria-hidden="true" />
+          <span
+            className="bg-accent/12 ing-suzul flex size-16 shrink-0 items-center justify-center rounded-3xl text-4xl"
+            aria-hidden="true"
+          >
+            {gorsel}
           </span>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="ust-etiket">{ust}</p>
             <h1 className="text-primary text-xl font-semibold tracking-tight">{baslik}</h1>
           </div>
+          <Maskot boyut={52} className="shrink-0" />
         </div>
         <article className="rounded-card border-line bg-surface border p-5">
           <NotMetni metin={not} />
@@ -181,10 +193,16 @@ export function DersOynatici({
     const dogruluk = toplam === 0 ? 100 : Math.round((ilkDogru.size / toplam) * 100);
     return (
       <div className="mx-auto flex w-full max-w-xl flex-col items-center gap-5 pt-6 text-center">
-        <span className="text-5xl" aria-hidden="true">
-          {hatalar.size === 0 ? '🏆' : '🎉'}
-        </span>
+        {kayit.durum === 'tamam' && <Konfeti />}
+        <Maskot hal={kayit.durum === 'hata' ? 'uzgun' : 'kutlama'} boyut={104} />
         <h1 className="text-primary text-2xl font-semibold tracking-tight">Ders bitti!</h1>
+        {kayit.durum === 'tamam' && (
+          <p className="text-muted -mt-3 text-sm">
+            {hatalar.size === 0
+              ? 'Hatasız! Kusursuz bir ders 🏆'
+              : 'Yanlışların tekrar listene eklendi.'}
+          </p>
+        )}
         {kayit.durum === 'bekliyor' && (
           <Loader2 className="text-muted size-6 animate-spin" aria-label="Kaydediliyor" />
         )}
@@ -203,7 +221,7 @@ export function DersOynatici({
                 ikon={<Zap className="size-4" />}
                 renk="text-amber-500"
                 etiket="XP"
-                deger={`+${kayit.sonuc.xp}`}
+                deger={<Sayac hedef={kayit.sonuc.xp} onEk="+" />}
               />
               <Kutu
                 ikon={<Target className="size-4" />}
@@ -289,7 +307,11 @@ export function DersOynatici({
         )}
       </div>
 
-      <div data-alistirma={simdiki.id} className="contents">
+      <div
+        key={`kap-${anahtar}`}
+        data-alistirma={simdiki.id}
+        className={cn(geri && (geri.dogru ? 'ing-zipla' : 'ing-salla'))}
+      >
         {(simdiki.tur === 'bosluk' || simdiki.tur === 'secmeli') && (
           <SecmeliSoru key={anahtar} a={simdiki} {...ortak} />
         )}
@@ -305,7 +327,7 @@ export function DersOynatici({
         <div
           role="status"
           className={cn(
-            'fixed inset-x-0 bottom-0 z-[60] border-t px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]',
+            'ing-yuksel fixed inset-x-0 bottom-0 z-[60] border-t px-4 pt-4 pb-[calc(1rem+env(safe-area-inset-bottom))]',
             geri.dogru
               ? 'border-success/30 bg-[color-mix(in_oklab,var(--success)_14%,var(--bg-base))]'
               : 'border-danger/30 bg-[color-mix(in_oklab,var(--danger)_14%,var(--bg-base))]',
@@ -318,8 +340,14 @@ export function DersOynatici({
                 geri.dogru ? 'text-success' : 'text-danger',
               )}
             >
+              <Maskot hal={geri.dogru ? 'mutlu' : 'uzgun'} boyut={40} className="shrink-0" />
               <SonucIsareti dogru={geri.dogru} />
               {geri.dogru ? (geri.not ? 'Neredeyse kusursuz' : 'Harika!') : 'Doğru cevap:'}
+              {geri.dogru && ustUste >= 3 && (
+                <span className="ml-auto rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-semibold text-amber-500">
+                  🔥 {ustUste} üst üste
+                </span>
+              )}
             </p>
             {!geri.dogru && geri.dogruCevap && (
               <p className="text-primary whitespace-pre-line">{geri.dogruCevap}</p>
@@ -359,7 +387,7 @@ function Kutu({
   ikon: React.ReactNode;
   renk: string;
   etiket: string;
-  deger: string;
+  deger: React.ReactNode;
 }) {
   return (
     <div className="rounded-card border-line bg-surface flex flex-col items-center gap-1 border p-3">

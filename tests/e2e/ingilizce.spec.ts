@@ -72,7 +72,10 @@ test('ilk ders oynanır, XP kaydedilir', async ({ page, baseURL }) => {
 
   try {
     await page.goto('/panel/ingilizce');
-    await expect(page.getByRole('heading', { name: /1\. / }).first()).toBeVisible();
+    // Ders yolu: ilk ders açık; sırada değilse (önceden oynandıysa) yine bağlantı olarak görünür.
+    await expect(
+      page.getByRole('link', { name: new RegExp(kacis(dersBul(DERS)!.ders.baslik)) }),
+    ).toBeVisible();
     await page.goto(`/panel/ingilizce/ders/${DERS}`);
     await page.getByRole('button', { name: /Derse başla/ }).click();
 

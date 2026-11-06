@@ -21,6 +21,21 @@ describe('normallestir', () => {
     expect(normallestir('I live in Türkiye.')).toBe('i live in türkiye');
     expect(normallestir('a well-known café')).toBe('a well known café');
   });
+  it('0–999 rakamla da yazıyla da aynı; yıl olduğu gibi kalır', () => {
+    expect(normallestir('My sister is 17.')).toBe(normallestir('My sister is seventeen.'));
+    expect(normallestir('at 8:30')).toBe('at eight thirty');
+    expect(normallestir('It costs 105 dollars')).toBe('it costs one hundred five dollars');
+    expect(normallestir('in 2021')).toBe('in 2021');
+  });
+  it('konuşma tanıma rakam yazsa da geçer', () => {
+    expect(
+      konusmaKontrol(['I got home at 8 last night'], 'I got home at eight last night.').eksikler,
+    ).toEqual([]);
+  });
+  it('kipli kısaltmalar açılır', () => {
+    expect(normallestir("You should've told me")).toBe('you should have told me');
+    expect(normallestir("It could've been worse")).toBe('it could have been worse');
+  });
   it('iyelik eki korunur', () => {
     expect(normallestir("My brother's car")).toBe("my brother's car");
   });

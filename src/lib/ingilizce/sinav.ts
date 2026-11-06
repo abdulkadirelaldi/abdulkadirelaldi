@@ -8,12 +8,14 @@ import type { Parkur, Unite } from './tipler';
 
 const U1: Unite = {
   id: 'sinav-u1',
+  gorsel: '⏳',
   seviye: 'B1',
   baslik: 'Zamanlar ve Zaman İfadeleri',
   ozet: 'Sınavın en sık sorduğu zaman uyumlarını — since/for, by the time, zaman sırası — cümledeki ipuçlarından tanımayı öğrenirsin.',
   dersler: [
     {
       id: 'sinav-u1-d1',
+      gorsel: '🕰️',
       baslik: 'Present Perfect, Past Simple ve since/for',
       not: `**Present perfect** (have/has + V3) geçmişte başlayıp şimdiye uzanan ya da sonucu şimdi önemli olan eylemi anlatır. **Past simple** (V2) ise geçmişte bitmiş, zamanı belli eylemi anlatır.
 
@@ -121,6 +123,27 @@ Zaman ipuçları:
             'Scientists have been researching this disease for years.',
             'Scientists have researched this disease for years.',
             'Scientists have been investigating this disease for years.',
+            'Scientists have been studying this disease for many years.',
+            'Scientists have been studying this illness for many years.',
+            'Scientists have studied this disease for many years.',
+            'Scientists have studied this illness for many years.',
+            'Scientists have been researching this disease for many years.',
+            'Scientists have been researching this illness for years.',
+            'Scientists have been researching this illness for many years.',
+            'Scientists have researched this disease for many years.',
+            'Scientists have researched this illness for years.',
+            'Scientists have researched this illness for many years.',
+            'Scientists have been investigating this disease for many years.',
+            'Scientists have been investigating this illness for years.',
+            'Scientists have been investigating this illness for many years.',
+            'Scientists have investigated this disease for years.',
+            'Scientists have investigated this disease for many years.',
+            'Scientists have investigated this illness for years.',
+            'Scientists have investigated this illness for many years.',
+            'Scientists have been working on this disease for years.',
+            'Scientists have been working on this disease for many years.',
+            'Scientists have been working on this illness for years.',
+            'Scientists have been working on this illness for many years.',
           ],
           aciklama:
             "'yıllardır' süre bildirir: for years. Geçmişte başlayıp hâlâ süren eylem için present perfect continuous (have been studying) ya da present perfect kullanılır.",
@@ -152,12 +175,15 @@ Zaman ipuçları:
     },
     {
       id: 'sinav-u1-d2',
+      gorsel: '⏪',
       baslik: "Past Perfect ve 'by the time'",
       not: `**Past perfect** (had + V3), geçmişteki iki olaydan **daha önce** olanı gösterir: "-mişti".
 
 Zaman ipuçları:
 - by the time + past simple → ana cümle past perfect
-- before / after / when / until + past simple → önceki eylem past perfect
+- before / when / until + past simple → ana cümlede önce olan eylem past perfect
+- after + past perfect (önce olan eylem) → ana cümle past simple: After they had signed the deal, they left.
+- before ve after sırayı zaten belirttiği için past perfect yerine past simple da kullanılabilir; sınav ise sırayı past perfect ile gösteren şıkkı ister.
 - no sooner had … than / hardly had … when → "-ir -mez" (devrik yapı)
 - past perfect continuous (had been + V-ing): önceki eylemin ne kadar sürdüğünü vurgular
 
@@ -276,6 +302,26 @@ Zaman ipuçları:
             'By the time the meeting started, she had already left.',
             'He had already left when the meeting started.',
             'She had already left when the meeting started.',
+            'He had already left by the time the meeting started.',
+            'By the time the meeting started, he had already gone.',
+            'He had already gone when the meeting started.',
+            'He had already gone by the time the meeting started.',
+            'By the time the meeting began, he had already left.',
+            'He had already left when the meeting began.',
+            'He had already left by the time the meeting began.',
+            'By the time the meeting began, he had already gone.',
+            'He had already gone when the meeting began.',
+            'He had already gone by the time the meeting began.',
+            'She had already left by the time the meeting started.',
+            'By the time the meeting started, she had already gone.',
+            'She had already gone when the meeting started.',
+            'She had already gone by the time the meeting started.',
+            'By the time the meeting began, she had already left.',
+            'She had already left when the meeting began.',
+            'She had already left by the time the meeting began.',
+            'By the time the meeting began, she had already gone.',
+            'She had already gone when the meeting began.',
+            'She had already gone by the time the meeting began.',
           ],
           aciklama:
             "Gitme eylemi toplantının başlamasından önce olduğu için past perfect: 'had already left'. Türkçedeki 'o' cinsiyet belirtmez; he ya da she kabul edilir.",
@@ -314,6 +360,7 @@ Zaman ipuçları:
     },
     {
       id: 'sinav-u1-d3',
+      gorsel: '🔮',
       baslik: 'Gelecek Zamanlar ve Zaman Uyumu',
       not: `Gelecekte belli bir noktaya kadar **tamamlanmış** olacak eylem için **future perfect** (will have + V3), o anda **sürüyor** olacak eylem için **future continuous** (will be + V-ing) kullanılır.
 
@@ -321,7 +368,7 @@ Kurallar:
 - by + gelecek zaman (by 2050, by next year) → will have V3
 - by the time / when / before / until / as soon as / once + **present** (simple ya da perfect) → ana cümlede will / will have
 - this time tomorrow / at this time next year → will be V-ing
-- Zaman uyumu (sequence of tenses): ana fiil geçmişte ise (said, stated, claimed) yan cümle bir zaman geriye kayar: will → would, is → was, has done → had done.
+- Zaman uyumu (sequence of tenses): ana fiil geçmişte ise (said, stated, claimed) yan cümle bir zaman geriye kayar: will → would, is → was, has done → had done. (Aktarılan bilgi hâlâ geçerliyse kaydırma zorunlu değildir; ama 'the following year, the day before' gibi ifadeler kaydırmayı gerektirir.)
 
 Örnekler:
 - By 2050, the world population **will have reached** nearly ten billion. (2050'ye kadar dünya nüfusu neredeyse on milyara ulaşmış olacak.)
@@ -429,6 +476,8 @@ Kurallar:
             'As soon as the results are ready, we will let you know.',
             'As soon as the results are ready, we will tell you.',
             'As soon as the results are ready, we will notify you.',
+            'We will contact you as soon as the results are ready.',
+            'As soon as the results are ready, we will contact you.',
           ],
           aciklama:
             "'as soon as' bir zaman bağlacıdır; ardından gelecek anlamı olsa da present simple gelir: 'are ready' (will be ready değil).",
@@ -463,12 +512,14 @@ Kurallar:
 
 const U2: Unite = {
   id: 'sinav-u2',
+  gorsel: '⚖️',
   seviye: 'B1',
   baslik: 'Kipler (Modals)',
   ozet: "must, may, should ve perfect modal yapılarının (must have, can't have, needn't have) anlam farklarını sınav cümlelerinde ayırt edersin.",
   dersler: [
     {
       id: 'sinav-u2-d1',
+      gorsel: '🚦',
       baslik: 'Zorunluluk, Olasılık ve Tavsiye',
       not: `Kipler (modals) fiile zorunluluk, olasılık, yetenek ya da tavsiye anlamı katar; ardından fiilin yalın hâli gelir.
 
@@ -506,7 +557,7 @@ const U2: Unite = {
           secenekler: ['must', 'has to', 'might', 'should', 'would rather'],
           dogru: 2,
           aciklama:
-            "'Although the results look promising' ve 'warn' bir belirsizlik ve ihtimal bildirir: tedavi herkes için etkili olmayabilir (might not). 'must not' yasak ya da kesin çıkarım anlamı verir, uyarının temkinli tonuna uymaz. 'has to not' dil bilgisi olarak da kurulamaz.",
+            "'Although the results look promising' ve 'warn' bir belirsizlik ve ihtimal bildirir: tedavi herkes için etkili olmayabilir (might not). 'must not' yasak ya da kesin çıkarım anlamı verir, uyarının temkinli tonuna uymaz. 'has to' boşluktaki 'not' ile kurulamaz; olumsuzu 'does not have to' olur ve 'gerek yok' anlamı verir.",
         },
         {
           tur: 'bosluk',
@@ -539,7 +590,7 @@ const U2: Unite = {
           tur: 'eslestir',
           id: 'sinav-u2-d1-a6',
           ciftler: [
-            ['voluntary', 'isteğe bağlı'],
+            ['voluntary', 'gönüllü'],
             ['prohibit', 'yasaklamak'],
             ['alternative', 'seçenek'],
             ['promising', 'umut verici'],
@@ -566,6 +617,24 @@ const U2: Unite = {
             "You needn't fill in this form.",
             "You needn't fill out this form.",
             "You don't have to complete this form.",
+            "You don't have to fill this form in.",
+            "You don't have to fill this form out.",
+            "You don't need to complete this form.",
+            "You don't need to fill this form in.",
+            "You don't need to fill this form out.",
+            "You needn't complete this form.",
+            "You needn't fill this form in.",
+            "You needn't fill this form out.",
+            'You do not have to fill in this form.',
+            'You do not have to fill out this form.',
+            'You do not have to complete this form.',
+            'You do not have to fill this form in.',
+            'You do not have to fill this form out.',
+            'You do not need to fill in this form.',
+            'You do not need to fill out this form.',
+            'You do not need to complete this form.',
+            'You do not need to fill this form in.',
+            'You do not need to fill this form out.',
           ],
           aciklama:
             "'zorunda değilsiniz' gereksizlik bildirir: don't have to / don't need to / needn't. 'mustn't' yasak anlamı verirdi.",
@@ -599,6 +668,7 @@ const U2: Unite = {
     },
     {
       id: 'sinav-u2-d2',
+      gorsel: '🔍',
       baslik: "Perfect Modals: must have, can't have, should have, needn't have",
       not: `Perfect modal (modal + have + V3) **geçmişe** dair çıkarım, eleştiri ya da gerçekleşmemiş olasılık anlatır.
 
@@ -717,7 +787,11 @@ const U2: Unite = {
           tur: 'yaz',
           id: 'sinav-u2-d2-a8',
           kaynak: 'Daha dikkatli olmalıydın.',
-          cevaplar: ['You should have been more careful.', 'You ought to have been more careful.'],
+          cevaplar: [
+            'You should have been more careful.',
+            'You ought to have been more careful.',
+            "You should've been more careful.",
+          ],
           aciklama:
             "'-malıydın' geçmişte yapılması gereken ama yapılmayan bir şeyi anlatır: should have + V3 (been).",
         },
@@ -755,6 +829,7 @@ const U2: Unite = {
     },
     {
       id: 'sinav-u2-d3',
+      gorsel: '💬',
       baslik: 'Modal Benzeri Yapılar ve Diyalog Tamamlama',
       not: `Bazı kalıplar kip gibi davranır ve sınavda sık sorulur:
 
@@ -874,7 +949,7 @@ const U2: Unite = {
           cumle: 'We would rather invest in research than reduce the budget.',
           anlam: 'Bütçeyi kısmaktansa araştırmaya yatırım yapmayı tercih ederiz.',
           ipucu:
-            "'rather' RA-dhır: 'th' sesi için dil ucu dişlerin arasına gelir. 'research' ri-SÖÖRÇ: vurgu ikinci hecede.",
+            "'rather' RAA-dhır: 'th' sesi için dil ucu dişlerin arasına gelir. 'research' ri-SÖÖRÇ: İngiliz İngilizcesinde vurgu genellikle ikinci hecede (Rİİ-söörç da duyulur).",
         },
       ],
     },
@@ -883,12 +958,14 @@ const U2: Unite = {
 
 const U3: Unite = {
   id: 'sinav-u3',
+  gorsel: '🔄',
   seviye: 'B2',
   baslik: 'Edilgen Yapı, Ettirgen ve Koşul Cümleleri',
   ozet: 'Akademik metinlerin bel kemiği olan edilgen yapıyı, ettirgen kalıpları ve koşul/wish cümlelerini sınav hızında çözersin.',
   dersler: [
     {
       id: 'sinav-u3-d1',
+      gorsel: '🏗️',
       baslik: 'Edilgen Yapı (Passive Voice)',
       not: `Edilgen yapıda (passive) eylemi yapan değil, eylemden **etkilenen** özne olur: **be + V3**. Akademik İngilizcede çok yaygındır.
 
@@ -1039,6 +1116,7 @@ const U3: Unite = {
     },
     {
       id: 'sinav-u3-d2',
+      gorsel: '🛠️',
       baslik: 'Ettirgen Yapı (Causative) ve Aktarma Edilgeni',
       not: `**Ettirgen yapı (causative)** işi başkasına yaptırmayı anlatır.
 
@@ -1134,6 +1212,18 @@ const U3: Unite = {
             'I get my car inspected every year.',
             'I have my car serviced every year.',
             'I get my car serviced every year.',
+            'I have my car checked annually.',
+            'I have my car checked each year.',
+            'I have my car inspected annually.',
+            'I have my car inspected each year.',
+            'I have my car serviced annually.',
+            'I have my car serviced each year.',
+            'I get my car checked annually.',
+            'I get my car checked each year.',
+            'I get my car inspected annually.',
+            'I get my car inspected each year.',
+            'I get my car serviced annually.',
+            'I get my car serviced each year.',
           ],
           aciklama:
             "'kontrol ettiririm' işi başkasına yaptırmaktır: have/get + nesne + V3. Araba kontrol eden değil kontrol edilen şey olduğu için V3 (checked) gelir.",
@@ -1172,6 +1262,7 @@ const U3: Unite = {
     },
     {
       id: 'sinav-u3-d3',
+      gorsel: '💭',
       baslik: 'Koşul Cümleleri ve Wish',
       not: `Koşul cümleleri (conditionals) sınavın en sevdiği zaman uyumlarından biridir.
 
@@ -1234,7 +1325,7 @@ const U3: Unite = {
           ],
           dogru: 2,
           aciklama:
-            "Ana cümle 'would never have supported' Type 3'tür; if cümlesi past perfect ister ve devrik hâli 'Had they known' olur. 'If they knew' Type 2'dir, geçmişle uyuşmaz. 'Unless they had known' anlamı bozar: riskleri bilmeselerdi desteklemezlerdi.",
+            "Ana cümle 'would never have supported' Type 3'tür; if cümlesi past perfect ister ve devrik hâli 'Had they known' olur. 'If they knew' Type 2'dir, geçmişle uyuşmaz. 'Unless they had known' (= if they had not known) anlamı tersine çevirir: 'riskleri bilmeselerdi asla desteklemezlerdi' demiş olur. 'Should they know' ise geleceğe dönük gerçek koşuldur (Type 1).",
         },
         {
           tur: 'bosluk',
@@ -1296,7 +1387,7 @@ const U3: Unite = {
           cumle: 'If the data had been accurate, the conclusion would have been different.',
           anlam: 'Veriler doğru olsaydı sonuç farklı olurdu.',
           ipucu:
-            "'accurate' Ä-kyı-rıt: vurgu ilk hecede, son hece 'reyt' değil 'rıt'. 'conclusion' kın-KLUU-jın.",
+            "'accurate' EK-yı-rıt: vurgu ilk hecede, son hece 'reyt' değil 'rıt'. 'conclusion' kın-KLUU-jın.",
         },
       ],
     },
@@ -1305,12 +1396,14 @@ const U3: Unite = {
 
 const U4: Unite = {
   id: 'sinav-u4',
+  gorsel: '🧩',
   seviye: 'B2',
   baslik: 'Cümlecikler ve Fiilimsiler',
   ozet: 'Uzun akademik cümleleri çözmenin anahtarı olan sıfat ve isim cümleciklerini, kısaltılmış yapıları ve gerund/infinitive seçimini öğrenirsin.',
   dersler: [
     {
       id: 'sinav-u4-d1',
+      gorsel: '👉',
       baslik: 'Sıfat Cümlecikleri (Relative Clauses)',
       not: `Sıfat cümlecikleri (relative clauses) bir ismi tanımlar ve uzun akademik cümlelerin temel yapı taşıdır.
 
@@ -1407,6 +1500,34 @@ const U4: Unite = {
             'The writer whose book I read will speak today.',
             'The author whose book I have read will give a speech today.',
             'The author whose book I read is going to give a speech today.',
+            'The author whose book I read will make a speech today.',
+            'The author whose book I read is going to give a talk today.',
+            'The author whose book I read is going to speak today.',
+            'The author whose book I read is giving a talk today.',
+            'The author whose book I read is giving a speech today.',
+            'The author whose book I have read will give a talk today.',
+            'The author whose book I have read will speak today.',
+            'The author whose book I have read will make a speech today.',
+            'The author whose book I have read is going to give a speech today.',
+            'The author whose book I have read is going to give a talk today.',
+            'The author whose book I have read is going to speak today.',
+            'The author whose book I have read is giving a talk today.',
+            'The author whose book I have read is giving a speech today.',
+            'The writer whose book I read will make a speech today.',
+            'The writer whose book I read is going to give a speech today.',
+            'The writer whose book I read is going to give a talk today.',
+            'The writer whose book I read is going to speak today.',
+            'The writer whose book I read is giving a talk today.',
+            'The writer whose book I read is giving a speech today.',
+            'The writer whose book I have read will give a speech today.',
+            'The writer whose book I have read will give a talk today.',
+            'The writer whose book I have read will speak today.',
+            'The writer whose book I have read will make a speech today.',
+            'The writer whose book I have read is going to give a speech today.',
+            'The writer whose book I have read is going to give a talk today.',
+            'The writer whose book I have read is going to speak today.',
+            'The writer whose book I have read is giving a talk today.',
+            'The writer whose book I have read is giving a speech today.',
           ],
           aciklama:
             "'Kitabını okuduğum yazar' sahiplik bildirir: the author whose book I read. 'whose'dan sonra sahip olunan isim (book) gelir.",
@@ -1438,6 +1559,7 @@ const U4: Unite = {
     },
     {
       id: 'sinav-u4-d2',
+      gorsel: '✂️',
       baslik: 'Kısaltılmış Sıfat Cümlecikleri ve Participle Yapıları',
       not: `Sıfat cümlecikleri kısaltılabilir; bu, sınavdaki uzun cümlelerin en sık kullandığı yapıdır.
 
@@ -1569,6 +1691,7 @@ const U4: Unite = {
     },
     {
       id: 'sinav-u4-d3',
+      gorsel: '📦',
       baslik: 'İsim Cümlecikleri, Gerund ve Infinitive',
       not: `**İsim cümlecikleri (noun clauses)** bir cümlenin öznesi ya da nesnesi olabilir:
 - that + cümle: I think **that** the plan will work.
@@ -1661,6 +1784,7 @@ const U4: Unite = {
             "I'm looking forward to working with you.",
             'I look forward to working with you.',
             'I am really looking forward to working with you.',
+            'I really look forward to working with you.',
           ],
           aciklama:
             "'look forward to' kalıbındaki 'to' edattır; ardından V-ing gelir: working (work değil).",
@@ -1695,12 +1819,14 @@ const U4: Unite = {
 
 const U5: Unite = {
   id: 'sinav-u5',
+  gorsel: '🔗',
   seviye: 'B2',
   baslik: 'Bağlaçlar ve Geçiş İfadeleri',
   ozet: 'Cloze test ve cümle tamamlamanın çekirdeği olan zıtlık, sebep-sonuç, amaç, koşul ve ekleme bağlaçlarını yapılarıyla birlikte ayırt edersin.',
   dersler: [
     {
       id: 'sinav-u5-d1',
+      gorsel: '↔️',
       baslik: 'Zıtlık: although, despite, whereas, however',
       not: `Zıtlık bağlaçları cloze test ve cümle tamamlama sorularının en sık konusudur. Önce **yapıya**, sonra **anlama** bak.
 
@@ -1797,6 +1923,30 @@ const U5: Unite = {
             'In spite of the rain, the game was played.',
             'The game was played despite the rain.',
             'The game was played in spite of the rain.',
+            'Although it rained, the match was played.',
+            'The match was played although it rained.',
+            'Although it was raining, the match was played.',
+            'The match was played although it was raining.',
+            'Even though it rained, the match was played.',
+            'The match was played even though it rained.',
+            'Even though it was raining, the match was played.',
+            'The match was played even though it was raining.',
+            'Though it rained, the match was played.',
+            'The match was played though it rained.',
+            'Though it was raining, the match was played.',
+            'The match was played though it was raining.',
+            'Although it rained, the game was played.',
+            'The game was played although it rained.',
+            'Although it was raining, the game was played.',
+            'The game was played although it was raining.',
+            'Even though it rained, the game was played.',
+            'The game was played even though it rained.',
+            'Even though it was raining, the game was played.',
+            'The game was played even though it was raining.',
+            'Though it rained, the game was played.',
+            'The game was played though it rained.',
+            'Though it was raining, the game was played.',
+            'The game was played though it was raining.',
           ],
           aciklama:
             "'Yağmura rağmen' bir isim öbeğidir; isimle 'despite' ya da 'in spite of' kullanılır. 'oynandı' edilgendir: was played.",
@@ -1828,6 +1978,7 @@ const U5: Unite = {
     },
     {
       id: 'sinav-u5-d2',
+      gorsel: '🎯',
       baslik: 'Sebep, Sonuç ve Amaç',
       not: `Sebep, sonuç ve amaç ilişkileri sınavda hem yapı hem anlam olarak sorulur.
 
@@ -1926,6 +2077,26 @@ const U5: Unite = {
             'He studied a lot to pass the exam.',
             'She worked hard to pass the exam.',
             'He worked hard to pass the exam.',
+            'She studied hard so as to pass the exam.',
+            'She studied very hard in order to pass the exam.',
+            'She studied very hard so as to pass the exam.',
+            'She studied a lot in order to pass the exam.',
+            'She studied a lot so as to pass the exam.',
+            'She worked hard in order to pass the exam.',
+            'She worked hard so as to pass the exam.',
+            'She worked very hard to pass the exam.',
+            'She worked very hard in order to pass the exam.',
+            'She worked very hard so as to pass the exam.',
+            'He studied hard so as to pass the exam.',
+            'He studied very hard in order to pass the exam.',
+            'He studied very hard so as to pass the exam.',
+            'He studied a lot in order to pass the exam.',
+            'He studied a lot so as to pass the exam.',
+            'He worked hard in order to pass the exam.',
+            'He worked hard so as to pass the exam.',
+            'He worked very hard to pass the exam.',
+            'He worked very hard in order to pass the exam.',
+            'He worked very hard so as to pass the exam.',
           ],
           aciklama:
             "'-mek için' amaç bildirir: to V1 ya da in order to V1. 'çok çalışmak' için en doğal karşılık 'study hard'dır.",
@@ -1954,6 +2125,7 @@ const U5: Unite = {
     },
     {
       id: 'sinav-u5-d3',
+      gorsel: '➕',
       baslik: 'Koşul, Ekleme ve Zaman Bağlaçları',
       not: `Bu derste koşul, ekleme ve zaman bağlaçlarını tamamlıyoruz.
 
@@ -1963,7 +2135,7 @@ const U5: Unite = {
 
 Örnekler:
 - **Unless** we act now, it will be too late. (Şimdi harekete geçmezsek çok geç olacak.)
-- You can borrow the book **as long as** you return it on Friday. (Cuma günü geri getirmen şartıyla kitabı ödünç alabilirsin.)
+- You can borrow the book **as long as** you return it on Friday. (cuma günü geri getirmen şartıyla kitabı ödünç alabilirsin.)
 - Take a jacket **in case** it gets cold. (Hava soğur ihtimaline karşı bir ceket al.)
 - The device is cheap. **Moreover**, it is easy to use. (Cihaz ucuz. Üstelik kullanımı kolay.)
 - **Once** the form is approved, you will receive an email. (Form onaylanınca bir e-posta alacaksın.)
@@ -2011,11 +2183,11 @@ const U5: Unite = {
         {
           tur: 'bosluk',
           id: 'sinav-u5-d3-a5',
-          soru: '___ the new system is installed, employees will be able to access their files from any location.',
+          soru: '___ the new system is installed, employees will finally be able to access their files from any location.',
           secenekler: ['Until', 'Unless', 'Whereas', 'Although', 'Once'],
           dogru: 4,
           aciklama:
-            "Dosyalara her yerden erişim, sistemin kurulmasından sonra mümkün olacak: Once (-ince, -dikten sonra). 'Until' anlamı tersine çevirir: sistem kurulana kadar erişebilecekler. 'Unless' de sistemin kurulmamasını koşul yapar.",
+            "Dosyalara her yerden erişim, sistemin kurulmasından sonra mümkün olacak: Once (-ince, -dikten sonra). 'Until' anlamı tersine çevirir: sistem kurulana kadar erişebilecekler; 'finally' (sonunda) ise erişimin ancak sistem kurulunca başlayacağını gösterir. 'Unless' de sistemin kurulmamasını koşul yapar.",
         },
         {
           tur: 'eslestir',
@@ -2049,6 +2221,46 @@ const U5: Unite = {
             'We can work outdoors as long as the weather is good.',
             'We can work outdoors as long as the weather is nice.',
             'We can work outside provided that the weather is good.',
+            'As long as the weather is fine, we can work outside.',
+            'Provided that the weather is good, we can work outside.',
+            'We can work outside provided that the weather is nice.',
+            'Provided that the weather is nice, we can work outside.',
+            'We can work outside provided that the weather is fine.',
+            'Provided that the weather is fine, we can work outside.',
+            'We can work outside providing that the weather is good.',
+            'Providing that the weather is good, we can work outside.',
+            'We can work outside providing that the weather is nice.',
+            'Providing that the weather is nice, we can work outside.',
+            'We can work outside providing that the weather is fine.',
+            'Providing that the weather is fine, we can work outside.',
+            'We can work outside so long as the weather is good.',
+            'So long as the weather is good, we can work outside.',
+            'We can work outside so long as the weather is nice.',
+            'So long as the weather is nice, we can work outside.',
+            'We can work outside so long as the weather is fine.',
+            'So long as the weather is fine, we can work outside.',
+            'As long as the weather is good, we can work outdoors.',
+            'As long as the weather is nice, we can work outdoors.',
+            'We can work outdoors as long as the weather is fine.',
+            'As long as the weather is fine, we can work outdoors.',
+            'We can work outdoors provided that the weather is good.',
+            'Provided that the weather is good, we can work outdoors.',
+            'We can work outdoors provided that the weather is nice.',
+            'Provided that the weather is nice, we can work outdoors.',
+            'We can work outdoors provided that the weather is fine.',
+            'Provided that the weather is fine, we can work outdoors.',
+            'We can work outdoors providing that the weather is good.',
+            'Providing that the weather is good, we can work outdoors.',
+            'We can work outdoors providing that the weather is nice.',
+            'Providing that the weather is nice, we can work outdoors.',
+            'We can work outdoors providing that the weather is fine.',
+            'Providing that the weather is fine, we can work outdoors.',
+            'We can work outdoors so long as the weather is good.',
+            'So long as the weather is good, we can work outdoors.',
+            'We can work outdoors so long as the weather is nice.',
+            'So long as the weather is nice, we can work outdoors.',
+            'We can work outdoors so long as the weather is fine.',
+            'So long as the weather is fine, we can work outdoors.',
           ],
           aciklama:
             "'olduğu sürece' bir şart bildirir: as long as. Zaman ve koşul bağlaçlarından sonra present simple gelir: the weather is good.",
@@ -2079,12 +2291,14 @@ const U5: Unite = {
 
 const U6: Unite = {
   id: 'sinav-u6',
+  gorsel: '📚',
   seviye: 'C1',
   baslik: 'Akademik Kelime Bilgisi',
   ozet: "YDS ve YÖKDİL'de en sık çıkan akademik fiilleri, phrasal verb'leri, sıfat-zarfları ve edat kalıplarını bağlam içinde öğrenirsin.",
   dersler: [
     {
       id: 'sinav-u6-d1',
+      gorsel: '🔬',
       baslik: 'Sık Çıkan Akademik Fiiller',
       not: `YDS ve YÖKDİL kelime sorularının büyük bölümü akademik fiillerden gelir. Bu fiilleri **olumlu/olumsuz yükü** ve **nesne alıp almadığıyla** birlikte öğren.
 
@@ -2160,7 +2374,7 @@ const U6: Unite = {
             ['alleviate', 'hafifletmek'],
             ['impede', 'engellemek'],
             ['enhance', 'geliştirmek'],
-            ['comprise', 'kapsamak'],
+            ['comprise', '-den oluşmak'],
           ],
         },
         {
@@ -2186,6 +2400,19 @@ const U6: Unite = {
             'Air pollution can aggravate asthma symptoms.',
             'Air pollution can make asthma symptoms worse.',
             'Air pollution may make asthma symptoms worse.',
+            'Air pollution can aggravate the symptoms of asthma.',
+            'Air pollution may aggravate asthma symptoms.',
+            'Air pollution may aggravate the symptoms of asthma.',
+            'Air pollution could exacerbate asthma symptoms.',
+            'Air pollution could exacerbate the symptoms of asthma.',
+            'Air pollution could worsen asthma symptoms.',
+            'Air pollution could worsen the symptoms of asthma.',
+            'Air pollution could aggravate asthma symptoms.',
+            'Air pollution could aggravate the symptoms of asthma.',
+            'Air pollution can make the symptoms of asthma worse.',
+            'Air pollution may make the symptoms of asthma worse.',
+            'Air pollution could make asthma symptoms worse.',
+            'Air pollution could make the symptoms of asthma worse.',
           ],
           aciklama:
             "'kötüleştirmek' nesne alan bir fiildir: exacerbate ya da worsen. 'deteriorate' nesne almadığı için burada kullanılamaz.",
@@ -2217,6 +2444,7 @@ const U6: Unite = {
     },
     {
       id: 'sinav-u6-d2',
+      gorsel: '🧲',
       baslik: "Phrasal Verb'ler ve Kalıplaşmış Fiiller",
       not: `Phrasal verb'ler ve kalıplaşmış fiiller akademik metinlerde sık geçer; edatı değişince anlam tamamen değişir.
 
@@ -2314,6 +2542,10 @@ const U6: Unite = {
             'The government has proposed a new plan.',
             'The government came up with a new plan.',
             'The government has come up with a new plan.',
+            'The government suggested a new plan.',
+            'The government has suggested a new plan.',
+            'The government put forth a new plan.',
+            'The government has put forth a new plan.',
           ],
           aciklama:
             "'öne sürmek' için akademik kalıp 'put forward'dır; 'propose' da aynı anlamı verir.",
@@ -2345,6 +2577,7 @@ const U6: Unite = {
     },
     {
       id: 'sinav-u6-d3',
+      gorsel: '📐',
       baslik: 'Sıfat, Zarf ve Edat Kalıpları',
       not: `Akademik metinlerde bazı sıfat, zarf ve edat kalıpları bütün hâlinde ezberlenmelidir.
 
@@ -2420,7 +2653,7 @@ const U6: Unite = {
           tur: 'eslestir',
           id: 'sinav-u6-d3-a6',
           ciftler: [
-            ['prone to', 'yatkın'],
+            ['prone to', '-e yatkın'],
             ['contrary to', '-in aksine'],
             ['regardless of', '-e bakılmaksızın'],
             ['consistent with', 'ile tutarlı'],
@@ -2448,6 +2681,22 @@ const U6: Unite = {
             'These findings are consistent with previous research.',
             'These results are in line with previous studies.',
             'These findings are in line with previous studies.',
+            'These results are consistent with earlier research.',
+            'These results are consistent with prior studies.',
+            'These results are consistent with prior research.',
+            'These results are in line with earlier studies.',
+            'These results are in line with previous research.',
+            'These results are in line with earlier research.',
+            'These results are in line with prior studies.',
+            'These results are in line with prior research.',
+            'These findings are consistent with earlier research.',
+            'These findings are consistent with prior studies.',
+            'These findings are consistent with prior research.',
+            'These findings are in line with earlier studies.',
+            'These findings are in line with previous research.',
+            'These findings are in line with earlier research.',
+            'These findings are in line with prior studies.',
+            'These findings are in line with prior research.',
           ],
           aciklama: "'ile tutarlı' kalıbı 'consistent with'tir; edat 'with' olmalıdır.",
         },
@@ -2481,12 +2730,14 @@ const U6: Unite = {
 
 const U7: Unite = {
   id: 'sinav-u7',
+  gorsel: '📝',
   seviye: 'C1',
   baslik: 'Soru Tipleri ve Sınav Stratejisi',
   ozet: 'Cümle tamamlama, çeviri, yakın anlam, diyalog, paragraf tamamlama, anlamı bozan cümle ve okuma sorularını adım adım stratejiyle çözersin.',
   dersler: [
     {
       id: 'sinav-u7-d1',
+      gorsel: '✍️',
       baslik: 'Cümle Tamamlama',
       not: `**Cümle tamamlama** sorularında verilen yarım cümleyi şıklardan biriyle tamamlarsın. Adım adım ilerle:
 
@@ -2611,6 +2862,25 @@ const U7: Unite = {
             'This method is very effective despite being expensive.',
             'Although it is expensive, this method is highly effective.',
             'Although this method is expensive, it is highly effective.',
+            'Though this method is expensive, it is very effective.',
+            'This method is very effective though it is expensive.',
+            'Despite its high cost, this method is very effective.',
+            'In spite of being expensive, this method is very effective.',
+            'This method is very effective in spite of being expensive.',
+            'In spite of its high cost, this method is very effective.',
+            'This method is highly effective although it is expensive.',
+            'Even though it is expensive, this method is highly effective.',
+            'Even though this method is expensive, it is highly effective.',
+            'This method is highly effective even though it is expensive.',
+            'Though it is expensive, this method is highly effective.',
+            'Though this method is expensive, it is highly effective.',
+            'This method is highly effective though it is expensive.',
+            'Despite being expensive, this method is highly effective.',
+            'This method is highly effective despite being expensive.',
+            'Despite its high cost, this method is highly effective.',
+            'In spite of being expensive, this method is highly effective.',
+            'This method is highly effective in spite of being expensive.',
+            'In spite of its high cost, this method is highly effective.',
           ],
           aciklama:
             "'-masına rağmen' tam cümleyle although / even though, V-ing ile despite olarak çevrilir: 'Despite being expensive'.",
@@ -2642,6 +2912,7 @@ const U7: Unite = {
     },
     {
       id: 'sinav-u7-d2',
+      gorsel: '🌐',
       baslik: 'Çeviri Soruları (İngilizce ↔ Türkçe)',
       not: `**Çeviri soruları** sınavda hem İngilizceden Türkçeye hem Türkçeden İngilizceye sorulur. Doğru şık, anlamı **eksiksiz ve fazlasız** aktaran şıktır; en güzel Türkçe olan değil.
 
@@ -2769,6 +3040,8 @@ Kalıplar:
             'Very few students gave the correct answer to the question.',
             'Few students got the question right.',
             'Very few students got the question right.',
+            'Very few students gave the right answer to the question.',
+            'Few students gave the right answer to the question.',
           ],
           aciklama:
             "'Çok az' olumsuz vurgu taşır: few ya da very few. 'A few students' (birkaç öğrenci) bu vurguyu kaybeder.",
@@ -2800,6 +3073,7 @@ Kalıplar:
     },
     {
       id: 'sinav-u7-d3',
+      gorsel: '🪞',
       baslik: 'Yakın Anlam ve Diyalog Tamamlama',
       not: `**Yakın anlam (restatement)** sorularında verilen cümleye anlamca en yakın şıkkı seçersin. Şıklar genellikle aynı kelimeleri farklı bir anlamla kullanır; kelime benzerliğine değil anlama bak.
 
@@ -2825,7 +3099,7 @@ Kontrol listesi:
           soru: 'The new model is not as energy-efficient as the previous one.\n\nCümleye anlamca en yakın cümle hangisidir?',
           secenekler: [
             'The new model is far more energy-efficient than the previous one.',
-            'The previous model was more energy-efficient than the new one.',
+            'The previous model is more energy-efficient than the new one.',
             'Both models are equally energy-efficient.',
             'The new model uses energy as efficiently as the previous one did.',
             'The new model was designed to save more energy than the previous one.',
@@ -2928,6 +3202,16 @@ Kontrol listesi:
             'The new model is not so expensive as the old one.',
             'The new model is cheaper than the old one.',
             'The new model is less expensive than the old one.',
+            'The new model is not as expensive as the previous model.',
+            'The new model is not so expensive as the previous one.',
+            'The new model is not so expensive as the old model.',
+            'The new model is not so expensive as the previous model.',
+            'The new model is cheaper than the previous one.',
+            'The new model is cheaper than the old model.',
+            'The new model is cheaper than the previous model.',
+            'The new model is less expensive than the previous one.',
+            'The new model is less expensive than the old model.',
+            'The new model is less expensive than the previous model.',
           ],
           aciklama:
             "'… kadar … değil' eşitliğin olumsuzudur: not as + sıfat + as. Aynı anlam 'cheaper than' ya da 'less expensive than' ile de verilebilir.",
@@ -2958,6 +3242,7 @@ Kontrol listesi:
     },
     {
       id: 'sinav-u7-d4',
+      gorsel: '📖',
       baslik: 'Paragraf Tamamlama, Anlamı Bozan Cümle ve Okuma',
       not: `Bu son derste paragraf tabanlı üç soru tipini çalışıyoruz.
 
@@ -3078,6 +3363,21 @@ Kontrol listesi:
             'This effect is not only uncomfortable but dangerous as well.',
             'This effect is not only uncomfortable, but it is also dangerous.',
             'Not only is this effect uncomfortable, but it is also dangerous.',
+            'This effect is not only disturbing, but it is also dangerous.',
+            'This effect is not only disturbing but dangerous as well.',
+            'This effect is not just uncomfortable, but it is also dangerous.',
+            'This effect is not just uncomfortable but dangerous as well.',
+            'This effect is not just disturbing but also dangerous.',
+            'This effect is not just disturbing, but it is also dangerous.',
+            'This effect is not just disturbing but dangerous as well.',
+            'This effect is not merely uncomfortable, but it is also dangerous.',
+            'This effect is not merely uncomfortable but dangerous as well.',
+            'This effect is not merely disturbing but also dangerous.',
+            'This effect is not merely disturbing, but it is also dangerous.',
+            'This effect is not merely disturbing but dangerous as well.',
+            'Not only is this effect uncomfortable but also dangerous.',
+            'Not only is this effect disturbing, but it is also dangerous.',
+            'Not only is this effect disturbing but also dangerous.',
           ],
           aciklama: "'yalnızca … değil, aynı zamanda …' kalıbı 'not only … but also' ile verilir.",
         },

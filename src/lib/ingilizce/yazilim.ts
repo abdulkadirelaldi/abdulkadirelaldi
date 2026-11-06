@@ -32,12 +32,14 @@ export const YAZILIM: Parkur = {
     {
       id: 'yazilim-u1',
       seviye: 'A2',
+      gorsel: '💻',
       baslik: 'Programlamanın temelleri',
       ozet: 'Değişken, fonksiyon, döngü gibi temel terimler ve derleme-çalıştırma dili.',
       dersler: [
         {
           id: 'yazilim-u1-d1',
           baslik: 'Kodun yapı taşları',
+          gorsel: '🧱',
           not: `Yazılım terimlerinin çoğu Türkçede de İngilizce haliyle kullanılır; ama İngilizce cümle içinde doğru fiil ve doğru tekil/çoğul ile kullanmak gerekir.
 
 **Temel terimler**
@@ -55,7 +57,7 @@ export const YAZILIM: Parkur = {
 - The array contains five strings. — Dizi beş metin içerir.
 - The function takes two integers. — Fonksiyon iki tam sayı alır.
 
-**Sık yapılan hata:** "I wrote a code" ❌. İngilizcede "code" sayılamaz: "I wrote some code", "a piece of code", "this code" ✅. Aynı şekilde "informations" ❌ değil "information" ✅, "softwares" ❌ değil "software" ✅.`,
+**Sık yapılan hata:** "I wrote a code" ❌. İngilizcede "code" sayılamaz: "I wrote some code", "a piece of code", "this code" ✅. Aynı şekilde "informations" ❌ yerine "information" ✅, "softwares" ❌ yerine "software" ✅.`,
           alistirmalar: [
             {
               tur: 'eslestir',
@@ -142,6 +144,10 @@ export const YAZILIM: Parkur = {
                 'This loop executes 10 times.',
                 'This loop iterates ten times.',
                 'This loop iterates 10 times.',
+                'This loop repeats ten times.',
+                'This loop repeats 10 times.',
+                'This loop is executed ten times.',
+                'This loop is executed 10 times.',
               ],
             },
             {
@@ -179,7 +185,8 @@ for (const item of items) {
         {
           id: 'yazilim-u1-d2',
           baslik: 'Fonksiyonlar: parametre, argüman, dönüş değeri',
-          not: `Fonksiyonlardan söz ederken en çok karıştırılan iki terim **parameter** ve **argument**tır.
+          gorsel: '⚙️',
+          not: `Fonksiyonlardan söz ederken en çok karıştırılan iki terim **parameter** ve **argument**’tır.
 
 - **parameter**: fonksiyon TANIMINDAKİ isim. function add(a, b) içindeki a ve b.
 - **argument**: fonksiyon ÇAĞRILIRKEN verilen gerçek değer. add(2, 3) içindeki 2 ve 3.
@@ -264,7 +271,7 @@ for (const item of items) {
               cumle: 'This function takes two parameters and returns a string.',
               anlam: 'Bu fonksiyon iki parametre alır ve bir metin döndürür.',
               ipucu:
-                'parameter: /pəˈræmɪtər/ "pı-RA-mı-tır"; vurgu ikinci hecede. Türkçedeki gibi "pa-ra-met-re" demeyin.',
+                'parameter: /pəˈræmɪtər/ "pı-RE-mı-tır"; vurgu ikinci hecede, oradaki ses "a" ile "e" arası açık bir sestir. Türkçedeki gibi "pa-ra-met-re" demeyin.',
             },
             {
               tur: 'yaz',
@@ -275,6 +282,8 @@ for (const item of items) {
                 'The function accepts two parameters.',
                 'The function has two parameters.',
                 'The function takes 2 parameters.',
+                'The function accepts 2 parameters.',
+                'It takes two parameters.',
               ],
             },
             {
@@ -311,10 +320,11 @@ const result = area(4, 5);`,
         {
           id: 'yazilim-u1-d3',
           baslik: 'Derlemek, çalıştırmak, kurmak',
+          gorsel: '🛠️',
           not: `Kodu yazdıktan sonraki adımların İngilizcesi:
 
 - **compile**: derlemek; **compiler**: derleyici
-- **build**: projeyi derleyip çalışır hale getirmek; isim olarak "derleme çıktısı" (the build failed)
+- **build**: projeyi derleyip çalışır hale getirmek; isim olarak derleme işlemi ya da çıktısı ("the build failed": derleme başarısız oldu)
 - **run / execute**: çalıştırmak
 - **install**: kurmak; **dependency**: bağımlılık (projenin ihtiyaç duyduğu paket)
 - **source code**: kaynak kod; **executable**: çalıştırılabilir dosya
@@ -363,10 +373,10 @@ const result = area(4, 5);`,
               tur: 'bosluk',
               id: 'yazilim-u1-d3-a4',
               soru: "The program ___, but it doesn't work correctly: the output is wrong.",
-              secenekler: ['runs', 'works', 'installs'],
+              secenekler: ['runs', 'works', 'run'],
               dogru: 0,
               aciklama:
-                'Program başlıyor ama yanlış sonuç veriyor: başlamak "run", doğru çalışmak "work". "It works, but it doesn’t work" çelişkili olurdu.',
+                'Program başlıyor ama yanlış sonuç veriyor: başlamak "run", doğru çalışmak "work". "It works, but it doesn’t work" çelişkili olurdu; "The program run" ise tekil öznede -s eki eksik olduğu için yanlıştır.',
             },
             {
               tur: 'secmeli',
@@ -414,6 +424,8 @@ const result = area(4, 5);`,
                 'Compile the project, then run the tests.',
                 'Build the project and execute the tests.',
                 'Compile the project and execute the tests.',
+                'Build the project and then run the tests.',
+                'Compile the project and then run the tests.',
               ],
             },
             {
@@ -448,7 +460,7 @@ make: *** [sensor] Error 1`,
               ],
               dogru: 2,
               aciklama:
-                '"undeclared" = tanımlanmamış (bildirilmemiş): temp değişkeni kullanılmadan önce tanımlanmamış. Hata derleme sırasında çıktı, yani program hiç çalıştırılmadı.',
+                '"undeclared" = bildirilmemiş (declare edilmemiş): temp değişkeni kullanılmadan önce bildirilmemiş. Hata derleme sırasında çıktı ve derleme durdu; program hiç oluşmadı, dolayısıyla çalıştırılmadı.',
             },
           ],
         },
@@ -458,12 +470,14 @@ make: *** [sensor] Error 1`,
     {
       id: 'yazilim-u2',
       seviye: 'A2',
+      gorsel: '🗣️',
       baslik: 'Kodu sesli okumak ve anlatmak',
       ozet: 'Sembolleri sesli okumak, kodun ne yaptığını geniş zaman ve edilgen yapıyla anlatmak.',
       dersler: [
         {
           id: 'yazilim-u2-d1',
           baslik: 'Sembolleri sesli okumak',
+          gorsel: '🔣',
           not: `Kod incelemesinde ya da ekran paylaşımında kodu sesli okumanız gerekir. En sık semboller:
 
 - ( ) **parentheses** (tekili parenthesis), kısaca "parens"
@@ -479,7 +493,7 @@ make: *** [sensor] Error 1`,
 - user.name → "user dot name"
 - MAX_SPEED → "max underscore speed"
 - index.html → "index dot html"
-- items[0] → "items, index zero" ya da "the first element of items"
+- items[0] → "items at index zero" ya da "the first element of items"
 
 **Sık yapılan hata:** Türkçede hepsine "parantez" deriz; İngilizcede ( ) parentheses, [ ] brackets, { } braces ayrı kelimelerdir. Dosya adında "point" ❌ değil "dot" ✅ denir.`,
           alistirmalar: [
@@ -577,6 +591,9 @@ make: *** [sensor] Error 1`,
                 "The variable's name contains an underscore.",
                 "The variable's name has an underscore.",
                 'There is an underscore in the variable name.',
+                'There is an underscore in the name of the variable.',
+                "There is an underscore in the variable's name.",
+                'The name of the variable includes an underscore.',
               ],
             },
             {
@@ -598,6 +615,7 @@ make: *** [sensor] Error 1`,
         {
           id: 'yazilim-u2-d2',
           baslik: 'Kodun ne yaptığını anlatmak',
+          gorsel: '📝',
           not: `Kodun genel davranışını anlatırken **geniş zaman (present simple)** kullanılır: kod her çalıştığında aynı şeyi yapar. Özne tekilse fiile **-s** gelir.
 
 **Sık fiiller**
@@ -698,6 +716,7 @@ make: *** [sensor] Error 1`,
                 'The function reads the temperature and prints it on the screen.',
                 'The function reads the temperature and displays it.',
                 'The function reads the temperature and displays it on the screen.',
+                'The function reads the temperature and prints it out.',
               ],
             },
             {
@@ -709,6 +728,9 @@ make: *** [sensor] Error 1`,
                 'The function returns null if the list is empty.',
                 'If the list is empty, it returns null.',
                 'It returns null if the list is empty.',
+                'If the list is empty, the function will return null.',
+                'The function returns null when the list is empty.',
+                'When the list is empty, the function returns null.',
               ],
             },
             {
@@ -733,6 +755,7 @@ make: *** [sensor] Error 1`,
         {
           id: 'yazilim-u2-d3',
           baslik: 'Edilgen yapı: değer nerede saklanıyor?',
+          gorsel: '📦',
           not: `Teknik metinlerde işi KİMİN yaptığı önemli değilse **edilgen yapı (passive)** kullanılır: **is/are + fiilin üçüncü hali (V3)**.
 
 - **is stored**: saklanır; **is called**: çağrılır
@@ -831,6 +854,7 @@ make: *** [sensor] Error 1`,
                 'The result is saved in a variable.',
                 'The result is kept in a variable.',
                 'The result gets stored in a variable.',
+                'The result is held in a variable.',
               ],
             },
             {
@@ -869,12 +893,14 @@ Registers a callback. The callback is called once for every packet that is recei
     {
       id: 'yazilim-u3',
       seviye: 'B1',
+      gorsel: '🐞',
       baslik: 'Hatalar ve hata ayıklama',
       ozet: 'Hata mesajlarını okumak, stack trace’i yorumlamak, kök nedeni ve geçici çözümü anlatmak.',
       dersler: [
         {
           id: 'yazilim-u3-d1',
           baslik: 'Hata mesajlarını okumak',
+          gorsel: '🚨',
           not: `Hata mesajları kısa ve kalıplıdır; birkaç kalıbı tanıyınca çoğunu anında anlarsınız.
 
 - **undefined is not a function**: çağırmaya çalıştığınız şey bir fonksiyon değil (çoğu zaman tanımsız)
@@ -951,7 +977,7 @@ Registers a callback. The callback is called once for every packet that is recei
               id: 'yazilim-u3-d1-a6',
               metin: `[telemetry] buffering 2048 frames...
 fatal: allocation failed (requested 512 MB): out of memory
-process exited with code 137`,
+process exited with code 1`,
               soru: 'What is the problem?',
               secenekler: [
                 'The disk is full.',
@@ -995,6 +1021,8 @@ process exited with code 137`,
                 'When I run the script, I am getting an error.',
                 'I get an error when running the script.',
                 'I am getting an error when running the script.',
+                'I get an error when I execute the script.',
+                'I get an error whenever I run the script.',
               ],
             },
             {
@@ -1009,6 +1037,8 @@ process exited with code 137`,
                 'The program crashed because of an out of memory error.',
                 'The program crashed because of an out-of-memory error.',
                 'The program crashed due to insufficient memory.',
+                'The program crashed because it had run out of memory.',
+                'The program crashed because there was not enough memory.',
               ],
             },
           ],
@@ -1016,6 +1046,7 @@ process exited with code 137`,
         {
           id: 'yazilim-u3-d2',
           baslik: 'Stack trace ve hata ayıklama',
+          gorsel: '🔍',
           not: `Hata ayıklarken (debugging) en çok kullanılan kelimeler:
 
 - **stack trace**: hata anındaki çağrı zinciri (yığın izi)
@@ -1024,14 +1055,14 @@ process exited with code 137`,
 - **logging**: günlük kaydı tutmak; **logs**: kayıtlar
 - **intermittent**: ara sıra ortaya çıkan, kalıcı olmayan
 
-**Kalıp:** Python’daki "Traceback (most recent call last)" ifadesi, en son çağrının EN ALTTA olduğunu söyler; hatanın asıl oluştuğu satır en alttaki satırdır.
+**Kalıp:** Python’daki "Traceback (most recent call last)" ifadesi, en son çağrının EN ALTTA olduğunu söyler: hatanın oluştuğu yer en alttaki dosya/satır kaydıdır, en son satır ise hatanın türü ve mesajıdır.
 
 - I can reproduce the bug on my laptop. — Hatayı dizüstü bilgisayarımda yeniden oluşturabiliyorum.
 - I can't reproduce it locally. — Kendi makinemde oluşturamıyorum.
 - Set a breakpoint on line forty-two. — Kırk ikinci satıra kesme noktası koy.
 - The stack trace points to the motor module. — Stack trace motor modülünü gösteriyor.
 
-**Sık yapılan hata:** "I am making debug" ❌. "Debug" bir fiildir: "I'm debugging the parser" ✅. Benzer şekilde "do a research" ❌ değil "do some research" ✅; "research" sayılamaz.`,
+**Sık yapılan hata:** "I am making debug" ❌. "Debug" bir fiildir: "I'm debugging the parser" ✅. Benzer şekilde "do a research" ❌ yerine "do some research" ✅; "research" sayılamaz.`,
           alistirmalar: [
             {
               tur: 'eslestir',
@@ -1125,6 +1156,12 @@ KeyError: 'max_speed'`,
                 'I am unable to reproduce the bug on my machine.',
                 'I cannot reproduce the bug locally.',
                 'I cannot reproduce the bug on my computer.',
+                'I cannot reproduce the issue locally.',
+                'I cannot reproduce the error locally.',
+                'I am not able to reproduce the bug on my machine.',
+                'I am unable to reproduce the issue on my machine.',
+                'I cannot reproduce the issue on my own machine.',
+                'I cannot reproduce the error on my own machine.',
               ],
             },
             {
@@ -1141,6 +1178,12 @@ KeyError: 'max_speed'`,
                 'The error happens only occasionally.',
                 'The error only occurs occasionally.',
                 'The issue only happens occasionally.',
+                'The issue happens only occasionally.',
+                'The issue only occurs occasionally.',
+                'The issue occurs only occasionally.',
+                'The bug happens only sometimes.',
+                'The error only happens sometimes.',
+                'The issue only happens sometimes.',
                 'The bug is intermittent.',
                 'The error is intermittent.',
                 'The issue is intermittent.',
@@ -1164,6 +1207,7 @@ KeyError: 'max_speed'`,
         {
           id: 'yazilim-u3-d3',
           baslik: 'Kök neden, geçici çözüm ve düzeltme',
+          gorsel: '🩹',
           not: `Hata bulunduktan sonra konuşulan dil:
 
 - **root cause**: kök neden (asıl sebep)
@@ -1171,7 +1215,7 @@ KeyError: 'max_speed'`,
 - **fix**: düzeltme; **patch**: yama
 - **regression**: gerileme; önceden çalışan bir özelliğin yeni bir değişiklikle bozulması
 - **edge case**: uç durum (boş liste, sıfır, çok büyük değer)
-- **race condition**: yarış durumu; iki iş parçacığının aynı veriye aynı anda erişmesi
+- **race condition**: yarış durumu; sonucun iş parçacıklarının çalışma sırasına bağlı olması (ör. iki iş parçacığının aynı veriye korumasız, eşzamanlı erişmesi)
 - **side effect**: yan etki
 
 **Kalıp:** "The root cause was ... As a workaround, ... The fix is ..."
@@ -1287,6 +1331,9 @@ Fix: The buffer is now protected by a mutex (PR #214).`,
                 'This is a workaround, not a real fix.',
                 'This is a workaround rather than a permanent fix.',
                 'It is a workaround, not a permanent fix.',
+                'This is a workaround, not a permanent solution.',
+                'This is a temporary workaround, not a permanent solution.',
+                'This is a temporary solution, not a permanent one.',
               ],
             },
           ],
@@ -1297,12 +1344,14 @@ Fix: The buffer is now protected by a mutex (PR #214).`,
     {
       id: 'yazilim-u4',
       seviye: 'B1',
+      gorsel: '🔀',
       baslik: 'Sürüm kontrolü ve ekip çalışması',
       ozet: 'Git terimleri, emir kipinde commit mesajı yazmak ve kibar kod incelemesi yorumları.',
       dersler: [
         {
           id: 'yazilim-u4-d1',
           baslik: 'Git’in dili',
+          gorsel: '🌿',
           not: `Ekipte her gün kullanılan Git kelimeleri:
 
 - **repository (repo)**: depo
@@ -1321,7 +1370,7 @@ Fix: The buffer is now protected by a mutex (PR #214).`,
 - I resolved the merge conflict. — Birleştirme çakışmasını çözdüm.
 - Please open a pull request. — Lütfen bir pull request aç.
 
-**Sık yapılan hata:** "merge to main" konuşmada duyulur ama yazıda doğru edat **into**dur. Bir de yön karışıklığı: push = benden uzağa (göndermek), pull = bana doğru (çekmek).`,
+**Sık yapılan hata:** "merge to main" konuşmada duyulur ama yazıda doğru edat **into**’dur. Bir de yön karışıklığı: push = benden uzağa (göndermek), pull = bana doğru (çekmek).`,
           alistirmalar: [
             {
               tur: 'eslestir',
@@ -1391,7 +1440,7 @@ Fix: The buffer is now protected by a mutex (PR #214).`,
               cumle: 'I resolved the merge conflict and pushed again.',
               anlam: 'Birleştirme çakışmasını çözdüm ve tekrar gönderdim.',
               ipucu:
-                'pushed: tek hece, /pʊʃt/ "puşt"; "-ed" burada "t" gibi okunur, "pu-şed" değil. resolved: "ri-ZOLVD".',
+                'pushed: tek hece, /pʊʃt/: "push" ve sonuna yalnızca bir "t"; "pu-şed" diye okunmaz. resolved: Amerikan aksanında "ri-ZAALVD", sondaki -ed "d" gibi okunur.',
             },
             {
               tur: 'yaz',
@@ -1414,6 +1463,7 @@ Fix: The buffer is now protected by a mutex (PR #214).`,
                 'Merge this branch into the main branch.',
                 'Merge this branch to main.',
                 'Merge this branch into master.',
+                'Merge this branch into the master branch.',
               ],
             },
             {
@@ -1438,6 +1488,7 @@ nothing to commit, working tree clean`,
         {
           id: 'yazilim-u4-d2',
           baslik: 'Commit mesajı yazmak',
+          gorsel: '✍️',
           not: `İyi bir commit başlığı **emir kipiyle (imperative mood)** yazılır, büyük harfle başlar, sonuna nokta konmaz ve yaklaşık 50 karakteri geçmez. Gövdede (body) NEDEN değiştirildiği anlatılır.
 
 **Test cümlesi:** "If applied, this commit will ___." Boşluğa başlığınız uymalı: "If applied, this commit will **fix the crash when the IMU is disconnected**."
@@ -1450,9 +1501,11 @@ nothing to commit, working tree clean`,
 
 **Örnekler**
 - Add retry logic to the CAN driver — CAN sürücüsüne yeniden deneme mantığı ekle
-- Fix off-by-one error in ring buffer — Halka tampondaki bir eksik/fazla hatasını düzelt
+- Fix off-by-one error in ring buffer — Halka tampondaki off-by-one (bir fazla/bir eksik) hatasını düzelt
 - Remove unused imports — Kullanılmayan içe aktarmaları kaldır
 - Bump firmware version to 2.4.1 — Ürün yazılımı sürümünü 2.4.1’e yükselt
+
+**Not:** Conventional Commits kullanan ekiplerde başlık tür önekiyle ve küçük harfle yazılır: "fix(brake): clamp PWM duty cycle". Emir kipi kuralı orada da geçerlidir.
 
 **Sık yapılan hata:** Başlıkta geçmiş zaman ya da -ing: "Added ...", "Fixing ..." ❌. "Fixed some stuff" gibi belirsiz başlıklar da kötüdür: ne değişti, nerede?`,
           alistirmalar: [
@@ -1545,6 +1598,8 @@ nothing to commit, working tree clean`,
                 'Add retry mechanism to sensor driver',
                 'Add retry support to the sensor driver',
                 'Add retries to the sensor driver',
+                'Add retry support to sensor driver',
+                'Add retries to sensor driver',
               ],
               aciklama: 'Commit başlığı emir kipindedir ve sonunda nokta yoktur.',
             },
@@ -1556,6 +1611,7 @@ nothing to commit, working tree clean`,
                 'Remove unused variables',
                 'Remove the unused variables',
                 'Delete unused variables',
+                'Delete the unused variables',
               ],
             },
             {
@@ -1582,6 +1638,7 @@ edge case.`,
         {
           id: 'yazilim-u4-d3',
           baslik: 'Kod incelemesi yorumları',
+          gorsel: '👀',
           not: `Kod incelemesinde (code review) ton çok önemlidir: yorum koda yapılır, kişiye değil.
 
 - **LGTM** (looks good to me): bence uygun, onay
@@ -1697,7 +1754,9 @@ edge case.`,
                 'It is just a small suggestion.',
                 'It is just a minor suggestion.',
                 'It is only a small suggestion.',
+                'It is only a minor suggestion.',
                 'Just a small suggestion.',
+                'Just a minor suggestion.',
                 'This is just a nit.',
                 'Just a nit.',
               ],
@@ -1728,12 +1787,14 @@ Otherwise LGTM.`,
     {
       id: 'yazilim-u5',
       seviye: 'B2',
+      gorsel: '📄',
       baslik: 'Dokümantasyon ve API referansları',
       ozet: 'API belgesi, fonksiyon referansı ve MUST/SHOULD/MAY gibi şartname dilini doğru okumak.',
       dersler: [
         {
           id: 'yazilim-u5-d1',
           baslik: 'Uç noktalar, istekler ve yanıtlar',
+          gorsel: '🌐',
           not: `Bir web API belgesi hemen hep aynı başlıklardan oluşur.
 
 - **endpoint**: uç nokta (GET /v1/runs gibi bir adres + yöntem)
@@ -1861,6 +1922,8 @@ Responses
                 'This parameter is optional and the default value is 20.',
                 'This parameter is optional and the default is 20.',
                 'This parameter is optional and the default is twenty.',
+                'This parameter is optional and has a default value of 20.',
+                'This parameter is optional and has a default value of twenty.',
               ],
             },
             {
@@ -1878,6 +1941,7 @@ Responses
         {
           id: 'yazilim-u5-d2',
           baslik: 'Fonksiyon referansı: returns, throws, deprecated',
+          gorsel: '📚',
           not: `Kütüphane belgelerinde her fonksiyonun altında aynı bölümler bulunur:
 
 - **signature**: imza (ad, parametreler, dönüş türü)
@@ -1931,10 +1995,10 @@ Responses
               tur: 'bosluk',
               id: 'yazilim-u5-d2-a4',
               soru: 'Deprecated ___ version 2.4: use readFrame() instead.',
-              secenekler: ['from', 'since', 'for'],
+              secenekler: ['during', 'since', 'for'],
               dogru: 1,
               aciklama:
-                '"Deprecated since 2.4" = 2.4’ten beri kullanımı önerilmiyor. Belgelerde "as of 2.4" da görülür; "from" ve "for" kullanılmaz.',
+                '"Deprecated since 2.4" = 2.4’ten beri kullanımı önerilmiyor; belgelerdeki sabit kalıptır ("as of 2.4" da görülür). "During" bir süre boyunca, "for" bir amaç ya da süre bildirir; bir sürümden başlayan durumu anlatmaz.',
             },
             {
               tur: 'secmeli',
@@ -2004,6 +2068,8 @@ Responses
                 'This method has been deprecated; use the new one instead.',
                 'This method has been deprecated; use the new method instead.',
                 'This method is deprecated; use the newer one instead.',
+                'This method is deprecated; use the newer method instead.',
+                'This method is deprecated; please use the new method instead.',
               ],
               aciklama: 'Belgelerde "kullanımı önerilmiyor" anlamındaki terim "deprecated"dır.',
             },
@@ -2012,12 +2078,13 @@ Responses
         {
           id: 'yazilim-u5-d3',
           baslik: 'Şartname dili: MUST, SHOULD, MAY',
+          gorsel: '📜',
           not: `Protokol ve arayüz şartnamelerinde (RFC’ler, iletişim protokolleri, takım içi arayüz belgeleri) bu kelimeler BÜYÜK harfle yazılır ve RFC 2119’a göre KESİN anlam taşır:
 
 - **MUST / REQUIRED / SHALL**: zorunlu
 - **MUST NOT / SHALL NOT**: kesinlikle yasak
 - **SHOULD / RECOMMENDED**: güçlü öneri; geçerli bir sebep varsa ve sonuçları biliniyorsa uyulmayabilir
-- **SHOULD NOT**: önerilmez
+- **SHOULD NOT / NOT RECOMMENDED**: güçlü biçimde önerilmez; geçerli bir sebep varsa ve sonuçları biliniyorsa yapılabilir
 - **MAY / OPTIONAL**: tamamen isteğe bağlı
 
 **Örnekler**
@@ -2115,7 +2182,7 @@ Each node MUST send a heartbeat message every 100 ms. The heartbeat SHOULD inclu
               cumle: 'According to the spec, this field is optional.',
               anlam: 'Şartnameye göre bu alan isteğe bağlı.',
               ipucu:
-                'spec: "spek", specification’ın kısaltması. optional: "OP-şı-nıl", vurgu ilk hecede.',
+                'spec: "spek", specification’ın kısaltması. optional: Amerikan aksanında "AAP-şı-nıl", vurgu ilk hecede.',
             },
             {
               tur: 'yaz',
@@ -2143,6 +2210,9 @@ Each node MUST send a heartbeat message every 100 ms. The heartbeat SHOULD inclu
                 'The node shall not send data before the SYNC frame.',
                 'The node shall not transmit data before the SYNC frame.',
                 'The node shall not transmit before the SYNC frame.',
+                'The node must not send any data before the SYNC frame.',
+                'The node must never transmit data before the SYNC frame.',
+                'The node must never transmit before the SYNC frame.',
               ],
             },
           ],
@@ -2153,12 +2223,14 @@ Each node MUST send a heartbeat message every 100 ms. The heartbeat SHOULD inclu
     {
       id: 'yazilim-u6',
       seviye: 'B2',
+      gorsel: '🔌',
       baslik: 'Datasheet okumak',
       ozet: 'Mutlak maksimum değerler, elektriksel karakteristikler, pin şeması ve zamanlama diyagramı okumak.',
       dersler: [
         {
           id: 'yazilim-u6-d1',
           baslik: 'Mutlak maksimum değerler ve önerilen çalışma koşulları',
+          gorsel: '⚠️',
           not: `Bir entegrenin datasheet’inde en çok karıştırılan iki tablo:
 
 - **Absolute Maximum Ratings**: mutlak maksimum değerler. Bunlar tasarım hedefi DEĞİL, hasar sınırıdır. Aşılırsa **permanent damage** (kalıcı hasar) oluşabilir; bu sınırlarda bile doğru çalışma garanti edilmez.
@@ -2218,7 +2290,7 @@ Each node MUST send a heartbeat message every 100 ms. The heartbeat SHOULD inclu
               ],
               dogru: 2,
               aciklama:
-                '3,8 V mutlak sınır olan 4,0 V’un altında ama önerilen en yüksek değer olan 3,6 V’un üstünde. Hasar beklenmez ama çipin şartnameye uygun çalışması da garanti değildir.',
+                '3,8 V mutlak sınır olan 4,0 V’un altında ama önerilen en yüksek değer olan 3,6 V’un üstünde. Kalıcı hasar beklenmez ama çipin şartnameye uygun çalışması da garanti değildir.',
             },
             {
               tur: 'secmeli',
@@ -2263,6 +2335,8 @@ Each node MUST send a heartbeat message every 100 ms. The heartbeat SHOULD inclu
                 'The supply voltage should not exceed three point six volts.',
                 'The supply voltage should not exceed 3.6 volts.',
                 'The supply voltage should not exceed 3.6 V.',
+                'The supply voltage must not exceed 3.6V.',
+                'The supply voltage should not exceed 3.6V.',
               ],
               aciklama: 'Ondalık ayırıcı İngilizcede "point"tir: 3.6 = "three point six".',
             },
@@ -2281,7 +2355,8 @@ Each node MUST send a heartbeat message every 100 ms. The heartbeat SHOULD inclu
         {
           id: 'yazilim-u6-d2',
           baslik: 'Elektriksel karakteristikler ve birimleri okumak',
-          not: `**Electrical Characteristics** tablosu, belirli koşullarda (örneğin VDD = 3.3 V, 25 °C) ölçülen değerleri verir. Toplantıda bu değerleri sesli okuyabilmek gerekir.
+          gorsel: '⚡',
+          not: `**Electrical Characteristics** tablosu, belirtilen test koşullarında (örneğin VDD = 3.3 V, 25 °C) geçerli değerleri verir. Toplantıda bu değerleri sesli okuyabilmek gerekir.
 
 - **supply current / current consumption**: besleme akımı, akım tüketimi; **draw**: (akım) çekmek
 - **sleep mode / standby**: uyku kipi / bekleme
@@ -2393,6 +2468,9 @@ Each node MUST send a heartbeat message every 100 ms. The heartbeat SHOULD inclu
                 'In sleep mode, the current consumption is very low.',
                 'The current draw is very low in sleep mode.',
                 'In sleep mode, the current draw is very low.',
+                'Current draw is very low in sleep mode.',
+                'In sleep mode, current draw is very low.',
+                'The current consumption in sleep mode is very low.',
               ],
             },
             {
@@ -2409,6 +2487,8 @@ Each node MUST send a heartbeat message every 100 ms. The heartbeat SHOULD inclu
                 'The tolerance of the resistor is one percent.',
                 'The tolerance of the resistor is 1 percent.',
                 'The tolerance of the resistor is 1%.',
+                'The resistor has a one percent tolerance.',
+                'The resistor has a 1% tolerance.',
               ],
             },
           ],
@@ -2416,6 +2496,7 @@ Each node MUST send a heartbeat message every 100 ms. The heartbeat SHOULD inclu
         {
           id: 'yazilim-u6-d3',
           baslik: 'Pin şeması, pull-up ve zamanlama diyagramı',
+          gorsel: '📍',
           not: `Datasheet’in donanımı bağlarken en çok okunan kısımları:
 
 - **pinout**: pin şeması; **NC** (not connected): bağlantısız pin
@@ -2538,10 +2619,10 @@ Each node MUST send a heartbeat message every 100 ms. The heartbeat SHOULD inclu
             {
               tur: 'konus',
               id: 'yazilim-u6-d3-a10',
-              cumle: "Don't leave that input floating, tie it to ground.",
+              cumle: "Don't leave that input floating; tie it to ground.",
               anlam: 'O girişi boşta bırakma, toprağa bağla.',
               ipucu:
-                'floating: "FLOW-ding"; Amerikan aksanında ortadaki t "d"ye yakın okunur. ground: "graund".',
+                'floating: "FLOU-ding"; Amerikan aksanında ortadaki t "d"ye yakın okunur. ground: "graund".',
             },
             {
               tur: 'yaz',
@@ -2568,6 +2649,9 @@ Each node MUST send a heartbeat message every 100 ms. The heartbeat SHOULD inclu
                 'The SDA line requires an external pull-up.',
                 'The SDA line needs an external pull-up.',
                 'An external pull-up resistor is required on the SDA line.',
+                'An external pull-up resistor is needed on the SDA line.',
+                'The SDA line requires an external pullup resistor.',
+                'The SDA line needs an external pullup resistor.',
               ],
             },
           ],
@@ -2578,12 +2662,14 @@ Each node MUST send a heartbeat message every 100 ms. The heartbeat SHOULD inclu
     {
       id: 'yazilim-u7',
       seviye: 'C1',
+      gorsel: '🧑‍💻',
       baslik: 'Teknik yazım ve toplantılar',
       ozet: 'Hata raporu, PR açıklaması ve stand-up güncellemesi yazmak; kesin, ölçülü ve yoğun teknik dil kullanmak.',
       dersler: [
         {
           id: 'yazilim-u7-d1',
           baslik: 'Hata raporu (issue) yazmak',
+          gorsel: '🐛',
           not: `İyi bir hata raporu, okuyanın hiçbir soru sormadan hatayı yeniden oluşturmasını sağlar. Standart yapı:
 
 - **Title**: kısa ama özgül ("Telemetry drops packets above 500 Hz on fw 2.3.1")
@@ -2595,7 +2681,7 @@ Each node MUST send a heartbeat message every 100 ms. The heartbeat SHOULD inclu
 - **Severity**: önem derecesi; **attachment**: ek (log, ekran görüntüsü)
 
 **Kesin dil:** "doesn't work" yerine neyin, ne zaman, ne kadar bozulduğunu yazın.
-- The motor does not stop after the e-stop is pressed. — Acil stop basıldıktan sonra motor durmuyor.
+- The motor does not stop after the e-stop is pressed. — Acil durdurma butonuna basıldıktan sonra motor durmuyor.
 - This is reproducible 5 out of 5 times. — Bu 5 denemenin 5’inde tekrarlanabiliyor.
 - This regressed in 2.4.0; it works on 2.3.2. — Bu 2.4.0’da bozuldu; 2.3.2’de çalışıyor.
 
@@ -2665,7 +2751,7 @@ Regression: works as expected on fw 2.3.2.`,
               ],
               dogru: 0,
               aciklama:
-                '5/5 deneme her seferinde tekrarlandığını, 2.3.2’de çalışması ise hatanın 2.4.0’a geçerken eklendiğini (regression) gösterir. Yeniden başlatınca düzelmesi donanım arızasını da olası kılmaz.',
+                '5/5 deneme her seferinde tekrarlandığını, 2.3.2’de çalışması ise hatanın 2.4.0’a geçerken eklendiğini (regression) gösterir. Sorunun yeniden başlatmayla geçmesi ve eski sürümde görülmemesi donanım arızasından çok yazılım hatasına işaret eder.',
             },
             {
               tur: 'dinle',
@@ -2685,7 +2771,7 @@ Regression: works as expected on fw 2.3.2.`,
               tur: 'konus',
               id: 'yazilim-u7-d1-a8',
               cumle: 'This looks like a regression introduced in version two point four.',
-              anlam: 'Bu, iki nokta dört sürümünde ortaya çıkmış bir gerilemeye benziyor.',
+              anlam: 'Bu, 2.4 sürümüyle gelmiş bir gerilemeye (regression) benziyor.',
               ipucu:
                 'Sürüm numaraları "two point four" diye okunur. regression: "ri-GRE-şın"; introduced: "in-trı-DUUST".',
             },
@@ -2704,6 +2790,11 @@ Regression: works as expected on fw 2.3.2.`,
                 'The issue can be reproduced on the latest firmware.',
                 'The error is reproducible on the latest firmware.',
                 'The error can be reproduced on the latest firmware.',
+                'The bug is reproducible in the latest firmware.',
+                'The bug can be reproduced in the latest firmware.',
+                'The issue is reproducible on the latest firmware version.',
+                'The issue can be reproduced on the latest firmware version.',
+                'The issue is reproducible with the latest firmware.',
               ],
             },
             {
@@ -2718,6 +2809,9 @@ Regression: works as expected on fw 2.3.2.`,
                 'Expected behavior: the motor stops in less than half a second.',
                 'Expected behaviour: the motor stops within half a second.',
                 'Expected: the motor stops within half a second.',
+                'Expected behavior: the motor stops within 0.5 s.',
+                'Expected behavior: the motor should stop within half a second.',
+                'Expected behavior: the motor stops in under half a second.',
               ],
             },
           ],
@@ -2725,8 +2819,9 @@ Regression: works as expected on fw 2.3.2.`,
         {
           id: 'yazilim-u7-d2',
           baslik: 'PR açıklaması ve stand-up güncellemesi',
+          gorsel: '📣',
           not: `**PR açıklaması** inceleyenin işini kolaylaştırır. Yaygın bölümler:
-- **Summary**: ne değişti (tek iki cümle)
+- **Summary**: ne değişti (bir iki cümle)
 - **Why / Motivation**: neden gerekliydi
 - **Testing**: nasıl test edildi
 - **Out of scope**: bilerek yapılmayanlar
@@ -2794,7 +2889,7 @@ Regression: works as expected on fw 2.3.2.`,
 Adds a watchdog to the telemetry task so the pod controller recovers if the task hangs.
 
 Why
-During the 14 Oct run, the telemetry task stopped responding and we lost 40 s of data.
+During the Oct 14 run, the telemetry task stopped responding and we lost 40 s of data.
 
 Testing
 - Unit tests for the watchdog timer
@@ -2824,8 +2919,8 @@ Closes #219`,
             {
               tur: 'dinle',
               id: 'yazilim-u7-d2-a7',
-              cumle: 'Just a heads up, the demo moved to Friday.',
-              anlam: 'Bilginiz olsun, demo cumaya kaydı.',
+              cumle: 'Just a heads-up: the demo moved to Friday.',
+              anlam: 'Bilginiz olsun: demo cumaya kaydı.',
               celdiriciler: ['head', 'Monday', 'moves'],
             },
             {
@@ -2865,6 +2960,10 @@ Closes #219`,
                 'Let me look into this and get back to you.',
                 'I will check it and get back to you.',
                 'I will check this and get back to you.',
+                'I will look into it and let you know.',
+                'I will look into this and let you know.',
+                'Let me look into it and let you know.',
+                'I will look into it and get back to you on it.',
               ],
             },
           ],
@@ -2872,6 +2971,7 @@ Closes #219`,
         {
           id: 'yazilim-u7-d3',
           baslik: 'Kesin, ölçülü ve yoğun teknik yazım',
+          gorsel: '🎯',
           not: `C1 düzeyinde teknik yazının üç özelliği vardır: **kesinlik**, **ölçülülük (hedging)** ve **yoğunluk**.
 
 **1. Kesinlik:** Sıfat yerine sayı. "Latency got a lot worse" yerine "p95 latency increased from 12 ms to 48 ms".
@@ -2889,7 +2989,7 @@ Closes #219`,
 - **at the cost of**: ...pahasına
 
 **Örnekler**
-- The data suggests that the overshoot is caused by the integral term. — Veriler aşmanın integral teriminden kaynaklandığını gösteriyor.
+- The data suggests that the overshoot is caused by the integral term. — Veriler aşmanın integral teriminden kaynaklandığına işaret ediyor.
 - Frames received during reset are discarded. — Sıfırlama sırasında gelen çerçeveler atılır.
 - The sensors sample at 1 kHz and 500 Hz, respectively. — Sensörler sırasıyla 1 kHz ve 500 Hz’de örnekleme yapar.
 
@@ -2954,7 +3054,7 @@ Closes #219`,
               ],
               dogru: 1,
               aciklama:
-                'İkinci cümle ölçütü (p95), önceki ve sonraki değeri ve koşulu veriyor. Diğerleri ölçülemez ve doğrulanamaz.',
+                '"p95 latency increased from 12 ms to 48 ms…" cümlesi ölçütü (p95), önceki ve sonraki değeri ve koşulu veriyor. "Got a lot worse" ve "probably bad … in general" ölçülemez ve doğrulanamaz.',
             },
             {
               tur: 'secmeli',
@@ -3008,6 +3108,10 @@ Closes #219`,
                 'The latency is probably due to logging.',
                 'The delay is likely caused by logging.',
                 'The delay is probably caused by logging.',
+                'The latency is most likely due to logging.',
+                'The latency is most likely caused by the logging.',
+                'The delay is likely due to logging.',
+                'The delay is probably due to logging.',
               ],
             },
             {
@@ -3020,7 +3124,6 @@ Closes #219`,
                 'We have not ruled out a hardware fault yet.',
                 'We have not yet ruled out a hardware fault.',
                 'We cannot rule out a hardware fault yet.',
-                'We could not rule out a hardware fault yet.',
                 'We have not been able to rule out a hardware failure yet.',
                 'We have not ruled out a hardware failure yet.',
                 'We have not yet ruled out a hardware failure.',

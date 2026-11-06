@@ -53,9 +53,68 @@ const KISALTMALAR: Record<string, string> = {
   "shouldn't": 'should not',
   "mustn't": 'must not',
   'can not': 'cannot',
+  "should've": 'should have',
+  "could've": 'could have',
+  "would've": 'would have',
+  "must've": 'must have',
+  "might've": 'might have',
+  "there're": 'there are',
+  "here's": 'here is',
+  "how's": 'how is',
+  "when's": 'when is',
+  "why's": 'why is',
+  "he'd": 'he would',
+  "she'd": 'she would',
+  "it'd": 'it would',
+  "that'll": 'that will',
+  "there'll": 'there will',
 };
 
-/** Karşılaştırma biçimi: küçük harf, kısaltmalar açık, noktalama ve tire yok. SAF. */
+const BIRLER = [
+  'zero',
+  'one',
+  'two',
+  'three',
+  'four',
+  'five',
+  'six',
+  'seven',
+  'eight',
+  'nine',
+  'ten',
+  'eleven',
+  'twelve',
+  'thirteen',
+  'fourteen',
+  'fifteen',
+  'sixteen',
+  'seventeen',
+  'eighteen',
+  'nineteen',
+];
+const ONLAR = [
+  '',
+  '',
+  'twenty',
+  'thirty',
+  'forty',
+  'fifty',
+  'sixty',
+  'seventy',
+  'eighty',
+  'ninety',
+];
+
+/** 0–999 arası sayının yazısı ("twenty one", "three hundred five"). SAF. */
+export function sayiYazisi(n: number): string {
+  if (n < 20) return BIRLER[n]!;
+  if (n < 100)
+    return n % 10 === 0 ? ONLAR[n / 10]! : `${ONLAR[Math.floor(n / 10)]} ${BIRLER[n % 10]}`;
+  const kalan = n % 100;
+  return `${BIRLER[Math.floor(n / 100)]} hundred${kalan === 0 ? '' : ` ${sayiYazisi(kalan)}`}`;
+}
+
+/** Karşılaştırma biçimi: küçük harf, kısaltmalar açık, 0–999 yazıyla, noktalama ve tire yok. SAF. */
 export function normallestir(metin: string): string {
   let s = metin
     .toLowerCase()
@@ -63,6 +122,9 @@ export function normallestir(metin: string): string {
     .replace(/[“”]/g, '"');
   s = s.replace(/[a-z]+'[a-z]+/g, (k) => KISALTMALAR[k] ?? k);
   s = s.replace(/\bcan not\b/g, 'cannot');
+  // Konuşma tanıma sayıyı rakamla yazabilir, kullanıcı da: "17" ile "seventeen" aynı cevap.
+  // Yalnızca 0–999; yıl gibi uzun sayılar olduğu gibi kalır.
+  s = s.replace(/(?<![\d.,])\d{1,3}(?![\d,])/g, (r) => sayiYazisi(Number(r)));
   return (
     s
       // Harf her alfabeden korunur ("Türkiye", "café"); tire boşluk sayılır ("well-known").

@@ -9,11 +9,13 @@ const U1: Unite = {
   id: 'gunluk-u1',
   seviye: 'A1',
   baslik: 'Tanışma ve Selamlaşma',
+  gorsel: '👋',
   ozet: "Selamlaşmayı, kendini tanıtmayı, 'to be' fiilini ve yaş ile memleket sormayı öğrenirsin.",
   dersler: [
     {
       id: 'gunluk-u1-d1',
       baslik: 'Merhaba, ben…',
+      gorsel: '🙋',
       not: 'İngilizcede selamlaşma, günün saatine ve ortamın ne kadar resmî olduğuna göre değişir. **Hi** ve **Hello** her zaman kullanılır; **Hey** arkadaşlar arasında daha samimidir. Sabah **Good morning**, öğleden sonra **Good afternoon**, akşam **Good evening** dersin.\n\nKendini tanıtmak için **I\'m** + adın, karşındakinin adını sormak için **What\'s your name?** kullanılır. Tanışınca **Nice to meet you** (Tanıştığıma memnun oldum) denir; cevabı **Nice to meet you too**.\n\n- Hi, I\'m Elif. — Merhaba, ben Elif.\n- What\'s your name? — Adın ne?\n- Nice to meet you. — Tanıştığıma memnun oldum.\n- How are you? I\'m fine, thanks. — Nasılsın? İyiyim, teşekkürler.\n- See you later! — Sonra görüşürüz!\n\n**How are you?** sorusuna uzun cevap beklenmez: "Good, thanks. And you?" yeterlidir.\n\n**Sık yapılan hata:** Akşam biriyle karşılaşınca "Good night!" demek ❌. **Good night** selam değil, vedadır (iyi geceler). Karşılaşınca "Good evening!" ✅, ayrılırken "Good night!" ✅.',
       alistirmalar: [
         {
@@ -40,6 +42,7 @@ const U1: Unite = {
         {
           tur: 'secmeli',
           id: 'gunluk-u1-d1-a3',
+          gorsel: '🌆',
           soru: 'Akşam saat sekizde apartmanda bir komşunla karşılaştın. Ne dersin?',
           secenekler: ['Good night!', 'Good evening!', 'Good morning!', 'Good afternoon!'],
           dogru: 1,
@@ -70,7 +73,7 @@ const U1: Unite = {
           cumle: "Hi, my name is Deniz. What's your name?",
           anlam: 'Merhaba, benim adım Deniz. Senin adın ne?',
           ipucu:
-            "\"name\" kelimesini 'neym' diye söyle. \"What's your\" hızlı konuşmada birleşir: 'wats-yor'.",
+            "\"name\" kelimesini 'neym' diye söyle. \"What's your\" hızlı konuşmada birleşir: 'wats-yır'.",
         },
         {
           tur: 'yaz',
@@ -84,6 +87,8 @@ const U1: Unite = {
             'Hello, my name is Ali.',
             "Hi, my name's Ali.",
             "Hello, my name's Ali.",
+            'Hey, my name is Ali.',
+            "Hey, my name's Ali.",
           ],
         },
         {
@@ -118,6 +123,10 @@ const U1: Unite = {
             'Good to meet you.',
             'Glad to meet you.',
             "It's a pleasure to meet you.",
+            "I'm pleased to meet you.",
+            "I'm glad to meet you.",
+            'Nice meeting you.',
+            "It's good to meet you.",
           ],
         },
       ],
@@ -125,6 +134,7 @@ const U1: Unite = {
     {
       id: 'gunluk-u1-d2',
       baslik: "'to be' fiili: am, is, are",
+      gorsel: '🧑‍🎓',
       not: "Türkçedeki \"-im, -sin, -dir\" eklerinin İngilizcedeki karşılığı **to be** fiilidir ve özneye göre değişir:\n\n- **I am** (I'm) — ben …-im\n- **you / we / they are** (you're, we're, they're)\n- **he / she / it is** (he's, she's, it's)\n\n**Olumsuz** için fiilden sonra **not** gelir: I'm not, she isn't, they aren't. **Soru** için fiil öne geçer: Are you…? Is he…?\n\n- I'm a student. — Ben öğrenciyim.\n- She isn't at home. — O evde değil.\n- Are you tired? — Yorgun musun?\n- We're from Izmir. — Biz İzmirliyiz.\n- Is it cold outside? — Dışarısı soğuk mu?\n\nMeslek söylerken tekil isimden önce **a / an** gelir: I'm **a** teacher, she's **an** engineer.\n\n**Sık yapılan hata:** Türkçede fiil gizli olduğu için 'be' unutulur: \"He very tired\" ❌ → \"He is very tired\" ✅. Bir de artikel unutulur: \"Are you student?\" ❌ → \"Are you a student?\" ✅",
       alistirmalar: [
         {
@@ -192,7 +202,7 @@ const U1: Unite = {
           id: 'gunluk-u1-d2-a7',
           cumle: "She isn't here. She's at work.",
           anlam: 'O burada değil. İşte.',
-          ipucu: "\"isn't\" 'izınt' gibi söylenir. \"She's at\" bağlanarak 'şiiz-et' diye akar.",
+          ipucu: "\"isn't\" 'izınt' gibi söylenir. \"She's at\" bağlanarak 'şii-zet' diye akar.",
         },
         {
           tur: 'yaz',
@@ -226,6 +236,7 @@ const U1: Unite = {
     {
       id: 'gunluk-u1-d3',
       baslik: 'Sayılar, yaş ve memleket',
+      gorsel: '🔢',
       not: "İngilizcede **yaş 'olmak' fiiliyle söylenir**, 'sahip olmak' ile değil: **I'm twenty** ya da **I'm twenty years old**. Yaş sormak için: **How old are you?**\n\nMemleket için **Where are you from?** sorulur; cevap **I'm from…** ya da **I come from…** olur. Milliyet sıfatı ayrıdır: Turkey/Türkiye → **Turkish**, Germany → **German**, Spain → **Spanish**.\n\n- How old are you? — Kaç yaşındasın?\n- I'm nineteen. — On dokuz yaşındayım.\n- Where are you from? I'm from Bursa. — Nerelisin? Bursalıyım.\n- She's Turkish, but she lives in Berlin. — O Türk ama Berlin'de yaşıyor.\n\n**Sayılarda dikkat:** -teen ile biten sayılarda vurgu sondadır (thir**TEEN**, fif**TEEN**), -ty ile bitenlerde baştadır (**THIR**ty, **FIF**ty). Yanlış vurgu on üçü otuza çevirebilir!\n\n**Sık yapılan hata:** Türkçeden çeviriyle \"I have twenty years\" ❌ demek. Doğrusu \"I'm twenty\" ✅ ya da \"I'm twenty years old\" ✅. \"I'm twenty years\" ❌ de eksiktir: ya \"old\" ekle ya da hiç \"years\" deme.",
       alistirmalar: [
         {
@@ -337,6 +348,9 @@ const U1: Unite = {
             'My younger sister is seventeen.',
             'My little sister is seventeen years old.',
             'My younger sister is seventeen years old.',
+            "My sister's seventeen.",
+            "My sister's seventeen years old.",
+            "My sister's 17.",
           ],
           aciklama: 'Yaş "is" ile söylenir; "has seventeen years" denmez.',
         },
@@ -349,11 +363,13 @@ const U2: Unite = {
   id: 'gunluk-u2',
   seviye: 'A1',
   baslik: 'Aile ve Günlük Rutin',
+  gorsel: '🏡',
   ozet: "Aileni anlatmayı, sahiplik sözcüklerini, 'have' fiilini ve geniş zamanla günlük rutinini öğrenirsin.",
   dersler: [
     {
       id: 'gunluk-u2-d1',
       baslik: "Ailem: my, your, his, her ve 's",
+      gorsel: '👪',
       not: 'Sahiplik bildiren sözcükler ismin önüne gelir ve hiç değişmez:\n\n- **my** (benim), **your** (senin/sizin), **our** (bizim), **their** (onların)\n- **his** (onun — erkek), **her** (onun — kadın), **its** (onun — eşya/hayvan)\n\nBirinin adıyla sahiplik için **\'s** eklenir: **Ali\'s car** (Ali\'nin arabası), **my mom\'s job** (annemin işi). "the car of Ali" gibi yapılar insanlar için doğal değildir.\n\n- This is my brother. His name is Can. — Bu erkek kardeşim. Adı Can.\n- My aunt is a doctor. Her husband is a chef. — Teyzem doktor. Kocası aşçı.\n- Our parents live in Bursa. — Annemizle babamız Bursa\'da yaşıyor.\n- What\'s your dad\'s name? — Babanın adı ne?\n\n**Sık yapılan hata:** Türkçede "onun" cinsiyetsizdir, İngilizcede değil. Bir kadından bahsederken "My mother loves his job" ❌ → "My mother loves her job" ✅. Önce kişinin erkek mi kadın mı olduğuna bak, sonra his/her seç.',
       alistirmalar: [
         {
@@ -400,7 +416,7 @@ const U2: Unite = {
           secenekler: ['The car of Ayşe', 'Ayşe car', "Ayşe's car", "Car's Ayşe"],
           dogru: 2,
           aciklama:
-            'İnsanlarda sahiplik "\'s" ile gösterilir: Ayşe\'s car. "The car of Ayşe" anlaşılır ama doğal değildir; "Ayşe car" ekini, "Car\'s Ayşe" ise sırayı yanlış kurar.',
+            'İnsanlarda sahiplik "\'s" ile gösterilir: Ayşe\'s car. "The car of Ayşe" anlaşılır ama doğal değildir; "Ayşe car" sahiplik ekini atlar, "Car\'s Ayşe" ise sırayı ters kurar.',
         },
         {
           tur: 'bosluk',
@@ -453,6 +469,7 @@ const U2: Unite = {
     {
       id: 'gunluk-u2-d2',
       baslik: 'Sahip olmak: have ve has',
+      gorsel: '🎒',
       not: 'Türkçedeki "…-im var" yapısı İngilizcede **have** ile kurulur: "Bir kedim var" = **I have a cat**.\n\n- I / you / we / they **have**\n- he / she / it **has**\n\n**Olumsuz:** I **don\'t have**, she **doesn\'t have**. **Soru:** **Do** you have…? **Does** he have…? (doesn\'t/does\'tan sonra fiil yine **have** olur, has değil.)\n\nKonuşmada **have got** da çok yaygındır, özellikle İngiliz İngilizcesinde: I\'ve got a brother. Has she got a car? Anlamı aynıdır.\n\n- I have two brothers. — İki erkek kardeşim var.\n- She has a dog and a cat. — Onun bir köpeği ve bir kedisi var.\n- Do you have any siblings? — Hiç kardeşin var mı?\n- We don\'t have a car. — Arabamız yok.\n\n**Sık yapılan hata:** "She have a car" ❌ → "She has a car" ✅. Ve iki yapıyı karıştırmak: "Do you have got…?" ❌ → "Do you have…?" ✅ ya da "Have you got…?" ✅',
       alistirmalar: [
         {
@@ -480,10 +497,10 @@ const U2: Unite = {
           tur: 'bosluk',
           id: 'gunluk-u2-d2-a3',
           soru: '___ you have any brothers or sisters?',
-          secenekler: ['Are', 'Have', 'Does', 'Do'],
+          secenekler: ['Are', 'Has', 'Does', 'Do'],
           dogru: 3,
           aciklama:
-            '"have" fiiliyle soru "Do you have…?" diye kurulur. "Have you any…?" eski ve resmî bir İngiliz kullanımıdır; "Does" ise he/she/it içindir.',
+            '"have" fiiliyle soru "Do you have…?" diye kurulur. "Does" he/she/it içindir; "Are" \'be\' sorularında kullanılır, "Has you" ise hem özneyle uyumsuz hem de cümlede ikinci bir fiil (have) olduğu için yanlıştır.',
         },
         {
           tur: 'dinle',
@@ -567,7 +584,8 @@ const U2: Unite = {
     {
       id: 'gunluk-u2-d3',
       baslik: 'Günlük rutin: geniş zaman',
-      not: 'Alışkanlıkları ve her gün yaptıklarını **present simple** (geniş zaman) ile anlatırsın. Fiil yalın hâliyle kullanılır; yalnızca **he / she / it** ile sonuna **-s** eklenir:\n\n- I work → she work**s**, I go → he go**es**, I watch → she watch**es**, I study → he stud**ies**\n\n**Olumsuz:** I **don\'t** work, she **doesn\'t** work. **Soru:** **Do** you work? **Does** she work? doesn\'t/does kullanınca fiildeki -s kalkar.\n\n- I get up at seven. — Yedide kalkarım.\n- She goes to work by metro. — İşe metroyla gider.\n- We don\'t eat meat. — Et yemeyiz.\n- Does he cook dinner? — Akşam yemeğini o mu pişirir?\n- What time do you go to bed? — Kaçta yatarsın?\n\nRutin ifadeleri: **get up** (kalkmak), **have breakfast** (kahvaltı yapmak), **take a shower** (duş almak), **get home** (eve varmak), **go to bed** (yatmak).\n\n**Sık yapılan hata:** "He go to school" ❌ → "He goes to school" ✅. Bir de -s\'yi iki kere kullanmak: "She doesn\'t works" ❌ → "She doesn\'t work" ✅',
+      gorsel: '⏰',
+      not: 'Alışkanlıkları ve her gün yaptıklarını **present simple** (geniş zaman) ile anlatırsın. Fiil yalın hâliyle kullanılır; yalnızca **he / she / it** ile sonuna **-s** eklenir:\n\n- I work → she work**s**, I go → he go**es**, I watch → she watch**es**, I study → he stud**ies**\n\n**Olumsuz:** I **don\'t** work, she **doesn\'t** work. **Soru:** **Do** you work? **Does** she work? doesn\'t/does kullanınca fiildeki -s kalkar.\n\n- I get up at seven. — Yedide kalkarım.\n- She goes to work by metro. — İşe metroyla gider.\n- We don\'t eat meat. — Et yemeyiz.\n- Does he cook dinner? — Akşam yemeğini pişirir mi?\n- What time do you go to bed? — Kaçta yatarsın?\n\nRutin ifadeleri: **get up** (kalkmak), **have breakfast** (kahvaltı yapmak), **take a shower** (duş almak), **get home** (eve varmak), **go to bed** (yatmak).\n\n**Sık yapılan hata:** "He go to school" ❌ → "He goes to school" ✅. Bir de -s\'yi iki kere kullanmak: "She doesn\'t works" ❌ → "She doesn\'t work" ✅',
       alistirmalar: [
         {
           tur: 'eslestir',
@@ -597,7 +615,7 @@ const U2: Unite = {
           secenekler: ["doesn't have", "don't have", 'not have', "haven't"],
           dogru: 1,
           aciklama:
-            '"I" ile geniş zamanın olumsuzu "don\'t" + yalın fiildir: I don\'t have breakfast. "doesn\'t" he/she/it içindir; "not have" tek başına cümle kurmaz.',
+            '"I" ile geniş zamanın olumsuzu "don\'t" + yalın fiildir: I don\'t have breakfast. "doesn\'t" he/she/it içindir; "not have" tek başına olumsuz yapmaz; "I haven\'t breakfast" da \'have\' ana fiilken doğal değildir.',
         },
         {
           tur: 'dinle',
@@ -636,7 +654,7 @@ const U2: Unite = {
           cumle: 'He watches TV after dinner.',
           anlam: 'Akşam yemeğinden sonra televizyon izler.',
           ipucu:
-            '"watches" sonundaki -es \'iz\' diye okunur: \'woçiz\'. "after dinner" birleşik akar.',
+            '"watches" sonundaki -es \'ız\' diye ayrı hece okunur: \'waçız\'. "after dinner" birleşik akar.',
         },
         {
           tur: 'dinle',
@@ -671,6 +689,8 @@ const U2: Unite = {
             "I wake up at seven o'clock every morning.",
             'Every morning I get up at 7.',
             'Every morning I wake up at 7.',
+            "Every morning I get up at seven o'clock.",
+            "Every morning I wake up at seven o'clock.",
           ],
         },
         {
@@ -686,6 +706,7 @@ const U2: Unite = {
     {
       id: 'gunluk-u2-d4',
       baslik: 'Saatler ve sıklık zarfları',
+      gorsel: '🕒',
       not: '**Saat sormak:** What time is it? Cevaplar: It\'s seven **o\'clock** (tam yedi), It\'s **half past** seven (yedi buçuk), It\'s a **quarter to** eight (sekize çeyrek var), It\'s a **quarter past** eight (sekizi çeyrek geçiyor). Amerikan İngilizcesinde sayıyla söylemek de çok yaygın: seven thirty, seven forty-five.\n\n**Edatlar:** saatle **at** (at nine), günle **on** (on Monday), günün bölümüyle **in** (in the morning) — ama **at night**.\n\n**Sıklık zarfları:** always (her zaman) > usually (genellikle) > often (sık sık) > sometimes (bazen) > rarely (nadiren) > never (asla). **Ana fiilden önce**, ama **be fiilinden sonra** gelirler.\n\n- I usually have lunch at noon. — Genellikle öğlen yemek yerim.\n- She\'s always late. — O hep geç kalır.\n- We never work on Sundays. — Pazar günleri asla çalışmayız.\n- How often do you go to the gym? — Spor salonuna ne sıklıkla gidersin?\n\n**Sık yapılan hata:** Zarfı fiilden sonra koymak: "I go always to the gym" ❌ → "I always go to the gym" ✅. Be fiiliyle ters durum: "She never is late" ❌ → "She is never late" ✅',
       alistirmalar: [
         {
@@ -730,7 +751,7 @@ const U2: Unite = {
           ],
           dogru: 2,
           aciklama:
-            'Sıklık zarfı ana fiilin hemen önüne gelir: I always drink. Fiilden sonra koymak Türkçe sözdizimine benzese de İngilizcede yanlıştır.',
+            'Sıklık zarfı ana fiilin hemen önüne gelir: I always drink. "always" fiilden sonra, nesneden sonra ya da cümle başında bu cümlede yanlış durur.',
         },
         {
           tur: 'dinle',
@@ -795,6 +816,11 @@ const U2: Unite = {
             'Sometimes I sleep in on weekends.',
             'On weekends, sometimes I get up late.',
             'On weekends, sometimes I wake up late.',
+            'I sometimes get up late on the weekend.',
+            'I sometimes wake up late on the weekend.',
+            'I sometimes sleep late on weekends.',
+            'Sometimes I sleep late on weekends.',
+            'On weekends I sometimes sleep in.',
           ],
           aciklama:
             '"sometimes" cümle başında da, fiilden önce de durabilir. "sleep in" \'geç saate kadar uyumak\' demektir.',
@@ -815,11 +841,13 @@ const U3: Unite = {
   id: 'gunluk-u3',
   seviye: 'A2',
   baslik: 'Kafede ve Alışverişte',
+  gorsel: '🛍️',
   ozet: 'Kafede kibarca sipariş vermeyi, sayılabilen ve sayılamayan isimleri, alışverişte fiyat sormayı ve ödeme yapmayı öğrenirsin.',
   dersler: [
     {
       id: 'gunluk-u3-d1',
       baslik: 'Kafede sipariş vermek',
+      gorsel: '☕',
       not: 'İngilizcede sipariş verirken "istiyorum" demek yerine **rica kalıpları** kullanılır:\n\n- **Can I get…?** — Amerika\'da kafelerde en yaygın, doğal kalıp.\n- **Could I have…?** — Biraz daha kibar.\n- **I\'d like…** (I would like) — Kibar ve her yerde uygun.\n\nGarsonun / baristanın soracakları: **What can I get you?** (Ne alırsınız?), **Anything else?** (Başka bir şey?), **For here or to go?** (Burada mı, götürmek üzere mi?). Bitirirken: **That\'s it, thanks** (Hepsi bu, teşekkürler), hesap için **Can I get the check, please?**\n\n- Can I get a medium latte, please? — Orta boy bir latte alabilir miyim?\n- I\'d like a cheese sandwich. — Peynirli bir sandviç istiyorum.\n- Could I have some water, please? — Biraz su alabilir miyim lütfen?\n- To go, please. — Götürmek üzere, lütfen.\n\n**Sık yapılan hata:** "Give me a tea" ❌ ya da "I want a tea" demek İngilizcede kaba duyulur. Bunun yerine "Can I get a tea, please?" ✅ ya da "I\'d like a tea, please." ✅ de. **please** kelimesi çok önemlidir.',
       alistirmalar: [
         {
@@ -887,7 +915,7 @@ const U3: Unite = {
           cumle: 'Can I get the check, please?',
           anlam: 'Hesabı alabilir miyim lütfen?',
           ipucu:
-            '"Can I" birleşir: \'ke-nay\'. "check" kelimesinde baştaki \'ç\' sesini net söyle. İngilizler "the bill" der.',
+            '"Can I" birleşir ve "can" zayıf okunur: \'kı-nay\'. "check" kelimesinde baştaki \'ç\' sesini net söyle. İngilizler "the bill" der.',
         },
         {
           tur: 'secmeli',
@@ -923,6 +951,8 @@ const U3: Unite = {
             'Can I have tea, please?',
             'Could I have tea, please?',
             'Can I get tea, please?',
+            'Could I get tea, please?',
+            'May I have tea, please?',
           ],
         },
         {
@@ -943,6 +973,7 @@ const U3: Unite = {
     {
       id: 'gunluk-u3-d2',
       baslik: 'Sayılabilen ve sayılamayan: some, any, much, many',
+      gorsel: '🛒',
       not: 'İngilizcede isimler ikiye ayrılır:\n\n- **Sayılabilen:** an apple, two eggs, three bottles — çoğul olabilir.\n- **Sayılamayan:** water, milk, bread, rice, money, information, advice — çoğul olmaz, önüne **a** gelmez.\n\n**some** olumlu cümlelerde, ikramlarda ve ricalarda; **any** olumsuz cümlelerde ve sorularda kullanılır. Miktar sorarken sayılabilenle **How many**, sayılamayanla **How much** denir. **a lot of** her ikisiyle de olur.\n\n- We need some milk. — Biraz süte ihtiyacımız var.\n- There aren\'t any eggs. — Hiç yumurta yok.\n- Would you like some coffee? — Biraz kahve ister misin?\n- How many apples do we need? — Kaç elmaya ihtiyacımız var?\n- How much money do you have? — Ne kadar paran var?\n\n**Sık yapılan hata:** Türkçede çoğul yapılabilen kelimeleri İngilizcede de çoğul yapmak: "some breads" ❌ → "some bread" ✅, "informations" ❌ → "information" ✅, "advices" ❌ → "advice" ✅. Tek tane istiyorsan: a piece of bread, a piece of advice.',
       alistirmalar: [
         {
@@ -1046,6 +1077,8 @@ const U3: Unite = {
             "We've got no cheese.",
             "We're out of cheese.",
             "We've run out of cheese.",
+            "There isn't any cheese.",
+            "There's no cheese.",
           ],
           aciklama:
             '"any" olumsuz cümlelerde kullanılır; "no" ise olumlu fiille aynı anlamı verir: We have no cheese.',
@@ -1061,6 +1094,7 @@ const U3: Unite = {
     {
       id: 'gunluk-u3-d3',
       baslik: 'Alışveriş ve fiyatlar',
+      gorsel: '🏷️',
       not: 'Fiyat sorarken tekil için **How much is…?**, çoğul için **How much are…?** kullanılır. Yakındaki şeyler için **this** (tekil) / **these** (çoğul), uzaktakiler için **that** / **those** denir.\n\nMağazada işine yarayacak kalıplar:\n\n- How much are these jeans? — Bu kot pantolon ne kadar?\n- I\'m just looking, thanks. — Sadece bakıyorum, teşekkürler.\n- Can I try it on? — Deneyebilir miyim?\n- Do you have this in a medium? — Bunun orta bedeni var mı?\n- I\'ll take it. — Bunu alıyorum.\n- Can I pay by card? — Kartla ödeyebilir miyim?\n\nFiyatı okurken: $25 → **twenty-five dollars**, $4.50 → **four fifty** ya da four dollars and fifty cents. Daha ucuzunu istemek için **Do you have anything cheaper?**\n\n**Sık yapılan hata:** "How much is these shoes?" ❌ → "How much are these shoes?" ✅. Bir de Türkçedeki "kaç para"yı çevirip "How much money is it?" demek doğal değildir; sadece "How much is it?" ✅ de. "jeans", "pants", "glasses" gibi kelimeler hep çoğuldur: These jeans **are** nice.',
       alistirmalar: [
         {
@@ -1141,6 +1175,7 @@ const U3: Unite = {
         {
           tur: 'secmeli',
           id: 'gunluk-u3-d3-a9',
+          gorsel: '🕶️',
           metin:
             "Customer: Excuse me, how much are these sunglasses?\nAssistant: They're forty-five dollars.\nCustomer: Hmm, that's a bit expensive. Do you have anything cheaper?\nAssistant: Yes, these are twenty-five.\nCustomer: Great, I'll take them.",
           soru: 'Müşteri sonunda ne yapıyor?',
@@ -1164,6 +1199,7 @@ const U3: Unite = {
             'What does this jacket cost?',
             'How much is this coat?',
             'How much does this coat cost?',
+            'What does this coat cost?',
           ],
         },
         {
@@ -1191,11 +1227,13 @@ const U4: Unite = {
   id: 'gunluk-u4',
   seviye: 'A2',
   baslik: 'Şehirde ve Hafta Sonu',
+  gorsel: '🏙️',
   ozet: 'Çevreni there is/are ve yer edatlarıyla anlatmayı, yol sorup tarif etmeyi ve geçmiş zamanla hafta sonunu anlatmayı öğrenirsin.',
   dersler: [
     {
       id: 'gunluk-u4-d1',
       baslik: 'There is / there are ve yer edatları',
+      gorsel: '📍',
       not: 'Türkçedeki "…var" yapısının karşılığı **there is** (tekil ya da sayılamayan) ve **there are** (çoğul) yapısıdır.\n\n- **Olumsuz:** there isn\'t a…, there aren\'t any…\n- **Soru:** Is there a…? Are there any…?\n\n**Yer edatları:** in (içinde), on (üstünde), under (altında), next to (yanında), between (arasında), behind (arkasında), in front of (önünde), **across from** (karşısında; İngilizler "opposite" der).\n\n- There\'s a pharmacy next to the bank. — Bankanın yanında bir eczane var.\n- There are two parks in my neighborhood. — Mahallemde iki park var.\n- Is there an ATM near here? — Buralarda ATM var mı?\n- There aren\'t any good cafés around here. — Buralarda hiç iyi kafe yok.\n- The bus stop is across from the school. — Otobüs durağı okulun karşısında.\n\n**Sık yapılan hata:** "var"ı "have" ile çevirmek: "Have a bank near here?" ❌ → "Is there a bank near here?" ✅. Bir de çoğulla "is" kullanmak: "There is two cafés" ❌ → "There are two cafés" ✅',
       alistirmalar: [
         {
@@ -1308,6 +1346,7 @@ const U4: Unite = {
     {
       id: 'gunluk-u4-d2',
       baslik: 'Yol tarifi ve ulaşım',
+      gorsel: '🧭',
       not: '**Yol sormak:**\n\n- Excuse me, how do I get to the train station? — Affedersiniz, tren istasyonuna nasıl giderim?\n- Where\'s the nearest subway station? — En yakın metro istasyonu nerede?\n- Is it far from here? — Buraya uzak mı?\n\n**Tarif vermek:** go straight (ahead) (düz git), turn left / right (sola / sağa dön), take the second left (ikinci soldan dön), at the corner (köşede), at the traffic lights (ışıklarda), it\'s on your right (sağ tarafında).\n\n**Ulaşım:** by bus / by train / by car / by subway (metroyla), **on foot** (yürüyerek). Fiil olarak: **take** the bus, **get on** (binmek), **get off** (inmek). Süre sormak için: **How long does it take?** — It takes about ten minutes.\n\n**Sık yapılan hata:** Türkçedeki "otobüsle" ekini "with" ile çevirmek: "I go to school with bus" ❌ → "I go to school by bus" ✅ ya da "I take the bus to school" ✅. Bir de "Turn to left" ❌ → "Turn left" ✅ (to gereksiz). "by"dan sonra artikel gelmez: "by the bus" ❌.',
       alistirmalar: [
         {
@@ -1350,6 +1389,7 @@ const U4: Unite = {
         {
           tur: 'secmeli',
           id: 'gunluk-u4-d2-a5',
+          gorsel: '🗺️',
           metin:
             'A: Excuse me, is there a supermarket near here?\nB: Yes. Go straight down this street and take the second right. The supermarket is on your left, next to a bank.',
           soru: 'Süpermarket nerede?',
@@ -1370,7 +1410,7 @@ const U4: Unite = {
           secenekler: ['takes', 'spends', 'lasts', 'needs'],
           dogru: 0,
           aciklama:
-            'Yolculuğun ne kadar sürdüğünü "It takes…" ile söyleriz. "spend" bir kişinin zaman harcamasıdır (I spend ten minutes), "last" bir olayın sürmesidir (the movie lasts two hours).',
+            'Yolculuğun ne kadar sürdüğünü "It takes…" ile söyleriz. "spend" bir kişinin zaman harcamasıdır (I spend ten minutes), "last" bir olayın sürmesidir (the movie lasts two hours); "needs" ise süre bildirmek için kullanılmaz.',
         },
         {
           tur: 'konus',
@@ -1413,6 +1453,7 @@ const U4: Unite = {
             'I go to work on the bus.',
             'I travel to work by bus.',
             'I take a bus to work.',
+            'I ride the bus to work.',
           ],
         },
         {
@@ -1436,7 +1477,8 @@ const U4: Unite = {
     {
       id: 'gunluk-u4-d3',
       baslik: 'Geçmiş zaman: was / were ve -ed',
-      not: "**be** fiilinin geçmişi: I / he / she / it **was**, you / we / they **were**. Olumsuz: wasn't / weren't. Soru: Was it…? Were you…?\n\n**Düzenli fiiller** geçmişte **-ed** alır: work → worked, play → played, study → studied, stop → stopped. Bu hâl bütün öznelerde aynıdır.\n\n**Olumsuz ve soru** cümlelerinde **did** kullanılır ve fiil **yalın** hâline döner: I **didn't watch**, **Did** you **call** her?\n\n- I was at home last night. — Dün gece evdeydim.\n- We watched a movie yesterday. — Dün film izledik.\n- She didn't call me. — Beni aramadı.\n- Did you enjoy the concert? — Konserden keyif aldın mı?\n- They were very tired two days ago. — İki gün önce çok yorgunlardı.\n\n**-ed telaffuzu:** worked 'workt', played 'pleyd', wanted 'wantıd'. Yalnızca t ya da d ile biten fiillerde -ed ayrı bir hece olur.\n\n**Sık yapılan hata:** did'den sonra fiili de geçmiş yapmak: \"I didn't watched\" ❌ → \"I didn't watch\" ✅, \"Did you called?\" ❌ → \"Did you call?\" ✅. Geçmiş zaman sözcükleri: yesterday, last night/week, two days ago.",
+      gorsel: '🕰️',
+      not: "**be** fiilinin geçmişi: I / he / she / it **was**, you / we / they **were**. Olumsuz: wasn't / weren't. Soru: Was it…? Were you…?\n\n**Düzenli fiiller** geçmişte **-ed** alır: work → worked, play → played, study → studied, stop → stopped. Bu hâl bütün öznelerde aynıdır.\n\n**Olumsuz ve soru** cümlelerinde **did** kullanılır ve fiil **yalın** hâline döner: I **didn't watch**, **Did** you **call** her?\n\n- I was at home last night. — Dün gece evdeydim.\n- We watched a movie yesterday. — Dün film izledik.\n- She didn't call me. — Beni aramadı.\n- Did you enjoy the concert? — Konserden keyif aldın mı?\n- They were very tired two days ago. — İki gün önce çok yorgunlardı.\n\n**-ed telaffuzu:** worked 'wörkt', played 'pleyd', wanted 'wantıd'. Yalnızca t ya da d sesiyle biten fiillerde -ed ayrı bir hece ('ıd') olur.\n\n**Sık yapılan hata:** did'den sonra fiili de geçmiş yapmak: \"I didn't watched\" ❌ → \"I didn't watch\" ✅, \"Did you called?\" ❌ → \"Did you call?\" ✅. Geçmiş zaman sözcükleri: yesterday, last night/week, two days ago.",
       alistirmalar: [
         {
           tur: 'eslestir',
@@ -1491,7 +1533,7 @@ const U4: Unite = {
           secenekler: ['worked', 'played', 'wanted', 'watched'],
           dogru: 2,
           aciklama:
-            "-ed, yalnızca t ya da d ile biten fiillerde ayrı hece olur: want → 'wantıd'. worked 'workt', watched 'woçt', played 'pleyd' diye tek hece okunur.",
+            "-ed, yalnızca t ya da d sesiyle biten fiillerde ayrı hece olur: want → 'wantıd'. worked 'wörkt', watched 'waçt', played 'pleyd' diye tek hece okunur.",
         },
         {
           tur: 'konus',
@@ -1499,7 +1541,7 @@ const U4: Unite = {
           cumle: 'I wanted to call you, but I worked late.',
           anlam: 'Seni aramak istedim ama geç saate kadar çalıştım.',
           ipucu:
-            "\"wanted\" 'wantıd', \"worked\" 'workt' diye söylenir; -ed her zaman 'ed' diye okunmaz.",
+            "\"wanted\" 'wantıd', \"worked\" 'wörkt' diye söylenir; -ed her zaman 'ed' diye okunmaz.",
         },
         {
           tur: 'dinle',
@@ -1536,6 +1578,9 @@ const U4: Unite = {
             'The weather was very cold yesterday.',
             'Yesterday the weather was very cold.',
             'It was so cold yesterday.',
+            'Yesterday it was so cold.',
+            'The weather was really cold yesterday.',
+            'Yesterday the weather was really cold.',
           ],
           aciklama: 'Hava durumundan bahsederken özne olarak "it" kullanılır: It was cold.',
         },
@@ -1557,6 +1602,7 @@ const U4: Unite = {
     {
       id: 'gunluk-u4-d4',
       baslik: 'Hafta sonun nasıldı? Düzensiz fiiller',
+      gorsel: '🏖️',
       not: 'Sık kullanılan fiillerin çoğu geçmişte **düzensizdir**; -ed almaz, ezberlenir:\n\n- go → **went**, have → **had**, see → **saw**, eat → **ate**\n- meet → **met**, buy → **bought**, get → **got**, take → **took**, come → **came**\n\nDüzensiz hâl yalnızca **olumlu** cümlede kullanılır. Olumsuz ve soruda yine **did + yalın fiil** gelir: I went → I didn\'t go → Did you go?\n\nHafta sonu sohbeti:\n\n- How was your weekend? — Hafta sonun nasıldı?\n- It was great, thanks! — Harikaydı, teşekkürler!\n- What did you do? — Ne yaptın?\n- I went to the beach and met some friends. — Sahile gittim ve birkaç arkadaşımla buluştum.\n- Did you see the game? — Maçı izledin mi?\n\nCevabı kısa kesme: bir şey anlattıktan sonra **What about you?** diye sorarak sohbeti karşı tarafa aç.\n\n**Sık yapılan hata:** Düzensiz fiile -ed eklemek: "I goed" ❌ → "I went" ✅. Soruda iki kez geçmiş kullanmak: "Did you went?" ❌ → "Did you go?" ✅',
       alistirmalar: [
         {
@@ -1574,11 +1620,11 @@ const U4: Unite = {
         {
           tur: 'bosluk',
           id: 'gunluk-u4-d4-a2',
-          soru: 'On Saturday we ___ to the beach.',
+          soru: 'Last Saturday we ___ to the beach.',
           secenekler: ['goed', 'went', 'go', 'gone'],
           dogru: 1,
           aciklama:
-            '"go" düzensizdir; geçmişi "went"tir. "goed" diye bir kelime yoktur. "gone" üçüncü hâldir ve tek başına kullanılmaz (have gone).',
+            '"Last Saturday" geçmişi gösterir. "go" düzensizdir; geçmişi "went"tir. "goed" diye bir kelime yoktur. "gone" üçüncü hâldir ve tek başına kullanılmaz (have gone).',
         },
         {
           tur: 'bosluk',
@@ -1613,7 +1659,7 @@ const U4: Unite = {
         {
           tur: 'bosluk',
           id: 'gunluk-u4-d4-a6',
-          soru: 'I ___ a great movie on Friday.',
+          soru: 'I ___ a great movie last Friday.',
           secenekler: ['seen', 'see', 'saw', 'seed'],
           dogru: 2,
           aciklama:
@@ -1669,6 +1715,9 @@ const U4: Unite = {
             'I went to the cinema on Saturday with my friends.',
             'I went to the movie theater with my friends on Saturday.',
             'On Saturday I went to the movie theater with my friends.',
+            'I went to the movie theater on Saturday with my friends.',
+            'I went to see a movie with my friends on Saturday.',
+            'On Saturday I went to see a movie with my friends.',
           ],
           aciklama:
             'Amerikan İngilizcesinde "go to the movies", İngiliz İngilizcesinde "go to the cinema" denir.',
@@ -1682,11 +1731,13 @@ const U5: Unite = {
   id: 'gunluk-u5',
   seviye: 'B1',
   baslik: 'Planlar ve Davetler',
+  gorsel: '🗓️',
   ozet: 'Geleceği going to, will ve şimdiki zamanla anlatmayı, birini davet etmeyi, daveti kabul etmeyi ya da kibarca reddetmeyi öğrenirsin.',
   dersler: [
     {
       id: 'gunluk-u5-d1',
       baslik: 'going to: planlar ve niyetler',
+      gorsel: '🎯',
       not: '**be going to + yalın fiil** iki durumda kullanılır:\n\n- **Önceden verilmiş kararlar ve planlar:** I\'m going to learn Spanish next year.\n- **Gördüğün bir işarete dayanan tahminler:** Look at those clouds. It\'s going to rain.\n\n**Olumsuz:** I\'m not going to…, she isn\'t going to… **Soru:** Are you going to…? What are you going to do?\n\n- We\'re going to move to a bigger apartment. — Daha büyük bir daireye taşınacağız.\n- She isn\'t going to take the exam this year. — Bu yıl sınava girmeyecek.\n- What are you going to do after graduation? — Mezun olunca ne yapacaksın?\n- Careful! You\'re going to drop it! — Dikkat! Düşüreceksin!\n\nKonuşmada "going to" çoğu zaman **gonna** diye söylenir (I\'m gonna call her). Bu sadece konuşma dilidir; yazarken "going to" yaz.\n\n**Sık yapılan hata:** \'be\' fiilini unutmak: "I going to visit my aunt" ❌ → "I\'m going to visit my aunt" ✅. Bir de "to"dan sonra fiili çekimlemek: "She\'s going to visits" ❌ → "She\'s going to visit" ✅',
       alistirmalar: [
         {
@@ -1767,6 +1818,7 @@ const U5: Unite = {
         {
           tur: 'secmeli',
           id: 'gunluk-u5-d1-a9',
+          gorsel: '⛈️',
           soru: 'Gökyüzü kapkara, şimşekler çakıyor. Arkadaşına ne dersin?',
           secenekler: [
             "It's going to rain.",
@@ -1776,7 +1828,7 @@ const U5: Unite = {
           ],
           dogru: 0,
           aciklama:
-            'Şu an gördüğün bir işarete dayanarak tahmin yaptığın için "It\'s going to rain" en doğalıdır. "It rains" genel bir gerçeği anlatır; "will maybe" doğal bir sıra değildir (doğrusu "It\'ll probably rain").',
+            'Şu an gördüğün bir işarete dayanarak tahmin yaptığın için "It\'s going to rain" en doğalıdır. "It rains" genel bir gerçeği anlatır; "will maybe" doğal bir sıra değildir (doğrusu "It\'ll probably rain"); "It is raining tomorrow" ise hava gibi plana bağlı olmayan olaylar için kullanılmaz.',
         },
         {
           tur: 'yaz',
@@ -1793,6 +1845,11 @@ const U5: Unite = {
             "I'm going to take English classes this summer.",
             "I'm taking an English course this summer.",
             "I'll take an English course this summer.",
+            "This summer I'll take an English course.",
+            "I'm going to do an English course this summer.",
+            "I'm going to take English lessons this summer.",
+            "This summer I'm going to attend an English course.",
+            "I'll go to an English course this summer.",
           ],
         },
         {
@@ -1804,6 +1861,8 @@ const U5: Unite = {
             "I'm going to save some money.",
             "I'll save money.",
             "I'll save some money.",
+            "I'm going to save up money.",
+            "I'm going to save up.",
           ],
         },
       ],
@@ -1811,6 +1870,7 @@ const U5: Unite = {
     {
       id: 'gunluk-u5-d2',
       baslik: 'will: anlık kararlar, teklifler ve sözler',
+      gorsel: '🤝',
       not: "Türkçedeki \"-ecek\" ekini İngilizcede tek bir yapıyla karşılayamayız. **will** (kısaca 'll, olumsuzu **won't**) şu durumlarda kullanılır:\n\n- **Konuşma anında verilen kararlar:** I'll have the soup, please.\n- **Teklifler:** That looks heavy. I'll help you.\n- **Sözler:** I won't tell anyone. I promise.\n- **Fikre dayalı tahminler:** I think she'll love it. It'll probably be fine.\n\nTeklifte bulunurken soru biçimi: **Should I…?** ya da **Do you want me to…?** (İngilizler \"Shall I…?\" da der.)\n\n- The phone's ringing. — I'll get it! — Telefon çalıyor. — Ben bakarım!\n- Don't worry, I'll call you tonight. — Merak etme, bu akşam seni ararım.\n- I won't be late. — Geç kalmayacağım.\n- Should I open the window? — Pencereyi açayım mı?\n\n**Önceden planladıysan** going to, **o an karar verdiysen** will kullan.\n\n**Sık yapılan hata:** will'den sonra \"to\" kullanmak: \"I will to call you\" ❌ → \"I'll call you\" ✅. Kapı çaldığında \"I'm going to open it\" demek de tuhaf kaçar; o an karar verdiğin için \"I'll get it!\" ✅",
       alistirmalar: [
         {
@@ -1910,6 +1970,8 @@ const U5: Unite = {
             "I promise I'm not going to be late.",
             "I promise that I won't be late.",
             "I won't be late, I promise.",
+            "I promise that I'm not going to be late.",
+            "I'm not going to be late, I promise.",
           ],
         },
         {
@@ -1931,7 +1993,8 @@ const U5: Unite = {
     {
       id: 'gunluk-u5-d3',
       baslik: 'Davet etmek ve buluşma ayarlamak',
-      not: '**Kesinleşmiş planlar** (saat, yer, kişi belli) için genellikle **present continuous** kullanılır: I\'m meeting Ali on Friday. (Cuma Ali\'yle buluşuyorum.)\n\n**Davet etmek:**\n\n- Do you want to come to the movies? — Sinemaya gelmek ister misin?\n- Would you like to have dinner with us? — Bizimle yemek yemek ister misin?\n- How about going bowling? — Bowlinge gitmeye ne dersin?\n- Why don\'t we meet at six? — Neden altıda buluşmuyoruz?\n\n**Kabul etmek:** Sure, I\'d love to! / Sounds great! **Kibarca reddetmek:** I\'d love to, but I can\'t. I\'m working on Saturday. Maybe another time? **Ayarlamak:** Are you free on Friday? What time works for you?\n\nDikkat: **Would you like to + yalın fiil**, **How about + -ing**.\n\n**Sık yapılan hata:** "How about go to the cinema?" ❌ → "How about going to the movies?" ✅. Bir de daveti reddederken sadece "No" ya da "I don\'t want" demek çok sert kaçar; önce teşekkür et ya da "I\'d love to, but…" diye başla.',
+      gorsel: '💌',
+      not: '**Kesinleşmiş planlar** (saat, yer, kişi belli) için genellikle **present continuous** kullanılır: I\'m meeting Ali on Friday. (Cuma Ali\'yle buluşuyorum.)\n\n**Davet etmek:**\n\n- Do you want to come to the movies? — Sinemaya gelmek ister misin?\n- Would you like to have dinner with us? — Bizimle yemek yemek ister misin?\n- How about going bowling? — Bowlinge gitmeye ne dersin?\n- Why don\'t we meet at six? — Altıda buluşalım mı?\n\n**Kabul etmek:** Sure, I\'d love to! / Sounds great! **Kibarca reddetmek:** I\'d love to, but I can\'t. I\'m working on Saturday. Maybe another time? **Ayarlamak:** Are you free on Friday? What time works for you?\n\nDikkat: **Would you like to + yalın fiil**, **How about + -ing**.\n\n**Sık yapılan hata:** "How about go to the cinema?" ❌ → "How about going to the movies?" ✅. Bir de daveti reddederken sadece "No" ya da "I don\'t want" demek çok sert kaçar; önce teşekkür et ya da "I\'d love to, but…" diye başla.',
       alistirmalar: [
         {
           tur: 'eslestir',
@@ -2051,6 +2114,9 @@ const U5: Unite = {
             "I'd love to come, but I can't.",
             "I'd really like to, but I can't come.",
             "I'd love to, but I won't be able to come.",
+            "I'd really like to, but I can't.",
+            "I'd love to come, but I can't make it.",
+            "I'd love to, but I can't make it.",
           ],
         },
       ],
@@ -2062,11 +2128,13 @@ const U6: Unite = {
   id: 'gunluk-u6',
   seviye: 'B1',
   baslik: 'Deneyimler ve Sohbet',
+  gorsel: '💬',
   ozet: 'Present perfect ile deneyimlerini anlatmayı, telefonda rahat konuşmayı ve bir sohbeti doğal biçimde sürdürmeyi öğrenirsin.',
   dersler: [
     {
       id: 'gunluk-u6-d1',
       baslik: 'Present perfect: Hiç … yaptın mı?',
+      gorsel: '✈️',
       not: '**have / has + fiilin üçüncü hâli (V3)**, hayatında **ne zaman olduğu söylenmeyen** deneyimleri anlatır.\n\n- Soru: **Have you ever** tried sushi? (Hiç suşi denedin mi?)\n- Olumsuz: I\'ve **never** been to Japan. (Japonya\'ya hiç gitmedim.)\n- Kaç kez: She has visited Rome **twice**. (Roma\'ya iki kez gitti.)\n\nSık kullanılan V3\'ler: be → **been**, see → **seen**, eat → **eaten**, try → **tried**, do → **done**, meet → **met**.\n\n**been to** ve **gone to** farklıdır: "He has been to Paris" gidip dönmüştür; "He has gone to Paris" şu an oradadır.\n\n- Have you ever seen snow? — Hiç kar gördün mü?\n- I\'ve met a famous actor once. — Bir kez ünlü bir oyuncuyla tanıştım.\n- We\'ve never tried Thai food. — Tayland yemeğini hiç denemedik.\n\n**Zaman belirtince geçmiş zamana geç:** "Have you been to Cappadocia?" — "Yes, I went there last year."\n\n**Sık yapılan hata:** Belli bir geçmiş zamanla present perfect kullanmak: "I have visited Paris last year" ❌ → "I visited Paris last year" ✅. "last year, yesterday, in 2020" gibi ifadeler geçmiş zaman ister.',
       alistirmalar: [
         {
@@ -2094,10 +2162,10 @@ const U6: Unite = {
           tur: 'bosluk',
           id: 'gunluk-u6-d1-a3',
           soru: "I've never ___ to Japan, but I'd love to go.",
-          secenekler: ['gone', 'been', 'went', 'be'],
+          secenekler: ['being', 'been', 'went', 'be'],
           dogru: 1,
           aciklama:
-            'Bir yerde bulunma deneyimi "have been to" ile anlatılır. "have gone to" kişinin oraya gidip henüz dönmediğini anlatır; "went" ise have ile kullanılmaz.',
+            'Bir yerde bulunma deneyimi "have been to" ile anlatılır; have\'den sonra üçüncü hâl (V3) gelir. "went" geçmiş zaman hâlidir, have ile kullanılmaz; "be" yalın, "being" ise -ing hâlidir.',
         },
         {
           tur: 'secmeli',
@@ -2168,6 +2236,9 @@ const U6: Unite = {
             'Have you ever been to London?',
             'Have you been to London?',
             'Did you ever go to London?',
+            'Have you ever visited London?',
+            'Have you visited London?',
+            'Have you ever gone to London?',
           ],
           aciklama: 'Deneyim sorarken "Have you ever been to…?" en doğal kalıptır.',
         },
@@ -2193,6 +2264,7 @@ const U6: Unite = {
     {
       id: 'gunluk-u6-d2',
       baslik: 'just, already, yet ve for / since',
+      gorsel: '⏳',
       not: 'Present perfect, geçmişte başlayıp **şu anla bağlantısı olan** durumları da anlatır.\n\n- **just** — az önce: I\'ve just had lunch. (Az önce öğle yemeği yedim.)\n- **already** — çoktan, zaten: She\'s already left. (Çoktan çıktı.)\n- **yet** — henüz (olumsuz ve soruda, cümle sonunda): I haven\'t decided yet. / Have you finished yet?\n\n**Ne zamandır?** sorusu: **How long have you…?** Süre için **for**, başlangıç noktası için **since**:\n\n- I\'ve lived here **for** three years. — Üç yıldır burada yaşıyorum.\n- We\'ve known each other **since** high school. — Liseden beri birbirimizi tanıyoruz.\n- How long have you worked here? — Ne zamandır burada çalışıyorsun?\n\n**Sık yapılan hata:** Türkçedeki "-dır" ekini şimdiki ya da geniş zamanla çevirmek: "I live here for three years" ❌ → "I\'ve lived here for three years" ✅. "I know him since 2019" ❌ → "I\'ve known him since 2019" ✅. Bir de "since three years" ❌ → "for three years" ✅',
       alistirmalar: [
         {
@@ -2241,7 +2313,7 @@ const U6: Unite = {
           secenekler: ['since', 'during', 'ago', 'for'],
           dogru: 3,
           aciklama:
-            '"ten years" bir süredir; süreyle "for" kullanılır. "since ten years" Türkçedeki "on yıldan beri"den gelen yaygın bir hatadır; "since" yalnızca başlangıç noktasıyla (since 2015) kullanılır.',
+            '"ten years" bir süredir; süreyle "for" kullanılır. "since ten years" Türkçedeki "on yıldan beri"den gelen yaygın bir hatadır; "since" yalnızca başlangıç noktasıyla (since 2015) kullanılır. "during" bir sürecin içinde olanı anlatır (during the summer), "ago" ise geçmiş zamanla gelir.',
         },
         {
           tur: 'secmeli',
@@ -2305,6 +2377,7 @@ const U6: Unite = {
     {
       id: 'gunluk-u6-d3',
       baslik: 'Telefonda ve sohbette',
+      gorsel: '📞',
       not: '**Telefonda** kendini tanıtırken "I am" değil, **This is…** ya da **It\'s…** denir: "Hi, this is Ece."\n\n- Can I speak to Mr. Brown, please? — Bay Brown\'la görüşebilir miyim?\n- Hold on a second. — Bir saniye bekleyin.\n- He\'s not in right now. Can I take a message? — Şu an burada değil. Mesaj bırakmak ister misiniz?\n- Sorry, you\'re breaking up. — Pardon, sesin kesik kesik geliyor.\n- I\'ll call you back. — Seni geri ararım.\n\n**Sohbet (small talk)** soruları: How\'s it going? (Nasıl gidiyor?), What have you been up to? (Bu aralar neler yapıyorsun?). Sohbeti sürdürmek için kısa tepkiler ve karşı soru kullan: **Oh, really?**, **That sounds fun!**, **How was it?**, **What about you?**\n\n**Sık yapılan hata:** Telefonda "I am Ece" ❌ → "This is Ece" ✅ ya da "It\'s Ece" ✅. Arayanın kim olduğunu sorarken "Who are you?" ❌ kaba duyulur; "Who\'s calling, please?" ✅ ya da "May I ask who\'s calling?" ✅ de. Sohbette tek kelimelik cevaplar ("OK.", "Yes.") konuşmayı bitirir; bir soru ekle.',
       alistirmalar: [
         {
@@ -2326,7 +2399,7 @@ const U6: Unite = {
           secenekler: ['I', 'this', 'here', 'me'],
           dogru: 1,
           aciklama:
-            'Telefonda kendini tanıtırken "This is …" kalıbı kullanılır. "I is" ve "me is" dil bilgisi hatasıdır; "here is Ece" ise Türkçe/Almanca düşünmekten gelir.',
+            'Telefonda kendini tanıtırken "This is …" kalıbı kullanılır. "I is" ve "me is" dil bilgisi hatasıdır; "here is Ece" ise Almancadaki "Hier ist…" kalıbının çevirisidir, İngilizcede kullanılmaz.',
         },
         {
           tur: 'secmeli',
@@ -2345,6 +2418,7 @@ const U6: Unite = {
         {
           tur: 'dinle',
           id: 'gunluk-u6-d3-a4',
+          gorsel: '📱',
           cumle: "Sorry, I can't hear you. You're breaking up.",
           anlam: 'Pardon, seni duyamıyorum. Sesin kesik geliyor.',
           celdiriciler: ['listen', 'broken', 'are'],
@@ -2403,6 +2477,7 @@ const U6: Unite = {
             "I'll call you back.",
             "I'll give you a call later.",
             "I'll ring you later.",
+            "I'll phone you later.",
           ],
         },
         {
@@ -2429,12 +2504,14 @@ const U7: Unite = {
   id: 'gunluk-u7',
   seviye: 'B2',
   baslik: 'Fikirler ve Doğal Konuşma',
+  gorsel: '💡',
   ozet: 'Fikrini kibarca savunmayı, gerçek ve hayalî koşul cümlelerini, günlük konuşmada sık geçen phrasal verb ve deyimleri öğrenirsin.',
   dersler: [
     {
       id: 'gunluk-u7-d1',
       baslik: 'Fikir bildirmek ve kibarca itiraz etmek',
-      not: '**Fikir bildirmek:** I think…, In my opinion…, If you ask me…, I feel like… (Amerikan konuşma dilinde çok yaygın).\n\n**Katılmak:** I agree. / Exactly! / That\'s a good point. / I couldn\'t agree more. (Sonuna kadar katılıyorum.)\n\n**Kibarca itiraz etmek:** İngilizcede doğrudan "You\'re wrong" demek serttir. Önce karşı tarafı kabul et, sonra kendi fikrini söyle:\n\n- I see what you mean, but… — Ne demek istediğini anlıyorum ama…\n- That\'s true, but… — Doğru, ama…\n- I\'m not so sure about that. — Bundan pek emin değilim.\n- I see your point, but I think it depends. — Haklı olduğun bir nokta var ama bence duruma bağlı.\n\n- If you ask me, remote work is the future. — Bana sorarsan uzaktan çalışma gelecek.\n- I feel like prices are going up every week. — Bana öyle geliyor ki fiyatlar her hafta artıyor.\n\n**Sık yapılan hata:** "agree" bir fiildir, sıfat değil: "I am agree" ❌ → "I agree" ✅, "I am not agree" ❌ → "I don\'t agree" ✅. Bir de "According to me" ❌ doğal değildir → "In my opinion" ✅',
+      gorsel: '🗣️',
+      not: '**Fikir bildirmek:** I think…, In my opinion…, If you ask me…, I feel like… (Amerikan konuşma dilinde çok yaygın).\n\n**Katılmak:** I agree. / Exactly! / That\'s a good point. / I couldn\'t agree more. (Sonuna kadar katılıyorum.)\n\n**Kibarca itiraz etmek:** İngilizcede doğrudan "You\'re wrong" demek serttir. Önce karşı tarafı kabul et, sonra kendi fikrini söyle:\n\n- I see what you mean, but… — Ne demek istediğini anlıyorum ama…\n- That\'s true, but… — Doğru, ama…\n- I\'m not so sure about that. — Bundan pek emin değilim.\n- I see your point, but I think it depends. — Haklı olduğun bir nokta var ama bence duruma bağlı.\n\n- If you ask me, remote work is the future. — Bana sorarsan gelecek uzaktan çalışmanın.\n- I feel like prices are going up every week. — Bana öyle geliyor ki fiyatlar her hafta artıyor.\n\n**Sık yapılan hata:** "agree" bir fiildir, sıfat değil: "I am agree" ❌ → "I agree" ✅, "I am not agree" ❌ → "I don\'t agree" ✅. Bir de "According to me" ❌ doğal değildir → "In my opinion" ✅',
       alistirmalar: [
         {
           tur: 'eslestir',
@@ -2482,10 +2559,10 @@ const U7: Unite = {
           tur: 'bosluk',
           id: 'gunluk-u7-d1-a5',
           soru: "That's ___ good point. I hadn't thought of that.",
-          secenekler: ['the', 'a', 'an', 'one'],
+          secenekler: ['the', 'a', 'an', 'any'],
           dogru: 1,
           aciklama:
-            'Kalıp "That\'s a good point"tir. "an" sesli harfle başlayan kelimeden önce gelir (good sessizle başlar); "the" belirli bir noktayı işaret eder ve burada doğal değildir.',
+            'Kalıp "That\'s a good point"tir. "an" sesli harfle başlayan kelimeden önce gelir (good sessizle başlar); "the" belirli bir noktayı işaret eder ve burada doğal değildir; "any" ise olumlu cümlede tekil isimle bu anlamı vermez.',
         },
         {
           tur: 'secmeli',
@@ -2561,7 +2638,8 @@ const U7: Unite = {
     {
       id: 'gunluk-u7-d2',
       baslik: 'First conditional: gerçek ihtimaller',
-      not: "Gelecekte **gerçekten olabilecek** bir durumu ve sonucunu anlatırken:\n\n**If + present simple, will + yalın fiil**\n\n- If it rains, we'll stay home. — Yağmur yağarsa evde kalırız.\n- If you need anything, just let me know. — Bir şeye ihtiyacın olursa bana haber ver.\n- I'll tell him if I see him. — Onu görürsem söylerim.\n- We'll miss the train unless we hurry. — Acele etmezsek treni kaçıracağız.\n\n**if** ile başlayan cümlede araya virgül konur; sonuç başta gelirse virgül gerekmez. **unless** = if … not (…-medikçe, …-mazsa). Sonuç kısmında will yerine **can, may, might** ya da emir de gelebilir: If you're tired, go to bed.\n\n**when** kesin olacak şeyler için, **if** ihtimal için: When I get home, I'll call you. (Eve varacağım kesin.)\n\n**Sık yapılan hata:** if'li kısımda da will kullanmak: \"If it will rain, I will stay home\" ❌ → \"If it rains, I'll stay home\" ✅. Türkçedeki \"-ırsa\" geleceği anlatsa da İngilizcede if'ten sonra geniş zaman gelir. Aynı kural when, as soon as ve before için de geçerlidir.",
+      gorsel: '🌧️',
+      not: "Gelecekte **gerçekten olabilecek** bir durumu ve sonucunu anlatırken:\n\n**If + present simple, will + yalın fiil**\n\n- If it rains, we'll stay home. — Yağmur yağarsa evde kalırız.\n- If you need anything, just let me know. — Bir şeye ihtiyacın olursa bana haber ver.\n- I'll tell him if I see him. — Onu görürsem söylerim.\n- We'll miss the train unless we hurry. — Acele etmezsek treni kaçıracağız.\n\n**if** ile başlayan cümlede araya virgül konur; sonuç başta gelirse virgül gerekmez. **unless** = if … not (…-medikçe, …-mazsa). Sonuç kısmında will yerine **can, may, might** ya da emir de gelebilir: If you're tired, go to bed.\n\n**when** kesin olacak şeyler için, **if** ihtimal için: When I get home, I'll call you. (Eve varacağım kesin.)\n\n**Sık yapılan hata:** if'li kısımda da will kullanmak: \"If it will rain, I will stay home\" ❌ → \"If it rains, I'll stay home\" ✅. Türkçedeki \"-ırsa / -erse\" geleceği anlatsa da İngilizcede if'ten sonra geniş zaman (present simple) gelir. Aynı kural when, as soon as ve before için de geçerlidir.",
       alistirmalar: [
         {
           tur: 'eslestir',
@@ -2668,6 +2746,9 @@ const U7: Unite = {
             "We'll have coffee together if you come early.",
             'We can have coffee together if you come early.',
             "We'll drink coffee together if you come early.",
+            'We can drink coffee together if you come early.',
+            "If you get here early, we'll drink coffee together.",
+            "We'll have coffee together if you get here early.",
           ],
         },
         {
@@ -2682,6 +2763,9 @@ const U7: Unite = {
             "We'll miss the train if we don't hurry up.",
             "We'll miss the train unless we hurry.",
             "If we don't hurry, we're going to miss the train.",
+            "Unless we hurry up, we'll miss the train.",
+            "If we don't hurry up, we're going to miss the train.",
+            "We're going to miss the train if we don't hurry.",
           ],
         },
       ],
@@ -2689,6 +2773,7 @@ const U7: Unite = {
     {
       id: 'gunluk-u7-d3',
       baslik: 'Second conditional: hayaller ve tavsiyeler',
+      gorsel: '💭',
       not: '**Gerçek olmayan ya da pek olası görünmeyen** durumları hayal ederken:\n\n**If + past simple, would + yalın fiil**\n\nGeçmiş zaman kullanılsa da anlam **şimdi ya da gelecek** hakkındadır.\n\n- If I had more free time, I\'d learn the guitar. — Daha çok boş vaktim olsa gitar öğrenirdim. (Ama yok.)\n- If I won the lottery, I would travel the world. — Piyango kazansam dünyayı gezerdim.\n- What would you do if you lost your phone? — Telefonunu kaybetsen ne yapardın?\n- She would be happier if she lived near the sea. — Denize yakın yaşasa daha mutlu olurdu.\n\n**Tavsiye kalıbı:** **If I were you, I\'d…** (Senin yerinde olsam…). Resmî İngilizcede bütün öznelerle **were** kullanılır; konuşmada "If I was" da duyulur.\n\nKarşılaştır: "If I have time, I\'ll call you" (olabilir) / "If I had time, I\'d call you" (ama vaktim yok).\n\n**Sık yapılan hata:** if\'li kısımda da would kullanmak: "If I would have money, I would buy it" ❌ → "If I had the money, I would buy it" ✅. would yalnızca sonuç kısmına gelir.',
       alistirmalar: [
         {
@@ -2812,6 +2897,8 @@ const U7: Unite = {
             'If I was you, I would tell her.',
             'I would tell him if I were you.',
             'I would tell her if I were you.',
+            'I would tell him if I was you.',
+            'I would tell her if I was you.',
           ],
           aciklama:
             '"ona" bir erkekse "him", kadınsa "her" olur. "I\'d" kısaltması da kabul edilir.',
@@ -2821,7 +2908,8 @@ const U7: Unite = {
     {
       id: 'gunluk-u7-d4',
       baslik: "Phrasal verb'ler ve gündelik deyimler",
-      not: '**Phrasal verb**, fiil + edat birleşimidir ve anlamı çoğu zaman kelimelerden tahmin edilemez. Günlük konuşmada çok sık geçenler:\n\n- **figure out** — çözmek, anlamak: I can\'t figure out this app.\n- **run out of** — tükenmek: We\'ve run out of milk.\n- **hang out** — takılmak: Do you want to hang out later?\n- **give up** — vazgeçmek, pes etmek: Don\'t give up!\n- **put off** — ertelemek: Stop putting it off.\n- **look forward to** — dört gözle beklemek: I\'m looking forward to the trip.\n\n**Nesne zamirse ortaya girer:** turn **it** off ✅, turn off **it** ❌; figure **it** out ✅.\n\n**Deyimler:** It\'s a **piece of cake** (çok kolay), **call it a day** (bugünlük paydos etmek), **under the weather** (halsiz, keyifsiz), **break the ice** (buzları eritmek).\n\n**Sık yapılan hata:** "look forward to" içindeki "to" bir edattır; arkasından fiil -ing alır: "I\'m looking forward to see you" ❌ → "I\'m looking forward to seeing you" ✅',
+      gorsel: '🧩',
+      not: '**Phrasal verb**, fiil + edat ya da zarf (particle) birleşimidir ve anlamı çoğu zaman kelimelerden tahmin edilemez. Günlük konuşmada çok sık geçenler:\n\n- **figure out** — çözmek, anlamak: I can\'t figure out this app.\n- **run out of** — tükenmek: We\'ve run out of milk.\n- **hang out** — takılmak: Do you want to hang out later?\n- **give up** — vazgeçmek, pes etmek: Don\'t give up!\n- **put off** — ertelemek: Stop putting it off.\n- **look forward to** — dört gözle beklemek: I\'m looking forward to the trip.\n\n**Ayrılabilen phrasal verb\'lerde nesne zamirse ortaya girer:** turn **it** off ✅, turn off **it** ❌; figure **it** out ✅. (look after, run out of gibi ayrılmayanlarda zamir sonda kalır: look after **it**.)\n\n**Deyimler:** It\'s a **piece of cake** (çok kolay), **call it a day** (bugünlük paydos etmek), **under the weather** (halsiz, keyifsiz), **break the ice** (buzları eritmek).\n\n**Sık yapılan hata:** "look forward to" içindeki "to" bir edattır; arkasından fiil -ing alır: "I\'m looking forward to see you" ❌ → "I\'m looking forward to seeing you" ✅',
       alistirmalar: [
         {
           tur: 'eslestir',
@@ -2947,6 +3035,9 @@ const U7: Unite = {
             "I've finally solved the problem.",
             "I've finally figured out the problem.",
             "I've finally fixed the problem.",
+            'Finally, I figured the problem out.',
+            'I finally worked out the problem.',
+            'I finally sorted out the problem.',
           ],
         },
       ],

@@ -11,6 +11,8 @@ export type Seviye = 'A1' | 'A2' | 'B1' | 'B2' | 'C1';
 export interface SecmeliAlistirma {
   tur: 'bosluk' | 'secmeli';
   id: string;
+  /** İsteğe bağlı görsel ipucu: tek emoji (ör. kelime sorusunda nesnenin kendisi). Cevabı ele vermemeli. */
+  gorsel?: string;
   /** Okuma parçası ya da diyalog; yoksa yalnızca soru. */
   metin?: string;
   soru: string;
@@ -25,6 +27,8 @@ export interface SecmeliAlistirma {
 export interface DinleAlistirma {
   tur: 'dinle';
   id: string;
+  /** İsteğe bağlı görsel ipucu: tek emoji (ör. kelime sorusunda nesnenin kendisi). Cevabı ele vermemeli. */
+  gorsel?: string;
   /** Okunacak ve kurulacak İngilizce cümle. */
   cumle: string;
   /** Türkçe anlamı — cevaptan sonra gösterilir. */
@@ -38,6 +42,8 @@ export interface DinleAlistirma {
 export interface KonusAlistirma {
   tur: 'konus';
   id: string;
+  /** İsteğe bağlı görsel ipucu: tek emoji (ör. kelime sorusunda nesnenin kendisi). Cevabı ele vermemeli. */
+  gorsel?: string;
   cumle: string;
   anlam: string;
   /** Telaffuz ipucu, Türkçe (vurgu, yutulan ses, "th" gibi). */
@@ -48,6 +54,8 @@ export interface KonusAlistirma {
 export interface YazAlistirma {
   tur: 'yaz';
   id: string;
+  /** İsteğe bağlı görsel ipucu: tek emoji (ör. kelime sorusunda nesnenin kendisi). Cevabı ele vermemeli. */
+  gorsel?: string;
   /** Türkçe cümle. */
   kaynak: string;
   /** Kabul edilen İngilizce karşılıklar; ilki ekranda "doğru cevap" diye gösterilir. */
@@ -68,6 +76,8 @@ export type Alistirma =
 export interface Ders {
   id: string;
   baslik: string;
+  /** Dersin simgesi: tek emoji. */
+  gorsel: string;
   /** Dersten önce okunan kısa konu anlatımı: kural, örnekler, sık yapılan hata. Türkçe, düz metin; `**kalın**` ve `- madde` desteklenir. */
   not: string;
   alistirmalar: readonly Alistirma[];
@@ -77,6 +87,8 @@ export interface Unite {
   id: string;
   seviye: Seviye;
   baslik: string;
+  /** Ünitenin simgesi: tek emoji (ders yolunda büyük gösterilir). */
+  gorsel: string;
   /** Tek cümle: bu ünitede ne öğreniliyor. */
   ozet: string;
   dersler: readonly Ders[];

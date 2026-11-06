@@ -1,4 +1,4 @@
-import { Check, Flame, Lock, Play, RotateCcw, Zap } from 'lucide-react';
+import { Check, Flame, Lock, RotateCcw, Zap } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
@@ -17,6 +17,19 @@ export const metadata: Metadata = {
 type SayfaProps = { searchParams: Promise<Record<string, string | string[] | undefined>> };
 
 const GUN_KISA = ['Pz', 'Pt', 'Sa', 'Ça', 'Pe', 'Cu', 'Ct'];
+
+/** Ders yolu sağa sola kıvrılır (Duolingo gibi); piksel kayma, telefonda da sığar. */
+const YOL_KAYMASI = [0, 44, 66, 44, 0, -44, -66, -44];
+
+const UNITE_RENKLERI = [
+  'from-teal-500 to-emerald-600',
+  'from-sky-500 to-indigo-600',
+  'from-violet-500 to-fuchsia-600',
+  'from-amber-500 to-orange-600',
+  'from-rose-500 to-pink-600',
+  'from-emerald-500 to-lime-600',
+  'from-indigo-500 to-blue-700',
+];
 
 /**
  * `/panel/ingilizce` — üç parkur (günlük, yazılım, sınav), üniteler temelden ileriye
@@ -45,7 +58,10 @@ export default async function IngilizcePage({ searchParams }: SayfaProps) {
                 <span className="ust-etiket">Seri</span>
                 <span className="flex items-center gap-2 text-3xl font-semibold">
                   <Flame
-                    className={cn('size-7', d.bugunYapildi ? 'text-orange-400' : 'text-white/40')}
+                    className={cn(
+                      'size-7',
+                      d.bugunYapildi ? 'ing-alev text-orange-400' : 'text-white/40',
+                    )}
                     aria-hidden="true"
                   />
                   <span className="tabular">{d.seri}</span>
@@ -158,82 +174,107 @@ export default async function IngilizcePage({ searchParams }: SayfaProps) {
 
           {parkur.uniteler.map((u, ui) => {
             const biten = u.dersler.filter((x) => tamamlanan.has(x.id)).length;
+            const renk = UNITE_RENKLERI[ui % UNITE_RENKLERI.length]!;
             return (
               <section
                 key={u.id}
                 aria-labelledby={`${u.id}-baslik`}
-                className="rounded-card border-line bg-surface flex flex-col gap-3 border p-4"
+                className="flex flex-col gap-5"
               >
-                <header className="flex items-start gap-3">
-                  <span className="bg-accent/15 text-accent tabular rounded-lg px-2 py-1 text-xs font-bold">
-                    {u.seviye}
+                <header
+                  className={cn(
+                    'flex items-center gap-3 rounded-[1.4rem] bg-gradient-to-br p-4 text-white shadow-[var(--golge-kart)]',
+                    renk,
+                  )}
+                >
+                  <span
+                    className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-white/20 text-3xl"
+                    aria-hidden="true"
+                  >
+                    {u.gorsel}
                   </span>
                   <div className="flex min-w-0 flex-1 flex-col">
-                    <h2 id={`${u.id}-baslik`} className="text-primary font-semibold">
-                      {ui + 1}. {u.baslik}
+                    <span className="text-[11px] font-bold tracking-wider text-white/85 uppercase">
+                      {ui + 1}. ünite · {u.seviye}
+                    </span>
+                    <h2 id={`${u.id}-baslik`} className="font-semibold">
+                      {u.baslik}
                     </h2>
-                    <p className="text-muted text-xs">{u.ozet}</p>
+                    <p className="text-xs text-white/85">{u.ozet}</p>
                   </div>
-                  <span className="text-muted tabular text-xs">
+                  <span className="tabular shrink-0 rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold">
                     {biten}/{u.dersler.length}
                   </span>
                 </header>
-                <ol className="flex flex-col gap-1.5">
-                  {u.dersler.map((ders) => {
+                <ol className="flex flex-col items-center gap-4">
+                  {u.dersler.map((ders, di) => {
                     const konum = dersBul(ders.id)!;
                     const bitti = tamamlanan.has(ders.id);
                     const acik = acikMi(konum, tamamlanan);
                     const simdi = siradaki?.id === ders.id;
-                    const icerik = (
-                      <>
-                        <span
-                          className={cn(
-                            'flex size-9 shrink-0 items-center justify-center rounded-full',
-                            bitti
-                              ? 'bg-success text-white'
-                              : simdi
-                                ? 'bg-accent text-white'
-                                : 'bg-elevated text-muted',
-                          )}
-                        >
-                          {bitti ? (
-                            <Check className="size-4" aria-hidden="true" />
-                          ) : acik ? (
-                            <Play className="size-4" aria-hidden="true" />
-                          ) : (
-                            <Lock className="size-4" aria-hidden="true" />
-                          )}
+                    const kayma = YOL_KAYMASI[(di + ui) % YOL_KAYMASI.length]!;
+                    const daire = (
+                      <span
+                        className={cn(
+                          'relative isolate flex size-[4.5rem] items-center justify-center rounded-full text-3xl transition-transform',
+                          bitti
+                            ? 'bg-gradient-to-br from-amber-300 to-amber-500 shadow-[0_6px_0_#b45309]'
+                            : simdi
+                              ? 'bg-accent ing-nabiz shadow-[0_6px_0_var(--accent-hover)]'
+                              : acik
+                                ? 'bg-accent/70 shadow-[0_6px_0_var(--accent-hover)]'
+                                : 'bg-elevated shadow-[0_6px_0_var(--border)] grayscale',
+                          acik && 'active:translate-y-1 active:shadow-none',
+                        )}
+                      >
+                        <span aria-hidden="true" className={cn(!acik && 'opacity-40')}>
+                          {ders.gorsel}
                         </span>
-                        <span className="flex min-w-0 flex-1 flex-col">
-                          <span className={cn('text-sm', acik ? 'text-primary' : 'text-muted')}>
-                            {ders.baslik}
-                          </span>
-                          <span className="text-muted text-xs">
-                            {ders.alistirmalar.length} soru
-                            {bitti ? ' · tamamlandı' : ''}
-                          </span>
-                        </span>
-                        {simdi && (
-                          <span className="bg-accent rounded-full px-3 py-1 text-xs font-semibold text-white">
-                            Başla
+                        {bitti && (
+                          <span className="bg-success absolute -right-1 -bottom-1 flex size-6 items-center justify-center rounded-full text-white ring-2 ring-[var(--bg-base)]">
+                            <Check className="size-3.5" aria-hidden="true" />
                           </span>
                         )}
+                        {!acik && (
+                          <span className="bg-elevated text-muted absolute -right-1 -bottom-1 flex size-6 items-center justify-center rounded-full ring-2 ring-[var(--bg-base)]">
+                            <Lock className="size-3" aria-hidden="true" />
+                          </span>
+                        )}
+                      </span>
+                    );
+                    const icerik = (
+                      <>
+                        {simdi && (
+                          <span className="bg-surface text-accent border-line ing-suzul mb-1 rounded-xl border px-3 py-1 text-xs font-bold tracking-wide shadow-sm">
+                            BAŞLA
+                          </span>
+                        )}
+                        {daire}
+                        <span
+                          className={cn(
+                            'mt-2 max-w-40 text-center text-xs leading-tight font-medium',
+                            acik ? 'text-primary' : 'text-muted',
+                          )}
+                        >
+                          {ders.baslik}
+                        </span>
                       </>
                     );
                     return (
-                      <li key={ders.id}>
+                      <li key={ders.id} style={{ transform: `translateX(${kayma}px)` }}>
                         {acik ? (
                           <Link
                             href={`/panel/ingilizce/ders/${ders.id}`}
-                            className={cn(
-                              'focus-ring flex items-center gap-3 rounded-2xl px-2 py-2',
-                              simdi && 'bg-accent/8',
-                            )}
+                            aria-label={`${ders.baslik}${bitti ? ' — tamamlandı' : simdi ? ' — sıradaki ders' : ''}`}
+                            className="focus-ring flex flex-col items-center rounded-2xl p-1"
                           >
                             {icerik}
                           </Link>
                         ) : (
-                          <div className="flex items-center gap-3 rounded-2xl px-2 py-2 opacity-70">
+                          <div
+                            aria-label={`${ders.baslik} — kilitli`}
+                            className="flex flex-col items-center p-1"
+                          >
                             {icerik}
                           </div>
                         )}
@@ -244,7 +285,6 @@ export default async function IngilizcePage({ searchParams }: SayfaProps) {
               </section>
             );
           })}
-
           <HedefSecici hedef={d.hedefXp} />
         </div>
       </main>
