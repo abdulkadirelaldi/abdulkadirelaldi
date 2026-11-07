@@ -5,8 +5,9 @@ import { db } from '@/server/db';
 
 /**
  * HATA İZLEME (2026-10-31) — panelde bir şey ters gidince sahibi söylemeden
- * görülebilsin. Kaynaklar: sunucu (`instrumentation.ts` → `onRequestError`)
- * ve ekran (panel hata sınırı → `istemciHatasiAction`).
+ * görülebilsin. Kaynaklar: sunucu (`instrumentation.ts` → `onRequestError`),
+ * ekran (panel hata sınırı → `istemciHatasiAction`) ve içerik (İngilizce dersinde
+ * "Bu soruda hata var" → `ingilizceHataBildirAction`).
  *
  * KİŞİSEL VERİ TUTULMAZ: mesajın yalnızca ilk satırı, 300 karaktere kısaltılmış;
  * e-posta ve 6+ haneli sayılar maskelenir (kart, telefon, kimlik); yoldan sorgu
@@ -16,7 +17,8 @@ import { db } from '@/server/db';
  * Kayıt yazılamazsa sessizce geçer: hata kaydı asıl hatayı BÜYÜTMEMELİ.
  */
 
-export type HataKaynagi = 'sunucu' | 'istemci';
+/** `icerik`: kullanıcının bildirdiği içerik hatası (İngilizce sorusu, 2026-11-06). */
+export type HataKaynagi = 'sunucu' | 'istemci' | 'icerik';
 
 /** Mesajı saklanabilir hâle getirir. SAF. */
 export function hataMetni(ham: string): string {

@@ -2,6 +2,7 @@
 
 import * as z from 'zod';
 
+import { alistirmaBul, dersBul } from '@/lib/ingilizce/mufredat';
 import { db } from '@/server/db';
 import { fail, ok, parseOrFail, writeAuditLog, type ApiResponse } from '@/server/services/_shared';
 import {
@@ -10,6 +11,7 @@ import {
   VARSAYILAN_HEDEF,
   type DersSonucu,
 } from '@/server/services/ingilizce';
+import { hataKaydet } from '@/server/services/hata-kaydi';
 
 import { currentActorId, toFailure, unauthorized } from './_shared';
 
@@ -75,4 +77,32 @@ export async function ingilizceHedefAction(raw: unknown): Promise<ApiResponse<{ 
   } catch (error) {
     return toFailure('ingilizce:hedef', error);
   }
+}
+
+const bildirSchema = z.object({
+  alistirmaId: kimlik,
+  dersId: kimlik,
+  not: z.string().trim().max(500),
+});
+
+/**
+ * "Bu soruda hata var" (2026-11-06): Ayarlar → Hatalar'a İçerik kaynağıyla düşer; soru
+ * kimliği ayrıntıda. Aynı soruya aynı not tekrar gelirse sayaç artar.
+ */
+export async function ingilizceHataBildirAction(raw: unknown): Promise<ApiResponse<{ ok: true }>> {
+  const actorId = await currentActorId();
+  if (!actorId) return unauthorized();
+  const parsed = parseOrFail(bildirSchema, raw);
+  if (!parsed.ok) return parsed.failure;
+  const { alistirmaId, dersId, not } = parsed.data;
+  if (!alistirmaBul(alistirmaId)) return fail('NOT_FOUND', 'Bu soru bulunamadı.');
+
+  await hataKaydet({
+    kaynak: 'icerik',
+    ad: `İngilizce · ${dersBul(dersId)?.ders.baslik ?? 'Tekrar'}`,
+    mesaj: not || 'Soruda hata bildirildi (not yok).',
+    yol: `/panel/ingilizce/ders/${dersId}`,
+    ayrinti: alistirmaId,
+  });
+  return ok({ ok: true });
 }

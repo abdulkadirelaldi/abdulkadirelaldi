@@ -282,6 +282,9 @@ const DENETIM_ISTISNALARI: Record<string, string> = {
     'OKUMA — hızlı harcamada hesap seçimi için, hiçbir şey yazmaz.',
   'src/server/actions/hizli-ekle.ts → sonKiloAction':
     'OKUMA — kilo formunda son tartıyı gösterir, hiçbir şey yazmaz.',
+  'src/server/actions/ingilizce.ts → ingilizceHataBildirAction':
+    'GÜNLÜK, mutasyon değil — kullanıcı verisi değişmez; bildirim hata kaydına düşer ve ' +
+    'kaydın kendisi iz (`istemciHatasiAction` ile aynı gerekçe).',
   'src/server/actions/hata-kaydi.ts → istemciHatasiAction':
     'GÜNLÜK, mutasyon değil — kullanıcı verisi değişmez; hata kaydının KENDİSİ bir iz. Her ' +
     'hata için denetim satırı yazmak, döngüdeki bir hatada denetim kaydını boğardı.',

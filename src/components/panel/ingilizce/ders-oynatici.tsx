@@ -19,6 +19,7 @@ import {
   YazSoru,
   type Cevap,
 } from './alistirmalar';
+import { HataBildir } from './hata-bildir';
 import { Konfeti, Sayac } from './kutlama';
 import { Maskot } from './maskot';
 import { NotMetni } from './not-metni';
@@ -358,6 +359,7 @@ export function DersOynatici({
                 {geri.aciklama}
               </p>
             )}
+            <HataBildir key={simdiki.id} alistirmaId={simdiki.id} dersId={dersId} />
             <button
               type="button"
               autoFocus
