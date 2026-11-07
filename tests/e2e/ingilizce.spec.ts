@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-import { dersBul } from '../../src/lib/ingilizce/mufredat';
+import { alistirmaBul, dersBul, PARKURLAR } from '../../src/lib/ingilizce/mufredat';
 import type { Alistirma } from '../../src/lib/ingilizce/tipler';
 
 import { adminCredentials, findAdminUser, icerikHatasiSil, ingilizceSondaSil } from './_helpers/db';
@@ -107,5 +107,48 @@ test('ilk ders oynanır, XP kaydedilir', async ({ page, baseURL }) => {
   } finally {
     await ingilizceSondaSil(DERS, baslangic);
     await icerikHatasiSil(DERS, baslangic);
+  }
+});
+
+test('atlama sınavı: 2. ünite geçilince ilk iki ünitenin dersleri açılır', async ({
+  page,
+  baseURL,
+}) => {
+  test.setTimeout(120_000);
+  const baslangic = new Date();
+  const { email } = adminCredentials();
+  const yonetici = await findAdminUser();
+  await applySessionCookie(
+    page.context(),
+    { userId: yonetici.id, email, twoFactorEnabled: true },
+    baseURL ?? 'http://127.0.0.1:3100',
+  );
+  const [u1, u2] = PARKURLAR[0]!.uniteler;
+  const kimlikler = [`atla-${u2!.id}`, ...[u1!, u2!].flatMap((u) => u.dersler.map((d) => d.id))];
+
+  try {
+    await page.goto(`/panel/ingilizce/ders/atla-${u2!.id}`);
+    await page.getByRole('button', { name: /Derse başla/ }).click();
+    for (let tur = 0; tur < 20; tur += 1) {
+      if (
+        await page
+          .getByRole('heading', { name: /Sınavı geçtin|Bu sefer olmadı|Sınav bitti/ })
+          .isVisible()
+      )
+        break;
+      const id = await page.locator('[data-alistirma]').getAttribute('data-alistirma');
+      await cevapla(page, alistirmaBul(id!)!);
+      await page.getByRole('button', { name: 'Devam' }).click();
+    }
+    await expect(page.getByRole('heading', { name: 'Sınavı geçtin!' })).toBeVisible();
+    await expect(page.getByText(/ders açıldı/)).toBeVisible();
+
+    // 2. ünitenin son dersi artık açık: bağlantı olarak görünür.
+    await page.goto('/panel/ingilizce?parkur=gunluk');
+    await expect(
+      page.getByRole('link', { name: new RegExp(kacis(u2!.dersler.at(-1)!.baslik)) }),
+    ).toBeVisible();
+  } finally {
+    await ingilizceSondaSil(kimlikler, baslangic);
   }
 });

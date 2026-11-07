@@ -1,5 +1,12 @@
 import process from 'node:process';
 
+/**
+ * Zaman koşullu temizlik için bir saatlik pay (2026-11-07): `createdAt` veritabanının saatiyle
+ * yazılıyor, yerel veritabanı Mac uyuyup uyanınca saati geride kalan bir sanal makinede.
+ * Kayıt testin başlangıç anından "önce" görünüp silinmeden kalıyordu.
+ */
+const payli = (sonra: string): Date => new Date(new Date(sonra).getTime() - 60 * 60_000);
+
 import { hashBackupCodes } from '@/server/auth/backup-codes';
 import { hashEmail } from '@/server/auth/login-attempt';
 import { encryptSecret } from '@/server/auth/totp';
@@ -347,7 +354,7 @@ const komutlar: Record<string, (arg?: string) => Promise<unknown>> = {
       where: {
         kaynak: 'icerik',
         ayrinti: { startsWith: `${dersId}-` },
-        ilk: { gte: new Date(sonra) },
+        ilk: { gte: payli(sonra) },
       },
     });
     return { silinen: silinen.count };
@@ -355,10 +362,16 @@ const komutlar: Record<string, (arg?: string) => Promise<unknown>> = {
 
   /** İngilizce e2e'sinin ders kayıtlarını siler: o dersin, testin başladığı andan sonraki satırları (2026-11-06). */
   async ingilizceSondaSil(arg) {
-    const { dersId, sonra } = JSON.parse(arg ?? '{}') as { dersId: string; sonra: string };
+    const { dersId, sonra } = JSON.parse(arg ?? '{}') as {
+      dersId: string | string[];
+      sonra: string;
+    };
     if (!dersId || !sonra) throw new Error('ingilizceSondaSil: dersId ve sonra zorunlu.');
     const silinen = await db.ingilizceDers.deleteMany({
-      where: { dersId, createdAt: { gte: new Date(sonra) } },
+      where: {
+        dersId: Array.isArray(dersId) ? { in: dersId } : dersId,
+        createdAt: { gte: payli(sonra) },
+      },
     });
     return { silinen: silinen.count };
   },
