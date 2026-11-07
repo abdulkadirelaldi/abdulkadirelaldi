@@ -1,4 +1,4 @@
-import { Check, Flame, Lock, RotateCcw, Zap } from 'lucide-react';
+import { Check, FastForward, Flame, Lock, RotateCcw, Zap } from 'lucide-react';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 
@@ -7,7 +7,14 @@ import { Topbar } from '@/components/panel/topbar';
 import { dersBul, PARKURLAR, parkurBul } from '@/lib/ingilizce/mufredat';
 import { cn } from '@/lib/utils/cn';
 import { auth } from '@/server/auth';
-import { acikMi, fetchIngilizceDurum, tekrarKimligi } from '@/server/services/ingilizce';
+import {
+  acikMi,
+  ATLA_HATA,
+  ATLA_SORU,
+  atlaKimligi,
+  fetchIngilizceDurum,
+  tekrarKimligi,
+} from '@/server/services/ingilizce';
 
 export const metadata: Metadata = {
   title: 'İngilizce',
@@ -43,6 +50,9 @@ export default async function IngilizcePage({ searchParams }: SayfaProps) {
   const tamamlanan = new Set(d.tamamlanan);
 
   const dersler = parkur.uniteler.flatMap((u) => u.dersler);
+  const tekrar = d.tekrar[parkur.id];
+  const tekrarSayisi = tekrar.zayif + tekrar.vadesi;
+  const hicBaslamadi = !dersler.some((x) => tamamlanan.has(x.id));
   const siradaki = dersler.find((ders) => !tamamlanan.has(ders.id)) ?? null;
   const hedefOran = Math.min(1, d.bugunXp / d.hedefXp);
   const enCokXp = Math.max(d.hedefXp, ...d.hafta.map((h) => h.xp));
@@ -152,8 +162,15 @@ export default async function IngilizcePage({ searchParams }: SayfaProps) {
           </nav>
 
           <p className="text-body text-sm">{parkur.aciklama}</p>
+          {hicBaslamadi && (
+            <p className="bg-accent/10 text-body rounded-2xl px-4 py-3 text-sm">
+              İngilizcen iyiyse baştan başlamak zorunda değilsin: kilitli bir ünitenin{' '}
+              <strong className="text-primary">Atla</strong> düğmesiyle {ATLA_SORU} soruluk sınava
+              gir, en fazla {ATLA_HATA} hatayla geçersen o üniteye kadar her şey açılır.
+            </p>
+          )}
 
-          {d.zayif[parkur.id] > 0 && (
+          {tekrarSayisi > 0 && (
             <Link
               href={`/panel/ingilizce/ders/${tekrarKimligi(parkur.id)}`}
               className="focus-ring rounded-card border-line bg-surface flex items-center gap-3 border p-4"
@@ -162,11 +179,15 @@ export default async function IngilizcePage({ searchParams }: SayfaProps) {
                 <RotateCcw className="size-5" aria-hidden="true" />
               </span>
               <span className="flex min-w-0 flex-col">
-                <span className="text-primary text-sm font-semibold">
-                  Zayıf noktalarını tekrar et
-                </span>
+                <span className="text-primary text-sm font-semibold">Tekrar zamanı</span>
                 <span className="text-muted text-xs">
-                  {d.zayif[parkur.id]} soru — yanlış yaptıkların, bilene kadar
+                  {[
+                    tekrar.zayif > 0 && `${tekrar.zayif} yanlış yaptığın`,
+                    tekrar.vadesi > 0 && `${tekrar.vadesi} unutmaman gereken`,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}{' '}
+                  — bu turda en fazla 10 soru
                 </span>
               </span>
             </Link>
@@ -175,6 +196,8 @@ export default async function IngilizcePage({ searchParams }: SayfaProps) {
           {parkur.uniteler.map((u, ui) => {
             const biten = u.dersler.filter((x) => tamamlanan.has(x.id)).length;
             const renk = UNITE_RENKLERI[ui % UNITE_RENKLERI.length]!;
+            // İlk dersi kilitliyse ünite sınavla atlanabilir: geçince buraya kadar her şey açılır.
+            const kilitli = !acikMi(dersBul(u.dersler[0]!.id)!, tamamlanan);
             return (
               <section
                 key={u.id}
@@ -202,8 +225,19 @@ export default async function IngilizcePage({ searchParams }: SayfaProps) {
                     </h2>
                     <p className="text-xs text-white/85">{u.ozet}</p>
                   </div>
-                  <span className="tabular shrink-0 rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold">
-                    {biten}/{u.dersler.length}
+                  <span className="flex shrink-0 flex-col items-end gap-1.5">
+                    <span className="tabular rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold">
+                      {biten}/{u.dersler.length}
+                    </span>
+                    {kilitli && (
+                      <Link
+                        href={`/panel/ingilizce/ders/${atlaKimligi(u.id)}`}
+                        className="focus-ring flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-xs font-bold text-slate-900"
+                      >
+                        <FastForward className="size-3.5" aria-hidden="true" />
+                        Atla
+                      </Link>
+                    )}
                   </span>
                 </header>
                 <ol className="flex flex-col items-center gap-4">

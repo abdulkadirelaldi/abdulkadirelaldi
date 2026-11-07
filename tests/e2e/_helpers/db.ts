@@ -263,7 +263,7 @@ export async function hizliSondaSil(onek: string): Promise<number> {
 }
 
 /** İngilizce e2e'sinin ders kayıtlarını siler (yalnızca `sonra`dan beri o ders). */
-export async function ingilizceSondaSil(dersId: string, sonra: Date): Promise<number> {
+export async function ingilizceSondaSil(dersId: string | string[], sonra: Date): Promise<number> {
   const { silinen } = await runTask<{ silinen: number }>(
     'ingilizceSondaSil',
     JSON.stringify({ dersId, sonra: sonra.toISOString() }),

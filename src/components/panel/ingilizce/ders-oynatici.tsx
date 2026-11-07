@@ -1,6 +1,6 @@
 'use client';
 
-import { Flame, Loader2, Target, X, Zap } from 'lucide-react';
+import { Flame, Heart, Loader2, Target, X, Zap } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -35,6 +35,8 @@ interface Props {
   alistirmalar: readonly Alistirma[];
   geriHref: string;
   sonrakiHref: string | null;
+  /** Atlama sınavı: yanlış tekrar sorulmaz, hata hakkı dolunca biter. */
+  sinav?: { hataSiniri: number };
 }
 
 interface GeriBildirim extends Cevap {
@@ -65,6 +67,7 @@ export function DersOynatici({
   alistirmalar,
   geriHref,
   sonrakiHref,
+  sinav,
 }: Props) {
   const router = useRouter();
   const [asama, setAsama] = useState<'not' | 'soru' | 'bitti'>(not ? 'not' : 'soru');
@@ -101,7 +104,13 @@ export function DersOynatici({
   const devam = () => {
     if (!simdiki || !geri) return;
     let yeniKuyruk = kuyruk;
-    if (!geri.dogru && geri.tekrarla !== false) {
+    // Sınavda hata hakkı dolunca kalan sorular sorulmaz.
+    if (sinav && hatalar.size > sinav.hataSiniri) {
+      setGeri(null);
+      setAsama('bitti');
+      return;
+    }
+    if (!geri.dogru && geri.tekrarla !== false && !sinav) {
       yeniKuyruk = [...kuyruk, simdiki];
       setKuyruk(yeniKuyruk);
     }
@@ -194,14 +203,35 @@ export function DersOynatici({
     const dogruluk = toplam === 0 ? 100 : Math.round((ilkDogru.size / toplam) * 100);
     return (
       <div className="mx-auto flex w-full max-w-xl flex-col items-center gap-5 pt-6 text-center">
-        {kayit.durum === 'tamam' && <Konfeti />}
-        <Maskot hal={kayit.durum === 'hata' ? 'uzgun' : 'kutlama'} boyut={104} />
-        <h1 className="text-primary text-2xl font-semibold tracking-tight">Ders bitti!</h1>
+        {kayit.durum === 'tamam' && kayit.sonuc.atla?.gecti !== false && <Konfeti />}
+        <Maskot
+          hal={
+            kayit.durum === 'hata' || (kayit.durum === 'tamam' && kayit.sonuc.atla?.gecti === false)
+              ? 'uzgun'
+              : 'kutlama'
+          }
+          boyut={104}
+        />
+        <h1 className="text-primary text-2xl font-semibold tracking-tight">
+          {!sinav
+            ? 'Ders bitti!'
+            : kayit.durum === 'tamam' && kayit.sonuc.atla?.gecti
+              ? 'Sınavı geçtin!'
+              : kayit.durum === 'tamam'
+                ? 'Bu sefer olmadı'
+                : 'Sınav bitti'}
+        </h1>
         {kayit.durum === 'tamam' && (
           <p className="text-muted -mt-3 text-sm">
-            {hatalar.size === 0
-              ? 'Hatasız! Kusursuz bir ders 🏆'
-              : 'Yanlışların tekrar listene eklendi.'}
+            {kayit.sonuc.atla
+              ? kayit.sonuc.atla.gecti
+                ? kayit.sonuc.atla.acilan > 0
+                  ? `${kayit.sonuc.atla.acilan} ders açıldı; sıradaki üniteden devam edebilirsin.`
+                  : 'Bu üniteye kadar her şey zaten açıktı.'
+                : `${hatalar.size} hata yaptın (en fazla ${sinav?.hataSiniri ?? 0}). Dersleri sırayla yapabilir ya da yarın farklı sorularla yeniden deneyebilirsin.`
+              : hatalar.size === 0
+                ? 'Hatasız! Kusursuz bir ders 🏆'
+                : 'Yanlışların tekrar listene eklendi.'}
           </p>
         )}
         {kayit.durum === 'bekliyor' && (
@@ -276,7 +306,10 @@ export function DersOynatici({
   }
 
   if (!simdiki) return null;
-  const ilerleme = Math.round((bilinen.size / Math.max(1, toplam)) * 100);
+  // Sınavda yanlış soru geri gelmediği için ilerleme cevaplanan soru sayısıdır.
+  const ilerleme = Math.round(
+    ((sinav ? sira + (geri ? 1 : 0) : bilinen.size) / Math.max(1, toplam)) * 100,
+  );
   const ortak = { kilitli: geri !== null, onCevap: cevapla };
   const anahtar = `${simdiki.id}-${deneme}`;
 
@@ -303,8 +336,28 @@ export function DersOynatici({
             style={{ width: `${ilerleme}%` }}
           />
         </div>
-        {hatalar.has(simdiki.id) && (
-          <span className="text-warning text-xs font-medium whitespace-nowrap">Tekrar</span>
+        {sinav ? (
+          <span
+            className="flex items-center gap-0.5"
+            aria-label={`Kalan hata hakkı: ${Math.max(0, sinav.hataSiniri - hatalar.size)}`}
+          >
+            {Array.from({ length: sinav.hataSiniri + 1 }, (_, i) => (
+              <Heart
+                key={i}
+                aria-hidden="true"
+                className={cn(
+                  'size-4',
+                  i < sinav.hataSiniri + 1 - hatalar.size
+                    ? 'fill-rose-500 text-rose-500'
+                    : 'text-muted',
+                )}
+              />
+            ))}
+          </span>
+        ) : (
+          hatalar.has(simdiki.id) && (
+            <span className="text-warning text-xs font-medium whitespace-nowrap">Tekrar</span>
+          )
         )}
       </div>
 

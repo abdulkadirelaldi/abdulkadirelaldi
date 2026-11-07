@@ -7,7 +7,7 @@ import {
   fetchTekrarSorulari,
   seriHesapla,
   xpHesapla,
-  zayiflar,
+  tekrarDurumu,
 } from '@/server/services/ingilizce';
 import { dersBul } from '@/lib/ingilizce/mufredat';
 import { planla, type PlanGirdisi } from '@/server/services/bildirim';
@@ -93,23 +93,6 @@ describe('seriHesapla', () => {
   });
 });
 
-describe('zayiflar', () => {
-  it('son olayı yanlış olanlar', () => {
-    expect(
-      zayiflar([
-        { hatalar: ['a'], dogrular: [] },
-        { hatalar: [], dogrular: ['a'] },
-      ]),
-    ).toEqual([]);
-    expect(
-      zayiflar([
-        { hatalar: ['a', 'b'], dogrular: ['c'] },
-        { hatalar: ['c'], dogrular: ['a'] },
-      ]),
-    ).toEqual(expect.arrayContaining(['b', 'c']));
-  });
-});
-
 describe('acikMi', () => {
   it('ilk ders açık, sonraki bir öncekine bağlı', () => {
     expect(acikMi(dersBul('gunluk-u1-d1')!, new Set())).toBe(true);
@@ -129,6 +112,10 @@ function sahte(
       create: vi.fn(async ({ data }: { data: (typeof satirlar)[number] }) => {
         satirlar.push(data);
         return data;
+      }),
+      createMany: vi.fn(async ({ data }: { data: (typeof satirlar)[number][] }) => {
+        satirlar.push(...data);
+        return { count: data.length };
       }),
     },
     ingilizceAyar: { findUnique: vi.fn().mockResolvedValue({ gunlukHedefXp: 30 }) },
@@ -221,15 +208,21 @@ describe('fetchIngilizceDurum ve tekrar', () => {
       hedefXp: 30,
       seri: 2,
       bugunYapildi: true,
-      zayif: { gunluk: 2, yazilim: 0, sinav: 0 },
+      // a1 yanlış (a3 konuşma, sayılmaz); a2 dün doğru → bir günlük aralık doldu.
+      tekrar: {
+        gunluk: { zayif: 1, vadesi: 1 },
+        yazilim: { zayif: 0, vadesi: 0 },
+        sinav: { zayif: 0, vadesi: 0 },
+      },
     });
     expect(d.hafta).toHaveLength(7);
     expect(d.hafta.at(-1)).toEqual({ gun: '2026-11-06', xp: 15 });
   });
 
   it('⚠️ tekrar dersinde konuşma sorusu yok', async () => {
-    const sorular = await fetchTekrarSorulari('gunluk', sahte([...satirlar]));
-    expect(sorular.map((s) => s.id)).toEqual(['gunluk-u1-d1-a1']);
+    const sorular = await fetchTekrarSorulari('gunluk', sahte([...satirlar]), '2026-11-06');
+    // Önce zayıf, sonra vadesi gelen; bugün doğru bilinen d2-a1'in vadesi yarın.
+    expect(sorular.map((s) => s.id)).toEqual(['gunluk-u1-d1-a1', 'gunluk-u1-d1-a2']);
   });
 });
 
@@ -254,5 +247,65 @@ describe('planla · İngilizce serisi', () => {
   it('seri yoksa, bugün yapıldıysa (0) ya da tercih kapalıysa gitmez', () => {
     expect(planla({ ...temel, ingilizceSeri: 0 })).toEqual([]);
     expect(planla({ ...temel, tercih: { ...temel.tercih, ingilizce: false } })).toEqual([]);
+  });
+});
+
+describe('tekrarDurumu (aralıklı tekrar, 2026-11-07)', () => {
+  const o = (gun: string, dogrular: string[], hatalar: string[] = []) => ({
+    gun,
+    dogrular,
+    hatalar,
+  });
+  it('üst üste doğru sayısına göre 1, 3, 7, 21, 60 gün', () => {
+    const olaylar = [o('2026-11-01', ['x']), o('2026-11-02', ['x']), o('2026-11-05', ['x'])];
+    // Üç doğru: son doğru 5 Kasım, aralık 7 gün → 12 Kasım.
+    expect(tekrarDurumu(olaylar, '2026-11-11').vadesi).toEqual([]);
+    expect(tekrarDurumu(olaylar, '2026-11-12').vadesi).toEqual(['x']);
+  });
+  it('⚠️ yanlış seriyi sıfırlar: zayıf olur, vadeli değil', () => {
+    const d = tekrarDurumu([o('2026-11-01', ['x']), o('2026-11-03', [], ['x'])], '2026-11-30');
+    expect(d).toEqual({ zayif: ['x'], vadesi: [] });
+  });
+  it('vadesi gelenler en eski vadeden başlar', () => {
+    const d = tekrarDurumu([o('2026-11-01', ['a']), o('2026-10-20', ['b'])], '2026-11-07');
+    expect(d.vadesi).toEqual(['b', 'a']);
+  });
+});
+
+describe('dersKaydet · atlama sınavı', () => {
+  // Sahte müfredatta tek ünite: dört soru (biri konuşma), iki ders.
+  const sorular = ['gunluk-u1-d1-a1', 'gunluk-u1-d1-a2', 'gunluk-u1-d1-a3', 'gunluk-u1-d2-a1'];
+  it('en fazla iki hatayla geçer, üniteye kadarki dersler açılır', async () => {
+    const satirlar: Parameters<typeof sahte>[0] = [];
+    const s = await dersKaydet(
+      { dersId: 'atla-gunluk-u1', hatalar: sorular.slice(0, 2), dogrular: sorular.slice(2) },
+      sahte(satirlar),
+      '2026-11-07',
+    );
+    expect(s).toMatchObject({ xp: 10, atla: { gecti: true, acilan: 2 } });
+    expect(satirlar.map((r) => r.dersId).sort()).toEqual(
+      ['atla-gunluk-u1', 'gunluk-u1-d1', 'gunluk-u1-d2'].sort(),
+    );
+  });
+  it('üç hatayla ya da bütün sorular cevaplanmadan geçmez, ders açılmaz', async () => {
+    const satirlar: Parameters<typeof sahte>[0] = [];
+    expect(
+      await dersKaydet(
+        { dersId: 'atla-gunluk-u1', hatalar: sorular.slice(0, 3), dogrular: [] },
+        sahte(satirlar),
+      ),
+    ).toMatchObject({ xp: 0, atla: { gecti: false, acilan: 0 } });
+    expect(
+      await dersKaydet(
+        { dersId: 'atla-gunluk-u1', hatalar: [], dogrular: sorular.slice(0, 2) },
+        sahte(satirlar),
+      ),
+    ).toMatchObject({ atla: { gecti: false } });
+    expect(satirlar.every((r) => r.dersId === 'atla-gunluk-u1')).toBe(true);
+  });
+  it('⚠️ başka ünitenin sorusu ya da bilinmeyen ünite reddedilir', async () => {
+    expect(
+      await dersKaydet({ dersId: 'atla-gunluk-u9', hatalar: [], dogrular: sorular }, sahte([])),
+    ).toBeNull();
   });
 });
