@@ -30,6 +30,8 @@ export {
   GoalStatus,
   MuscleGroup,
   SkillCategory,
+  TakvimKategori,
+  TakvimTekrar,
   WalletAccountKind,
   WalletFlowKind,
   WalletFrequency,

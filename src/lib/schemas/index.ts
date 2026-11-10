@@ -44,3 +44,6 @@ export * from './habit-log';
 export * from './goal';
 export * from './wallet';
 export * from './journal-entry';
+
+// Takvim
+export * from './takvim';
