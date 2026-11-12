@@ -17,6 +17,7 @@ import { KaliciSilDugmesi } from '@/components/panel/kalici-sil-dugmesi';
 import { KAS_GRUBU, olcuBicim } from '@/components/panel/kisisel-etiketler';
 import { FormKabugu, usePanelForm } from '@/components/panel/panel-form';
 import { VeriTablosu, type Sutun } from '@/components/panel/veri-tablosu';
+import { YeniHareket } from '@/components/panel/yeni-hareket';
 import { Button, buttonClasses } from '@/components/ui/button';
 import { Card, CardContent, CardTitle } from '@/components/ui/card';
 import { EmptyState } from '@/components/ui/empty-state';
@@ -398,16 +399,23 @@ function SetFormu({
     if (duzenleme) baslikRef.current?.focus();
   }, [duzenleme]);
 
-  /* Seçenekler kas grubuna göre — servis zaten (kas grubu, ad) sırasında veriyor. */
-  const kasGruplari = egzersizler.reduce<Array<{ grup: MuscleGroup; liste: SetEgzersizi[] }>>(
-    (acc, e) => {
-      const son = acc.at(-1);
-      if (son?.grup === e.muscleGroup) son.liste.push(e);
-      else acc.push({ grup: e.muscleGroup, liste: [e] });
-      return acc;
-    },
-    [],
-  );
+  /* Seçiciden YENİ açılan hareketler (2026-11-12) — sunucu listesi yenilenene kadar burada. */
+  const [eklenenler, setEklenenler] = useState<SetEgzersizi[]>([]);
+  const tumu = [
+    ...egzersizler,
+    ...eklenenler.filter((e) => !egzersizler.some((x) => x.id === e.id)),
+  ];
+
+  /*
+    Seçenekler kas grubuna göre — servis zaten (kas grubu, ad) sırasında veriyor; sonradan
+    eklenen hareket kendi grubuna katılır (grup İLK görüldüğü sırada kalır).
+  */
+  const kasGruplari = tumu.reduce<Array<{ grup: MuscleGroup; liste: SetEgzersizi[] }>>((acc, e) => {
+    const grup = acc.find((g) => g.grup === e.muscleGroup);
+    if (grup) grup.liste.push(e);
+    else acc.push({ grup: e.muscleGroup, liste: [e] });
+    return acc;
+  }, []);
 
   return (
     <Card>
@@ -475,6 +483,15 @@ function SetFormu({
               </select>
             )}
           </Alan>
+
+          {!duzenleme && (
+            <YeniHareket
+              eklendi={(e) => {
+                setEklenenler((l) => [...l, { ...e, isArchived: false }]);
+                setValue('exerciseId', e.id, { shouldValidate: true });
+              }}
+            />
+          )}
 
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <Alan id="setNo" etiket="Set no" hata={errors.setNo?.message}>
