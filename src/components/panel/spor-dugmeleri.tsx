@@ -12,7 +12,16 @@ import {
 import { cn } from '@/lib/utils/cn';
 
 /** Program gününden oturum başlatır; açık oturum varsa ona gider. */
-export function BaslatDugmesi({ dayId, vurgulu }: { dayId: string; vurgulu?: boolean }) {
+export function BaslatDugmesi({
+  dayId,
+  vurgulu,
+  etiket = 'Başlat',
+}: {
+  dayId: string;
+  vurgulu?: boolean;
+  /** Takvim etkinliğinde "Antrenmana başla" (2026-11-12). */
+  etiket?: string;
+}) {
   const router = useRouter();
   const [hata, setHata] = useState<string | null>(null);
   const [bekliyor, basla] = useTransition();
@@ -40,7 +49,7 @@ export function BaslatDugmesi({ dayId, vurgulu }: { dayId: string; vurgulu?: boo
         )}
       >
         <Play className="size-4" aria-hidden="true" />
-        {bekliyor ? 'Açılıyor…' : 'Başlat'}
+        {bekliyor ? 'Açılıyor…' : etiket}
       </button>
       {hata && (
         <p role="alert" className="text-danger text-xs">
