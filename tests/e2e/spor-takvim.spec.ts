@@ -32,11 +32,18 @@ async function oturumAc(page: Page, baseURL: string | undefined) {
   );
 }
 
+/** İstemci formları hidrasyondan önce doldurulursa yazılan kaybolur: ağ dinginliği beklenir. */
+async function git(page: Page, adres: string) {
+  await page.goto(adres);
+  await page.waitForLoadState('networkidle');
+}
+
 async function programGunuAc(page: Page, ad: string): Promise<string> {
-  await page.goto('/panel/spor/program');
+  await git(page, '/panel/spor/program');
   await page.getByRole('textbox', { name: 'Gün adı' }).fill(ad);
   await page.getByRole('button', { name: 'Günü oluştur' }).click();
   await page.waitForURL(/\/panel\/spor\/program\/[a-z0-9]{20,}$/);
+  await page.waitForLoadState('networkidle');
   return page.url();
 }
 
@@ -69,13 +76,13 @@ test('spor: listede olmayan hareket seçiciden açılır; arşivdeki ad geri al�
     await expect(page.getByText(hareket, { exact: true })).toBeVisible();
 
     // Kütüphanede arşivle.
-    await page.goto(`/panel/spor/egzersizler?q=${encodeURIComponent(onek)}`);
+    await git(page, `/panel/spor/egzersizler?q=${encodeURIComponent(onek)}`);
     await page.getByRole('button', { name: 'Arşivle' }).click();
     await page.getByRole('button', { name: 'Evet, arşivle' }).click();
     await expect(page.getByRole('status').filter({ hasText: 'arşiv' }).first()).toBeVisible();
 
     // Aynı adı (BÜYÜK harfle) yeniden eklemek: "arşivde" der ve geri almayı önerir.
-    await page.goto('/panel/spor/egzersizler/yeni');
+    await git(page, '/panel/spor/egzersizler/yeni');
     await page.getByRole('textbox', { name: 'Ad' }).fill(hareket.toLocaleUpperCase('tr'));
     await page.getByRole('button', { name: 'Ekle', exact: true }).click();
     await expect(page.getByText('arşivde', { exact: false }).first()).toBeVisible();
@@ -83,6 +90,39 @@ test('spor: listede olmayan hareket seçiciden açılır; arşivdeki ad geri al�
     await page.waitForURL(/\/panel\/spor\/egzersizler\/[a-z0-9]{20,}$/);
     await expect(page.getByRole('heading', { name: hareket }).first()).toBeVisible();
     await expect(page.getByText('Bu hareket arşivde')).toHaveCount(0);
+  } finally {
+    await sporSondaSil(onek);
+  }
+});
+
+/** Elle antrenman günü — proje başına ayrı, sahibinin günleriyle karışmasın. */
+const ELLE_GUN: Record<string, string> = {
+  'chromium-desktop': '2001-03-05',
+  'mobile-chrome': '2001-03-06',
+};
+
+test('spor: elle antrenmanın set formundan yeni hareket açılır ve set girilir', async ({
+  page,
+  baseURL,
+}, info) => {
+  test.setTimeout(120_000);
+  const onek = `e2e-spor-elle-${info.project.name}-${Date.now()}`;
+  const hareket = `${onek} Şınav`;
+  await oturumAc(page, baseURL);
+
+  try {
+    await git(page, '/panel/spor/yeni');
+    await page.getByLabel('Gün').fill(ELLE_GUN[info.project.name] ?? '2001-03-07');
+    await page.getByRole('button', { name: 'Antrenmanı aç' }).click();
+    await page.waitForURL(/\/panel\/spor\/[a-z0-9]{20,}$/);
+    await page.waitForLoadState('networkidle');
+
+    await yeniHareket(page, hareket);
+    await expect(page.locator('#exerciseId option:checked')).toHaveText(hareket);
+    await page.getByLabel('Tekrar').fill('12');
+    await page.getByRole('button', { name: 'Seti ekle' }).click();
+    await expect(page.getByRole('status').filter({ hasText: 'Set eklendi' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: hareket, level: 3 })).toBeVisible();
   } finally {
     await sporSondaSil(onek);
   }
@@ -124,7 +164,7 @@ test('spor → takvim: program günü haftalık plana döner, çiftlenmez, hafta
     await expect(bolum.getByRole('listitem')).toHaveCount(1);
 
     // Takvimin hafta görünümünde, Spor etkinliği olarak.
-    await page.goto(`/panel/takvim?gorunum=hafta&tarih=${HAFTA}`);
+    await git(page, `/panel/takvim?gorunum=hafta&tarih=${HAFTA}`);
     const etkinlik = page.getByRole('button', { name: `${gunAdi}, 07:00 – 08:15` }).first();
     await expect(etkinlik).toBeVisible();
     await etkinlik.click();
@@ -136,12 +176,13 @@ test('spor → takvim: program günü haftalık plana döner, çiftlenmez, hafta
       // Hareketsiz gün: oturum çıkmaz değil — vazgeçilebilir…
       await detay.getByRole('button', { name: 'Antrenmana başla' }).click();
       await page.waitForURL(/\/panel\/spor\/oturum\/[a-z0-9]{20,}$/);
+      await page.waitForLoadState('networkidle');
       await expect(page.getByRole('heading', { name: 'Bu günde henüz hareket yok' })).toBeVisible();
       await page.getByRole('button', { name: 'Antrenmandan vazgeç' }).click();
       await page.waitForURL(/\/panel\/spor$/);
 
       // …ya da antrenmanın içinden yeni hareket eklenir.
-      await page.goto(`/panel/takvim?gorunum=hafta&tarih=${HAFTA}`);
+      await git(page, `/panel/takvim?gorunum=hafta&tarih=${HAFTA}`);
       await page
         .getByRole('button', { name: `${gunAdi}, 07:00 – 08:15` })
         .first()
@@ -151,13 +192,14 @@ test('spor → takvim: program günü haftalık plana döner, çiftlenmez, hafta
         .getByRole('button', { name: 'Antrenmana başla' })
         .click();
       await page.waitForURL(/\/panel\/spor\/oturum\/[a-z0-9]{20,}$/);
+      await page.waitForLoadState('networkidle');
       await yeniHareket(page, `${onek} Cable Fly`);
       await expect(page.getByText(`${onek} Cable Fly`, { exact: true }).first()).toBeVisible();
       await expect(page.getByRole('button', { name: 'Antrenmanı bitir' })).toBeVisible();
     }
 
     // Plan program ekranından kaldırılır.
-    await page.goto(gunAdresi);
+    await git(page, gunAdresi);
     await bolum.getByRole('button', { name: 'Takvimden kaldır' }).click();
     await bolum.getByRole('button', { name: 'Kaldırmak için tekrar dokun' }).click();
     await expect(bolum.getByText(/henüz takvimde değil/)).toBeVisible();

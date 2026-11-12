@@ -371,10 +371,18 @@ const komutlar: Record<string, (arg?: string) => Promise<unknown>> = {
     const takvim = await db.takvimEtkinligi.deleteMany({
       where: { OR: [{ programDayId: { in: gunIdler } }, { baslik: { startsWith: onek } }] },
     });
+    // Elle açılan antrenmanın programı yok: bu hareketlerin setlerinin antrenmanları da izdir.
+    const elle = await db.workoutSet.findMany({
+      where: { exerciseId: { in: exIdler } },
+      select: { workoutId: true },
+    });
     const set = await db.workoutSet.deleteMany({
       where: {
         OR: [{ exerciseId: { in: exIdler } }, { workout: { programDayId: { in: gunIdler } } }],
       },
+    });
+    const bosElle = await db.workout.deleteMany({
+      where: { id: { in: elle.map((w) => w.workoutId) }, sets: { none: {} } },
     });
     const rekor = await db.personalRecord.deleteMany({ where: { exerciseId: { in: exIdler } } });
     const antrenman = await db.workout.deleteMany({ where: { programDayId: { in: gunIdler } } });
@@ -382,7 +390,13 @@ const komutlar: Record<string, (arg?: string) => Promise<unknown>> = {
     const egzersiz = await db.exercise.deleteMany({ where: { id: { in: exIdler } } });
     return {
       silinen:
-        takvim.count + set.count + rekor.count + antrenman.count + gun.count + egzersiz.count,
+        takvim.count +
+        set.count +
+        rekor.count +
+        antrenman.count +
+        bosElle.count +
+        gun.count +
+        egzersiz.count,
     };
   },
 

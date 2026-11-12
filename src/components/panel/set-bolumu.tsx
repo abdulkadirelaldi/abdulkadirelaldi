@@ -381,7 +381,21 @@ function SetFormu({
     formState: { errors },
   } = form;
 
+  /* Seçiciden YENİ açılan hareketler (2026-11-12) — sunucu listesi yenilenene kadar burada. */
+  const [eklenenler, setEklenenler] = useState<SetEgzersizi[]>([]);
   const secilen = watch('exerciseId');
+
+  /*
+    Yeni açılan hareket SEÇENEK ÇİZİLDİKTEN SONRA seçilir: `<select>` kayıtlı (kontrolsüz)
+    alan; listede olmayan bir değeri `setValue` DOM'a yazamıyor ve seçim ilk harekette kalıyordu
+    (e2e yakaladı, 2026-11-12).
+  */
+  const [bekleyenSecim, setBekleyenSecim] = useState<string | null>(null);
+  useEffect(() => {
+    if (!bekleyenSecim || !eklenenler.some((e) => e.id === bekleyenSecim)) return;
+    setValue('exerciseId', bekleyenSecim, { shouldValidate: true });
+    setBekleyenSecim(null);
+  }, [bekleyenSecim, eklenenler, setValue]);
 
   /*
     YENİ set modunda numara seçilen harekete göre ilerliyor. `setler` bağımlılıkta:
@@ -399,8 +413,6 @@ function SetFormu({
     if (duzenleme) baslikRef.current?.focus();
   }, [duzenleme]);
 
-  /* Seçiciden YENİ açılan hareketler (2026-11-12) — sunucu listesi yenilenene kadar burada. */
-  const [eklenenler, setEklenenler] = useState<SetEgzersizi[]>([]);
   const tumu = [
     ...egzersizler,
     ...eklenenler.filter((e) => !egzersizler.some((x) => x.id === e.id)),
@@ -487,8 +499,10 @@ function SetFormu({
           {!duzenleme && (
             <YeniHareket
               eklendi={(e) => {
-                setEklenenler((l) => [...l, { ...e, isArchived: false }]);
-                setValue('exerciseId', e.id, { shouldValidate: true });
+                setEklenenler((l) =>
+                  l.some((x) => x.id === e.id) ? l : [...l, { ...e, isArchived: false }],
+                );
+                setBekleyenSecim(e.id);
               }}
             />
           )}
