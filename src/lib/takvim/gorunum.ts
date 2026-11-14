@@ -117,6 +117,11 @@ export interface TakvimOlusumu {
   /** Değdiği SON gün (dahil). */
   sonGun: AppDay;
   tekrarli: boolean;
+  /**
+   * Etkinlik DEĞİL, başka bir kaydın takvim izdüşümü (ör. Masa görevinin teslimi, ADR-049):
+   * dokununca bu adrese gidilir, etkinlik penceresi açılmaz.
+   */
+  baglanti?: string;
 }
 
 /** Düzenleme formu için serinin tamamı. */

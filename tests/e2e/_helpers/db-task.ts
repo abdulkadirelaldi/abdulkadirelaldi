@@ -322,13 +322,16 @@ const komutlar: Record<string, (arg?: string) => Promise<unknown>> = {
      * Egzersiz ve alışkanlık arayüzden SİLİNEMİYOR (yalnızca arşiv), yani
      * test izi ancak `kisiselSondaSil` ile gider.
      */
-    const [egzersiz, aliskanlik, takvim] = await Promise.all([
+    const [egzersiz, aliskanlik, takvim, dolap, gorev] = await Promise.all([
       db.exercise.count({ where: { name: { startsWith: 'e2e', mode: 'insensitive' } } }),
       db.habit.count({ where: { name: { startsWith: 'e2e', mode: 'insensitive' } } }),
       // Takvim (2026-11-10): `takvimSondaSil` başlık önekiyle siler; çökerse burada görünür.
       db.takvimEtkinligi.count({ where: { baslik: { startsWith: 'e2e', mode: 'insensitive' } } }),
+      // Masa (ADR-049): `masaSondaSil` dolap adı ve görev başlığı önekiyle siler.
+      db.dolap.count({ where: { ad: { startsWith: 'e2e', mode: 'insensitive' } } }),
+      db.gorev.count({ where: { baslik: { startsWith: 'e2e', mode: 'insensitive' } } }),
     ]);
-    const kisisel = egzersiz + aliskanlik + takvim;
+    const kisisel = egzersiz + aliskanlik + takvim + dolap + gorev;
 
     return {
       proje,
@@ -348,6 +351,27 @@ const komutlar: Record<string, (arg?: string) => Promise<unknown>> = {
       where: { baslik: { startsWith: onek } },
     });
     return { silinen: silinen.count };
+  },
+
+  /**
+   * Masa e2e'sinin izlerini siler (ADR-049) — önekli dolapların görevleri, rafları (alt raflar
+   * önce: `Restrict`) ve kendileri; dolapsız önekli görevler de.
+   */
+  async masaSondaSil(arg) {
+    const { onek } = JSON.parse(arg ?? '{}') as { onek: string };
+    if (!onek || !onek.startsWith('e2e-'))
+      throw new Error('masaSondaSil: `e2e-` ile başlayan önek zorunlu.');
+    const idler = (
+      await db.dolap.findMany({ where: { ad: { startsWith: onek } }, select: { id: true } })
+    ).map((d) => d.id);
+    const g = await db.gorev.deleteMany({
+      where: { OR: [{ baslik: { startsWith: onek } }, { dolapId: { in: idler } }] },
+    });
+    for (let kat = 0; kat < 4; kat++) {
+      await db.raf.deleteMany({ where: { dolapId: { in: idler }, altRaflar: { none: {} } } });
+    }
+    const d = await db.dolap.deleteMany({ where: { id: { in: idler } } });
+    return { silinen: g.count + d.count };
   },
 
   /**
@@ -500,6 +524,8 @@ const komutlar: Record<string, (arg?: string) => Promise<unknown>> = {
       yetenek: (await db.skill.findFirstOrThrow({ select: { id: true } })).id,
       hizmet: (await db.service.findFirstOrThrow({ select: { id: true } })).id,
       yazi: (await db.post.findFirstOrThrow({ select: { id: true } })).id,
+      // Masa (ADR-049): boş dolap — rafsız ve görevsiz, `rotaSondaSil` tek satırla siler.
+      dolap: (await db.dolap.create({ data: { ad: `${onek}dolap` }, select: { id: true } })).id,
     };
   },
 
@@ -511,6 +537,7 @@ const komutlar: Record<string, (arg?: string) => Promise<unknown>> = {
     await db.walletFlow.deleteMany({ where: { name: { startsWith: onek } } });
     await db.walletAccount.deleteMany({ where: { name: { startsWith: onek } } });
     await db.programDay.deleteMany({ where: { name: { startsWith: onek } } });
+    await db.dolap.deleteMany({ where: { ad: { startsWith: onek } } });
     return { silinen: w.count };
   },
 

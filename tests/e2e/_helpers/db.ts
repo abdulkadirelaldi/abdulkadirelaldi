@@ -268,6 +268,12 @@ export async function sporSondaSil(onek: string): Promise<number> {
   return silinen;
 }
 
+/** Masa e2e izlerini siler — gerekçe `db-task.ts` → `masaSondaSil`. */
+export async function masaSondaSil(onek: string): Promise<number> {
+  const { silinen } = await runTask<{ silinen: number }>('masaSondaSil', JSON.stringify({ onek }));
+  return silinen;
+}
+
 /** Takvim e2e izlerini siler — gerekçe `db-task.ts` → `takvimSondaSil`. */
 export async function takvimSondaSil(onek: string): Promise<number> {
   const { silinen } = await runTask<{ silinen: number }>(
@@ -310,6 +316,8 @@ export interface RotaKimlikleri {
   yetenek: string;
   hizmet: string;
   yazi: string;
+  /** Masa (ADR-049) — boş dolap. */
+  dolap: string;
 }
 
 /** Detay sayfaları için kayıt kimlikleri: yoksa önekle açılır, `rotaSondaSil` temizler. */

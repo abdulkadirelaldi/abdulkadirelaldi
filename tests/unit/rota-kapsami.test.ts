@@ -338,6 +338,16 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     kanit: ["'/panel/ingilizce/ders/gunluk-u1-d1',"],
     not: '2026-11-06 ders oynatıcısı; kilitli ders parkura, boş tekrar parkura döner, bilinmeyen kimlik 404. Değerlendirme `tests/unit/ingilizce/degerlendir.test.ts`. ÖLÇÜLMEYEN: gerçek cihazda sesli okuma ve konuşma tanıma.',
   },
+  '/panel/masa': {
+    kapilar: ['e2e'],
+    kanit: ["'/panel/masa',", "test('masa: dolap, raf, görev"],
+    not: "2026-11-14 Masa (ADR-049 M2): masa üstü öbekleri (gecikmiş, bugün, 7 gün, teslimsiz, tamamlananlar) ve dolaplar. Dolap → raf → görev, tamamla ve takvimde katman `tests/e2e/masa.spec.ts`te; servis kuralları (silme kısıtı, raf derinliği, katman, öbekler) gerçek PostgreSQL'de `tests/integration/masa.test.ts`. ÖLÇÜLMEYEN: 'Önerilen dolapları kur' düğmesi e2e'de yok (gerçek adlarla dolap açardı) — servisi entegrasyonda.",
+  },
+  '/panel/masa/[id]': {
+    kapilar: ['e2e'],
+    kanit: ['`/panel/masa/${k.dolap}`,', "test('masa: dolap, raf, görev"],
+    not: '2026-11-14 dolap ekranı: raf ağacı, rafa görev, dolap düzenle/arşivle/sil (içi dolu dolap reddedilir). Bilinmeyen kimlik `notFound`. ÖLÇÜLMEYEN: arşivle/arşivden çıkar e2e\'de yok; raf yeniden adlandırma ve silme yalnızca serviste.',
+  },
   '/panel/takvim': {
     kapilar: ['e2e'],
     kanit: ["'/panel/takvim',", "test('takvim: etkinlik oluşturulur"],
