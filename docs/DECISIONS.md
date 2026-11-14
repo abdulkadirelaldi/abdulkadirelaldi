@@ -2678,3 +2678,38 @@ Sahibi iş yönetimini Kıyı Medya'nın kendi panelinden yürütüyor; bu panel
 - **Çift yok:** aynı gün için süren (bitişi geçmemiş) bir plan varken ikinci ekleme CONFLICT döner, ekran mevcut planı düzenlemeyi önerir. Plan güncellemesi istisnaları sıfırlar (günler/saat değişmiş olabilir).
 - **Hareket adı tekilliği Türkçe harf duyarsız:** `name @unique` harfe duyarlı ve Postgres `insensitive` "I/ı/İ/i"yi Türkçe eşlemiyor; servis önce birebir (harf duyarsız) sorgu, sonra bellekte `egzersizAdAnahtari` karşılaştırması yapar. Arşivdeki eş ad "arşivde" der ve geri almayı önerir; seçicilerden hızlı eklemede eş ad yeni satır açmaz (aktifse seçilir, arşivdeyse arşivden çıkarılır).
 - **Boş oturum:** hareketsiz günün oturum ekranında hareket eklenebilir ya da oturumdan vazgeçilir (set yoksa silinir). Bugün başka bir program gününden açılmış ve HİÇ set girilmemiş oturum yeni günün "Başlat"ını kilitlemez (silinir); set girilmiş oturum korunur.
+
+## ADR-049 — Masa: Dolaplar, Takvim Katmanları, Kıyı Medya Köprüsü, Claude Paneli
+
+**Durum:** Kabul edildi · 2026-11-14 · **Kapsar:** panel (yeni `masa` bölümü, takvim, şema), Kıyı Medya arka ucu (salt-okur uç), Mac'te çalışan küçük bir köprü · **Değiştirir:** ADR-048 §1'i DARALTIR (iş verisi panele geri gelir ama SAHİBİ Kıyı Medya'dır, panel kopyalamaz)
+
+### Bağlam
+
+Sahibi okulunu (Samsun Üniversitesi), işini (Kıyı Medya) ve takımını (Spectraloop) tek yerden yönetmek, telefondan da görmek istiyor: "çalışma masası" — dolaplar, raflar, dosyalar; masanın üstünde yapılacaklar ve yaklaşanlar; içinde Claude ile konuşulan bir panel. Ayrı masaüstü programı yerine mevcut panel seçildi: telefon kabuğu, takvim, push, dosya yükleme (ADR-044) ve Claude API (sağlık) zaten var.
+
+### Karar
+
+1. **Takvim katmanları.** `TakvimEtkinligi.katman` (`KISISEL` varsayılan, `OKUL`, `KIYI_MEDYA`, `SPECTRALOOP`) — eklemeli göç, mevcut kayıtlar `KISISEL`. Mevcut `kategori` (Spor, Toplantı…) TÜR olarak kalır; katman KİME ait olduğunu söyler. Takvimde dört düğme + iki hazır grup: **Kişisel** (Kişisel + Okul) ve **İş** (Kıyı Medya + Spectraloop). Seçim cihazda hatırlanır.
+2. **Masa = Dolap → Raf → Öğe.** Dolaplar: Samsun Üniversitesi, Kıyı Medya, Spectraloop (sahibi yenisini açabilir). Raf iç içe olabilir (Dersler → Fizik). Öğe: not, dosya, ses kaydı, görev. Dosyalar mevcut `Attachment` (yeni `AttachmentEntity` değeri) üzerinden. Görevin teslim tarihi takvimde ilgili katmanda görünür — ayrı bir etkinlik satırı AÇILMAZ, tek kaynak görevdir.
+3. **Kıyı Medya köprüsü — kopya yok.** Muhasebe, iş planı, çekim, görev ve takvim Kıyı Medya'nın kendi sisteminde (ekip, RBAC) kalır. Kıyı Medya arka ucuna **salt-okur, tek amaçlı** bir uç eklenir (ayrı servis jetonu, yalnızca GET). Panel bu veriyi kısa süre önbellekler, İş dolabında ve `KIYI_MEDYA` katmanında gösterir; düzenleme bağlantısı Kıyı Medya'ya gider. Kişisel muhasebe Cüzdan olarak kalır. Erişilemezse ekran söyler — boş liste "veri yok" diye gösterilmez.
+4. **Claude paneli.** Açık dolabın bağlamıyla sohbet; araçlar: görev/etkinlik ÖNERİSİ, notlarda arama, özetleme. Yazan her araç ekranda sahibinin onayıyla uygulanır. Her gönderim istekten önce `AuditLog`a `EXPORT` (sağlıkla aynı kural). Anahtar yoksa özellik kapalı ve ekran söyler.
+5. **Okul maili.** Okul adresi Google (Gmail) arayüzünde. Gmail API, `gmail.readonly`, yalnızca okulun alan adından gelenler. Kurumsal Workspace dış uygulamayı engellerse yedek: okul hesabında yönlendirme kuralı → sahibinin kendi Gmail'i, aynı okuma. Claude her maili sınıflar (ödev / duyuru / diğer); ödev teslim tarihiyle **öneri kutusuna** düşer, sahibi onaylayınca görev olur. Otomatik ekleme ilk aşamada YOK.
+6. **Masa köprüsü (Mac).** Ses kaydı yazıya **Mac'te** dökülür (whisper.cpp, Apple işlemci; ses dışarı çıkmaz, ücretsiz). Köprü `launchd` ile çalışan küçük bir Node süreci: cihaz jetonuyla panele bağlanır, bekleyen kayıtları çeker, yazıyı geri yükler; özetleme sunucuda Claude ile. Mac kapalıysa kayıt "sırada" görünür. Köprü ilk aşamada **komut çalıştırmaz**; Claude Code'a iş devri ayrı ADR ister.
+
+### Sıra
+
+| Aşama | İçerik | Bağımlılık |
+| --- | --- | --- |
+| M1 | Takvim katmanları | — |
+| M2 | Masa: dolap/raf/öğe, görevler, takvimde teslimler | M1 |
+| M3 | Kıyı Medya köprüsü (iki repo) | M1 |
+| M4 | Claude paneli | M2 |
+| M5 | Okul maili → öneri kutusu | M2, M4 |
+| M6 | Mac köprüsü: ses → yazı → özet | M2 |
+
+### Alternatifler ve neden reddedildi
+
+- **Ayrı masaüstü programı (Tauri/Electron):** telefonda görülemez; panelde zaten olan takvim/push/giriş yeniden yazılırdı.
+- **Kıyı Medya muhasebesini panelde ayrıca kurmak:** iki doğruluk kaynağı; ekip panelde girileni görmez.
+- **Sunucuda Whisper:** sunucu işlemcisinde 1 saatlik ders 30-60 dk; sahibi Mac'i seçti.
+- **Mailden otomatik görev:** yanlış sınıflanan mail sessizce takvime düşer; önce öneri, güven oluşunca yeniden değerlendirilir.
