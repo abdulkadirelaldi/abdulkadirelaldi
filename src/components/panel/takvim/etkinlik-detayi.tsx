@@ -15,6 +15,7 @@ import {
 } from '@/lib/takvim/gorunum';
 import { hatirlatmaEtiketi } from '@/lib/takvim/hatirlatma';
 import { TAKVIM_KATEGORILERI } from '@/lib/takvim/kategoriler';
+import { TAKVIM_KATMANLARI } from '@/lib/takvim/katmanlar';
 import { toAppDay } from '@/server/services/_shared/app-date';
 import { cn } from '@/lib/utils/cn';
 import type { ApiResponse } from '@/types';
@@ -85,7 +86,9 @@ export function EtkinlikDetayi({
           <p className="text-primary text-xl font-semibold tracking-tight break-words">
             {etkinlik.baslik}
           </p>
-          <p className="text-muted text-sm">{kategori.ad}</p>
+          <p className="text-muted text-sm">
+            {kategori.ad} · {TAKVIM_KATMANLARI[etkinlik.katman].ad}
+          </p>
         </div>
       </div>
 

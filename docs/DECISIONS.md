@@ -2713,3 +2713,12 @@ Sahibi okulunu (Samsun Üniversitesi), işini (Kıyı Medya) ve takımını (Spe
 - **Kıyı Medya muhasebesini panelde ayrıca kurmak:** iki doğruluk kaynağı; ekip panelde girileni görmez.
 - **Sunucuda Whisper:** sunucu işlemcisinde 1 saatlik ders 30-60 dk; sahibi Mac'i seçti.
 - **Mailden otomatik görev:** yanlış sınıflanan mail sessizce takvime düşer; önce öneri, güven oluşunca yeniden değerlendirilir.
+
+### Ek (2026-11-14) — M1 uygulandı: takvim katmanları
+
+- **Şema:** `TakvimKatman` enum + `TakvimEtkinligi.katman` (`@default(KISISEL)`, indeksli). Göç `20261114010000_takvim_katman` yalnızca EKLER; şema ile göç farkı boş (ölçüldü).
+- **Doğrulama:** `katman` verilmezse `KISISEL` — katmandan habersiz çağıranlar (spor planı) değişmeden çalışır.
+- **Süzgeç istemcide, seçim çerezde:** `ae-takvim-katman` (`path=/panel`, 1 yıl). Sayfa sunucuda çerezle basılır, ilk karede gizli etkinlik görünüp kaybolmaz. Çerez yok/bozuk → hepsi açık; bilerek hepsi kapatıldıysa ekran söyler; kapalı katmanlarda kaç oluşum gizlendiği yazılır.
+- **Grup düğmesi:** tamamı açıksa kapatır, kısmen/kapalıysa tamamını açar (`aria-pressed="mixed"` kısmen). Öbür gruba dokunmaz.
+- **Yeni etkinlik:** varsayılan katman ilk açık katman; kapalı bir katmana kaydedilen etkinliğin katmanı açılır (ekrandan "kaybolmasın").
+- **Kapsam dışı (bilerek):** Bugün kartı ve bildirimler süzülmez — hatırlatma katmandan bağımsız gelir.

@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
+import { cookies } from 'next/headers';
 
 import { TakvimEkrani } from '@/components/panel/takvim/takvim-ekrani';
 import { Topbar } from '@/components/panel/topbar';
 import { gecerliGun } from '@/lib/takvim/bicim';
 import { gorunumAraligi, gorunumMu } from '@/lib/takvim/gorunum';
+import { KATMAN_COOKIE, katmanlariCoz } from '@/lib/takvim/katmanlar';
 import { appToday } from '@/server/services/_shared';
 import { fetchTakvim } from '@/server/services/takvim';
 
@@ -25,6 +27,7 @@ export default async function TakvimPage({ searchParams }: SayfaProps) {
   const tarih = gecerliGun(parametreler.tarih) ?? bugun;
   const { bas, son } = gorunumAraligi(gorunum, tarih);
   const { etkinlikler, olusumlar } = await fetchTakvim(bas, son);
+  const katmanlar = katmanlariCoz((await cookies()).get(KATMAN_COOKIE)?.value);
 
   return (
     <>
@@ -36,6 +39,7 @@ export default async function TakvimPage({ searchParams }: SayfaProps) {
           bugun={bugun}
           etkinlikler={etkinlikler}
           olusumlar={olusumlar}
+          katmanlar={katmanlar}
         />
       </main>
     </>

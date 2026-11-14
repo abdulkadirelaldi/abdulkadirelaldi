@@ -4,7 +4,7 @@ import { gecerliGun } from '@/lib/takvim/bicim';
 import { EN_COK_HATIRLATMA, EN_UZUN_HATIRLATMA_DK } from '@/lib/takvim/hatirlatma';
 import { haftaninGunu } from '@/lib/takvim/tekrar';
 import { differenceInAppDays } from '@/server/services/_shared/app-date';
-import { TakvimKategori, TakvimTekrar } from '@/types';
+import { TakvimKategori, TakvimKatman, TakvimTekrar } from '@/types';
 
 import { cuidSchema, dayDateSchema } from './common';
 
@@ -70,6 +70,8 @@ const etkinlikNesnesi = z.object({
   aciklama: bosMetin(2000, 'Açıklama en çok 2000 karakter.'),
   konum: bosMetin(200, 'Konum en çok 200 karakter.'),
   kategori: z.enum(TakvimKategori),
+  /** ADR-049. Verilmezse Kişisel — katmandan habersiz çağıranlar eskisi gibi çalışır. */
+  katman: z.enum(TakvimKatman).default('KISISEL'),
   tumGun: z.boolean(),
   baslangicGun: gunSchema,
   baslangicSaat: saatSchema,

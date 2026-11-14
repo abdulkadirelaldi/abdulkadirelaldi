@@ -7,7 +7,7 @@ import {
   toAppDay,
   type AppDay,
 } from '@/server/services/_shared/app-date';
-import type { TakvimKategori } from '@/types';
+import type { TakvimKategori, TakvimKatman } from '@/types';
 
 import {
   aralikBasligi,
@@ -108,6 +108,7 @@ export interface TakvimOlusumu {
   baslik: string;
   konum: string | null;
   kategori: TakvimKategori;
+  katman: TakvimKatman;
   tumGun: boolean;
   baslangic: string;
   bitis: string;
@@ -125,6 +126,7 @@ export interface TakvimEtkinligiVerisi {
   aciklama: string | null;
   konum: string | null;
   kategori: TakvimKategori;
+  katman: TakvimKatman;
   tumGun: boolean;
   baslangic: string;
   bitis: string;

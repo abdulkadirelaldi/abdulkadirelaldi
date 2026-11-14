@@ -3,7 +3,7 @@
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import { buttonClasses } from '@/components/ui/button';
 import type { TakvimKapsami } from '@/lib/schemas/takvim';
@@ -18,6 +18,12 @@ import {
   type TakvimGorunumu,
   type TakvimOlusumu,
 } from '@/lib/takvim/gorunum';
+import {
+  KATMAN_COOKIE,
+  KATMAN_COOKIE_MAX_AGE,
+  katmanlariYaz,
+  varsayilanKatman,
+} from '@/lib/takvim/katmanlar';
 import { cn } from '@/lib/utils/cn';
 import {
   takvimEtkinligiGuncelleAction,
@@ -25,11 +31,12 @@ import {
   takvimEtkinligiSilAction,
 } from '@/server/actions/takvim';
 import type { AppDay } from '@/server/services/_shared/app-date';
-import type { ApiResponse } from '@/types';
+import type { ApiResponse, TakvimKatman } from '@/types';
 
 import { Ajanda } from './ajanda';
 import { AyGorunumu } from './ay-gorunumu';
 import { EtkinlikDetayi } from './etkinlik-detayi';
+import { KatmanSuzgeci } from './katman-suzgeci';
 import { duzenlemeFormu, EtkinlikFormu, yeniForm, type FormDurumu } from './etkinlik-formu';
 import { Pencere } from './pencere';
 import { ZamanIzgarasi } from './zaman-izgarasi';
@@ -59,21 +66,38 @@ export function TakvimEkrani({
   tarih,
   bugun,
   etkinlikler,
-  olusumlar,
+  olusumlar: tumOlusumlar,
+  katmanlar,
 }: {
   gorunum: TakvimGorunumu;
   tarih: AppDay;
   bugun: AppDay;
   etkinlikler: readonly TakvimEtkinligiVerisi[];
   olusumlar: readonly TakvimOlusumu[];
+  /** Çerezden okunan açık katmanlar (ADR-049). */
+  katmanlar: readonly TakvimKatman[];
 }) {
   const router = useRouter();
   const [durum, setDurum] = useState<Durum>({ tur: 'kapali' });
+  const [acik, setAcik] = useState<readonly TakvimKatman[]>(katmanlar);
+  const olusumlar = useMemo(
+    () => tumOlusumlar.filter((o) => acik.includes(o.katman)),
+    [tumOlusumlar, acik],
+  );
+  const gizli = tumOlusumlar.length - olusumlar.length;
+
+  const katmanlariDegistir = (yeni: TakvimKatman[]) => {
+    setAcik(yeni);
+    const secure = window.location.protocol === 'https:' ? '; secure' : '';
+    document.cookie =
+      `${KATMAN_COOKIE}=${katmanlariYaz(yeni)}; path=/panel; max-age=${KATMAN_COOKIE_MAX_AGE}; samesite=lax` +
+      secure;
+  };
   const kapat = () => setDurum({ tur: 'kapali' });
   const { bas, son } = gorunumAraligi(gorunum, tarih);
 
   const yeni = (gun: AppDay, dk: number | null) =>
-    setDurum({ tur: 'yeni', form: yeniForm(gun, dk) });
+    setDurum({ tur: 'yeni', form: yeniForm(gun, dk, varsayilanKatman(acik)) });
   const ac = (olusum: TakvimOlusumu) => {
     const etkinlik = etkinlikler.find((e) => e.id === olusum.etkinlikId);
     if (etkinlik) setDurum({ tur: 'detay', olusum, etkinlik });
@@ -155,6 +179,19 @@ export function TakvimEkrani({
         </div>
       </div>
 
+      <KatmanSuzgeci acik={acik} degistir={katmanlariDegistir} />
+      {acik.length === 0 ? (
+        <p role="status" className="text-muted text-sm">
+          Hiçbir katman açık değil — etkinlikleri görmek için bir katman seç.
+        </p>
+      ) : (
+        gizli > 0 && (
+          <p role="status" className="text-muted text-xs">
+            Bu dönemde kapalı katmanlarda {gizli} etkinlik gizli.
+          </p>
+        )
+      )}
+
       {gorunum === 'ay' && (
         <AyGorunumu
           tarih={tarih}
@@ -194,7 +231,15 @@ export function TakvimEkrani({
               ilk={durum.form}
               seriTekrarli={false}
               vazgec={kapat}
-              kaydet={async (girdi) => bitti(await takvimEtkinligiOlusturAction(girdi))}
+              kaydet={async (girdi) => {
+                const sonuc = bitti(await takvimEtkinligiOlusturAction(girdi));
+                // Kapalı bir katmana eklenen etkinlik ekrandan "kaybolmasın": katmanı aç.
+                const { katman } = girdi as { katman?: TakvimKatman };
+                if (sonuc.ok && katman && !acik.includes(katman)) {
+                  katmanlariDegistir([...acik, katman]);
+                }
+                return sonuc;
+              }}
             />
           )}
           {durum.tur === 'detay' && (

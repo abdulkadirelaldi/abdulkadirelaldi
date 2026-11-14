@@ -55,6 +55,7 @@ function satir(e: Record<string, unknown> = {}) {
     aciklama: null,
     konum: null,
     kategori: 'SPOR',
+    katman: 'KISISEL' as const,
     tumGun: false,
     baslangic: appWallClockInstant('2026-11-12', 18 * 60 + 30),
     bitis: appWallClockInstant('2026-11-12', 19 * 60 + 45),
