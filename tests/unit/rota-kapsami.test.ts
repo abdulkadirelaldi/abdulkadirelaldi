@@ -233,6 +233,11 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     kanit: ["'/api/v1/panel/masa/yukle/ckyokboyle000000000000001/1'"],
     not: "2026-11-15 — bir parçanın ham baytları; `Content-Length` ve baytta 8 MiB sınırı, plana uymayan boyut reddedilir. Oturumsuz 401 e2e; kurallar entegrasyonda. ÖLÇÜLMEYEN: CI'da gerçek R2.",
   },
+  '/api/v1/panel/masa/sohbet': {
+    kapilar: ['e2e'],
+    kanit: ["'/api/v1/panel/masa/sohbet'", "test('masa: Claude paneli anahtar yokken"],
+    not: "2026-11-15 ADR-049 M4 — Claude paneli, NDJSON akışı. Oturumsuz 401 ve anahtarsız 'Claude bağlı değil' e2e'de; döngü (öneri doğrulama, uydurma kimlik reddi, ret/kesilmede geçmişin kirlenmemesi, önbellek işareti, model ve yedek ayarı) sahte istemciyle `tests/unit/masa/masa-sohbet.test.ts`te. Denetim `EXPORT` istekten önce, dakikada 10. ÖLÇÜLMEYEN: gerçek Claude API'siyle uçtan uca (CI'da ve yerelde anahtar yok; maliyet) — yanıt kalitesi ve gerçek araç çağrısı.",
+  },
   '/api/v1/dosya/[id]': {
     kapilar: ['e2e'],
     kanit: ["'/api/v1/dosya/ckyokboylebirdosya000000001'"],

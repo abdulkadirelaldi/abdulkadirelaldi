@@ -13,6 +13,7 @@ import { dolapOlusturAction, onerilenDolaplariKurAction } from '@/server/actions
 import type { AppDay } from '@/server/services/_shared/app-date';
 import type { DolapSecenegi, MasaUstu } from '@/server/services/masa';
 
+import { ClaudePaneli } from './claude-paneli';
 import { DolapFormu } from './dolap-formu';
 import { useGorevIslemleri } from './gorev-islemleri';
 import { GorevObegi, GorevSatiri } from './gorev-satiri';
@@ -49,7 +50,7 @@ export function MasaEkrani({
     ustu.gecikmis.length + ustu.bugun.length + ustu.yaklasan.length + ustu.teslimsiz.length;
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-6">
+    <div className="mx-auto flex max-w-4xl flex-col gap-6 pb-20 lg:pb-0">
       <div className="flex items-center gap-3">
         <p className="text-muted text-sm">
           {acikSayi === 0 ? 'Masan temiz.' : `${acikSayi} açık görev`}
@@ -151,6 +152,7 @@ export function MasaEkrani({
       </section>
 
       {gorev.pencere}
+      <ClaudePaneli dolapId={null} />
       {yeniDolap && (
         <Pencere baslik="Yeni dolap" kapat={() => setYeniDolap(false)}>
           <DolapFormu
