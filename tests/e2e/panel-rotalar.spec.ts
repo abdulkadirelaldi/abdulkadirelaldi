@@ -113,6 +113,8 @@ test('API uçları oturumsuz ve anahtarsız reddeder', async ({ request }) => {
     maxRedirects: 0,
   });
   expect(masaBitir.status()).toBe(401);
+  const sohbet = await request.post('/api/v1/panel/masa/sohbet', { data: {}, maxRedirects: 0 });
+  expect(sohbet.status()).toBe(401);
   const dosya = await request.get('/api/v1/dosya/ckyokboylebirdosya000000001');
   expect(dosya.status()).toBe(404);
 });

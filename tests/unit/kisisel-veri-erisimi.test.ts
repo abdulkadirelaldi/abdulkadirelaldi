@@ -74,6 +74,8 @@ export const KISISEL_MODULLER = [
   'masa-yukleme',
   // 2026-11-15 — Kıyı Medya köprüsü (M3): işin muhasebe rakamları ve çekim takvimi.
   'kiyi-medya',
+  // 2026-11-15 — Claude paneli (M4): notlar ve görevler Anthropic'e bağlam olarak gider.
+  'masa-sohbet',
 ] as const;
 
 /** Bu modüllerin İÇE AKTARILABİLDİĞİ yerler — başka her yer ihlal. */

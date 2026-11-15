@@ -2753,3 +2753,13 @@ Sahibi okulunu (Samsun Üniversitesi), işini (Kıyı Medya) ve takımını (Spe
 - **Ortam:** panel `KIYI_MEDYA_KOPRU_TOKEN` (+ isteğe bağlı `KIYI_MEDYA_KOPRU_URL`, varsayılan `https://api.kiyimedya.com/api/kopru`), Kıyı Medya `KOPRU_TOKEN` — aynı değer. İkisi de sunucu `.env`'ine elle yazılır.
 - **Ölçülen gerileme:** dolap sayfasında `<main>`i esnek sütuna çevirmek telefonda alt sayfa penceresinin "Kaydet"ini erişilemez yaptı (mobil e2e 4/4 kırmızı); geri alındı, kart sarmalayıcıda.
 - **ÖLÇÜLMEYEN:** iki gerçek sunucu arasında uçtan uca okuma (anahtarlar henüz tanımlı değil; Kıyı Medya köprüsü yayında değil).
+
+### Ek (2026-11-15) — M4 uygulandı: Claude paneli
+
+- **Uç:** `POST /api/v1/panel/masa/sohbet` (route handler, NDJSON akışı: `metin` · `oneri` · `bitti` · `hata`). Kimlik iki katman; her gönderim istekten ÖNCE `AuditLog`a `EXPORT` (hedef Anthropic; soru/yanıt yazılmaz, yalnızca dolap ve geçmiş uzunluğu); dakikada en çok 10 soru; gövde 512 KB, geçmiş 80 mesaj.
+- **Model ve ayar:** `claude-opus-5-5` (sağlıkla aynı), uyarlamalı düşünme (varsayılan), `effort: medium`, `max_tokens` 32k akışla, sunucu tarafı yedek (`fallbacks: "default"`), `refusal` ve `max_tokens` ayrıca ele alınır — kesilen tur geçmişe EKLENMEZ (sonuçsuz `tool_use` sonraki isteği bozardı).
+- **Bağlam:** sabit yönerge + bağlam bloğu (bugün, dolaplar ve raf yolları kimlikleriyle, açık dolabın görevleri ve notları) sistem isteminde; bağlam bloğunda `cache_control`. Not metinleri 40.000 karakter tavanında; sığmayanlar sayılıp Claude'a söylenir (gizlice kesilmez). Dosya/ses içerikleri gönderilmez, yalnızca adları.
+- **Araçlar yalnızca ÖNERİR:** `gorev_oner`, `etkinlik_oner` (`strict`, akışta girdi). Girdi önce aracın şekliyle, sonra GERÇEK kayıt şemasıyla (`gorevSchema`, `takvimEtkinligiSchema`) doğrulanır; bağlamda olmayan dolap/raf kimliği reddedilir — hata Claude'a `is_error` sonuç olarak döner. Geçen öneri ekranda kart; "Ekle" MEVCUT denetimli eylemle yazar. Hiçbir şey kendiliğinden kaydedilmez.
+- **Geçmiş istemcide:** sunucu sohbet saklamaz; her tamamlanan tur `yeniMesajlar`ı döner, istemci sonraki soruda geri gönderir (içerik blokları değiştirilmeden).
+- **Arayüz:** Masa ve dolap ekranlarında "Claude'a sor"; telefonda alt sayfa. Anahtar yoksa "Claude bağlı değil" (e2e).
+- **ÖLÇÜLMEYEN:** gerçek API'yle uçtan uca (anahtar yok, maliyet). Sohbet döngüsü sahte istemciyle sınandı.

@@ -179,3 +179,18 @@ test('masa: Kıyı Medya dolabı köprü bağlı değilken bunu söyler', async 
     await masaSondaSil(onek);
   }
 });
+
+/**
+ * CLAUDE PANELİ (ADR-049 M4): CI'da ve yerelde `ANTHROPIC_API_KEY` yok — panel açılır, soru
+ * gider, ekran "bağlı değil" der (sessizce boş kalmaz). Gerçek API burada ÇAĞRILMAZ.
+ */
+test('masa: Claude paneli anahtar yokken bunu söyler', async ({ page, baseURL }) => {
+  await oturumAc(page, baseURL);
+  await page.goto('/panel/masa');
+  await page.getByRole('button', { name: "Claude'a sor" }).click();
+  const pencere = page.getByRole('dialog', { name: 'Claude · Masa' });
+  await pencere.getByLabel("Claude'a sor").fill('Bu haftaki teslimlerim neler?');
+  await pencere.getByRole('button', { name: 'Gönder' }).click();
+  await expect(pencere.getByRole('alert')).toContainText('Claude bağlı değil');
+  await expect(pencere.getByText('Bu haftaki teslimlerim neler?')).toBeVisible();
+});

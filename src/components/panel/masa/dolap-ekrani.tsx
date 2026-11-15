@@ -23,6 +23,7 @@ import type { AppDay } from '@/server/services/_shared/app-date';
 import type { DolapAyrintisi, DolapSecenegi, GorevDto, OgeDto } from '@/server/services/masa';
 import type { ApiResponse } from '@/types';
 
+import { ClaudePaneli } from './claude-paneli';
 import { DolapFormu } from './dolap-formu';
 import { useGorevIslemleri } from './gorev-islemleri';
 import { GorevSatiri } from './gorev-satiri';
@@ -94,7 +95,7 @@ export function DolapEkrani({
   };
 
   return (
-    <div className="mx-auto flex max-w-4xl flex-col gap-5">
+    <div className="mx-auto flex max-w-4xl flex-col gap-5 pb-20 lg:pb-0">
       <div className="flex flex-wrap items-center gap-3">
         <span aria-hidden="true" className="text-3xl">
           {dolap.emoji}
@@ -229,6 +230,7 @@ export function DolapEkrani({
       )}
 
       {gorev.pencere}
+      <ClaudePaneli dolapId={dolap.id} dolapAdi={dolap.ad} />
 
       {rafPenceresi.tur !== 'kapali' && (
         <Pencere
