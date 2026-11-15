@@ -7,6 +7,7 @@ import { gecerliGun } from '@/lib/takvim/bicim';
 import { gorunumAraligi, gorunumMu } from '@/lib/takvim/gorunum';
 import { KATMAN_COOKIE, katmanlariCoz } from '@/lib/takvim/katmanlar';
 import { appToday } from '@/server/services/_shared';
+import { fetchKiyiTakvim } from '@/server/services/kiyi-medya';
 import { fetchGorevOlusumlari } from '@/server/services/masa';
 import { fetchTakvim } from '@/server/services/takvim';
 
@@ -27,12 +28,15 @@ export default async function TakvimPage({ searchParams }: SayfaProps) {
   const bugun = appToday();
   const tarih = gecerliGun(parametreler.tarih) ?? bugun;
   const { bas, son } = gorunumAraligi(gorunum, tarih);
-  const [{ etkinlikler, olusumlar: etkinlikOlusumlari }, gorevler] = await Promise.all([
+  const [{ etkinlikler, olusumlar: etkinlikOlusumlari }, gorevler, kiyi] = await Promise.all([
     fetchTakvim(bas, son),
     fetchGorevOlusumlari(bas, son),
+    fetchKiyiTakvim(bas, son),
   ]);
   // Masa görevlerinin teslimleri (ADR-049) etkinliklerle aynı sırada.
-  const olusumlar = [...etkinlikOlusumlari, ...gorevler].sort((a, b) =>
+  // Kıyı Medya köprüsü (ADR-049 M3): ulaşılamazsa ekran söyler, boş "veri yok" sanılmaz.
+  const kiyiOlusumlari = kiyi.durum === 'tamam' ? kiyi.veri : [];
+  const olusumlar = [...etkinlikOlusumlari, ...gorevler, ...kiyiOlusumlari].sort((a, b) =>
     a.baslangic.localeCompare(b.baslangic),
   );
   const katmanlar = katmanlariCoz((await cookies()).get(KATMAN_COOKIE)?.value);
@@ -48,6 +52,7 @@ export default async function TakvimPage({ searchParams }: SayfaProps) {
           etkinlikler={etkinlikler}
           olusumlar={olusumlar}
           katmanlar={katmanlar}
+          uyari={kiyi.durum === 'hata' ? `Kıyı Medya takvimi gösterilemiyor: ${kiyi.mesaj}` : null}
         />
       </main>
     </>

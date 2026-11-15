@@ -68,6 +68,7 @@ export function TakvimEkrani({
   etkinlikler,
   olusumlar: tumOlusumlar,
   katmanlar,
+  uyari = null,
 }: {
   gorunum: TakvimGorunumu;
   tarih: AppDay;
@@ -76,6 +77,8 @@ export function TakvimEkrani({
   olusumlar: readonly TakvimOlusumu[];
   /** Çerezden okunan açık katmanlar (ADR-049). */
   katmanlar: readonly TakvimKatman[];
+  /** Dış kaynak (Kıyı Medya) okunamadıysa ekranda söylenecek metin. */
+  uyari?: string | null;
 }) {
   const router = useRouter();
   const [durum, setDurum] = useState<Durum>({ tur: 'kapali' });
@@ -101,7 +104,10 @@ export function TakvimEkrani({
   const ac = (olusum: TakvimOlusumu) => {
     // Görev teslimi gibi izdüşümler kendi ekranında açılır (ADR-049).
     if (olusum.baglanti) {
-      router.push(olusum.baglanti);
+      // Dış adres (Kıyı Medya yönetim paneli) yeni sekmede; iç adres istemci gezinmesiyle.
+      if (/^https?:\/\//.test(olusum.baglanti)) {
+        window.open(olusum.baglanti, '_blank', 'noopener,noreferrer');
+      } else router.push(olusum.baglanti);
       return;
     }
     const etkinlik = etkinlikler.find((e) => e.id === olusum.etkinlikId);
@@ -185,6 +191,11 @@ export function TakvimEkrani({
       </div>
 
       <KatmanSuzgeci acik={acik} degistir={katmanlariDegistir} />
+      {uyari && acik.includes('KIYI_MEDYA') && (
+        <p role="alert" className="text-danger text-sm">
+          {uyari}
+        </p>
+      )}
       {acik.length === 0 ? (
         <p role="status" className="text-muted text-sm">
           Hiçbir katman açık değil — etkinlikleri görmek için bir katman seç.
