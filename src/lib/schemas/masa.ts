@@ -3,6 +3,8 @@ import * as z from 'zod';
 import { gecerliGun } from '@/lib/takvim/bicim';
 import { GorevDurumu, GorevOnceligi, TakvimKatman } from '@/types';
 
+import { MASA_EN_BUYUK_BAYT } from '@/lib/masa/dosya-sinirlari';
+
 import { cuidSchema, dayDateSchema } from './common';
 
 /**
@@ -94,3 +96,36 @@ export type GorevGuncelleGirdisi = z.infer<typeof gorevGuncelleSchema>;
 
 export const gorevDurumuSchema = z.object({ id: cuidSchema, durum: z.enum(GorevDurumu) });
 export type GorevDurumuGirdisi = z.infer<typeof gorevDurumuSchema>;
+
+/* ── Öğeler (M2b) ─────────────────────────────────────────────────────── */
+
+export const notSchema = z.object({
+  dolapId: cuidSchema,
+  rafId: cuidSchema.nullish().transform((v) => v ?? null),
+  baslik: ad(160, 'Başlık'),
+  metin: bosMetin(50_000, 'Not en çok 50.000 karakter.'),
+});
+export type NotGirdisi = z.infer<typeof notSchema>;
+
+export const notGuncelleSchema = z.object({
+  id: cuidSchema,
+  baslik: ad(160, 'Başlık'),
+  metin: bosMetin(50_000, 'Not en çok 50.000 karakter.'),
+});
+export type NotGuncelleGirdisi = z.infer<typeof notGuncelleSchema>;
+
+export const ogeAdiSchema = z.object({ id: cuidSchema, baslik: ad(160, 'Başlık') });
+export type OgeAdiGirdisi = z.infer<typeof ogeAdiSchema>;
+
+/** Parçalı yüklemenin başlangıcı — tür ilk parçanın baytlarından belirlenir, burada değil. */
+export const yuklemeBaslatSchema = z.object({
+  dolapId: cuidSchema,
+  rafId: cuidSchema.nullish().transform((v) => v ?? null),
+  dosyaAdi: ad(255, 'Dosya adı'),
+  boyut: z
+    .number()
+    .int()
+    .min(1, { error: 'Dosya boş.' })
+    .max(MASA_EN_BUYUK_BAYT, { error: 'Dosya en fazla 300 MB olabilir.' }),
+});
+export type YuklemeBaslatGirdisi = z.infer<typeof yuklemeBaslatSchema>;

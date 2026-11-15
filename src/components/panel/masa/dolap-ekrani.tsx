@@ -1,8 +1,8 @@
 'use client';
 
-import { FolderPlus, Pencil, Plus } from 'lucide-react';
+import { FolderPlus, Paperclip, Pencil, Plus, StickyNote } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Alan } from '@/components/panel/alan';
 import { Pencere } from '@/components/panel/takvim/pencere';
@@ -20,12 +20,13 @@ import {
   rafSilAction,
 } from '@/server/actions/masa';
 import type { AppDay } from '@/server/services/_shared/app-date';
-import type { DolapAyrintisi, DolapSecenegi, GorevDto } from '@/server/services/masa';
+import type { DolapAyrintisi, DolapSecenegi, GorevDto, OgeDto } from '@/server/services/masa';
 import type { ApiResponse } from '@/types';
 
 import { DolapFormu } from './dolap-formu';
 import { useGorevIslemleri } from './gorev-islemleri';
 import { GorevSatiri } from './gorev-satiri';
+import { OgeSatiri, useOgeIslemleri } from './oge-islemleri';
 
 type RafPenceresi =
   { tur: 'kapali' } | { tur: 'yeni'; ustRaf: RafYolu | null } | { tur: 'duzenle'; raf: RafYolu };
@@ -46,16 +47,34 @@ export function DolapEkrani({
 }) {
   const router = useRouter();
   const gorev = useGorevIslemleri(secenekler);
+  const oge = useOgeIslemleri();
+  // Sunucudan taze dolap geldi: yerel güncel kopyalar artık gereksiz.
+  const { sifirla: gorevSifirla } = gorev;
+  const { sifirla: ogeSifirla } = oge;
+  useEffect(() => {
+    gorevSifirla();
+    ogeSifirla();
+  }, [dolap, gorevSifirla, ogeSifirla]);
   const [rafPenceresi, setRafPenceresi] = useState<RafPenceresi>({ tur: 'kapali' });
   const [dolapPenceresi, setDolapPenceresi] = useState(false);
   const yollar = rafYollari(dolap.raflar);
   const rafGorevleri = new Map<string | null, GorevDto[]>();
-  for (const g of dolap.acik) {
+  for (const g of gorev.uygula(dolap.acik)) {
     const k = rafGorevleri.get(g.rafId) ?? [];
     k.push(g);
     rafGorevleri.set(g.rafId, k);
   }
   const rafsiz = rafGorevleri.get(null) ?? [];
+  const rafOgeleri = new Map<string | null, OgeDto[]>();
+  for (const o of oge.uygula(dolap.ogeler)) {
+    const k = rafOgeleri.get(o.rafId) ?? [];
+    k.push(o);
+    rafOgeleri.set(o.rafId, k);
+  }
+  const rafsizOgeler = rafOgeleri.get(null) ?? [];
+  const ogeSatiri = (o: OgeDto) => <OgeSatiri key={o.id} o={o} ac={oge.ac} />;
+  const kucukDugme =
+    'focus-ring text-muted hover:text-primary flex size-9 items-center justify-center rounded-full';
   const satir = (g: GorevDto) => (
     <GorevSatiri
       key={g.id}
@@ -85,10 +104,18 @@ export function DolapEkrani({
           Takvimde {TAKVIM_KATMANLARI[dolap.katman].ad} katmanı
           {dolap.arsivlendi && ' · Arşivde'}
         </p>
-        <div className="ml-auto flex gap-2">
+        <div className="ml-auto flex flex-wrap gap-2">
           <Button size="sm" variant="ghost" onClick={() => setDolapPenceresi(true)}>
             <Pencil className="size-4" aria-hidden="true" />
             Dolabı düzenle
+          </Button>
+          <Button size="sm" variant="secondary" onClick={() => oge.yeniNot(dolap.id, null)}>
+            <StickyNote className="size-4" aria-hidden="true" />
+            Not
+          </Button>
+          <Button size="sm" variant="secondary" onClick={() => oge.dosyaSec(dolap.id, null)}>
+            <Paperclip className="size-4" aria-hidden="true" />
+            Dosya yükle
           </Button>
           <Button size="sm" onClick={() => gorev.yeniGorev({ dolapId: dolap.id })}>
             <Plus className="size-4" aria-hidden="true" />
@@ -97,10 +124,12 @@ export function DolapEkrani({
         </div>
       </div>
       {gorev.hata && <FormError>{gorev.hata}</FormError>}
+      {oge.ekler}
 
-      {rafsiz.length > 0 && (
+      {(rafsiz.length > 0 || rafsizOgeler.length > 0) && (
         <ul className="rounded-card border-line bg-surface divide-line divide-y border">
           {rafsiz.map(satir)}
+          {rafsizOgeler.map(ogeSatiri)}
         </ul>
       )}
 
@@ -127,6 +156,7 @@ export function DolapEkrani({
           <ul className="flex flex-col gap-2">
             {yollar.map((r) => {
               const gorevler = rafGorevleri.get(r.id) ?? [];
+              const ogeler = rafOgeleri.get(r.id) ?? [];
               return (
                 <li
                   key={r.id}
@@ -137,15 +167,33 @@ export function DolapEkrani({
                     <span aria-hidden="true">📂</span>
                     <h4 className="text-primary min-w-0 flex-1 truncate text-sm font-semibold">
                       {r.ad}
-                      <span className="text-muted ml-1.5 font-normal">· {gorevler.length}</span>
+                      <span className="text-muted ml-1.5 font-normal">
+                        · {gorevler.length + ogeler.length}
+                      </span>
                     </h4>
                     <button
                       type="button"
                       aria-label={`${r.ad} rafına görev ekle`}
                       onClick={() => gorev.yeniGorev({ dolapId: dolap.id, rafId: r.id })}
-                      className="focus-ring text-muted hover:text-primary flex size-9 items-center justify-center rounded-full"
+                      className={kucukDugme}
                     >
                       <Plus className="size-4" aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`${r.ad} rafına not ekle`}
+                      onClick={() => oge.yeniNot(dolap.id, r.id)}
+                      className={kucukDugme}
+                    >
+                      <StickyNote className="size-4" aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`${r.ad} rafına dosya yükle`}
+                      onClick={() => oge.dosyaSec(dolap.id, r.id)}
+                      className={kucukDugme}
+                    >
+                      <Paperclip className="size-4" aria-hidden="true" />
                     </button>
                     <button
                       type="button"
@@ -156,9 +204,10 @@ export function DolapEkrani({
                       <Pencil className="size-4" aria-hidden="true" />
                     </button>
                   </div>
-                  {gorevler.length > 0 && (
+                  {gorevler.length + ogeler.length > 0 && (
                     <ul className="divide-line border-line divide-y border-t">
                       {gorevler.map(satir)}
+                      {ogeler.map(ogeSatiri)}
                     </ul>
                   )}
                 </li>
@@ -174,7 +223,7 @@ export function DolapEkrani({
             Tamamlananlar · {dolap.tamamlanan.length}
           </summary>
           <ul className="rounded-card border-line bg-surface divide-line mt-2 divide-y border">
-            {dolap.tamamlanan.map(satir)}
+            {gorev.uygula(dolap.tamamlanan).map(satir)}
           </ul>
         </details>
       )}

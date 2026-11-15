@@ -322,7 +322,7 @@ const komutlar: Record<string, (arg?: string) => Promise<unknown>> = {
      * Egzersiz ve alışkanlık arayüzden SİLİNEMİYOR (yalnızca arşiv), yani
      * test izi ancak `kisiselSondaSil` ile gider.
      */
-    const [egzersiz, aliskanlik, takvim, dolap, gorev] = await Promise.all([
+    const [egzersiz, aliskanlik, takvim, dolap, gorev, oge] = await Promise.all([
       db.exercise.count({ where: { name: { startsWith: 'e2e', mode: 'insensitive' } } }),
       db.habit.count({ where: { name: { startsWith: 'e2e', mode: 'insensitive' } } }),
       // Takvim (2026-11-10): `takvimSondaSil` başlık önekiyle siler; çökerse burada görünür.
@@ -330,8 +330,9 @@ const komutlar: Record<string, (arg?: string) => Promise<unknown>> = {
       // Masa (ADR-049): `masaSondaSil` dolap adı ve görev başlığı önekiyle siler.
       db.dolap.count({ where: { ad: { startsWith: 'e2e', mode: 'insensitive' } } }),
       db.gorev.count({ where: { baslik: { startsWith: 'e2e', mode: 'insensitive' } } }),
+      db.masaOgesi.count({ where: { baslik: { startsWith: 'e2e', mode: 'insensitive' } } }),
     ]);
-    const kisisel = egzersiz + aliskanlik + takvim + dolap + gorev;
+    const kisisel = egzersiz + aliskanlik + takvim + dolap + gorev + oge;
 
     return {
       proje,
@@ -367,6 +368,13 @@ const komutlar: Record<string, (arg?: string) => Promise<unknown>> = {
     const g = await db.gorev.deleteMany({
       where: { OR: [{ baslik: { startsWith: onek } }, { dolapId: { in: idler } }] },
     });
+    // Öğeler (M2b) raflardan ÖNCE (Restrict). Dosyalı öğenin R2 nesnesi e2e'de yok: CI'da R2
+    // anahtarı yok ve kalıcı e2e yalnızca not açıyor.
+    const ogeler = (
+      await db.masaOgesi.findMany({ where: { dolapId: { in: idler } }, select: { id: true } })
+    ).map((o) => o.id);
+    await db.attachment.deleteMany({ where: { entity: 'MASA_OGESI', entityId: { in: ogeler } } });
+    await db.masaOgesi.deleteMany({ where: { id: { in: ogeler } } });
     for (let kat = 0; kat < 4; kat++) {
       await db.raf.deleteMany({ where: { dolapId: { in: idler }, altRaflar: { none: {} } } });
     }

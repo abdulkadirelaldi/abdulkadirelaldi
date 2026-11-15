@@ -70,6 +70,8 @@ export const KISISEL_MODULLER = [
   'takvim',
   // 2026-11-14 — masa (ADR-049): ödev, iş görevleri; mailden gelecek okul metni.
   'masa',
+  // 2026-11-15 — masa öğeleri (M2b): ders kaydı, ödev belgesi. Eylem dosyası yok (route handler).
+  'masa-yukleme',
 ] as const;
 
 /** Bu modüllerin İÇE AKTARILABİLDİĞİ yerler — başka her yer ihlal. */
@@ -78,6 +80,13 @@ const IZINLI_ONEKLER = [
   'src/components/panel/',
   'src/server/actions/',
   'src/server/services/',
+  /*
+   * 2026-11-15 (ADR-049 M2b) — Masa'nın PARÇALI YÜKLEME uçları. Server Action'ın 1 MB gövde
+   * sınırı yüzünden route handler (ADR-044'ün eklenti ucuyla aynı gerekçe). Bu önek PUBLIC
+   * DEĞİL: ara katman `/api/v1/panel/*`ı oturumsuz 401'e çeviriyor (§8.5) ve her uç ayrıca
+   * `currentActorId` ile başlıyor (ADR-035/B). Önbellek yok (`no-store`).
+   */
+  'src/app/api/v1/panel/',
 ] as const;
 
 /**

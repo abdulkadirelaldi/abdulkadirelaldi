@@ -7,6 +7,9 @@ import {
   gorevDurumuSchema,
   gorevGuncelleSchema,
   gorevSchema,
+  notGuncelleSchema,
+  notSchema,
+  ogeAdiSchema,
   rafGuncelleSchema,
   rafSchema,
 } from '@/lib/schemas/masa';
@@ -21,11 +24,15 @@ import {
   gorevOlustur,
   gorevSil,
   MasaHatasi,
+  notGuncelle,
+  notOlustur,
+  ogeAdiDegistir,
   onerilenDolaplariKur,
   rafGuncelle,
   rafOlustur,
   rafSil,
 } from '@/server/services/masa';
+import { ogeSil } from '@/server/services/masa-yukleme';
 import type { AuditAction } from '@/types';
 
 import { currentActorId, toFailure, unauthorized } from './_shared';
@@ -43,7 +50,7 @@ import { currentActorId, toFailure, unauthorized } from './_shared';
 async function kaydet<T extends { id: string }>(
   actorId: string,
   action: AuditAction,
-  entity: 'Dolap' | 'Raf' | 'Gorev',
+  entity: 'Dolap' | 'Raf' | 'Gorev' | 'MasaOgesi',
   diff: Record<string, unknown>,
   is: () => Promise<T>,
   etiket: string,
@@ -228,4 +235,63 @@ export async function gorevSilAction(raw: unknown) {
   const parsed = parseOrFail(entityIdSchema, raw);
   if (!parsed.ok) return parsed.failure;
   return kaydet(actorId, 'DELETE', 'Gorev', {}, () => gorevSil(parsed.data.id), 'masa:gorev-sil');
+}
+
+/* ── Öğeler (M2b) — dosya/ses YÜKLEMESİ route handler'da (`/api/v1/panel/masa/yukle`) ── */
+
+export async function notOlusturAction(raw: unknown) {
+  const actorId = await currentActorId();
+  if (!actorId) return unauthorized();
+  const parsed = parseOrFail(notSchema, raw);
+  if (!parsed.ok) return parsed.failure;
+  const v = parsed.data;
+  return kaydet(
+    actorId,
+    'CREATE',
+    'MasaOgesi',
+    { tur: 'NOT', dolapId: v.dolapId, rafId: v.rafId, changed: 'baslik,metin' },
+    () => notOlustur(v),
+    'masa:not-olustur',
+  );
+}
+
+export async function notGuncelleAction(raw: unknown) {
+  const actorId = await currentActorId();
+  if (!actorId) return unauthorized();
+  const parsed = parseOrFail(notGuncelleSchema, raw);
+  if (!parsed.ok) return parsed.failure;
+  const v = parsed.data;
+  return kaydet(
+    actorId,
+    'UPDATE',
+    'MasaOgesi',
+    { tur: 'NOT', changed: 'baslik,metin' },
+    () => notGuncelle(v),
+    'masa:not-guncelle',
+  );
+}
+
+export async function ogeAdiAction(raw: unknown) {
+  const actorId = await currentActorId();
+  if (!actorId) return unauthorized();
+  const parsed = parseOrFail(ogeAdiSchema, raw);
+  if (!parsed.ok) return parsed.failure;
+  const v = parsed.data;
+  return kaydet(
+    actorId,
+    'UPDATE',
+    'MasaOgesi',
+    { changed: 'baslik' },
+    () => ogeAdiDegistir(v),
+    'masa:oge-adi',
+  );
+}
+
+/** Not, dosya ya da ses kaydı — dosyalıysa R2 nesnesi de gider. */
+export async function ogeSilAction(raw: unknown) {
+  const actorId = await currentActorId();
+  if (!actorId) return unauthorized();
+  const parsed = parseOrFail(entityIdSchema, raw);
+  if (!parsed.ok) return parsed.failure;
+  return kaydet(actorId, 'DELETE', 'MasaOgesi', {}, () => ogeSil(parsed.data.id), 'masa:oge-sil');
 }

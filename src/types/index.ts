@@ -29,6 +29,8 @@ export {
   GorevDurumu,
   GorevKaynagi,
   GorevOnceligi,
+  MasaOgeDurumu,
+  MasaOgeTuru,
   GoalPeriod,
   GoalStatus,
   MuscleGroup,
