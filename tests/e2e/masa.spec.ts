@@ -147,3 +147,35 @@ test('masa: dolap, raf, görev; masa üstü, tamamla ve takvimde katman', async 
     await masaSondaSil(onek);
   }
 });
+
+/**
+ * KIYI MEDYA KÖPRÜSÜ (ADR-049 M3): köprü anahtarı tanımlı değilken (CI, yerel) Kıyı Medya
+ * katmanındaki dolap bunu SÖYLER — sıfır gelir/gider gösterip "her şey yolunda" demez.
+ */
+test('masa: Kıyı Medya dolabı köprü bağlı değilken bunu söyler', async ({
+  page,
+  baseURL,
+}, info) => {
+  const onek = `e2e-masa-kiyi-${info.project.name}-${Date.now()}`;
+  await oturumAc(page, baseURL);
+  try {
+    await page.goto('/panel/masa');
+    await page.getByRole('button', { name: 'Yeni dolap' }).click();
+    const pencere = page.getByRole('dialog', { name: 'Yeni dolap' });
+    await pencere.getByLabel('Dolap adı').fill(`${onek} Kıyı`);
+    await pencere
+      .getByRole('radiogroup', { name: 'Takvim katmanı' })
+      .getByRole('radio', { name: 'Kıyı Medya' })
+      .click();
+    await pencere.getByRole('button', { name: 'Kaydet', exact: true }).click();
+    const ozet = page.getByRole('region', { name: 'Kıyı Medya — bu ay' });
+    await expect(ozet).toContainText('Köprü bağlı değil');
+    await expect(ozet).not.toContainText('₺');
+    await expect(ozet.getByRole('link', { name: 'Kıyı Medya paneli' })).toHaveAttribute(
+      'href',
+      /\/admin\/dashboard$/,
+    );
+  } finally {
+    await masaSondaSil(onek);
+  }
+});

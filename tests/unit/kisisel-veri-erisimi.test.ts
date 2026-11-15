@@ -72,6 +72,8 @@ export const KISISEL_MODULLER = [
   'masa',
   // 2026-11-15 — masa öğeleri (M2b): ders kaydı, ödev belgesi. Eylem dosyası yok (route handler).
   'masa-yukleme',
+  // 2026-11-15 — Kıyı Medya köprüsü (M3): işin muhasebe rakamları ve çekim takvimi.
+  'kiyi-medya',
 ] as const;
 
 /** Bu modüllerin İÇE AKTARILABİLDİĞİ yerler — başka her yer ihlal. */
