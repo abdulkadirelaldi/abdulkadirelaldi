@@ -152,7 +152,10 @@ test('masa: dolap, raf, görev; masa üstü, tamamla ve takvimde katman', async 
  * KIYI MEDYA KÖPRÜSÜ (ADR-049 M3): köprü anahtarı tanımlı değilken (CI, yerel) Kıyı Medya
  * katmanındaki dolap bunu SÖYLER — sıfır gelir/gider gösterip "her şey yolunda" demez.
  */
-test('masa: Kıyı Medya dolabı köprü bağlı değilken bunu söyler', async ({ page, baseURL }, info) => {
+test('masa: Kıyı Medya dolabı köprü bağlı değilken bunu söyler', async ({
+  page,
+  baseURL,
+}, info) => {
   const onek = `e2e-masa-kiyi-${info.project.name}-${Date.now()}`;
   await oturumAc(page, baseURL);
   try {
