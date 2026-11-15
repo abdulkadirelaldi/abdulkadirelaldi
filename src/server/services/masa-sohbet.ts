@@ -223,7 +223,11 @@ function dolapBaglami(d: DolapAyrintisi): string {
   }
   if (dosyalar.length > 0) {
     satirlar.push('### Dosyalar ve ses kayıtları (yalnızca adları — içerikleri sende yok)');
-    for (const o of dosyalar) satirlar.push(`- ${o.tur === 'SES' ? '🎙️' : '📄'} ${o.baslik}`);
+    for (const o of dosyalar) {
+      satirlar.push(`- ${o.tur === 'SES' ? '🎙️' : '📄'} ${o.baslik}`);
+      // Ders kaydının özeti (M6) bağlama girer; tam yazı girmez (uzun).
+      if (o.tur === 'SES' && o.ozet) satirlar.push(`  Özet:\n${o.ozet.replace(/^/gm, '  ')}`);
+    }
   }
   return satirlar.join('\n');
 }

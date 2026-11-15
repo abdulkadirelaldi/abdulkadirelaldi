@@ -2763,3 +2763,13 @@ Sahibi okulunu (Samsun Üniversitesi), işini (Kıyı Medya) ve takımını (Spe
 - **Geçmiş istemcide:** sunucu sohbet saklamaz; her tamamlanan tur `yeniMesajlar`ı döner, istemci sonraki soruda geri gönderir (içerik blokları değiştirilmeden).
 - **Arayüz:** Masa ve dolap ekranlarında "Claude'a sor"; telefonda alt sayfa. Anahtar yoksa "Claude bağlı değil" (e2e).
 - **ÖLÇÜLMEYEN:** gerçek API'yle uçtan uca (anahtar yok, maliyet). Sohbet döngüsü sahte istemciyle sınandı.
+
+### Ek (2026-11-15) — M6 uygulandı: Mac köprüsü (ses → yazı → özet)
+
+- **Ses Mac'te kalır:** ders kaydı sahibinin Mac'inde `whisper.cpp` (`large-v3-turbo`, Türkçe; Apple M2'de 10 sn'lik kayıt ~3 sn) ile yazıya dökülür; panel yalnızca yazıyı alır. Ücretsiz.
+- **Anahtar panelden:** `MasaKoprusu` (`aemk_…`, yalnızca SHA-256 özeti; `SaglikBaglantisi` kalıbı) — Masa'daki "Ses kayıtları → yazı (Mac)" kartından üretilir, bir kez gösterilir; sunucu `.env`'ine dokunmak GEREKMEZ.
+- **Sıra:** yüklemesi biten ses kaydı `SIRADA`; Mac `POST /api/v1/kopru/mac/is` ile alır (`ISLENIYOR`, koşullu tek güncelleme — iki alım aynı işi alamaz, ölçüldü), `GET …/[id]/ses` ile indirir (yalnızca İŞLENEN iş), `POST …/[id]` ile `{metin}` ya da `{hata}` döner. 2 saatte bitmeyen iş yeniden alınır (Mac uyudu).
+- **Özet:** yazı ÖNCE kaydedilir; Claude anahtarı varsa ders özeti (özet · önemli noktalar · sınavda çıkabilecekler · belirsiz yerler) `ozet`e, öncesinde `EXPORT` denetimi. Özet Claude panelinin bağlamına girer; tam yazı girmez.
+- **Mac istemcisi:** `kopru/mac/masa-kopru.mjs` (bağımlılıksız Node; ffmpeg → 16 kHz WAV → whisper-cli) ve `kopru/mac/kur.sh` (model, izin 600 ayar dosyası, launchd `com.aelaldi.masa-kopru`, oturum açılınca başlar, düşerse yeniden kalkar).
+- **Ölçüldü (yerel, tek seferlik):** gerçek R2'ye yüklenen Türkçe m4a → SIRADA → köprü betiği → yazı panele kelimesi kelimesine, TAMAM; özet yok (anahtar yok). Deneme verisi silindi, R2 `masa/` boş.
+- **Not:** düz Node (`--experimental-strip-types`) parametre özellikli sınıfları (`readonly kod`) çalıştıramıyor; yerel betikler `--experimental-transform-types` ile koşar. Uygulama derlemesi etkilenmez.

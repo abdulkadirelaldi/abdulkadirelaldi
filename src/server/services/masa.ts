@@ -23,6 +23,7 @@ import type {
   GorevOnceligi,
   MasaOgeDurumu,
   MasaOgeTuru,
+  SesYaziDurumu,
   TakvimKatman,
 } from '@/types';
 
@@ -219,6 +220,10 @@ export interface OgeDto {
   boyut: number | null;
   /** Sunum kimliği — `/api/v1/dosya/<dosyaId>`; yükleme bitmediyse `null`. */
   dosyaId: string | null;
+  /** Ses kaydının Mac'te yazıya dökülmesi (M6). */
+  yaziDurumu: SesYaziDurumu | null;
+  yaziHata: string | null;
+  ozet: string | null;
   createdAt: string;
 }
 
@@ -244,6 +249,9 @@ async function dolapOgeleri(dolapId: string, client: typeof db): Promise<OgeDto[
     mime: o.mime,
     boyut: o.boyut,
     dosyaId: dosyaKimligi.get(o.id) ?? null,
+    yaziDurumu: o.yaziDurumu,
+    yaziHata: o.yaziHata,
+    ozet: o.ozet,
     createdAt: o.createdAt.toISOString(),
   }));
 }

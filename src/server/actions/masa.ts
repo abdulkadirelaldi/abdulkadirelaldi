@@ -32,6 +32,11 @@ import {
   rafOlustur,
   rafSil,
 } from '@/server/services/masa';
+import {
+  kopruAnahtariSil,
+  kopruAnahtariUret,
+  yaziyiYenidenSirala,
+} from '@/server/services/masa-koprusu';
 import { ogeSil } from '@/server/services/masa-yukleme';
 import type { AuditAction } from '@/types';
 
@@ -294,4 +299,53 @@ export async function ogeSilAction(raw: unknown) {
   const parsed = parseOrFail(entityIdSchema, raw);
   if (!parsed.ok) return parsed.failure;
   return kaydet(actorId, 'DELETE', 'MasaOgesi', {}, () => ogeSil(parsed.data.id), 'masa:oge-sil');
+}
+
+/* ── Mac köprüsü (M6) ──────────────────────────────────────────────────── */
+
+/** Anahtar bir kez döner; yeniden üretmek eskisini geçersiz kılar. */
+export async function macAnahtariUretAction(): Promise<ApiResponse<{ anahtar: string }>> {
+  const actorId = await currentActorId();
+  if (!actorId) return unauthorized();
+  try {
+    const anahtar = await kopruAnahtariUret(actorId);
+    await writeAuditLog(
+      { actorId, action: 'CREATE', entity: 'MasaKoprusu', entityId: actorId },
+      db,
+    );
+    return ok({ anahtar });
+  } catch (error) {
+    return toFailure('masa:mac-anahtar-uret', error);
+  }
+}
+
+export async function macAnahtariSilAction(): Promise<ApiResponse<{ ok: true }>> {
+  const actorId = await currentActorId();
+  if (!actorId) return unauthorized();
+  try {
+    await kopruAnahtariSil(actorId);
+    await writeAuditLog(
+      { actorId, action: 'DELETE', entity: 'MasaKoprusu', entityId: actorId },
+      db,
+    );
+    return ok({ ok: true });
+  } catch (error) {
+    return toFailure('masa:mac-anahtar-sil', error);
+  }
+}
+
+/** Hata almış (ya da beğenilmemiş) bir yazıyı yeniden sıraya koyar. */
+export async function yaziYenidenAction(raw: unknown) {
+  const actorId = await currentActorId();
+  if (!actorId) return unauthorized();
+  const parsed = parseOrFail(entityIdSchema, raw);
+  if (!parsed.ok) return parsed.failure;
+  return kaydet(
+    actorId,
+    'UPDATE',
+    'MasaOgesi',
+    { context: 'yazi-yeniden' },
+    () => yaziyiYenidenSirala(parsed.data.id),
+    'masa:yazi-yeniden',
+  );
 }

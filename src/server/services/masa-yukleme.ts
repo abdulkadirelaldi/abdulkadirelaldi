@@ -245,7 +245,14 @@ export async function yuklemeBitir(
       });
       await tx.masaOgesi.update({
         where: { id },
-        data: { durum: 'HAZIR', yuklemeKey: null, yuklemeId: null, parcalar: Prisma.DbNull },
+        data: {
+          durum: 'HAZIR',
+          yuklemeKey: null,
+          yuklemeId: null,
+          parcalar: Prisma.DbNull,
+          // Ses kaydı Mac köprüsünün sırasına girer (ADR-049 M6).
+          ...(o.tur === 'SES' ? { yaziDurumu: 'SIRADA' as const } : {}),
+        },
       });
       return ek;
     });

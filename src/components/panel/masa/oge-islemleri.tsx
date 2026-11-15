@@ -16,6 +16,7 @@ import {
   notOlusturAction,
   ogeAdiAction,
   ogeSilAction,
+  yaziYenidenAction,
 } from '@/server/actions/masa';
 import type { OgeDto } from '@/server/services/masa';
 import type { ApiResponse } from '@/types';
@@ -362,6 +363,8 @@ function DosyaGorunumu({
         {[o.dosyaAdi, o.boyut !== null ? boyutMetni(o.boyut) : null].filter(Boolean).join(' · ')}
       </p>
 
+      {o.tur === 'SES' && o.durum === 'HAZIR' && <SesYazisi o={o} />}
+
       {adres && o.tur !== 'SES' && (
         <a
           href={adres}
@@ -401,6 +404,63 @@ function DosyaGorunumu({
           <SilDugmesi bekliyor={bekliyor} sil={() => void calistir(sil)} />
         </div>
       </form>
+    </div>
+  );
+}
+
+const YAZI_DURUMU = {
+  SIRADA: 'Mac köprüsünde yazıya dökülmeyi bekliyor.',
+  ISLENIYOR: "Mac'te yazıya dökülüyor…",
+} as const;
+
+/** Ses kaydının yazısı ve özeti (ADR-049 M6). */
+function SesYazisi({ o }: { o: OgeDto }) {
+  const router = useRouter();
+  const [bekliyor, setBekliyor] = useState(false);
+  const yeniden = async () => {
+    setBekliyor(true);
+    const s = await yaziYenidenAction({ id: o.id });
+    setBekliyor(false);
+    if (s.ok) router.refresh();
+  };
+  if (o.yaziDurumu === 'SIRADA' || o.yaziDurumu === 'ISLENIYOR') {
+    return (
+      <p role="status" className="text-muted text-sm">
+        {YAZI_DURUMU[o.yaziDurumu]}
+      </p>
+    );
+  }
+  if (o.yaziDurumu === 'HATA') {
+    return (
+      <div className="flex flex-col gap-2">
+        <p role="alert" className="text-danger text-sm">
+          Yazıya dökülemedi: {o.yaziHata ?? 'bilinmeyen hata'}
+        </p>
+        <Button size="sm" variant="secondary" disabled={bekliyor} onClick={() => void yeniden()}>
+          Yeniden dene
+        </Button>
+      </div>
+    );
+  }
+  if (o.yaziDurumu !== 'TAMAM') return null;
+  return (
+    <div className="flex flex-col gap-3">
+      {o.ozet ? (
+        <section aria-label="Ders özeti" className="bg-elevated rounded-lg p-3">
+          <p className="text-primary mb-1 text-sm font-semibold">Özet (Claude)</p>
+          <div className="text-body text-sm whitespace-pre-wrap">{o.ozet}</div>
+        </section>
+      ) : (
+        <p className="text-muted text-xs">Özet yok (Claude bağlı değil ya da özet çıkarılamadı).</p>
+      )}
+      <details>
+        <summary className="focus-ring text-accent cursor-pointer rounded text-sm font-medium">
+          Tam yazı
+        </summary>
+        <p className="text-body mt-2 max-h-80 overflow-y-auto text-sm whitespace-pre-wrap">
+          {o.metin}
+        </p>
+      </details>
     </div>
   );
 }
