@@ -20,10 +20,11 @@ import {
 import type { TakvimEtkinligiVerisi, TakvimOlusumu } from '@/lib/takvim/gorunum';
 import { varsayilanHatirlatmalar } from '@/lib/takvim/hatirlatma';
 import { KATEGORI_SIRASI, TAKVIM_KATEGORILERI } from '@/lib/takvim/kategoriler';
+import { KATMAN_SIRASI, TAKVIM_KATMANLARI } from '@/lib/takvim/katmanlar';
 import { haftaninGunu, TEKRAR_YOK, type TekrarKurali } from '@/lib/takvim/tekrar';
 import { cn } from '@/lib/utils/cn';
 import { appWallClockMinutes, toAppDay, type AppDay } from '@/server/services/_shared/app-date';
-import type { ApiResponse, TakvimKategori } from '@/types';
+import type { ApiResponse, TakvimKategori, TakvimKatman } from '@/types';
 
 import { HatirlatmaSecici } from './hatirlatma-secici';
 
@@ -40,6 +41,7 @@ export interface FormDurumu {
   aciklama: string;
   konum: string;
   kategori: TakvimKategori;
+  katman: TakvimKatman;
   tumGun: boolean;
   baslangicGun: AppDay;
   baslangicSaat: string;
@@ -50,7 +52,11 @@ export interface FormDurumu {
 }
 
 /** Boş günden/saatten yeni etkinlik. `dk` yoksa tüm gün. */
-export function yeniForm(gun: AppDay, dk: number | null): FormDurumu {
+export function yeniForm(
+  gun: AppDay,
+  dk: number | null,
+  katman: TakvimKatman = 'KISISEL',
+): FormDurumu {
   const bas = dk ?? 9 * 60;
   const son = dakikaEkle(gun, saatMetni(bas), 60);
   return {
@@ -58,6 +64,7 @@ export function yeniForm(gun: AppDay, dk: number | null): FormDurumu {
     aciklama: '',
     konum: '',
     kategori: 'KISISEL',
+    katman,
     tumGun: dk === null,
     baslangicGun: gun,
     baslangicSaat: saatMetni(bas),
@@ -77,6 +84,7 @@ export function duzenlemeFormu(e: TakvimEtkinligiVerisi, o: TakvimOlusumu): Form
     aciklama: e.aciklama ?? '',
     konum: e.konum ?? '',
     kategori: e.kategori,
+    katman: e.katman,
     tumGun: e.tumGun,
     baslangicGun: o.gun,
     baslangicSaat: timed ? saatMetni(appWallClockMinutes(new Date(o.baslangic))) : '09:00',
@@ -193,6 +201,7 @@ export function EtkinlikFormu({
     aciklama: f.aciklama,
     konum: f.konum,
     kategori: f.kategori,
+    katman: f.katman,
     tumGun: f.tumGun,
     baslangicGun: f.baslangicGun,
     baslangicSaat: f.baslangicSaat,
@@ -394,6 +403,30 @@ export function EtkinlikFormu({
         {hataAlani('tekrar.sayi')}
         {hataAlani('tekrar.bitisGun')}
       </div>
+
+      <fieldset className="flex flex-col gap-2">
+        <legend className="text-primary mb-1.5 text-sm font-medium">Katman</legend>
+        <div role="radiogroup" aria-label="Katman" className="flex flex-wrap gap-2">
+          {KATMAN_SIRASI.map((k) => (
+            <button
+              key={k}
+              type="button"
+              role="radio"
+              aria-checked={f.katman === k}
+              onClick={() => guncelle({ katman: k })}
+              className={cn(
+                'focus-ring flex min-h-10 items-center gap-1.5 rounded-full border px-3 text-sm transition-colors',
+                f.katman === k
+                  ? 'border-accent bg-accent/12 text-primary font-medium'
+                  : 'border-line bg-elevated text-body',
+              )}
+            >
+              <span aria-hidden="true">{TAKVIM_KATMANLARI[k].emoji}</span>
+              {TAKVIM_KATMANLARI[k].ad}
+            </button>
+          ))}
+        </div>
+      </fieldset>
 
       <fieldset className="flex flex-col gap-2">
         <legend className="text-primary mb-1.5 text-sm font-medium">Kategori</legend>

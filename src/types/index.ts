@@ -31,6 +31,7 @@ export {
   MuscleGroup,
   SkillCategory,
   TakvimKategori,
+  TakvimKatman,
   TakvimTekrar,
   WalletAccountKind,
   WalletFlowKind,
