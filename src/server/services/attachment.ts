@@ -347,10 +347,6 @@ export async function attachmentTargetExists(
       return (await db.post.count({ where: { id: entityId } })) > 0;
     case 'PROFILE':
       return (await db.profile.count({ where: { id: entityId } })) > 0;
-    case 'MASA_OGESI':
-      // ADR-049 M2b: Masa dosyaları YALNIZCA kendi parçalı yükleme yolundan oluşur
-      // (`services/masa-yukleme.ts` — tip ve boyut kuralları farklı). Genel uç reddeder.
-      return false;
   }
 }
 
@@ -527,7 +523,5 @@ export async function attachmentOwnerCacheTargets(
       const p = await db.profile.findUnique({ where: { id: entityId }, select: { locale: true } });
       return p ? { contentEntity: 'profile', locales: [p.locale], slugs: [] } : null;
     }
-    case 'MASA_OGESI':
-      return null; // Kişisel — public önbelleği yok.
   }
 }

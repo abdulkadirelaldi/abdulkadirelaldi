@@ -194,7 +194,6 @@ function olusum(o: Partial<TakvimOlusumu>): TakvimOlusumu {
     baslik: 'X',
     konum: null,
     kategori: 'KISISEL',
-    katman: 'KISISEL',
     tumGun: false,
     baslangic: appWallClockInstant('2026-11-10', 600).toISOString(),
     bitis: appWallClockInstant('2026-11-10', 660).toISOString(),

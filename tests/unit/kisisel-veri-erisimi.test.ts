@@ -68,16 +68,6 @@ export const KISISEL_MODULLER = [
   'journal-entry',
   // 2026-11-10 — takvim: doktor randevusu, konum; sağlık verisi kadar kişisel.
   'takvim',
-  // 2026-11-14 — masa (ADR-049): ödev, iş görevleri; mailden gelecek okul metni.
-  'masa',
-  // 2026-11-15 — masa öğeleri (M2b): ders kaydı, ödev belgesi. Eylem dosyası yok (route handler).
-  'masa-yukleme',
-  // 2026-11-15 — Kıyı Medya köprüsü (M3): işin muhasebe rakamları ve çekim takvimi.
-  'kiyi-medya',
-  // 2026-11-15 — Claude paneli (M4): notlar ve görevler Anthropic'e bağlam olarak gider.
-  'masa-sohbet',
-  // 2026-11-15 — Mac köprüsü (M6): ders kaydının sesi ve yazısı.
-  'masa-koprusu',
 ] as const;
 
 /** Bu modüllerin İÇE AKTARILABİLDİĞİ yerler — başka her yer ihlal. */
@@ -86,19 +76,6 @@ const IZINLI_ONEKLER = [
   'src/components/panel/',
   'src/server/actions/',
   'src/server/services/',
-  /*
-   * 2026-11-15 (ADR-049 M2b) — Masa'nın PARÇALI YÜKLEME uçları. Server Action'ın 1 MB gövde
-   * sınırı yüzünden route handler (ADR-044'ün eklenti ucuyla aynı gerekçe). Bu önek PUBLIC
-   * DEĞİL: ara katman `/api/v1/panel/*`ı oturumsuz 401'e çeviriyor (§8.5) ve her uç ayrıca
-   * `currentActorId` ile başlıyor (ADR-035/B). Önbellek yok (`no-store`).
-   */
-  'src/app/api/v1/panel/',
-  /*
-   * 2026-11-15 (ADR-049 M6) — Mac köprüsü uçları. Oturum değil CİHAZ ANAHTARI (`Bearer aemk_…`,
-   * yalnızca SHA-256 özeti saklanır — `/api/v1/saglik/olcum` ile aynı kalıp); her uç ilk iş
-   * anahtarı doğrular, yoksa 401. Önbellek yok (`no-store`). Ses yalnızca İŞLENEN iş için verilir.
-   */
-  'src/app/api/v1/kopru/',
 ] as const;
 
 /**
@@ -352,9 +329,9 @@ describe('T-116 — F5 hassas veri erişimi', () => {
 
   it('önkoşul — tarama vakumda değil', () => {
     expect(dosyalar.length).toBeGreaterThan(100);
-    // Eylem dosyası olan dokuz modül: health-log, exercise, workout,
-    // workout-set, habit (habit-log'u da taşıyor), goal, journal-entry, takvim, masa.
-    expect(eylemDosyalari.length, 'F5 eylem dosyaları bulunamadı').toBe(9);
+    // Eylem dosyası olan sekiz modül: health-log, exercise, workout,
+    // workout-set, habit (habit-log'u da taşıyor), goal, journal-entry, takvim.
+    expect(eylemDosyalari.length, 'F5 eylem dosyaları bulunamadı').toBe(8);
     // Gerçek içe aktaranlar taranıyor mu — panel sayfası F5 servisini okuyor.
     expect(kod('src/app/(panel)/panel/saglik/page.tsx')).toMatch(modulDeseni('health-log'));
   });

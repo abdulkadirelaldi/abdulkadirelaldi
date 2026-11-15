@@ -39,8 +39,6 @@ test('her panel rotası hatasız açılır ve yatay taşmaz', async ({ page, bas
     '/panel/haftalik',
     '/panel/aylik',
     '/panel/ingilizce',
-    '/panel/masa',
-    `/panel/masa/${k.dolap}`,
     '/panel/takvim',
     '/panel/takvim?gorunum=hafta',
     '/panel/takvim?gorunum=gun',
@@ -101,33 +99,6 @@ test('API uçları oturumsuz ve anahtarsız reddeder', async ({ request }) => {
   expect(disaAktar.status()).toBe(401);
   const eklenti = await request.post('/api/v1/panel/eklenti', { data: {}, maxRedirects: 0 });
   expect(eklenti.status()).toBe(401);
-  // Masa parçalı yükleme (ADR-049 M2b): üç uç da oturumsuz 401.
-  const masaBaslat = await request.post('/api/v1/panel/masa/yukle', { data: {}, maxRedirects: 0 });
-  expect(masaBaslat.status()).toBe(401);
-  const masaParca = await request.put('/api/v1/panel/masa/yukle/ckyokboyle000000000000001/1', {
-    data: Buffer.from('x'),
-    maxRedirects: 0,
-  });
-  expect(masaParca.status()).toBe(401);
-  const masaBitir = await request.post('/api/v1/panel/masa/yukle/ckyokboyle000000000000001', {
-    maxRedirects: 0,
-  });
-  expect(masaBitir.status()).toBe(401);
-  const sohbet = await request.post('/api/v1/panel/masa/sohbet', { data: {}, maxRedirects: 0 });
-  expect(sohbet.status()).toBe(401);
-  // Mac köprüsü (M6): cihaz anahtarı olmadan ve yanlış anahtarla 401.
-  const isAl = await request.post('/api/v1/kopru/mac/is');
-  expect(isAl.status()).toBe(401);
-  const yanlis = await request.post('/api/v1/kopru/mac/is', {
-    headers: { Authorization: 'Bearer aemk_yanlis' },
-  });
-  expect(yanlis.status()).toBe(401);
-  const sesIndir = await request.get('/api/v1/kopru/mac/is/ckyokboyle000000000000001/ses');
-  expect(sesIndir.status()).toBe(401);
-  const isBitir = await request.post('/api/v1/kopru/mac/is/ckyokboyle000000000000001', {
-    data: {},
-  });
-  expect(isBitir.status()).toBe(401);
   const dosya = await request.get('/api/v1/dosya/ckyokboylebirdosya000000001');
   expect(dosya.status()).toBe(404);
 });

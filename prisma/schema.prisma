@@ -151,8 +151,6 @@ enum AttachmentEntity {
   PROJECT
   POST
   PROFILE
-  /// ADR-049 M2b — Masa öğesinin dosyası/ses kaydı. Özel: yalnızca oturumla sunulur.
-  MASA_OGESI
 }
 
 // =============================================================================
@@ -1205,14 +1203,6 @@ model IngilizceAyar {
 // =============================================================================
 
 /// Etkinlik kategorisi — renk ve simge ekranda (`src/lib/takvim/kategoriler.ts`).
-/// Etkinliğin KİME ait olduğu (ADR-049); `TakvimKategori` ise TÜRÜ (Spor, Toplantı…).
-enum TakvimKatman {
-  KISISEL
-  OKUL
-  KIYI_MEDYA
-  SPECTRALOOP
-}
-
 enum TakvimKategori {
   SPOR
   TOPLANTI
@@ -1242,8 +1232,6 @@ model TakvimEtkinligi {
   aciklama      String?
   konum         String?
   kategori      TakvimKategori    @default(KISISEL)
-  /// ADR-049 — takvimde açılıp kapanan katman. Göç öncesi kayıtlar KISISEL.
-  katman        TakvimKatman      @default(KISISEL)
   tumGun        Boolean           @default(false)
   baslangic     DateTime
   bitis         DateTime
@@ -1270,168 +1258,7 @@ model TakvimEtkinligi {
 
   @@index([baslangic])
   @@index([tekrar])
-  @@index([katman])
   @@index([seriId])
   @@index([programDayId])
   @@map("takvim_etkinligi")
-}
-
-/**
- * ═══════════════════════════════════════════════════════════════════════════
- * MASA (ADR-049 M2, 2026-11-14) — Dolap → Raf → Görev.
- * Dolabın KATMANI görevin takvimdeki katmanıdır (Samsun Üniversitesi → OKUL…); dolapsız görev
- * KISISEL. Görevin teslimi takvimde GÖREVİN KENDİSİNDEN okunur — ayrı etkinlik satırı açılmaz.
- * Silme `Restrict`: içi dolu dolap/raf silinmez (servis "önce boşalt ya da arşivle" der). Kazara
- * tek dokunuşla bir dönemin bütün ödevlerini silmek, bir satırı fazladan tutmaktan pahalıdır.
- * ═══════════════════════════════════════════════════════════════════════════
- */
-
-enum GorevDurumu {
-  YAPILACAK
-  SURUYOR
-  TAMAMLANDI
-}
-
-enum GorevOnceligi {
-  DUSUK
-  NORMAL
-  YUKSEK
-}
-
-/// Görev nereden geldi — mail ve Claude önerileri (M4/M5) onaylanınca görev olur.
-enum GorevKaynagi {
-  ELLE
-  MAIL
-  CLAUDE
-}
-
-model Dolap {
-  id         String       @id @default(cuid())
-  ad         String
-  emoji      String       @default("🗄️")
-  katman     TakvimKatman @default(KISISEL)
-  sira       Int          @default(0)
-  arsivlendi Boolean      @default(false)
-  raflar     Raf[]
-  gorevler   Gorev[]
-  ogeler     MasaOgesi[]
-  createdAt  DateTime     @default(now())
-  updatedAt  DateTime     @updatedAt
-
-  @@index([arsivlendi, sira])
-  @@map("dolap")
-}
-
-model Raf {
-  id        String      @id @default(cuid())
-  dolapId   String
-  dolap     Dolap       @relation(fields: [dolapId], references: [id], onDelete: Restrict)
-  /// İç içe raf (Dersler → Fizik). Servis derinliği sınırlar.
-  ustRafId  String?
-  ustRaf    Raf?        @relation("RafAgaci", fields: [ustRafId], references: [id], onDelete: Restrict)
-  altRaflar Raf[]       @relation("RafAgaci")
-  ad        String
-  sira      Int         @default(0)
-  gorevler  Gorev[]
-  ogeler    MasaOgesi[]
-  createdAt DateTime    @default(now())
-  updatedAt DateTime    @updatedAt
-
-  @@index([dolapId, ustRafId, sira])
-  @@index([ustRafId])
-  @@map("raf")
-}
-
-model Gorev {
-  id           String        @id @default(cuid())
-  baslik       String
-  aciklama     String?
-  dolapId      String?
-  dolap        Dolap?        @relation(fields: [dolapId], references: [id], onDelete: Restrict)
-  /// Raf verildiyse dolabı da odur (servis eşitler).
-  rafId        String?
-  raf          Raf?          @relation(fields: [rafId], references: [id], onDelete: Restrict)
-  /// Takvim günü (`@db.Date`) + isteğe bağlı İstanbul duvar saati (dakika). Saat yoksa gün boyu.
-  teslimGun    DateTime?     @db.Date
-  teslimDakika Int?
-  durum        GorevDurumu   @default(YAPILACAK)
-  oncelik      GorevOnceligi @default(NORMAL)
-  kaynak       GorevKaynagi  @default(ELLE)
-  tamamlandiAt DateTime?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-
-  @@index([durum, teslimGun])
-  @@index([dolapId])
-  @@index([rafId])
-  @@index([tamamlandiAt])
-  @@map("gorev")
-}
-
-enum MasaOgeTuru {
-  NOT
-  DOSYA
-  SES
-}
-
-enum MasaOgeDurumu {
-  /// Parçalı yükleme sürüyor — `yukleme*` alanları dolu, dosya henüz yok.
-  YUKLENIYOR
-  HAZIR
-}
-
-/// ADR-049 M2b — rafın içindeki not, dosya ya da ses kaydı. Dosyanın kendisi `Attachment`ta
-/// (`entity = MASA_OGESI`, `entityId = id`): yedek ve yetim taraması tek kayıttan yürür.
-model MasaOgesi {
-  id            String         @id @default(cuid())
-  dolapId       String
-  dolap         Dolap          @relation(fields: [dolapId], references: [id], onDelete: Restrict)
-  rafId         String?
-  raf           Raf?           @relation(fields: [rafId], references: [id], onDelete: Restrict)
-  tur           MasaOgeTuru
-  baslik        String
-  /// Not metni. Ses kaydında ileride yazıya dökülmüş metin (M6).
-  metin         String?
-  durum         MasaOgeDurumu  @default(HAZIR)
-  /// Kullanıcının seçtiği dosyanın adı — indirmede önerilen ad.
-  dosyaAdi      String?
-  mime          String?
-  boyut         Int?
-  /// Parçalı yükleme durumu (R2 multipart). Bitince boşalır.
-  yuklemeKey    String?
-  yuklemeId     String?
-  /// `[{ n, etag, boyut }]` — yüklenen parçalar.
-  parcalar      Json?
-  /// ADR-049 M6 — ses kaydının Mac'te yazıya dökülmesi. Yazı `metin`de, Claude özeti `ozet`te.
-  yaziDurumu    SesYaziDurumu?
-  /// İşi alan Mac'in başlangıç anı: 2 saatte bitmeyen iş yeniden sıraya döner (Mac uyudu).
-  yaziBaslangic DateTime?
-  yaziHata      String?
-  ozet          String?
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
-
-  @@index([dolapId, rafId])
-  @@index([rafId])
-  @@index([durum, createdAt])
-  @@index([yaziDurumu, createdAt])
-  @@map("masa_ogesi")
-}
-
-enum SesYaziDurumu {
-  SIRADA
-  ISLENIYOR
-  TAMAM
-  HATA
-}
-
-/// ADR-049 M6 — sahibinin Mac'indeki köprünün anahtarı (`aemk_…`). Yalnızca SHA-256 özeti
-/// saklanır; düz anahtar bir kez, üretildiği anda gösterilir (`SaglikBaglantisi` ile aynı kalıp).
-model MasaKoprusu {
-  userId       String    @id
-  anahtarOzeti String    @unique
-  createdAt    DateTime  @default(now())
-  sonKullanim  DateTime?
-
-  @@map("masa_koprusu")
 }

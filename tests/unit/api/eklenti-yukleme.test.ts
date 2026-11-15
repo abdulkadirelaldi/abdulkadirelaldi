@@ -32,7 +32,6 @@ const { authMock, writesRevokedMock, r2Mock, dbMock, revalidateTagMock } = vi.ho
     r2Mock: {
       putObject: vi.fn(),
       getObjectBytes: vi.fn(),
-      getObjectResponse: vi.fn(),
       deleteObjectQuietly: vi.fn(),
     },
     dbMock: {
@@ -92,15 +91,6 @@ beforeEach(() => {
   r2Mock.putObject.mockResolvedValue(undefined);
   r2Mock.deleteObjectQuietly.mockResolvedValue(true);
   r2Mock.getObjectBytes.mockResolvedValue(Buffer.from(png()));
-  // Özel dosyalar AKIŞLA ve Range ile sunuluyor (ADR-049 M2b).
-  r2Mock.getObjectResponse.mockImplementation(async (_key: string, range: string | null) =>
-    range
-      ? new Response(png().slice(0, 4), {
-          status: 206,
-          headers: { 'content-length': '4', 'content-range': `bytes 0-3/${png().length}` },
-        })
-      : new Response(png(), { status: 200, headers: { 'content-length': String(png().length) } }),
-  );
   dbMock.project.count.mockResolvedValue(1);
   dbMock.project.findUnique.mockResolvedValue({ slug: 'deneme-proje', locale: 'tr' });
   dbMock.auditLog.count.mockResolvedValue(0);
@@ -319,40 +309,14 @@ describe('⚠️ sunum — kim görebilir', () => {
     dosyaVar('OZEL');
     expect((await sun()).status).toBe(404);
     expect(r2Mock.getObjectBytes).not.toHaveBeenCalled();
-    expect(r2Mock.getObjectResponse).not.toHaveBeenCalled();
   });
 
-  it('kişisel eklenti OTURUMLA 200 ama `private, no-store` ve noindex — akışla, belleğe almadan', async () => {
+  it('kişisel eklenti OTURUMLA 200 ama `private, no-store` ve noindex', async () => {
     dosyaVar('OZEL');
     const yanit = await sun();
     expect(yanit.status).toBe(200);
     expect(yanit.headers.get('cache-control')).toBe('private, no-store');
     expect(yanit.headers.get('x-robots-tag')).toBe('noindex, nofollow');
-    expect(yanit.headers.get('accept-ranges')).toBe('bytes');
-    expect(new Uint8Array(await yanit.arrayBuffer())).toEqual(png());
-    expect(r2Mock.getObjectBytes).not.toHaveBeenCalled();
-  });
-
-  it("kişisel eklentide `Range` R2'ye iletilir: 206 ve aralık başlıkları (iOS ses oynatıcısı)", async () => {
-    dosyaVar('OZEL');
-    const yanit = await sun({ range: 'bytes=0-3' });
-    expect(r2Mock.getObjectResponse).toHaveBeenCalledWith(expect.any(String), 'bytes=0-3');
-    expect(yanit.status).toBe(206);
-    expect(yanit.headers.get('content-range')).toBe(`bytes 0-3/${png().length}`);
-    expect(yanit.headers.get('content-length')).toBe('4');
-  });
-
-  it('Office belgesi tarayıcıda açılmaz, indirilir (`attachment`)', async () => {
-    dbMock.attachment.findUnique.mockResolvedValue({
-      key: 'masa/d1/o1.docx',
-      mime: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      size: 24,
-      checksum: 'a'.repeat(64),
-      entity: 'MASA_OGESI',
-      entityId: 'ckentity00000000000000001',
-    });
-    const yanit = await sun();
-    expect(yanit.headers.get('content-disposition')).toBe('attachment; filename="o1.docx"');
   });
 
   it('ETag eşleşirse 304 — R2 OKUNMUYOR', async () => {

@@ -4,8 +4,7 @@ import {
   fetchAttachmentForServing,
   eklentiYayindaMi,
 } from '@/server/services/attachment';
-import { indirilirMi } from '@/lib/masa/dosya-sinirlari';
-import { getObjectBytes, getObjectResponse } from '@/server/storage/r2';
+import { getObjectBytes } from '@/server/storage/r2';
 import { guvenliHata } from '@/lib/security/guvenli-log';
 
 /**
@@ -77,31 +76,6 @@ export async function GET(
         status: 304,
         headers: { ETag: etag, 'Cache-Control': onbellek },
       });
-    }
-
-    /*
-     * ÖZEL DOSYALAR AKIŞLA ve `Range` ile (ADR-049 M2b): ders kaydı 300 MB'a kadar çıkabilir;
-     * belleğe alınmaz. iOS Safari ses/video'yu `Range` olmadan ileri saramaz (ve bazen hiç
-     * oynatmaz). R2'nin 206 yanıtı ve aralık başlıkları aynen iletilir.
-     */
-    if (!herkeseAcik) {
-      const r2 = await getObjectResponse(dosya.key, request.headers.get('range'));
-      if (!r2) return bulunamadi();
-      const basliklar = new Headers({
-        'Content-Type': dosya.mime,
-        'Cache-Control': onbellek,
-        ETag: etag,
-        'Accept-Ranges': 'bytes',
-        'X-Robots-Tag': 'noindex, nofollow',
-        'Content-Disposition': indirilirMi(dosya.mime)
-          ? `attachment; filename="${dosya.key.split('/').pop() ?? 'dosya'}"`
-          : 'inline',
-      });
-      for (const ad of ['content-length', 'content-range']) {
-        const deger = r2.headers.get(ad);
-        if (deger) basliklar.set(ad, deger);
-      }
-      return new Response(r2.body, { status: r2.status, headers: basliklar });
     }
 
     const bytes = await getObjectBytes(dosya.key);

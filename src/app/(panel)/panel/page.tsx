@@ -23,7 +23,6 @@ import { SuHizliDugmesi } from '@/components/panel/hizli-ekle';
 import { OdemeOnay } from '@/components/panel/odeme-onay';
 import { paraBicim, tutarYaziBoyu } from '@/components/panel/para-bicim';
 import { BaslatDugmesi } from '@/components/panel/spor-dugmeleri';
-import { BugunGorevKarti } from '@/components/panel/masa/bugun-karti';
 import { BugunTakvimKarti } from '@/components/panel/takvim/bugun-karti';
 import { Topbar } from '@/components/panel/topbar';
 import { litreBicim } from '@/lib/hedefler';
@@ -42,7 +41,6 @@ import { fetchHabitWeek, gunOranlari } from '@/server/services/habit';
 import { fetchHabitDay, fetchSuHedefi } from '@/server/services/habit-gun';
 import { fetchHealthTrend } from '@/server/services/health-log';
 import { fetchBekleyenOdemeler } from '@/server/services/odeme-onay';
-import { fetchBugunGorevleri } from '@/server/services/masa';
 import { fetchBugunTakvim } from '@/server/services/takvim';
 
 export const metadata: Metadata = {
@@ -95,7 +93,6 @@ export default async function BugunPage() {
     hedefler,
     odemeler,
     takvim,
-    bugunGorevleri,
   ] = await Promise.all([
     fetchSuHedefi(session?.user?.id),
     fetchHabitWeek(bugun),
@@ -109,7 +106,6 @@ export default async function BugunPage() {
     fetchGoals({ page: 1, perPage: 20, status: 'ACTIVE' }, undefined, bugun),
     fetchBekleyenOdemeler(undefined, bugun),
     fetchBugunTakvim(bugun),
-    fetchBugunGorevleri(bugun),
   ]);
 
   const guncelHedefler = hedefler.items.filter((h) => guncelHedefMi(h, bugun)).slice(0, 3);
@@ -237,9 +233,6 @@ export default async function BugunPage() {
 
           {/* ── BUGÜNÜN TAKVİMİ ──────────────────────────────────────────── */}
           <BugunTakvimKarti bugun={bugun} olusumlar={takvim} />
-
-          {/* ── BUGÜNÜN GÖREVLERİ (Masa) ─────────────────────────────────── */}
-          <BugunGorevKarti bugun={bugun} gorevler={bugunGorevleri} />
 
           {/* ── BUGÜNÜN ANTRENMANI ───────────────────────────────────────── */}
           {acikOturum ? (
