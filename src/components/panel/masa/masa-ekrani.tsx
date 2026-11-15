@@ -3,7 +3,7 @@
 import { ChevronRight, Plus } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Pencere } from '@/components/panel/takvim/pencere';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,8 @@ export function MasaEkrani({
 }) {
   const router = useRouter();
   const gorev = useGorevIslemleri(secenekler);
+  const { sifirla } = gorev;
+  useEffect(() => sifirla(), [ustu, sifirla]);
   const [yeniDolap, setYeniDolap] = useState(false);
   const [kurHata, setKurHata] = useState<string | null>(null);
   const satir = (g: Parameters<typeof gorev.duzenle>[0]) => (
@@ -60,16 +62,16 @@ export function MasaEkrani({
       {gorev.hata && <FormError>{gorev.hata}</FormError>}
 
       <div className="flex flex-col gap-5">
-        <GorevObegi baslik="Gecikmiş" ton="tehlike" gorevler={ustu.gecikmis}>
+        <GorevObegi baslik="Gecikmiş" ton="tehlike" gorevler={gorev.uygula(ustu.gecikmis)}>
           {satir}
         </GorevObegi>
-        <GorevObegi baslik="Bugün" gorevler={ustu.bugun}>
+        <GorevObegi baslik="Bugün" gorevler={gorev.uygula(ustu.bugun)}>
           {satir}
         </GorevObegi>
-        <GorevObegi baslik="Önümüzdeki 7 gün" gorevler={ustu.yaklasan}>
+        <GorevObegi baslik="Önümüzdeki 7 gün" gorevler={gorev.uygula(ustu.yaklasan)}>
           {satir}
         </GorevObegi>
-        <GorevObegi baslik="Teslim tarihi olmayanlar" gorevler={ustu.teslimsiz}>
+        <GorevObegi baslik="Teslim tarihi olmayanlar" gorevler={gorev.uygula(ustu.teslimsiz)}>
           {satir}
         </GorevObegi>
         {acikSayi === 0 && (
@@ -83,7 +85,7 @@ export function MasaEkrani({
               Son 7 günde tamamlananlar · {ustu.tamamlanan.length}
             </summary>
             <ul className="rounded-card border-line bg-surface divide-line mt-2 divide-y border">
-              {ustu.tamamlanan.map(satir)}
+              {gorev.uygula(ustu.tamamlanan).map(satir)}
             </ul>
           </details>
         )}

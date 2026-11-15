@@ -1,4 +1,7 @@
 import type {
+  NotGirdisi,
+  NotGuncelleGirdisi,
+  OgeAdiGirdisi,
   DolapGirdisi,
   DolapGuncelleGirdisi,
   GorevDurumuGirdisi,
@@ -14,7 +17,14 @@ import { saatDakika } from '@/lib/takvim/bicim';
 import type { TakvimOlusumu } from '@/lib/takvim/gorunum';
 import { db } from '@/server/db';
 import type { Prisma } from '@/server/generated/prisma/client';
-import type { GorevDurumu, GorevKaynagi, GorevOnceligi, TakvimKatman } from '@/types';
+import type {
+  GorevDurumu,
+  GorevKaynagi,
+  GorevOnceligi,
+  MasaOgeDurumu,
+  MasaOgeTuru,
+  TakvimKatman,
+} from '@/types';
 
 import {
   addAppDays,
@@ -192,6 +202,50 @@ export interface DolapAyrintisi extends DolapOzeti {
   /** Açıklar sıralı; tamamlananlar en yenisi önce (son 30). */
   acik: GorevDto[];
   tamamlanan: GorevDto[];
+  /** Notlar, dosyalar, ses kayıtları — en yenisi önce (M2b). */
+  ogeler: OgeDto[];
+}
+
+export interface OgeDto {
+  id: string;
+  rafId: string | null;
+  tur: MasaOgeTuru;
+  baslik: string;
+  /** Not metni (M6'da ses kaydının yazısı). */
+  metin: string | null;
+  durum: MasaOgeDurumu;
+  dosyaAdi: string | null;
+  mime: string | null;
+  boyut: number | null;
+  /** Sunum kimliği — `/api/v1/dosya/<dosyaId>`; yükleme bitmediyse `null`. */
+  dosyaId: string | null;
+  createdAt: string;
+}
+
+/** Dolabın öğeleri ve dosya kimlikleri (Attachment polimorfik: FK yok, ikinci sorgu). */
+async function dolapOgeleri(dolapId: string, client: typeof db): Promise<OgeDto[]> {
+  const ogeler = await client.masaOgesi.findMany({
+    where: { dolapId },
+    orderBy: { createdAt: 'desc' },
+  });
+  const dosyalar = await client.attachment.findMany({
+    where: { entity: 'MASA_OGESI', entityId: { in: ogeler.map((o) => o.id) } },
+    select: { id: true, entityId: true },
+  });
+  const dosyaKimligi = new Map(dosyalar.map((d) => [d.entityId, d.id]));
+  return ogeler.map((o) => ({
+    id: o.id,
+    rafId: o.rafId,
+    tur: o.tur,
+    baslik: o.baslik,
+    metin: o.metin,
+    durum: o.durum,
+    dosyaAdi: o.dosyaAdi,
+    mime: o.mime,
+    boyut: o.boyut,
+    dosyaId: dosyaKimligi.get(o.id) ?? null,
+    createdAt: o.createdAt.toISOString(),
+  }));
 }
 
 export async function fetchDolap(id: string, client = db): Promise<DolapAyrintisi | null> {
@@ -203,7 +257,7 @@ export async function fetchDolap(id: string, client = db): Promise<DolapAyrintis
     },
   });
   if (!d) return null;
-  const [acik, tamamlanan] = await Promise.all([
+  const [acik, tamamlanan, ogeler] = await Promise.all([
     client.gorev.findMany({ where: { dolapId: id, ...ACIK }, include: GOREV_ILISKILERI }),
     client.gorev.findMany({
       where: { dolapId: id, durum: 'TAMAMLANDI' },
@@ -211,6 +265,7 @@ export async function fetchDolap(id: string, client = db): Promise<DolapAyrintis
       take: 30,
       include: GOREV_ILISKILERI,
     }),
+    dolapOgeleri(id, client),
   ]);
   return {
     id: d.id,
@@ -223,6 +278,7 @@ export async function fetchDolap(id: string, client = db): Promise<DolapAyrintis
     raflar: d.raflar.map((r) => ({ id: r.id, ad: r.ad, ustRafId: r.ustRafId, sira: r.sira })),
     acik: acik.map(gorevDto).sort(gorevSirala),
     tamamlanan: tamamlanan.map(gorevDto),
+    ogeler,
   };
 }
 
@@ -320,13 +376,13 @@ export async function dolapGuncelle(g: DolapGuncelleGirdisi, client = db): Promi
 export async function dolapSil(id: string, client = db): Promise<{ id: string }> {
   const d = await client.dolap.findUnique({
     where: { id },
-    include: { _count: { select: { raflar: true, gorevler: true } } },
+    include: { _count: { select: { raflar: true, gorevler: true, ogeler: true } } },
   });
   if (!d) throw new MasaHatasi('NOT_FOUND', 'Dolap bulunamadı.');
-  if (d._count.raflar > 0 || d._count.gorevler > 0) {
+  if (d._count.raflar > 0 || d._count.gorevler > 0 || d._count.ogeler > 0) {
     throw new MasaHatasi(
       'CONFLICT',
-      'Dolapta raf ya da görev var — önce boşalt ya da dolabı arşivle.',
+      'Dolapta raf, görev ya da dosya var — önce boşalt ya da dolabı arşivle.',
     );
   }
   await client.dolap.delete({ where: { id } });
@@ -415,11 +471,11 @@ export async function rafGuncelle(g: RafGuncelleGirdisi, client = db): Promise<{
 export async function rafSil(id: string, client = db): Promise<{ id: string }> {
   const r = await client.raf.findUnique({
     where: { id },
-    include: { _count: { select: { altRaflar: true, gorevler: true } } },
+    include: { _count: { select: { altRaflar: true, gorevler: true, ogeler: true } } },
   });
   if (!r) throw new MasaHatasi('NOT_FOUND', 'Raf bulunamadı.');
-  if (r._count.altRaflar > 0 || r._count.gorevler > 0) {
-    throw new MasaHatasi('CONFLICT', 'Rafta alt raf ya da görev var — önce boşalt.');
+  if (r._count.altRaflar > 0 || r._count.gorevler > 0 || r._count.ogeler > 0) {
+    throw new MasaHatasi('CONFLICT', 'Rafta alt raf, görev ya da dosya var — önce boşalt.');
   }
   await client.raf.delete({ where: { id } });
   return { id };
@@ -507,4 +563,49 @@ export async function gorevSil(id: string, client = db): Promise<{ id: string }>
   if (!var_) throw new MasaHatasi('NOT_FOUND', 'Görev bulunamadı.');
   await client.gorev.delete({ where: { id } });
   return { id };
+}
+
+/* ===========================================================================
+ * YAZMA — NOT (M2b). Dosya ve ses kayıtları `masa-yukleme.ts`te (R2'ye dokunur).
+ * ======================================================================== */
+
+/** Öğenin yeri: raf verildiyse dolap rafın dolabıdır; ikisi uyuşmazsa raf kazanır. */
+export async function ogeYeri(
+  dolapId: string,
+  rafId: string | null,
+  client: Prisma.TransactionClient | typeof db = db,
+): Promise<{ dolapId: string; rafId: string | null }> {
+  const yer = await yeriCoz(dolapId, rafId, client);
+  if (yer.dolapId === null) throw new MasaHatasi('VALIDATION_ERROR', 'Dolap gerekli.', 'dolapId');
+  return { dolapId: yer.dolapId, rafId: yer.rafId };
+}
+
+export async function notOlustur(g: NotGirdisi, client = db): Promise<{ id: string }> {
+  const yer = await ogeYeri(g.dolapId, g.rafId, client);
+  return client.masaOgesi.create({
+    data: { ...yer, tur: 'NOT', baslik: g.baslik, metin: g.metin },
+    select: { id: true },
+  });
+}
+
+export async function notGuncelle(g: NotGuncelleGirdisi, client = db): Promise<{ id: string }> {
+  const o = await client.masaOgesi.findUnique({ where: { id: g.id }, select: { tur: true } });
+  if (!o) throw new MasaHatasi('NOT_FOUND', 'Not bulunamadı.');
+  if (o.tur !== 'NOT') throw new MasaHatasi('VALIDATION_ERROR', 'Yalnızca notun metni düzenlenir.');
+  return client.masaOgesi.update({
+    where: { id: g.id },
+    data: { baslik: g.baslik, metin: g.metin },
+    select: { id: true },
+  });
+}
+
+/** Dosya/ses öğesinin yalnızca ADI değişir (içerik değişmez — yeni dosya yeni öğe). */
+export async function ogeAdiDegistir(g: OgeAdiGirdisi, client = db): Promise<{ id: string }> {
+  const o = await client.masaOgesi.findUnique({ where: { id: g.id }, select: { id: true } });
+  if (!o) throw new MasaHatasi('NOT_FOUND', 'Öğe bulunamadı.');
+  return client.masaOgesi.update({
+    where: { id: g.id },
+    data: { baslik: g.baslik },
+    select: { id: true },
+  });
 }

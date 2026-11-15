@@ -78,6 +78,26 @@ test('masa: dolap, raf, görev; masa üstü, tamamla ve takvimde katman', async 
     await expect(pencere).toBeHidden();
     await expect(page.getByRole('button', { name: new RegExp(kacis(odev)) })).toBeVisible();
 
+    // Fizik rafına not (M2b) — kaydet, yeniden aç, düzenle.
+    const notAdi = `${onek} Newton yasaları`;
+    await page.getByRole('button', { name: 'Fizik rafına not ekle' }).click();
+    pencere = page.getByRole('dialog', { name: 'Yeni not' });
+    await pencere.getByLabel('Başlık').fill(notAdi);
+    await pencere.getByLabel('Not', { exact: true }).fill('F = m·a');
+    await pencere.getByRole('button', { name: 'Kaydet', exact: true }).click();
+    await expect(pencere).toBeHidden();
+    await page.getByRole('button', { name: new RegExp(kacis(notAdi)) }).click();
+    pencere = page.getByRole('dialog', { name: 'Not' });
+    await expect(pencere.getByLabel('Not', { exact: true })).toHaveValue('F = m·a');
+    await pencere.getByLabel('Not', { exact: true }).fill('F = m·a — eylemsizlik, etki-tepki');
+    await pencere.getByRole('button', { name: 'Kaydet', exact: true }).click();
+    await expect(pencere).toBeHidden();
+    await page.getByRole('button', { name: new RegExp(kacis(notAdi)) }).click();
+    await expect(
+      page.getByRole('dialog', { name: 'Not' }).getByLabel('Not', { exact: true }),
+    ).toHaveValue('F = m·a — eylemsizlik, etki-tepki');
+    await page.keyboard.press('Escape');
+
     // İçi dolu dolap silinmez — mesaj ekranda.
     await page.getByRole('button', { name: 'Dolabı düzenle' }).click();
     pencere = page.getByRole('dialog', { name: 'Dolabı düzenle' });

@@ -101,6 +101,18 @@ test('API uçları oturumsuz ve anahtarsız reddeder', async ({ request }) => {
   expect(disaAktar.status()).toBe(401);
   const eklenti = await request.post('/api/v1/panel/eklenti', { data: {}, maxRedirects: 0 });
   expect(eklenti.status()).toBe(401);
+  // Masa parçalı yükleme (ADR-049 M2b): üç uç da oturumsuz 401.
+  const masaBaslat = await request.post('/api/v1/panel/masa/yukle', { data: {}, maxRedirects: 0 });
+  expect(masaBaslat.status()).toBe(401);
+  const masaParca = await request.put('/api/v1/panel/masa/yukle/ckyokboyle000000000000001/1', {
+    data: Buffer.from('x'),
+    maxRedirects: 0,
+  });
+  expect(masaParca.status()).toBe(401);
+  const masaBitir = await request.post('/api/v1/panel/masa/yukle/ckyokboyle000000000000001', {
+    maxRedirects: 0,
+  });
+  expect(masaBitir.status()).toBe(401);
   const dosya = await request.get('/api/v1/dosya/ckyokboylebirdosya000000001');
   expect(dosya.status()).toBe(404);
 });

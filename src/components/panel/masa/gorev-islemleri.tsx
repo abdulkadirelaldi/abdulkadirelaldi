@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { useState, useTransition } from 'react';
+import { useCallback, useState, useTransition } from 'react';
 
 import { Pencere } from '@/components/panel/takvim/pencere';
 import {
@@ -27,10 +27,21 @@ export function useGorevIslemleri(secenekler: readonly DolapSecenegi[]) {
   const [durum, setDurum] = useState<Durum>({ tur: 'kapali' });
   const [, gecis] = useTransition();
   const [hata, setHata] = useState<string | null>(null);
+  /*
+   * YEREL GÜNCEL HÂL: kayıttan sonra sayfa sunucudan TAZELENİR ama bu zaman alır (telefonda
+   * belirgin). Arada görev yeniden açılırsa eski kopya görünür ve kaydetmek yeni değeri ESKİSİYLE
+   * ezerdi; tamamla kutusuna iki kez dokunmak eski duruma göre çalışırdı (ölçüldü: mobil e2e).
+   * Sunucunun döndürdüğü DTO tutulur; `null` = silindi. Taze veri gelince ekran `sifirla` der.
+   */
+  const [yerel, setYerel] = useState<Readonly<Record<string, GorevDto | null>>>({});
   const kapat = () => setDurum({ tur: 'kapali' });
+  const yaz = (id: string, g: GorevDto | null) => setYerel((y) => ({ ...y, [id]: g }));
 
-  const bitti = <T,>(sonuc: ApiResponse<T>): ApiResponse<T> => {
+  const bitti = <T,>(sonuc: ApiResponse<T>, id?: string, sil = false): ApiResponse<T> => {
     if (sonuc.ok) {
+      const veri = sonuc.data as unknown as GorevDto;
+      if (sil && id) yaz(id, null);
+      else if (veri && typeof veri === 'object' && 'durum' in veri) yaz(veri.id, veri);
       kapat();
       router.refresh();
     }
@@ -44,8 +55,10 @@ export function useGorevIslemleri(secenekler: readonly DolapSecenegi[]) {
         id: g.id,
         durum: g.durum === 'TAMAMLANDI' ? 'YAPILACAK' : 'TAMAMLANDI',
       });
-      if (sonuc.ok) router.refresh();
-      else setHata(sonuc.error.message);
+      if (sonuc.ok) {
+        yaz(sonuc.data.id, sonuc.data);
+        router.refresh();
+      } else setHata(sonuc.error.message);
     });
 
   const pencere =
@@ -64,7 +77,7 @@ export function useGorevIslemleri(secenekler: readonly DolapSecenegi[]) {
             secenekler={secenekler}
             vazgec={kapat}
             kaydet={async (girdi) => bitti(await gorevGuncelleAction({ ...girdi, id: durum.g.id }))}
-            sil={async () => bitti(await gorevSilAction({ id: durum.g.id }))}
+            sil={async () => bitti(await gorevSilAction({ id: durum.g.id }), durum.g.id, true)}
           />
         )}
       </Pencere>
@@ -76,6 +89,13 @@ export function useGorevIslemleri(secenekler: readonly DolapSecenegi[]) {
     durumDegistir,
     yeniGorev: (yer?: { dolapId?: string | null; rafId?: string | null }) =>
       setDurum({ tur: 'yeni', form: bosGorev(yer) }),
-    duzenle: (g: GorevDto) => setDurum({ tur: 'duzenle', g }),
+    duzenle: (g: GorevDto) => setDurum({ tur: 'duzenle', g: yerel[g.id] ?? g }),
+    /** Listeyi yerel güncel hâlle çizer: düzenlenen yenisiyle, silinen hiç. */
+    uygula: (liste: readonly GorevDto[]): GorevDto[] =>
+      liste.flatMap((g) => {
+        const y = yerel[g.id];
+        return y === null ? [] : [y ?? g];
+      }),
+    sifirla: useCallback(() => setYerel({}), []),
   };
 }

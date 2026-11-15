@@ -218,6 +218,21 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     kanit: ["'/api/v1/panel/eklenti'"],
     not: "T-037f ile eklendi (ADR-044). Kimlik İKİ KATMAN: ara katman `/api/v1/panel/*`ı oturumsuz 401'e çeviriyor (§8.5) + uçta `currentActorId` (§8.6, ADR-035/B). Sıra: kimlik → boyut (`Content-Length`, gövde OKUNMADAN) → §8.16 hız → form şeması → hedef varlığı (ADR-018) → `storeAttachment`: baytlar YAZMADAN ÖNCE doğrulanıyor (boyut, sihirli bayt, ADR-043), anahtar sunucuda. DB düşerse nesne hemen siliniyor. Birim: `tests/unit/api/eklenti-yukleme.test.ts` (route'un kendisi, gerçek `FormData` ile). ÖLÇÜLDÜ YERELDE, CI'DA DEĞİL (2026-10-20, tek seferlik paket, gerçek bucket): kapak seçici ve galeriden yükleme, public proje sayfasında görselin gerçekten çizilmesi (`naturalWidth` 64), oturumsuz 200, CSP ihlali 0, panelden silme; ayrıca ÖNBELLEK: önbellekli public sayfa ekleme sonrası 0→1, silme sonrası 1→0. CI'da R2 anahtarı yok ve 'atlanan test yok' nöbeti koşullu atlamayı kabul etmiyor. ÖLÇÜLMEYEN: (1) Yukarıdakinin CI'da tekrarı. (2) `Content-Length` yalan söyleyen 10 MB+ gövde `formData()` ile belleğe alınıyor; asıl sınır baytta — bellek tepe değeri ölçülmedi.",
   },
+  '/api/v1/panel/masa/yukle': {
+    kapilar: ['e2e'],
+    kanit: ["'/api/v1/panel/masa/yukle'"],
+    not: "2026-11-15 ADR-049 M2b — parçalı yüklemeyi başlatır. Kimlik iki katman (ara katman + `currentActorId`), oturumsuz 401 `panel-rotalar.spec.ts`te; §8.16 hızı DOSYA başına (parça başına değil). Servis kuralları (tür ilk parçanın baytlarından, parça boyutu planı, bitişte boyut ve SHA-256 akışla, yarım yükleme 24 saatte temizlenir, silme) gerçek PostgreSQL + sahte R2 ile `tests/integration/masa-yukleme.test.ts`te; R2 imzası ve XML `tests/unit/masa/r2-parcali.test.ts`te. ÖLÇÜLDÜ YERELDE, CI'DA DEĞİL: gerçek R2'ye uçtan uca yükleme (CI'da R2 anahtarı yok; koşullu atlama yasak — eklenti ucuyla aynı durum). ÖLÇÜLMEYEN: gerçek telefonda uyku/arka plan sırasında yükleme.",
+  },
+  '/api/v1/panel/masa/yukle/[id]': {
+    kapilar: ['e2e'],
+    kanit: ["'/api/v1/panel/masa/yukle/ckyokboyle000000000000001'"],
+    not: "2026-11-15 — POST bitirir (R2 birleştir → akışla SHA-256 ve boyut → Attachment + HAZIR), DELETE iptal/siler. Oturumsuz 401 e2e; kurallar `tests/integration/masa-yukleme.test.ts`. ÖLÇÜLMEYEN: CI'da gerçek R2.",
+  },
+  '/api/v1/panel/masa/yukle/[id]/[parca]': {
+    kapilar: ['e2e'],
+    kanit: ["'/api/v1/panel/masa/yukle/ckyokboyle000000000000001/1'"],
+    not: "2026-11-15 — bir parçanın ham baytları; `Content-Length` ve baytta 8 MiB sınırı, plana uymayan boyut reddedilir. Oturumsuz 401 e2e; kurallar entegrasyonda. ÖLÇÜLMEYEN: CI'da gerçek R2.",
+  },
   '/api/v1/dosya/[id]': {
     kapilar: ['e2e'],
     kanit: ["'/api/v1/dosya/ckyokboylebirdosya000000001'"],
@@ -346,7 +361,7 @@ const KAPSAM: Record<string, KapsamBeyani> = {
   '/panel/masa/[id]': {
     kapilar: ['e2e'],
     kanit: ['`/panel/masa/${k.dolap}`,', "test('masa: dolap, raf, görev"],
-    not: '2026-11-14 dolap ekranı: raf ağacı, rafa görev, dolap düzenle/arşivle/sil (içi dolu dolap reddedilir). Bilinmeyen kimlik `notFound`. ÖLÇÜLMEYEN: arşivle/arşivden çıkar e2e\'de yok; raf yeniden adlandırma ve silme yalnızca serviste.',
+    not: "2026-11-14 dolap ekranı: raf ağacı, rafa görev, dolap düzenle/arşivle/sil (içi dolu dolap reddedilir). Bilinmeyen kimlik `notFound`. ÖLÇÜLMEYEN: arşivle/arşivden çıkar e2e'de yok; raf yeniden adlandırma ve silme yalnızca serviste.",
   },
   '/panel/takvim': {
     kapilar: ['e2e'],

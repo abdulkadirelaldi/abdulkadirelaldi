@@ -151,6 +151,8 @@ enum AttachmentEntity {
   PROJECT
   POST
   PROFILE
+  /// ADR-049 M2b — Masa öğesinin dosyası/ses kaydı. Özel: yalnızca oturumla sunulur.
+  MASA_OGESI
 }
 
 // =============================================================================
@@ -1312,6 +1314,7 @@ model Dolap {
   arsivlendi Boolean      @default(false)
   raflar     Raf[]
   gorevler   Gorev[]
+  ogeler     MasaOgesi[]
   createdAt  DateTime     @default(now())
   updatedAt  DateTime     @updatedAt
 
@@ -1320,18 +1323,19 @@ model Dolap {
 }
 
 model Raf {
-  id        String   @id @default(cuid())
+  id        String      @id @default(cuid())
   dolapId   String
-  dolap     Dolap    @relation(fields: [dolapId], references: [id], onDelete: Restrict)
+  dolap     Dolap       @relation(fields: [dolapId], references: [id], onDelete: Restrict)
   /// İç içe raf (Dersler → Fizik). Servis derinliği sınırlar.
   ustRafId  String?
-  ustRaf    Raf?     @relation("RafAgaci", fields: [ustRafId], references: [id], onDelete: Restrict)
-  altRaflar Raf[]    @relation("RafAgaci")
+  ustRaf    Raf?        @relation("RafAgaci", fields: [ustRafId], references: [id], onDelete: Restrict)
+  altRaflar Raf[]       @relation("RafAgaci")
   ad        String
-  sira      Int      @default(0)
+  sira      Int         @default(0)
   gorevler  Gorev[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  ogeler    MasaOgesi[]
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
 
   @@index([dolapId, ustRafId, sira])
   @@index([ustRafId])
@@ -1362,4 +1366,47 @@ model Gorev {
   @@index([rafId])
   @@index([tamamlandiAt])
   @@map("gorev")
+}
+
+enum MasaOgeTuru {
+  NOT
+  DOSYA
+  SES
+}
+
+enum MasaOgeDurumu {
+  /// Parçalı yükleme sürüyor — `yukleme*` alanları dolu, dosya henüz yok.
+  YUKLENIYOR
+  HAZIR
+}
+
+/// ADR-049 M2b — rafın içindeki not, dosya ya da ses kaydı. Dosyanın kendisi `Attachment`ta
+/// (`entity = MASA_OGESI`, `entityId = id`): yedek ve yetim taraması tek kayıttan yürür.
+model MasaOgesi {
+  id         String        @id @default(cuid())
+  dolapId    String
+  dolap      Dolap         @relation(fields: [dolapId], references: [id], onDelete: Restrict)
+  rafId      String?
+  raf        Raf?          @relation(fields: [rafId], references: [id], onDelete: Restrict)
+  tur        MasaOgeTuru
+  baslik     String
+  /// Not metni. Ses kaydında ileride yazıya dökülmüş metin (M6).
+  metin      String?
+  durum      MasaOgeDurumu @default(HAZIR)
+  /// Kullanıcının seçtiği dosyanın adı — indirmede önerilen ad.
+  dosyaAdi   String?
+  mime       String?
+  boyut      Int?
+  /// Parçalı yükleme durumu (R2 multipart). Bitince boşalır.
+  yuklemeKey String?
+  yuklemeId  String?
+  /// `[{ n, etag, boyut }]` — yüklenen parçalar.
+  parcalar   Json?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@index([dolapId, rafId])
+  @@index([rafId])
+  @@index([durum, createdAt])
+  @@map("masa_ogesi")
 }
