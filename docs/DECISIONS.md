@@ -2722,3 +2722,13 @@ Sahibi okulunu (Samsun Üniversitesi), işini (Kıyı Medya) ve takımını (Spe
 - **Grup düğmesi:** tamamı açıksa kapatır, kısmen/kapalıysa tamamını açar (`aria-pressed="mixed"` kısmen). Öbür gruba dokunmaz.
 - **Yeni etkinlik:** varsayılan katman ilk açık katman; kapalı bir katmana kaydedilen etkinliğin katmanı açılır (ekrandan "kaybolmasın").
 - **Kapsam dışı (bilerek):** Bugün kartı ve bildirimler süzülmez — hatırlatma katmandan bağımsız gelir.
+
+### Ek (2026-11-14) — M2a uygulandı: dolap, raf, görev
+
+- **Şema:** `Dolap` (ad, emoji, `katman`, sıra, arşiv), `Raf` (dolap + isteğe bağlı üst raf, en çok 3 kat), `Gorev` (başlık, açıklama, dolap/raf, `teslimGun @db.Date` + `teslimDakika`, durum, öncelik, `kaynak` ELLE/MAIL/CLAUDE, `tamamlandiAt`). Göç `20261114020000_masa` yalnızca yeni tablolar. Bütün FK'ler `Restrict`: içi dolu dolap/raf servis düzeyinde CONFLICT ile reddedilir ("önce boşalt ya da arşivle"), veritabanı son savunma hattı.
+- **Katman tek kaynaktan:** görevin katmanı dolabının katmanı, dolapsız görev Kişisel. Raf verilince dolap rafın dolabıdır (yanlış dolap kimliği sessizce düzeltilir, ölçüldü).
+- **Takvim izdüşümü:** açık ve teslimli görev takvim oluşumuna çevrilir (`fetchGorevOlusumlari`; saatliyse 30 dk kutu, değilse gün boyu, ☑️ önekli, kategori rengi Hatırlatıcı). `TakvimOlusumu.baglanti` ile dokununca görevin dolabı açılır, etkinlik penceresi açılmaz. Tamamlanan görev takvimden düşer.
+- **Ekranlar:** `/panel/masa` (gecikmiş · bugün · 7 gün · teslimsiz · son 7 günde tamamlananlar · dolaplar; boşken "Önerilen dolapları kur") ve `/panel/masa/[id]` (raf ağacı, rafa görev, dolap düzenle/arşivle/sil). Bugün panosuna "Bugünün görevleri" kartı. Menüde Plan grubunda (alt sekmeler beşte kalır).
+- **Arşivdeki dolap seçicide kalır** ("(arşiv)" ekiyle, sonda): yoksa arşivdeki dolabın görevini düzenleyen form onu sessizce masanın üstüne taşırdı.
+- **Denetim:** görev başlığı ve açıklaması yazılmaz (ödev/iş içeriği; M5'te okulun yazdığı metin) — yalnızca yapı (dolap, raf, teslimli mi, öncelik, durum). Dolap/raf adı yazılır.
+- **Ertelendi (M2b):** not, dosya ve ses kaydı öğeleri (`Attachment`), görev hatırlatması (push).

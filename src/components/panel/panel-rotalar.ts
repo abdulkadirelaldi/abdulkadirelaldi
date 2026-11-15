@@ -1,6 +1,7 @@
 import {
   Activity,
   CalendarDays,
+  LayoutGrid,
   Dumbbell,
   FileText,
   LayoutDashboard,
@@ -63,7 +64,11 @@ export const PANEL_GRUPLARI: ReadonlyArray<{
   {
     // Ayrı grup: ilk grup telefondaki alt sekmeler, beşte kalmalı (2026-11-10).
     title: 'Plan',
-    items: [{ href: '/panel/takvim', label: 'Takvim', icon: CalendarDays, hazir: true }],
+    items: [
+      // ADR-049 M2 — dolaplar, raflar, görevler.
+      { href: '/panel/masa', label: 'Masa', icon: LayoutGrid, hazir: true },
+      { href: '/panel/takvim', label: 'Takvim', icon: CalendarDays, hazir: true },
+    ],
   },
   {
     // Ayrı grup: ilk grup telefondaki alt sekmeler, beşte kalmalı.

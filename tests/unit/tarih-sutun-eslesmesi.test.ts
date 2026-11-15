@@ -241,6 +241,17 @@ const ESLESMELER: Eslesme[] = [
       '`appDayToDate`/`dateToAppDay`; iki aile bilerek bir arada.',
   },
   {
+    servis: 'src/server/services/masa.ts',
+    model: 'Gorev',
+    alan: 'tamamlandiAt',
+    beklenen: 'anlik',
+    not:
+      'Masa (ADR-049 M2). `tamamlandiAt` GERÇEK AN; "son 7 gün" sınırı `appDayStartInstant` ' +
+      '(İstanbul 00:00), takvim izdüşümü de anlara çevrilir (`appWallClockInstant`). Aynı modelde ' +
+      '`teslimGun` `@db.Date` — o `appDayToDate`/`dateToAppDay`; iki aile bilerek bir arada ' +
+      '(takvim.ts ile aynı durum).',
+  },
+  {
     servis: 'src/server/services/takvim-bildirim.ts',
     model: 'BildirimKaydi',
     alan: 'gun',

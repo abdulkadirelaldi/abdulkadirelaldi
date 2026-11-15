@@ -99,6 +99,11 @@ export function TakvimEkrani({
   const yeni = (gun: AppDay, dk: number | null) =>
     setDurum({ tur: 'yeni', form: yeniForm(gun, dk, varsayilanKatman(acik)) });
   const ac = (olusum: TakvimOlusumu) => {
+    // Görev teslimi gibi izdüşümler kendi ekranında açılır (ADR-049).
+    if (olusum.baglanti) {
+      router.push(olusum.baglanti);
+      return;
+    }
     const etkinlik = etkinlikler.find((e) => e.id === olusum.etkinlikId);
     if (etkinlik) setDurum({ tur: 'detay', olusum, etkinlik });
   };

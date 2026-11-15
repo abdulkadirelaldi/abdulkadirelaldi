@@ -7,6 +7,7 @@ import { gecerliGun } from '@/lib/takvim/bicim';
 import { gorunumAraligi, gorunumMu } from '@/lib/takvim/gorunum';
 import { KATMAN_COOKIE, katmanlariCoz } from '@/lib/takvim/katmanlar';
 import { appToday } from '@/server/services/_shared';
+import { fetchGorevOlusumlari } from '@/server/services/masa';
 import { fetchTakvim } from '@/server/services/takvim';
 
 export const metadata: Metadata = {
@@ -26,7 +27,14 @@ export default async function TakvimPage({ searchParams }: SayfaProps) {
   const bugun = appToday();
   const tarih = gecerliGun(parametreler.tarih) ?? bugun;
   const { bas, son } = gorunumAraligi(gorunum, tarih);
-  const { etkinlikler, olusumlar } = await fetchTakvim(bas, son);
+  const [{ etkinlikler, olusumlar: etkinlikOlusumlari }, gorevler] = await Promise.all([
+    fetchTakvim(bas, son),
+    fetchGorevOlusumlari(bas, son),
+  ]);
+  // Masa görevlerinin teslimleri (ADR-049) etkinliklerle aynı sırada.
+  const olusumlar = [...etkinlikOlusumlari, ...gorevler].sort((a, b) =>
+    a.baslangic.localeCompare(b.baslangic),
+  );
   const katmanlar = katmanlariCoz((await cookies()).get(KATMAN_COOKIE)?.value);
 
   return (

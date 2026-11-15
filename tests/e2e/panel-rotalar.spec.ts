@@ -39,6 +39,8 @@ test('her panel rotası hatasız açılır ve yatay taşmaz', async ({ page, bas
     '/panel/haftalik',
     '/panel/aylik',
     '/panel/ingilizce',
+    '/panel/masa',
+    `/panel/masa/${k.dolap}`,
     '/panel/takvim',
     '/panel/takvim?gorunum=hafta',
     '/panel/takvim?gorunum=gun',

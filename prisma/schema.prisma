@@ -1273,3 +1273,93 @@ model TakvimEtkinligi {
   @@index([programDayId])
   @@map("takvim_etkinligi")
 }
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * MASA (ADR-049 M2, 2026-11-14) — Dolap → Raf → Görev.
+ * Dolabın KATMANI görevin takvimdeki katmanıdır (Samsun Üniversitesi → OKUL…); dolapsız görev
+ * KISISEL. Görevin teslimi takvimde GÖREVİN KENDİSİNDEN okunur — ayrı etkinlik satırı açılmaz.
+ * Silme `Restrict`: içi dolu dolap/raf silinmez (servis "önce boşalt ya da arşivle" der). Kazara
+ * tek dokunuşla bir dönemin bütün ödevlerini silmek, bir satırı fazladan tutmaktan pahalıdır.
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+
+enum GorevDurumu {
+  YAPILACAK
+  SURUYOR
+  TAMAMLANDI
+}
+
+enum GorevOnceligi {
+  DUSUK
+  NORMAL
+  YUKSEK
+}
+
+/// Görev nereden geldi — mail ve Claude önerileri (M4/M5) onaylanınca görev olur.
+enum GorevKaynagi {
+  ELLE
+  MAIL
+  CLAUDE
+}
+
+model Dolap {
+  id         String       @id @default(cuid())
+  ad         String
+  emoji      String       @default("🗄️")
+  katman     TakvimKatman @default(KISISEL)
+  sira       Int          @default(0)
+  arsivlendi Boolean      @default(false)
+  raflar     Raf[]
+  gorevler   Gorev[]
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+
+  @@index([arsivlendi, sira])
+  @@map("dolap")
+}
+
+model Raf {
+  id        String   @id @default(cuid())
+  dolapId   String
+  dolap     Dolap    @relation(fields: [dolapId], references: [id], onDelete: Restrict)
+  /// İç içe raf (Dersler → Fizik). Servis derinliği sınırlar.
+  ustRafId  String?
+  ustRaf    Raf?     @relation("RafAgaci", fields: [ustRafId], references: [id], onDelete: Restrict)
+  altRaflar Raf[]    @relation("RafAgaci")
+  ad        String
+  sira      Int      @default(0)
+  gorevler  Gorev[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([dolapId, ustRafId, sira])
+  @@index([ustRafId])
+  @@map("raf")
+}
+
+model Gorev {
+  id           String        @id @default(cuid())
+  baslik       String
+  aciklama     String?
+  dolapId      String?
+  dolap        Dolap?        @relation(fields: [dolapId], references: [id], onDelete: Restrict)
+  /// Raf verildiyse dolabı da odur (servis eşitler).
+  rafId        String?
+  raf          Raf?          @relation(fields: [rafId], references: [id], onDelete: Restrict)
+  /// Takvim günü (`@db.Date`) + isteğe bağlı İstanbul duvar saati (dakika). Saat yoksa gün boyu.
+  teslimGun    DateTime?     @db.Date
+  teslimDakika Int?
+  durum        GorevDurumu   @default(YAPILACAK)
+  oncelik      GorevOnceligi @default(NORMAL)
+  kaynak       GorevKaynagi  @default(ELLE)
+  tamamlandiAt DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([durum, teslimGun])
+  @@index([dolapId])
+  @@index([rafId])
+  @@index([tamamlandiAt])
+  @@map("gorev")
+}
