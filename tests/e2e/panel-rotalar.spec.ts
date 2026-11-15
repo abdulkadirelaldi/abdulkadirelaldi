@@ -115,6 +115,19 @@ test('API uçları oturumsuz ve anahtarsız reddeder', async ({ request }) => {
   expect(masaBitir.status()).toBe(401);
   const sohbet = await request.post('/api/v1/panel/masa/sohbet', { data: {}, maxRedirects: 0 });
   expect(sohbet.status()).toBe(401);
+  // Mac köprüsü (M6): cihaz anahtarı olmadan ve yanlış anahtarla 401.
+  const isAl = await request.post('/api/v1/kopru/mac/is');
+  expect(isAl.status()).toBe(401);
+  const yanlis = await request.post('/api/v1/kopru/mac/is', {
+    headers: { Authorization: 'Bearer aemk_yanlis' },
+  });
+  expect(yanlis.status()).toBe(401);
+  const sesIndir = await request.get('/api/v1/kopru/mac/is/ckyokboyle000000000000001/ses');
+  expect(sesIndir.status()).toBe(401);
+  const isBitir = await request.post('/api/v1/kopru/mac/is/ckyokboyle000000000000001', {
+    data: {},
+  });
+  expect(isBitir.status()).toBe(401);
   const dosya = await request.get('/api/v1/dosya/ckyokboylebirdosya000000001');
   expect(dosya.status()).toBe(404);
 });

@@ -31,6 +31,7 @@ export {
   GorevOnceligi,
   MasaOgeDurumu,
   MasaOgeTuru,
+  SesYaziDurumu,
   GoalPeriod,
   GoalStatus,
   MuscleGroup,

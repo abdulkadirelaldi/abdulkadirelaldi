@@ -1383,30 +1383,55 @@ enum MasaOgeDurumu {
 /// ADR-049 M2b — rafın içindeki not, dosya ya da ses kaydı. Dosyanın kendisi `Attachment`ta
 /// (`entity = MASA_OGESI`, `entityId = id`): yedek ve yetim taraması tek kayıttan yürür.
 model MasaOgesi {
-  id         String        @id @default(cuid())
-  dolapId    String
-  dolap      Dolap         @relation(fields: [dolapId], references: [id], onDelete: Restrict)
-  rafId      String?
-  raf        Raf?          @relation(fields: [rafId], references: [id], onDelete: Restrict)
-  tur        MasaOgeTuru
-  baslik     String
+  id            String         @id @default(cuid())
+  dolapId       String
+  dolap         Dolap          @relation(fields: [dolapId], references: [id], onDelete: Restrict)
+  rafId         String?
+  raf           Raf?           @relation(fields: [rafId], references: [id], onDelete: Restrict)
+  tur           MasaOgeTuru
+  baslik        String
   /// Not metni. Ses kaydında ileride yazıya dökülmüş metin (M6).
-  metin      String?
-  durum      MasaOgeDurumu @default(HAZIR)
+  metin         String?
+  durum         MasaOgeDurumu  @default(HAZIR)
   /// Kullanıcının seçtiği dosyanın adı — indirmede önerilen ad.
-  dosyaAdi   String?
-  mime       String?
-  boyut      Int?
+  dosyaAdi      String?
+  mime          String?
+  boyut         Int?
   /// Parçalı yükleme durumu (R2 multipart). Bitince boşalır.
-  yuklemeKey String?
-  yuklemeId  String?
+  yuklemeKey    String?
+  yuklemeId     String?
   /// `[{ n, etag, boyut }]` — yüklenen parçalar.
-  parcalar   Json?
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
+  parcalar      Json?
+  /// ADR-049 M6 — ses kaydının Mac'te yazıya dökülmesi. Yazı `metin`de, Claude özeti `ozet`te.
+  yaziDurumu    SesYaziDurumu?
+  /// İşi alan Mac'in başlangıç anı: 2 saatte bitmeyen iş yeniden sıraya döner (Mac uyudu).
+  yaziBaslangic DateTime?
+  yaziHata      String?
+  ozet          String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
 
   @@index([dolapId, rafId])
   @@index([rafId])
   @@index([durum, createdAt])
+  @@index([yaziDurumu, createdAt])
   @@map("masa_ogesi")
+}
+
+enum SesYaziDurumu {
+  SIRADA
+  ISLENIYOR
+  TAMAM
+  HATA
+}
+
+/// ADR-049 M6 — sahibinin Mac'indeki köprünün anahtarı (`aemk_…`). Yalnızca SHA-256 özeti
+/// saklanır; düz anahtar bir kez, üretildiği anda gösterilir (`SaglikBaglantisi` ile aynı kalıp).
+model MasaKoprusu {
+  userId       String    @id
+  anahtarOzeti String    @unique
+  createdAt    DateTime  @default(now())
+  sonKullanim  DateTime?
+
+  @@map("masa_koprusu")
 }

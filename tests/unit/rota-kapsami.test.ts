@@ -238,6 +238,21 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     kanit: ["'/api/v1/panel/masa/sohbet'", "test('masa: Claude paneli anahtar yokken"],
     not: "2026-11-15 ADR-049 M4 — Claude paneli, NDJSON akışı. Oturumsuz 401 ve anahtarsız 'Claude bağlı değil' e2e'de; döngü (öneri doğrulama, uydurma kimlik reddi, ret/kesilmede geçmişin kirlenmemesi, önbellek işareti, model ve yedek ayarı) sahte istemciyle `tests/unit/masa/masa-sohbet.test.ts`te. Denetim `EXPORT` istekten önce, dakikada 10. ÖLÇÜLMEYEN: gerçek Claude API'siyle uçtan uca (CI'da ve yerelde anahtar yok; maliyet) — yanıt kalitesi ve gerçek araç çağrısı.",
   },
+  '/api/v1/kopru/mac/is': {
+    kapilar: ['e2e'],
+    kanit: ["'/api/v1/kopru/mac/is'"],
+    not: "2026-11-15 ADR-049 M6 — Mac köprüsü iş alımı (cihaz anahtarı `aemk_`). Anahtarsız ve yanlış anahtarla 401 e2e'de; sıra, eşzamanlı alımın tekilliği, 2 saatlik iş ömrü ve anahtar `tests/integration/masa-koprusu.test.ts`te. ÖLÇÜLDÜ YERELDE (tek seferlik): gerçek R2'ye yüklenen Türkçe m4a → köprü betiği → whisper.cpp → yazı panele, kelimesi kelimesine. ÖLÇÜLMEYEN: canlı sunucuda, gerçek ders kaydıyla.",
+  },
+  '/api/v1/kopru/mac/is/[id]': {
+    kapilar: ['e2e'],
+    kanit: ["'/api/v1/kopru/mac/is/ckyokboyle000000000000001'"],
+    not: '2026-11-15 — iş sonucu (`metin` ya da `hata`); yazı önce kaydedilir, özet sonra (Claude, `EXPORT` denetimi). Anahtarsız 401 e2e; akışlar entegrasyonda. ÖLÇÜLMEYEN: gerçek Claude özetinin kalitesi (anahtar yok).',
+  },
+  '/api/v1/kopru/mac/is/[id]/ses': {
+    kapilar: ['e2e'],
+    kanit: ["'/api/v1/kopru/mac/is/ckyokboyle000000000000001/ses'"],
+    not: '2026-11-15 — işteki sesin baytları (akışla); yalnızca İŞLENEN iş. Anahtarsız 401 e2e; "yalnızca işlenen" entegrasyonda; gerçek R2 akışı yerel ölçümde.',
+  },
   '/api/v1/dosya/[id]': {
     kapilar: ['e2e'],
     kanit: ["'/api/v1/dosya/ckyokboylebirdosya000000001'"],

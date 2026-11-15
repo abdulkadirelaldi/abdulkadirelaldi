@@ -76,6 +76,8 @@ export const KISISEL_MODULLER = [
   'kiyi-medya',
   // 2026-11-15 — Claude paneli (M4): notlar ve görevler Anthropic'e bağlam olarak gider.
   'masa-sohbet',
+  // 2026-11-15 — Mac köprüsü (M6): ders kaydının sesi ve yazısı.
+  'masa-koprusu',
 ] as const;
 
 /** Bu modüllerin İÇE AKTARILABİLDİĞİ yerler — başka her yer ihlal. */
@@ -91,6 +93,12 @@ const IZINLI_ONEKLER = [
    * `currentActorId` ile başlıyor (ADR-035/B). Önbellek yok (`no-store`).
    */
   'src/app/api/v1/panel/',
+  /*
+   * 2026-11-15 (ADR-049 M6) — Mac köprüsü uçları. Oturum değil CİHAZ ANAHTARI (`Bearer aemk_…`,
+   * yalnızca SHA-256 özeti saklanır — `/api/v1/saglik/olcum` ile aynı kalıp); her uç ilk iş
+   * anahtarı doğrular, yoksa 401. Önbellek yok (`no-store`). Ses yalnızca İŞLENEN iş için verilir.
+   */
+  'src/app/api/v1/kopru/',
 ] as const;
 
 /**
