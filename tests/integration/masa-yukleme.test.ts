@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 
-import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { MASA_PARCA_BAYT } from '@/lib/masa/dosya-sinirlari';
 import { db } from '@/server/db';
@@ -107,13 +107,26 @@ const temizle = async () => {
   await db.dolap.deleteMany({ where: { id: { in: dolaplar } } });
 };
 
+/*
+ * Yükleyen kullanıcı TESTİN KENDİSİ açar: CI'ın boş veritabanında tohum kullanıcı yok (ilk CI
+ * koşusu `findFirstOrThrow` ile tam burada düştü). `Attachment.uploadedById` FK'si gerçek satır ister.
+ */
+const KULLANICI = `${ONEK}@ornek.test`;
 let actorId = '';
-beforeEach(async () => {
-  await temizle();
-  actorId = (await db.user.findFirstOrThrow({ select: { id: true } })).id;
+beforeAll(async () => {
+  actorId = (
+    await db.user.upsert({
+      where: { email: KULLANICI },
+      create: { email: KULLANICI, name: ONEK, passwordHash: 'kullanilmaz' },
+      update: {},
+      select: { id: true },
+    })
+  ).id;
 });
+beforeEach(temizle);
 afterAll(async () => {
   await temizle();
+  await db.user.deleteMany({ where: { email: KULLANICI } });
   await db.$disconnect();
 });
 
