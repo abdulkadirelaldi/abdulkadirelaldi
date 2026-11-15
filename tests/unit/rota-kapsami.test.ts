@@ -218,41 +218,6 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     kanit: ["'/api/v1/panel/eklenti'"],
     not: "T-037f ile eklendi (ADR-044). Kimlik İKİ KATMAN: ara katman `/api/v1/panel/*`ı oturumsuz 401'e çeviriyor (§8.5) + uçta `currentActorId` (§8.6, ADR-035/B). Sıra: kimlik → boyut (`Content-Length`, gövde OKUNMADAN) → §8.16 hız → form şeması → hedef varlığı (ADR-018) → `storeAttachment`: baytlar YAZMADAN ÖNCE doğrulanıyor (boyut, sihirli bayt, ADR-043), anahtar sunucuda. DB düşerse nesne hemen siliniyor. Birim: `tests/unit/api/eklenti-yukleme.test.ts` (route'un kendisi, gerçek `FormData` ile). ÖLÇÜLDÜ YERELDE, CI'DA DEĞİL (2026-10-20, tek seferlik paket, gerçek bucket): kapak seçici ve galeriden yükleme, public proje sayfasında görselin gerçekten çizilmesi (`naturalWidth` 64), oturumsuz 200, CSP ihlali 0, panelden silme; ayrıca ÖNBELLEK: önbellekli public sayfa ekleme sonrası 0→1, silme sonrası 1→0. CI'da R2 anahtarı yok ve 'atlanan test yok' nöbeti koşullu atlamayı kabul etmiyor. ÖLÇÜLMEYEN: (1) Yukarıdakinin CI'da tekrarı. (2) `Content-Length` yalan söyleyen 10 MB+ gövde `formData()` ile belleğe alınıyor; asıl sınır baytta — bellek tepe değeri ölçülmedi.",
   },
-  '/api/v1/panel/masa/yukle': {
-    kapilar: ['e2e'],
-    kanit: ["'/api/v1/panel/masa/yukle'"],
-    not: "2026-11-15 ADR-049 M2b — parçalı yüklemeyi başlatır. Kimlik iki katman (ara katman + `currentActorId`), oturumsuz 401 `panel-rotalar.spec.ts`te; §8.16 hızı DOSYA başına (parça başına değil). Servis kuralları (tür ilk parçanın baytlarından, parça boyutu planı, bitişte boyut ve SHA-256 akışla, yarım yükleme 24 saatte temizlenir, silme) gerçek PostgreSQL + sahte R2 ile `tests/integration/masa-yukleme.test.ts`te; R2 imzası ve XML `tests/unit/masa/r2-parcali.test.ts`te. ÖLÇÜLDÜ YERELDE, CI'DA DEĞİL: gerçek R2'ye uçtan uca yükleme (CI'da R2 anahtarı yok; koşullu atlama yasak — eklenti ucuyla aynı durum). ÖLÇÜLMEYEN: gerçek telefonda uyku/arka plan sırasında yükleme.",
-  },
-  '/api/v1/panel/masa/yukle/[id]': {
-    kapilar: ['e2e'],
-    kanit: ["'/api/v1/panel/masa/yukle/ckyokboyle000000000000001'"],
-    not: "2026-11-15 — POST bitirir (R2 birleştir → akışla SHA-256 ve boyut → Attachment + HAZIR), DELETE iptal/siler. Oturumsuz 401 e2e; kurallar `tests/integration/masa-yukleme.test.ts`. ÖLÇÜLMEYEN: CI'da gerçek R2.",
-  },
-  '/api/v1/panel/masa/yukle/[id]/[parca]': {
-    kapilar: ['e2e'],
-    kanit: ["'/api/v1/panel/masa/yukle/ckyokboyle000000000000001/1'"],
-    not: "2026-11-15 — bir parçanın ham baytları; `Content-Length` ve baytta 8 MiB sınırı, plana uymayan boyut reddedilir. Oturumsuz 401 e2e; kurallar entegrasyonda. ÖLÇÜLMEYEN: CI'da gerçek R2.",
-  },
-  '/api/v1/panel/masa/sohbet': {
-    kapilar: ['e2e'],
-    kanit: ["'/api/v1/panel/masa/sohbet'", "test('masa: Claude paneli anahtar yokken"],
-    not: "2026-11-15 ADR-049 M4 — Claude paneli, NDJSON akışı. Oturumsuz 401 ve anahtarsız 'Claude bağlı değil' e2e'de; döngü (öneri doğrulama, uydurma kimlik reddi, ret/kesilmede geçmişin kirlenmemesi, önbellek işareti, model ve yedek ayarı) sahte istemciyle `tests/unit/masa/masa-sohbet.test.ts`te. Denetim `EXPORT` istekten önce, dakikada 10. ÖLÇÜLMEYEN: gerçek Claude API'siyle uçtan uca (CI'da ve yerelde anahtar yok; maliyet) — yanıt kalitesi ve gerçek araç çağrısı.",
-  },
-  '/api/v1/kopru/mac/is': {
-    kapilar: ['e2e'],
-    kanit: ["'/api/v1/kopru/mac/is'"],
-    not: "2026-11-15 ADR-049 M6 — Mac köprüsü iş alımı (cihaz anahtarı `aemk_`). Anahtarsız ve yanlış anahtarla 401 e2e'de; sıra, eşzamanlı alımın tekilliği, 2 saatlik iş ömrü ve anahtar `tests/integration/masa-koprusu.test.ts`te. ÖLÇÜLDÜ YERELDE (tek seferlik): gerçek R2'ye yüklenen Türkçe m4a → köprü betiği → whisper.cpp → yazı panele, kelimesi kelimesine. ÖLÇÜLMEYEN: canlı sunucuda, gerçek ders kaydıyla.",
-  },
-  '/api/v1/kopru/mac/is/[id]': {
-    kapilar: ['e2e'],
-    kanit: ["'/api/v1/kopru/mac/is/ckyokboyle000000000000001'"],
-    not: '2026-11-15 — iş sonucu (`metin` ya da `hata`); yazı önce kaydedilir, özet sonra (Claude, `EXPORT` denetimi). Anahtarsız 401 e2e; akışlar entegrasyonda. ÖLÇÜLMEYEN: gerçek Claude özetinin kalitesi (anahtar yok).',
-  },
-  '/api/v1/kopru/mac/is/[id]/ses': {
-    kapilar: ['e2e'],
-    kanit: ["'/api/v1/kopru/mac/is/ckyokboyle000000000000001/ses'"],
-    not: '2026-11-15 — işteki sesin baytları (akışla); yalnızca İŞLENEN iş. Anahtarsız 401 e2e; "yalnızca işlenen" entegrasyonda; gerçek R2 akışı yerel ölçümde.',
-  },
   '/api/v1/dosya/[id]': {
     kapilar: ['e2e'],
     kanit: ["'/api/v1/dosya/ckyokboylebirdosya000000001'"],
@@ -372,16 +337,6 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     kapilar: ['e2e'],
     kanit: ["'/panel/ingilizce/ders/gunluk-u1-d1',"],
     not: '2026-11-06 ders oynatıcısı; kilitli ders parkura, boş tekrar parkura döner, bilinmeyen kimlik 404. Değerlendirme `tests/unit/ingilizce/degerlendir.test.ts`. ÖLÇÜLMEYEN: gerçek cihazda sesli okuma ve konuşma tanıma.',
-  },
-  '/panel/masa': {
-    kapilar: ['e2e'],
-    kanit: ["'/panel/masa',", "test('masa: dolap, raf, görev"],
-    not: "2026-11-14 Masa (ADR-049 M2): masa üstü öbekleri (gecikmiş, bugün, 7 gün, teslimsiz, tamamlananlar) ve dolaplar. Dolap → raf → görev, tamamla ve takvimde katman `tests/e2e/masa.spec.ts`te; servis kuralları (silme kısıtı, raf derinliği, katman, öbekler) gerçek PostgreSQL'de `tests/integration/masa.test.ts`. ÖLÇÜLMEYEN: 'Önerilen dolapları kur' düğmesi e2e'de yok (gerçek adlarla dolap açardı) — servisi entegrasyonda.",
-  },
-  '/panel/masa/[id]': {
-    kapilar: ['e2e'],
-    kanit: ['`/panel/masa/${k.dolap}`,', "test('masa: dolap, raf, görev"],
-    not: "2026-11-14 dolap ekranı: raf ağacı, rafa görev, dolap düzenle/arşivle/sil (içi dolu dolap reddedilir). Bilinmeyen kimlik `notFound`. ÖLÇÜLMEYEN: arşivle/arşivden çıkar e2e'de yok; raf yeniden adlandırma ve silme yalnızca serviste.",
   },
   '/panel/takvim': {
     kapilar: ['e2e'],

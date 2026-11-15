@@ -47,6 +47,3 @@ export * from './journal-entry';
 
 // Takvim
 export * from './takvim';
-
-// Masa
-export * from './masa';

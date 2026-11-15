@@ -7,7 +7,7 @@ import {
   toAppDay,
   type AppDay,
 } from '@/server/services/_shared/app-date';
-import type { TakvimKategori, TakvimKatman } from '@/types';
+import type { TakvimKategori } from '@/types';
 
 import {
   aralikBasligi,
@@ -108,7 +108,6 @@ export interface TakvimOlusumu {
   baslik: string;
   konum: string | null;
   kategori: TakvimKategori;
-  katman: TakvimKatman;
   tumGun: boolean;
   baslangic: string;
   bitis: string;
@@ -117,11 +116,6 @@ export interface TakvimOlusumu {
   /** Değdiği SON gün (dahil). */
   sonGun: AppDay;
   tekrarli: boolean;
-  /**
-   * Etkinlik DEĞİL, başka bir kaydın takvim izdüşümü (ör. Masa görevinin teslimi, ADR-049):
-   * dokununca bu adrese gidilir, etkinlik penceresi açılmaz.
-   */
-  baglanti?: string;
 }
 
 /** Düzenleme formu için serinin tamamı. */
@@ -131,7 +125,6 @@ export interface TakvimEtkinligiVerisi {
   aciklama: string | null;
   konum: string | null;
   kategori: TakvimKategori;
-  katman: TakvimKatman;
   tumGun: boolean;
   baslangic: string;
   bitis: string;

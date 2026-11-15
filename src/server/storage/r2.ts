@@ -112,7 +112,7 @@ function encodeKeyPath(key: string): string {
   return key.split('/').map(encodeURIComponent).join('/');
 }
 
-export type R2Method = 'GET' | 'PUT' | 'DELETE' | 'HEAD' | 'POST';
+export type R2Method = 'GET' | 'PUT' | 'DELETE' | 'HEAD';
 
 /**
  * Sorgu dizesinde imzalı (presigned) adres üretir.
@@ -130,11 +130,6 @@ export function presignUrl(
     expiresIn: number;
     /** Deterministik imza için — testte sabitlenir. */
     now?: Date;
-    /**
-     * İmzaya GİREN ek sorgu parametreleri — parçalı yükleme (`uploads`, `uploadId`,
-     * `partNumber`; ADR-049 M2b). Kanonik sıralamaya X-Amz-* ile birlikte girer.
-     */
-    query?: Readonly<Record<string, string>>;
   },
   config: R2Config = readR2Config(),
 ): string {
@@ -156,7 +151,6 @@ export function presignUrl(
     'X-Amz-Date': amzDate,
     'X-Amz-Expires': String(input.expiresIn),
     'X-Amz-SignedHeaders': 'host',
-    ...input.query,
   });
   // SIRA ZORUNLU: kanonik istek sorgu parametrelerinin SIRALI olmasını şart
   // koşuyor; sıralamazsak imza sunucudakiyle uyuşmaz.
@@ -270,139 +264,4 @@ export async function putObject(
     headers: { 'Content-Type': contentType },
   });
   if (!yanit.ok) throw new Error(`R2 yazma başarısız: ${yanit.status}`);
-}
-
-/* ===========================================================================
- * PARÇALI YÜKLEME (S3 multipart) — ADR-049 M2b
- *
- * Ses kayıtları 10 MB'ı aşar (bir saatlik ders ≈ 30–60 MB) ve nginx gövdeyi 12 MB'ta keser.
- * Tarayıcı dosyayı eşit parçalara böler, her parça AYRI bir istekle sunucuya, sunucu da R2'ye
- * `UploadPart` ile yazar. Hiçbir istek parça boyutunu aşmaz; sunucu belleği parça kadar dolar.
- * İmza yine `presignUrl` — ikinci bir imzalama yolu yok.
- * ======================================================================== */
-
-/** R2'nin XML yanıtından tek bir etiketin metni (bağımlılıksız; yanıt şeması sabit). */
-function xmlEtiketi(xml: string, etiket: string): string | null {
-  const m = new RegExp(`<${etiket}>([^<]*)</${etiket}>`).exec(xml);
-  return m ? m[1]! : null;
-}
-
-function imzali(
-  key: string,
-  method: R2Method,
-  query: Record<string, string>,
-  deps: R2Deps,
-): string {
-  return presignUrl(
-    { key, method, expiresIn: SIGNED_PUT_TTL_SECONDS, now: deps.now, query },
-    deps.config ?? readR2Config(),
-  );
-}
-
-/** `CreateMultipartUpload` — yükleme kimliğini döner. */
-export async function createMultipartUpload(
-  key: string,
-  contentType: string,
-  deps: R2Deps = {},
-): Promise<string> {
-  const istek = deps.fetchImpl ?? fetch;
-  const yanit = await istek(imzali(key, 'POST', { uploads: '' }, deps), {
-    method: 'POST',
-    headers: { 'Content-Type': contentType },
-  });
-  const govde = await yanit.text();
-  const kimlik = yanit.ok ? xmlEtiketi(govde, 'UploadId') : null;
-  if (!kimlik) throw new Error(`R2 parçalı yükleme başlatılamadı: ${yanit.status}`);
-  return kimlik;
-}
-
-/** `UploadPart` — parçanın ETag'ini döner (tamamlamada gerekir). */
-export async function uploadPart(
-  key: string,
-  uploadId: string,
-  partNumber: number,
-  bytes: Uint8Array<ArrayBuffer>,
-  deps: R2Deps = {},
-): Promise<string> {
-  const istek = deps.fetchImpl ?? fetch;
-  const yanit = await istek(
-    imzali(key, 'PUT', { partNumber: String(partNumber), uploadId }, deps),
-    { method: 'PUT', body: bytes },
-  );
-  const etag = yanit.headers.get('etag');
-  if (!yanit.ok || !etag) throw new Error(`R2 parça yazılamadı: ${yanit.status}`);
-  return etag;
-}
-
-/**
- * `CompleteMultipartUpload`. ⚠️ S3 bu çağrıda 200 ile GÖVDEDE `<Error>` dönebilir — durum
- * kodu tek başına başarı değil, gövde de okunur.
- */
-export async function completeMultipartUpload(
-  key: string,
-  uploadId: string,
-  parts: readonly { n: number; etag: string }[],
-  deps: R2Deps = {},
-): Promise<void> {
-  const istek = deps.fetchImpl ?? fetch;
-  const govde =
-    '<CompleteMultipartUpload>' +
-    [...parts]
-      .sort((a, b) => a.n - b.n)
-      .map((p) => `<Part><PartNumber>${p.n}</PartNumber><ETag>${p.etag}</ETag></Part>`)
-      .join('') +
-    '</CompleteMultipartUpload>';
-  const yanit = await istek(imzali(key, 'POST', { uploadId }, deps), {
-    method: 'POST',
-    body: govde,
-    headers: { 'Content-Type': 'application/xml' },
-  });
-  const metin = await yanit.text();
-  if (!yanit.ok || metin.includes('<Error>')) {
-    throw new Error(
-      `R2 parçalı yükleme tamamlanamadı: ${yanit.status} ${xmlEtiketi(metin, 'Code') ?? ''}`.trim(),
-    );
-  }
-}
-
-/** `AbortMultipartUpload` — telafi yolu; `deleteObjectQuietly` gibi FIRLATMAZ. */
-export async function abortMultipartUploadQuietly(
-  key: string,
-  uploadId: string,
-  deps: R2Deps = {},
-): Promise<boolean> {
-  try {
-    const istek = deps.fetchImpl ?? fetch;
-    const yanit = await istek(imzali(key, 'DELETE', { uploadId }, deps), { method: 'DELETE' });
-    return yanit.ok || yanit.status === 404;
-  } catch (error) {
-    guvenliHata(
-      '[r2] parçalı yükleme iptal edilemedi:',
-      error instanceof Error ? error.message : error,
-    );
-    return false;
-  }
-}
-
-/**
- * Nesneyi AKIŞ olarak okur; `range` verilirse R2'ye aynen iletilir (206). Ses/video oynatıcıları
- * (özellikle iOS Safari) ileri sarmak için `Range` ister; büyük dosyayı belleğe almadan sunar.
- * `null`: nesne yok.
- */
-export async function getObjectResponse(
-  key: string,
-  range: string | null,
-  deps: R2Deps = {},
-): Promise<Response | null> {
-  const url = presignUrl(
-    { key, method: 'GET', expiresIn: SIGNED_GET_TTL_SECONDS, now: deps.now },
-    deps.config ?? readR2Config(),
-  );
-  const istek = deps.fetchImpl ?? fetch;
-  const yanit = await istek(url, range ? { headers: { Range: range } } : undefined);
-  if (yanit.status === 404) return null;
-  if (!yanit.ok && yanit.status !== 206 && yanit.status !== 416) {
-    throw new Error(`R2 okuma başarısız: ${yanit.status}`);
-  }
-  return yanit;
 }
