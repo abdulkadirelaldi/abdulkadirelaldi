@@ -2709,3 +2709,33 @@ Masa (ADR-049) sahibinin isteğiyle geri alındı. Gerekçesi 2026-11-16'da netl
 - Entegrasyon (gerçek PostgreSQL): öbekler, saatli/gün boyu sırası, tik anı korunur/silinir, 7 gün sınırı, gün kaldırılınca saat düşer — `tests/integration/gorev.test.ts`.
 - E2E (masaüstü + Pixel 5): hızlı ekle → formla ekle → süz → Bugün kartı → tik → Bitenler → geri al → sil — `tests/e2e/isler.spec.ts`; rota taşma taraması `panel-rotalar.spec.ts`.
 - **ÖLÇÜLMEYEN:** gerçek iPhone'da dokunma hissi.
+
+## ADR-051 — İşler → Google Takvim eşitlemesi
+
+**Durum:** Kabul edildi · 2026-11-16 · **Kapsar:** İşler (ADR-050), ayarlar, zamanlayıcı, şema · **Bağlam:** ADR-050 "Sıradakiler → Aşama 2"
+
+### Bağlam
+
+Sahibi asıl takvim olarak Google Takvim'i seçti: teslim tarihleri ve alarmlar telefonda Google'dan gelmeli. Ders, Spectraloop ve çekim gibi tekrarlayan etkinlikler zaten Google'da (Claude bağlayıcısıyla elle girildi).
+
+### Karar
+
+1. **Tek yön, görev → Google.** Tarihli her görev sahibinin BİRİNCİL takviminde bir etkinliktir (`extendedProperties.private.aeGorevId`). Google'da elle yapılan değişiklik görevi değiştirmez; görev değişince etkinlik yeniden yazılır. Tek doğruluk kaynağı görev.
+2. **Etkinlik:** gün boyu ya da saatli 30 dk; renk alana göre; "meşgul" göstermez (`transparent`). Alarmlar: saatli 1 gün + 2 saat önce, gün boyu bir önceki gün 09:00. Biten görev "✓ " alır ve alarmları kalkar. Tarih kaldırılınca etkinlik silinir; görev silinince de.
+3. **Kuyruk:** her görev yazımı `googleBekliyor = true`. Yazım isteğin ardından (`after`) ve 5 dakikalık zamanlayıcı turunda; Google erişilemezse görev bekler (kayıp yok), hata Ayarlar → Google Takvim'de görünür. Eşitleme sırasında görev değişirse bekleme düşmez (`updatedAt` koşullu güncelleme).
+4. **OAuth:** tek kullanıcı, `calendar.events` kapsamı, `access_type=offline` + `prompt=consent`. `state` httpOnly çerezde, sabit zamanlı karşılaştırma. Yenileme jetonu `encryptSecret` ile (TOTP anahtarı, aynı biçim) şifreli; erişim jetonu yalnızca bellekte. Bağlanınca tarihli bütün görevler bir kez yazılır. Bağlantıyı kesmek izni iptal eder; etkinlikler takvimde kalır.
+5. **Bağımlılık yok:** OAuth ve Calendar REST `fetch` ile. Anahtar (`GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`) yoksa özellik kapalı ve ekran söyler.
+
+### Kurulum (sahibi, bir kez)
+
+Google Cloud → proje → Google Calendar API etkin → OAuth izin ekranı (Harici, kapsam `calendar.events`, **Yayınla → In production**; "Testing"te yenileme jetonu 7 günde ölür) → OAuth istemcisi (Web), yönlendirme `https://abdulkadirelaldi.com/api/v1/panel/google/donus` → anahtarlar sunucu `.env`ine.
+
+### Sıradaki
+
+- **2b:** panel takvimi Google etkinliklerini de göstersin (okuma); mevcut panel etkinliklerinin taşınması ayrı karar.
+
+### Ölçülen
+
+- Sahte Google + gerçek PostgreSQL (`tests/integration/google-takvim.test.ts`): bağlantı yokken gönderim yok; jeton şifreli; ilk yazım POST, sonra PUT; Google'da silinmiş etkinlik yeniden açılır; tarih kalkınca silinir; hata kuyruğu korur ve ekrana düşer; yarış; bağlantı kesme. Etkinlik gövdesi (gün boyu/saatli/biten) aynı dosyada.
+- Oturumsuz 401 ve ayar sayfası rota taraması e2e'de.
+- **ÖLÇÜLMEYEN:** gerçek Google'la uçtan uca — anahtarlar sunucuya girilince yayında elle doğrulanacak.

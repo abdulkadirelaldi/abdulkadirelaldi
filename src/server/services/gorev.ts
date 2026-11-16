@@ -130,11 +130,16 @@ function gorevAlanlari(g: GorevGirdisi) {
     etiket: g.etiket,
     teslimGun: g.teslimGun ? appDayToDate(g.teslimGun) : null,
     teslimDakika: g.teslimGun && g.teslimSaat ? saatDakika(g.teslimSaat) : null,
+    // ADR-051 — her yazım Google kuyruğuna girer (bağlantı yoksa bekler).
+    googleBekliyor: true,
   };
 }
 
 async function varMi(id: string, client: typeof db) {
-  const s = await client.gorev.findUnique({ where: { id }, select: { tamamlandiAt: true } });
+  const s = await client.gorev.findUnique({
+    where: { id },
+    select: { tamamlandiAt: true, googleEtkinlikId: true },
+  });
   if (!s) throw new GorevHatasi('NOT_FOUND', 'Görev bulunamadı. Başka yerden silinmiş olabilir.');
   return s;
 }
@@ -156,11 +161,20 @@ export async function gorevBitti(
 ): Promise<GorevDto> {
   const once = await varMi(g.id, client);
   const tamamlandiAt = g.bitti ? (once.tamamlandiAt ?? simdi) : null;
-  return gorevDto(await client.gorev.update({ where: { id: g.id }, data: { tamamlandiAt } }));
+  return gorevDto(
+    await client.gorev.update({
+      where: { id: g.id },
+      data: { tamamlandiAt, googleBekliyor: true },
+    }),
+  );
 }
 
-export async function gorevSil(id: string, client = db): Promise<{ id: string }> {
-  await varMi(id, client);
+/** Silinen görevin Google etkinliği (varsa) döner — eylem onu da kaldırır (ADR-051). */
+export async function gorevSil(
+  id: string,
+  client = db,
+): Promise<{ id: string; googleEtkinlikId: string | null }> {
+  const once = await varMi(id, client);
   await client.gorev.delete({ where: { id } });
-  return { id };
+  return { id, googleEtkinlikId: once.googleEtkinlikId };
 }

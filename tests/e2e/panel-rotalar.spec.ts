@@ -26,6 +26,7 @@ test('her panel rotası hatasız açılır ve yatay taşmaz', async ({ page, bas
     '/panel/ayarlar/hatalar',
     '/panel/ayarlar/saglik-baglantisi',
     '/panel/ayarlar/sifre',
+    '/panel/ayarlar/google',
     `/panel/saglik/${k.saglik}`,
     `/panel/spor/oturum/${k.oturum}`,
     '/panel/cuzdan/ara',
@@ -100,6 +101,13 @@ test('API uçları oturumsuz ve anahtarsız reddeder', async ({ request }) => {
   expect(disaAktar.status()).toBe(401);
   const eklenti = await request.post('/api/v1/panel/eklenti', { data: {}, maxRedirects: 0 });
   expect(eklenti.status()).toBe(401);
+  // ADR-051 — Google OAuth uçları oturumsuz 401 (izin ekranına ASLA yönlendirmez).
+  const googleBagla = await request.get('/api/v1/panel/google/bagla', { maxRedirects: 0 });
+  expect(googleBagla.status()).toBe(401);
+  const googleDonus = await request.get('/api/v1/panel/google/donus?code=x&state=y', {
+    maxRedirects: 0,
+  });
+  expect(googleDonus.status()).toBe(401);
   const dosya = await request.get('/api/v1/dosya/ckyokboylebirdosya000000001');
   expect(dosya.status()).toBe(404);
 });

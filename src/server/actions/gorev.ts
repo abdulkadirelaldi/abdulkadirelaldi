@@ -1,5 +1,7 @@
 'use server';
 
+import { after } from 'next/server';
+
 import { entityIdSchema } from '@/lib/schemas/common';
 import { gorevBittiSchema, gorevGuncelleSchema, gorevSchema } from '@/lib/schemas/gorev';
 import { db } from '@/server/db';
@@ -12,6 +14,8 @@ import {
   gorevSil,
   type GorevDto,
 } from '@/server/services/gorev';
+import { etkinlikSil, gorevEsitle } from '@/server/services/google-takvim';
+import { guvenliHata } from '@/lib/security/guvenli-log';
 import type { AuditAction } from '@/types';
 
 import { currentActorId, toFailure, unauthorized } from './_shared';
@@ -34,6 +38,11 @@ async function kaydet<T extends { id: string }>(
   try {
     const sonuc = await is();
     await writeAuditLog({ actorId, action, entity: 'Gorev', entityId: sonuc.id, diff }, db);
+    // ADR-051 — Google'a yanıttan SONRA yazılır: tik beklemez. Başarısızsa görev kuyrukta kalır,
+    // zamanlayıcı yeniden dener.
+    if (action !== 'DELETE') {
+      after(() => gorevEsitle(sonuc.id).catch((e) => guvenliHata('[google] eşitleme:', String(e))));
+    }
     return ok(sonuc);
   } catch (error) {
     if (error instanceof GorevHatasi) return fail(error.kod, error.message);
@@ -85,5 +94,10 @@ export async function gorevSilAction(raw: unknown): Promise<ApiResponse<{ id: st
   if (!actorId) return unauthorized();
   const parsed = parseOrFail(entityIdSchema, raw);
   if (!parsed.ok) return parsed.failure;
-  return kaydet(actorId, 'DELETE', {}, () => gorevSil(parsed.data.id), 'gorev:sil');
+  const sonuc = await kaydet(actorId, 'DELETE', {}, () => gorevSil(parsed.data.id), 'gorev:sil');
+  if (sonuc.ok && sonuc.data.googleEtkinlikId) {
+    const etkinlikId = sonuc.data.googleEtkinlikId;
+    after(() => etkinlikSil(etkinlikId).catch((e) => guvenliHata('[google] silme:', String(e))));
+  }
+  return sonuc.ok ? ok({ id: sonuc.data.id }) : sonuc;
 }

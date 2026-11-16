@@ -1,6 +1,7 @@
 import { guvenliHata } from './lib/security/guvenli-log';
 import { nabizVur } from './lib/zamanlayici-nabiz';
 import { bildirimTuru } from './server/services/bildirim';
+import { bekleyenleriEsitle, googleAyarli } from './server/services/google-takvim';
 import { netVarlikKaydet } from './server/services/cuzdan-rapor';
 import { hataKaydet } from './server/services/hata-kaydi';
 import { takvimHatirlatmaTuru } from './server/services/takvim-bildirim';
@@ -57,6 +58,14 @@ if (process.env.NODE_ENV === 'production') {
   const netTur = () => netVarlikKaydet().catch(hataYaz('net-varlik'));
   setInterval(netTur, 60 * 60_000).unref();
   setTimeout(netTur, 60_000).unref();
+
+  // Google Takvim (ADR-051): bekleyen görevler 5 dakikada bir — anlık yazım isteğin ardından
+  // (`after`) yapılır, bu tur yalnızca başarısız olanları yeniden dener. Anahtar yoksa kurulmaz.
+  if (googleAyarli()) {
+    const googleTur = () => bekleyenleriEsitle().catch(hataYaz('google'));
+    setInterval(googleTur, 5 * 60_000).unref();
+    setTimeout(googleTur, 90_000).unref();
+  }
 
   const temizlikTuru = () => gunlukTemizlik().catch(hataYaz('temizlik'));
   setInterval(temizlikTuru, 24 * 60 * 60_000).unref();

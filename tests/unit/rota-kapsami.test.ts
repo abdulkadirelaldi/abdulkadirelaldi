@@ -179,6 +179,11 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     kanit: ["'/panel/ayarlar/saglik-baglantisi',"],
     not: '2026-11-01 Kısayollar anahtarı: üret, iptal et, son kullanım. Denetimli. ÖLÇÜLMEYEN: gerçek iPhone Kısayolu çalıştırılmadı; uç `tests/unit/api/saglik-olcum.test.ts`te.',
   },
+  '/panel/ayarlar/google': {
+    kapilar: ['e2e'],
+    kanit: ["'/panel/ayarlar/google',"],
+    not: "2026-11-16 ADR-051 — Google Takvim bağlantı kartı: anahtar yoksa söyler, bağlı değilse 'bağla', bağlıysa son eşitleme/bekleyen/hata, şimdi eşitle, bağlantıyı kes. Rota taraması e2e'de. ÖLÇÜLMEYEN: bağlı hâl e2e'de yok (gerçek Google gerekir) — servis entegrasyonda.",
+  },
   '/panel/ayarlar/sifre': {
     kapilar: ['e2e'],
     kanit: ["'/panel/ayarlar/sifre',"],
@@ -207,6 +212,16 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     kapilar: ['e2e'],
     kanit: ["'/api/v1/saglik/olcum'"],
     not: 'ANAHTARLA yazma ucu (oturum değil): yalnızca adım, uyku, nabız, kilo; okuma yok. Birim: `tests/unit/api/saglik-olcum.test.ts` (401, 400, 413, virgüllü sayı, kısmi yazma). ÖLÇÜLMEYEN: gerçek Kısayol; IP tavanı süreç başına ve bellek içi.',
+  },
+  '/api/v1/panel/google/bagla': {
+    kapilar: ['e2e'],
+    kanit: ["'/api/v1/panel/google/bagla'"],
+    not: "2026-11-16 ADR-051 — Google izin ekranına yönlendirme; rastgele `state` httpOnly çereze. Oturumsuz 401 e2e'de. ÖLÇÜLMEYEN: gerçek Google izin ekranı (CI'da istemci anahtarı yok).",
+  },
+  '/api/v1/panel/google/donus': {
+    kapilar: ['e2e'],
+    kanit: ["'/api/v1/panel/google/donus?code=x&state=y'"],
+    not: "2026-11-16 ADR-051 — izin dönüşü: `state` çerezle sabit zamanlı karşılaştırılır, kod jetona çevrilir, yenileme jetonu ŞİFRELİ saklanır, tarihli görevler kuyruğa girer. Oturumsuz 401 e2e'de; jeton/kuyruk/eşitleme kuralları sahte Google ile `tests/integration/google-takvim.test.ts`te. ÖLÇÜLMEYEN: gerçek Google'la uçtan uca (anahtar sahibinde; yayında elle doğrulanacak).",
   },
   '/api/v1/panel/disa-aktar': {
     kapilar: ['e2e'],

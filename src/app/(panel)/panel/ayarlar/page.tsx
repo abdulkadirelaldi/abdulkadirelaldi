@@ -1,4 +1,5 @@
 import {
+  CalendarCheck2,
   Bell,
   Bug,
   DatabaseBackup,
@@ -69,6 +70,13 @@ export default function AyarlarPage() {
               baslik="Bildirimler"
               aciklama="Ödeme günleri, kalan alışkanlıklar ve su hatırlatmaları telefonuna gelsin."
               href="/panel/ayarlar/bildirimler"
+            />
+
+            <SettingsSection
+              icon={CalendarCheck2}
+              baslik="Google Takvim"
+              aciklama="Tarihli işler Google Takvim'e düşsün, alarmlar telefonda Google'dan çalsın."
+              href="/panel/ayarlar/google"
             />
 
             <SettingsSection
