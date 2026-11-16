@@ -4,6 +4,7 @@ import {
   Dumbbell,
   FileText,
   LayoutDashboard,
+  ListChecks,
   GraduationCap,
   Handshake,
   Languages,
@@ -54,10 +55,11 @@ export const PANEL_GRUPLARI: ReadonlyArray<{
     title: 'Kişisel',
     items: [
       { href: '/panel', label: 'Bugün', icon: LayoutDashboard, hazir: true },
+      // ADR-050 — İşler alt sekmede; Sağlık "Gelişim" grubuna geçti (alt sekme beşte kalmalı).
+      { href: '/panel/isler', label: 'İşler', icon: ListChecks, hazir: true },
       { href: '/panel/cuzdan', label: 'Cüzdan', icon: Wallet, hazir: true },
       { href: '/panel/hayat', label: 'Hayat', icon: Sparkles, hazir: true },
       { href: '/panel/spor', label: 'Spor', icon: Dumbbell, hazir: true },
-      { href: '/panel/saglik', label: 'Sağlık', icon: Activity, hazir: true },
     ],
   },
   {
@@ -68,7 +70,10 @@ export const PANEL_GRUPLARI: ReadonlyArray<{
   {
     // Ayrı grup: ilk grup telefondaki alt sekmeler, beşte kalmalı.
     title: 'Gelişim',
-    items: [{ href: '/panel/ingilizce', label: 'İngilizce', icon: Languages, hazir: true }],
+    items: [
+      { href: '/panel/saglik', label: 'Sağlık', icon: Activity, hazir: true },
+      { href: '/panel/ingilizce', label: 'İngilizce', icon: Languages, hazir: true },
+    ],
   },
   {
     title: 'Site',

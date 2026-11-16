@@ -268,6 +268,12 @@ export async function sporSondaSil(onek: string): Promise<number> {
   return silinen;
 }
 
+/** İşler e2e izlerini siler — gerekçe `db-task.ts` → `islerSondaSil`. */
+export async function islerSondaSil(onek: string): Promise<number> {
+  const { silinen } = await runTask<{ silinen: number }>('islerSondaSil', JSON.stringify({ onek }));
+  return silinen;
+}
+
 /** Takvim e2e izlerini siler — gerekçe `db-task.ts` → `takvimSondaSil`. */
 export async function takvimSondaSil(onek: string): Promise<number> {
   const { silinen } = await runTask<{ silinen: number }>(

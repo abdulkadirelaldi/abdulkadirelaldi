@@ -338,6 +338,11 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     kanit: ["'/panel/ingilizce/ders/gunluk-u1-d1',"],
     not: '2026-11-06 ders oynatıcısı; kilitli ders parkura, boş tekrar parkura döner, bilinmeyen kimlik 404. Değerlendirme `tests/unit/ingilizce/degerlendir.test.ts`. ÖLÇÜLMEYEN: gerçek cihazda sesli okuma ve konuşma tanıma.',
   },
+  '/panel/isler': {
+    kapilar: ['e2e'],
+    kanit: ["'/panel/isler',", "test('işler: hızlı ekle"],
+    not: "2026-11-16 İşler (ADR-050): düz görev listesi — öbekler (gecikmiş, bugün, bu hafta, sonra, tarihsiz), alan süzgeci, tik, son 7 günün bitenleri; Bugün panosunda kart. Hızlı ekle → formla ekle → süz → tik → geri al → sil `tests/e2e/isler.spec.ts`te; öbek ve tik kuralları gerçek PostgreSQL'de `tests/integration/gorev.test.ts`. ÖLÇÜLMEYEN: gerçek iPhone'da dokunma hissi (Pixel 5 öykünmesiyle koşuyor).",
+  },
   '/panel/takvim': {
     kapilar: ['e2e'],
     kanit: ["'/panel/takvim',", "test('takvim: etkinlik oluşturulur"],

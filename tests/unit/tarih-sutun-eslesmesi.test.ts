@@ -230,6 +230,16 @@ const ESLESMELER: Eslesme[] = [
     not: 'Dersin günü `@db.Date`: yazma `appDayToDate(appToday())`, okuma `dateToAppDay`; seri İstanbul gününe göre.',
   },
   {
+    servis: 'src/server/services/gorev.ts',
+    model: 'Gorev',
+    alan: 'teslimGun',
+    beklenen: 'gun',
+    not:
+      'İşler (ADR-050). `teslimGun` `@db.Date` — `appDayToDate`/`dateToAppDay`; saat ayrı ' +
+      '(`teslimDakika`, İstanbul duvar saati). `tamamlandiAt` GERÇEK AN ve gün yardımcısına girmez: ' +
+      '"son 7 gün" `simdi`den milisaniyeyle hesaplanır.',
+  },
+  {
     servis: 'src/server/services/takvim.ts',
     model: 'TakvimEtkinligi',
     alan: 'baslangic',
