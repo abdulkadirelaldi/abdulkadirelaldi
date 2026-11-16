@@ -118,6 +118,7 @@ const EK_ETIKETLER: Record<string, string> = {
   '/panel/ayarlar/bildirimler': 'Bildirimler',
   '/panel/ayarlar/hatalar': 'Hatalar',
   '/panel/ayarlar/saglik-baglantisi': 'iPhone sağlık verisi',
+  '/panel/ayarlar/google': 'Google Takvim',
   '/panel/ayarlar/sifre': 'Şifre',
   '/panel/ayarlar/denetim': 'Denetim kaydı',
   '/panel/spor/egzersizler': 'Egzersizler',

@@ -1290,10 +1290,29 @@ model Gorev {
   teslimGun    DateTime? @db.Date
   teslimDakika Int?
   tamamlandiAt DateTime?
+  /// ADR-051 — Google Takvim'deki karşılığı. Tarihsiz görevin etkinliği yoktur.
+  googleEtkinlikId String?
+  /// Google'a yazılmayı bekliyor (her değişiklikte `true`; eşitlenince `false`). Bağlantı yoksa
+  /// bekler, bağlanınca toplu yazılır; hata olursa zamanlayıcı yeniden dener.
+  googleBekliyor   Boolean   @default(false)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
 
   @@index([tamamlandiAt, teslimGun])
   @@index([alan])
+  @@index([googleBekliyor])
   @@map("gorev")
+}
+
+/// ADR-051 — Google Takvim bağlantısı (tek kullanıcı). Yenileme jetonu `encryptSecret` ile
+/// (TOTP ile aynı anahtar ve biçim) şifreli; erişim jetonu saklanmaz, bellekte tutulur.
+model GoogleBaglantisi {
+  userId         String    @id
+  yenilemeJetonu String
+  createdAt      DateTime  @default(now())
+  sonEsitleme    DateTime?
+  /// Son eşitleme hatası — ayarlar ekranında gösterilir; başarılı turda silinir.
+  sonHata        String?
+
+  @@map("google_baglantisi")
 }

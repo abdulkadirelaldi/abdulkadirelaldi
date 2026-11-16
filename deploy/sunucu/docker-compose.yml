@@ -72,6 +72,9 @@ services:
       UMAMI_SITE_ID: ${UMAMI_SITE_ID:-}
       # Sağlık · tartı görseli okuma ve yorum (Claude API). Boşsa özellik kapalı.
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      # Google Takvim (ADR-051). Boşsa özellik kapalı. Kurulum: docs/DECISIONS.md → ADR-051.
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
       # Bildirimler (web push). Boşsa özellik kapalı. Üretmek: docs/yayin-nginx.md.
       VAPID_PUBLIC_KEY: ${VAPID_PUBLIC_KEY:-}
       VAPID_PRIVATE_KEY: ${VAPID_PRIVATE_KEY:-}
