@@ -2682,3 +2682,30 @@ Sahibi iş yönetimini Kıyı Medya'nın kendi panelinden yürütüyor; bu panel
 ## ADR-049 — Masa (dolap/raf/görev, takvim katmanları, Mac köprüsü) — GERİ ALINDI
 
 2026-11-14'te eklenip 2026-11-15'te yayına çıkan Masa (PR #110–#115) sahibinin isteğiyle tamamen geri alındı: istediği gibi olmadı, daha sonra yeniden tasarlanacak. Kod #109 sonrasındaki hâline döndü; `20261115030000_masa_kaldir` göçü Masa tablolarını, enum'larını, `takvim_etkinligi.katman` sütununu ve `AttachmentEntity.MASA_OGESI` değerini kaldırır (canlıda Masa verisi yoktu). Eski Masa göçleri geçmiş kaydı için yerinde bırakıldı. Kıyı Medya tarafındaki salt-okur köprü (`/api/kopru`) yerinde kalır; kullanılmıyor.
+
+## ADR-050 — İşler: düz görev listesi (Masa'nın yerine)
+
+**Durum:** Kabul edildi · 2026-11-16 · **Kapsar:** panel (yeni `/panel/isler`, Bugün panosu, alt sekmeler, şema) · **Değiştirir:** ADR-049'un (geri alındı) görev kısmını SADE biçimde geri getirir
+
+### Bağlam
+
+Masa (ADR-049) sahibinin isteğiyle geri alındı. Gerekçesi 2026-11-16'da netleşti: "fazla karmaşıktı, görünüm/kullanım kötü; daha basit, gözü yormayan, net anlaşılır, estetik". Sahibi iş, okul, Spectraloop ve kişisel işlerini TEK listede görmek, telefondan tik atmak ve "neler yapmışım"ı görmek istiyor. Asıl takvim Google Takvim olacak (Aşama 2); Claude görev ekleyip tik atabilecek (Aşama 3). Kıyı Medya işlerinin sahibine düşen kısmı burada tutulur, Kıyı Medya'nın kendi sistemiyle köprü YOK.
+
+### Karar
+
+1. **Tek tablo `Gorev`:** başlık, `alan` (`KIYI_MEDYA` · `OKUL` · `SPECTRALOOP` · `KISISEL`), isteğe bağlı `etiket` (müşteri/ders adı, serbest metin), isteğe bağlı not, gün + isteğe bağlı saat (İstanbul), `tamamlandiAt`. Dolap/raf/öncelik/durum enum'u YOK — bitti = `tamamlandiAt` dolu.
+2. **Ekran:** hızlı ekle (yaz + Enter; seçili alana düşer), alan süzgeci (istemcide), öbekler Gecikmiş · Bugün · Bu hafta (7 gün) · Daha sonra · Tarihsiz; katlanmış "Bitenler · son 7 gün". Satır: tik + başlık + renkli nokta, etiket (yoksa alan) ve teslim. Rozet/ikon yok.
+3. **Tik iyimser:** ekranda anında işaretlenir, sunucu reddederse geri döner. İkinci tik ilk tamamlanma anını korur.
+4. **Alt sekmeler:** Bugün · İşler · Cüzdan · Hayat · Spor. Sağlık "Gelişim" grubuna (çekmece/yan menü) geçti — alt sekme beşte kalır.
+5. **Denetim:** başlık, etiket ve not yazılmaz; yalnızca alan, teslimli mi, bitti mi.
+
+### Sıradakiler (ayrı ADR/ek)
+
+- **Aşama 2 — Google Takvim:** tarihli görev → Google etkinliği + hatırlatmalar; panel takvimi Google'ı gösterir.
+- **Aşama 3 — Claude erişimi:** jetonlu asistan ucu; ardından Claude uygulaması için uzak MCP bağlayıcısı.
+
+### Ölçülen
+
+- Entegrasyon (gerçek PostgreSQL): öbekler, saatli/gün boyu sırası, tik anı korunur/silinir, 7 gün sınırı, gün kaldırılınca saat düşer — `tests/integration/gorev.test.ts`.
+- E2E (masaüstü + Pixel 5): hızlı ekle → formla ekle → süz → Bugün kartı → tik → Bitenler → geri al → sil — `tests/e2e/isler.spec.ts`; rota taşma taraması `panel-rotalar.spec.ts`.
+- **ÖLÇÜLMEYEN:** gerçek iPhone'da dokunma hissi.

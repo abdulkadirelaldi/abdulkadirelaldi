@@ -28,6 +28,7 @@ export {
   GoalCategory,
   GoalPeriod,
   GoalStatus,
+  IsAlani,
   MuscleGroup,
   SkillCategory,
   TakvimKategori,

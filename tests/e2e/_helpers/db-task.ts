@@ -322,13 +322,15 @@ const komutlar: Record<string, (arg?: string) => Promise<unknown>> = {
      * Egzersiz ve alışkanlık arayüzden SİLİNEMİYOR (yalnızca arşiv), yani
      * test izi ancak `kisiselSondaSil` ile gider.
      */
-    const [egzersiz, aliskanlik, takvim] = await Promise.all([
+    const [egzersiz, aliskanlik, takvim, gorev] = await Promise.all([
       db.exercise.count({ where: { name: { startsWith: 'e2e', mode: 'insensitive' } } }),
       db.habit.count({ where: { name: { startsWith: 'e2e', mode: 'insensitive' } } }),
       // Takvim (2026-11-10): `takvimSondaSil` başlık önekiyle siler; çökerse burada görünür.
       db.takvimEtkinligi.count({ where: { baslik: { startsWith: 'e2e', mode: 'insensitive' } } }),
+      // İşler (ADR-050): `islerSondaSil` başlık önekiyle siler.
+      db.gorev.count({ where: { baslik: { startsWith: 'e2e', mode: 'insensitive' } } }),
     ]);
-    const kisisel = egzersiz + aliskanlik + takvim;
+    const kisisel = egzersiz + aliskanlik + takvim + gorev;
 
     return {
       proje,
@@ -340,6 +342,14 @@ const komutlar: Record<string, (arg?: string) => Promise<unknown>> = {
   },
 
   /** Takvim e2e'sinin etkinliklerini siler — BAŞLIK önekine göre; ayrık oluşumlar seriyle gider. */
+  async islerSondaSil(arg) {
+    const { onek } = JSON.parse(arg ?? '{}') as { onek: string };
+    if (!onek || !onek.startsWith('e2e-'))
+      throw new Error('islerSondaSil: `e2e-` ile başlayan önek zorunlu.');
+    const silinen = await db.gorev.deleteMany({ where: { baslik: { startsWith: onek } } });
+    return { silinen: silinen.count };
+  },
+
   async takvimSondaSil(arg) {
     const { onek } = JSON.parse(arg ?? '{}') as { onek: string };
     if (!onek || !onek.startsWith('e2e-'))
