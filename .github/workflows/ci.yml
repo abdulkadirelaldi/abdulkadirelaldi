@@ -770,7 +770,8 @@ jobs:
     name: §9 · Lighthouse (merge kapısı — eşikler "error")
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    needs: kapi
+    # 2026-11-17 — `needs: kapi` kaldırıldı: bu iş kendi Postgres'ini ve seed'ini kuruyor (BULGU-013),
+    # Kapı'nın çıktısını kullanmıyor. Paralel koşunca main'de CI ~15 → ~10 dk. İkisi de merge kapısı.
     if: github.event_name != 'schedule'
 
     # ═══════════════════════════════════════════════════════════════════════
