@@ -216,4 +216,16 @@ describe('google takvim eşitlemesi', () => {
     expect(istekler.some((i) => i.adres.includes('/revoke'))).toBe(true);
     expect(await db.googleBaglantisi.count()).toBe(0);
   });
+
+  it('aynı anda başlayan iki eşitleme aynı görevi İKİ KEZ açmaz (2026-11-17 kopya hatası)', async () => {
+    await baglantiKur(KULLANICI, 'kod');
+    const g = await gorevOlustur(gorev({ ad: 'kopya', teslimGun: '2026-11-28' }));
+    // Bağlanınca başlayan tur + "Şimdi eşitle" + işin kendi eşitlemesi — üçü birden.
+    await Promise.all([bekleyenleriEsitle(), bekleyenleriEsitle(), gorevEsitle(g.id)]);
+    const postlar = takvimIstekleri().filter((i) => i.yontem === 'POST');
+    expect(postlar).toHaveLength(1);
+    const s = await db.gorev.findUniqueOrThrow({ where: { id: g.id } });
+    expect(s.googleEtkinlikId).toMatch(/^etk/);
+    expect(s.googleBekliyor).toBe(false);
+  });
 });
