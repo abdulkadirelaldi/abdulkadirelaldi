@@ -291,7 +291,11 @@ describe('sitemap yalnızca VAR OLAN rotaları bildirir — §4.1', () => {
    * (Dinamik `[slug]` rotaları buraya YAZILMAZ — onlar akış girdileriyle
    * bildiriliyor ve aşağıda ayrıca sınanıyor.)
    */
-  const BILDIRILMEYECEK: readonly string[] = [];
+  const BILDIRILMEYECEK: readonly string[] = [
+    // ADR-051 (2026-11-16) — yasal metin, yalnızca Türkçe; aranıp bulunması istenen bir sayfa
+    // değil. Google OAuth izin ekranı ve site içi bağlantılar açar.
+    '/gizlilik',
+  ];
 
   it('VAR OLAN HER STATİK ROTA BİLDİRİLİYOR — kuralın diğer yönü', () => {
     const eksik = [...mevcut]
