@@ -2739,3 +2739,9 @@ Google Cloud → proje → Google Calendar API etkin → OAuth izin ekranı (Har
 - Sahte Google + gerçek PostgreSQL (`tests/integration/google-takvim.test.ts`): bağlantı yokken gönderim yok; jeton şifreli; ilk yazım POST, sonra PUT; Google'da silinmiş etkinlik yeniden açılır; tarih kalkınca silinir; hata kuyruğu korur ve ekrana düşer; yarış; bağlantı kesme. Etkinlik gövdesi (gün boyu/saatli/biten) aynı dosyada.
 - Oturumsuz 401 ve ayar sayfası rota taraması e2e'de.
 - **ÖLÇÜLMEYEN:** gerçek Google'la uçtan uca — anahtarlar sunucuya girilince yayında elle doğrulanacak.
+
+### ADR-051 eki (2026-11-17) — eşitleme tek sırada
+
+- **Ölçülen hata (yayında):** bağlanınca başlayan ilk eşitleme (`after`) ile "Şimdi eşitle" aynı anda koştu; ikisi de etkinlik kimliği henüz yazılmamış aynı görevleri okuyup POST etti → 35 görevden 2'si takvimde iki kez. Kopyalar elle silindi (veritabanındaki kimlikler esas alındı).
+- **Düzeltme:** bütün Google yazımları bellek içi tek sıradan geçer (`sirayla`); uygulama tek Node süreci olduğu için yeterli. Toplu tur sıranın içinde görev yazımını doğrudan çağırır.
+- **Regresyon testi:** üç eşitleme aynı anda → tek POST (`tests/integration/google-takvim.test.ts`); düzeltmesiz kırmızı olduğu ölçüldü.

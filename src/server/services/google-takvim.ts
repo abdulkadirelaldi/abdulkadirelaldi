@@ -298,10 +298,28 @@ export async function etkinlikSil(etkinlikId: string, client = db): Promise<void
 }
 
 /**
+ * TEK SIRA (2026-11-17, ölçülen hata): bağlanınca başlayan ilk eşitleme ile "Şimdi eşitle"
+ * AYNI ANDA koştu; ikisi de etkinlik kimliği henüz yazılmamış aynı görevi okuyup POST etti ve
+ * takvimde iki kopya oluştu (35 görevde 2 kopya). Uygulama tek Node süreci — bütün yazımlar bu
+ * bellek içi sıradan tek tek geçer. `bekleyenleriEsitle` sıranın İÇİNDE `gorevYaz`ı doğrudan
+ * çağırır (sıraya yeniden girmez; girse kendini beklerdi).
+ */
+let sira: Promise<unknown> = Promise.resolve();
+function sirayla<T>(is: () => Promise<T>): Promise<T> {
+  const sonuc = sira.then(is, is);
+  sira = sonuc.catch(() => undefined);
+  return sonuc;
+}
+
+/**
  * Tek görevi Google'a yazar. Tarihsizse etkinliği kaldırır; etkinlik Google'da silinmişse
  * (404/410) yenisini açar.
  */
-export async function gorevEsitle(id: string, client = db): Promise<void> {
+export function gorevEsitle(id: string, client = db): Promise<void> {
+  return sirayla(() => gorevYaz(id, client));
+}
+
+async function gorevYaz(id: string, client = db): Promise<void> {
   const g = await client.gorev.findUnique({ where: { id } });
   if (!g) return;
   if (!(await baglanti(client))) return;
@@ -355,10 +373,18 @@ export async function gorevEsitle(id: string, client = db): Promise<void> {
 }
 
 /** Bekleyen görevleri yazar (en çok `sinir`). Hatayı bağlantıya not eder; turu kesmez. */
-export async function bekleyenleriEsitle(
+export function bekleyenleriEsitle(
   sinir = 50,
   simdi: Date = new Date(),
   client = db,
+): Promise<{ yazilan: number; hata: string | null }> {
+  return sirayla(() => bekleyenleriYaz(sinir, simdi, client));
+}
+
+async function bekleyenleriYaz(
+  sinir: number,
+  simdi: Date,
+  client: typeof db,
 ): Promise<{ yazilan: number; hata: string | null }> {
   const b = await baglanti(client);
   if (!b) return { yazilan: 0, hata: null };
@@ -372,7 +398,7 @@ export async function bekleyenleriEsitle(
   let hata: string | null = null;
   for (const { id } of bekleyenler) {
     try {
-      await gorevEsitle(id, client);
+      await gorevYaz(id, client);
       yazilan++;
     } catch (e) {
       hata = e instanceof Error ? e.message : String(e);
