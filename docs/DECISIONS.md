@@ -2759,3 +2759,27 @@ Sahibinin isteğiyle yapılan inceleme sunucuda şunları ölçtü: 1 vCPU, CPU'
 5. **Google eşitlemesine görev başına `pg_advisory_xact_lock`:** bellek içi sıranın ikinci katı; çok süreçte de aynı görev iki kez POST edilmez.
 
 **Sahibine bırakılan:** sunucu planının yükseltilmesi (maliyet), `sahinsamet-uygulama`daki 114 zombi (ayrı site).
+## ADR-053 — Sade Bugün, asıl takvim Google, her şeyin tek yeri
+
+**Durum:** Kabul edildi · 2026-11-17 · **Kapsar:** Bugün (`/panel`), Takvim, hızlı kayıt, menü, İşler · **Değiştirir:** 2026-10-30 Bugün panosu
+
+Sahibi incelemeden sonra istedi: "Bugün ekranında yalnızca bugünün işleri, bugünün takvimi ve bugünün rutinleri kalsın; para, sağlık, spor kendi sekmelerine; boş kart hiç gösterilmesin; panel takvimi Google'ı okusun; her şeyin tek bir yeri olsun."
+
+1. **Bugün:** üç bölüm — İşler (bugün + gecikmiş), Takvim (bugün, İşler'den gelen Google etkinlikleri hariç — onlar zaten iş), Rutinler (kalan alışkanlıklar). Boş bölüm çizilmez; üstte tek satır özet. Halkalar, cüzdan, kilo, net varlık, haftalık grafik, vücut/uyku, hedefler, son harcamalar kaldırıldı (kendi sekmelerinde duruyorlar). Sayfa 853 → ~150 satır.
+2. **Takvim = Google:** `fetchTakvim(…, { google: true })` panel etkinliklerine Google'dakileri (tekrarlar açılmış, `singleEvents`) ekler; 60 sn bellek önbelleği, her yazımda boşalır. Google etkinliğine dokununca Google Takvim'de açılır (düzenleme orada). Okunamazsa ekran söyler. **"Yeni" etkinlik bağlıyken Google'a yazılır** (özel, tekrar kuralı RRULE'a, gün boyu hatırlatma 09:00 → 00:00 kaydırması). Canlıda panel etkinliği yoktu (0 satır) — taşınacak veri yok.
+3. **Hızlı kayıt (+):** telefonda üst çubukta; yüzen daire liste satırlarının ✓'sini kapatıyordu. Masaüstünde sağ altta, daha küçük ve sade.
+4. **Menü:** "Site" grubu (Mesajlar, Profil, Projeler, Blog…) katlanır; içindeki sayfadayken açık.
+5. **İşler:** tek giriş — hızlı ekleme satırı; ayrıntılı form aynı satırdaki takvim simgesiyle (yazılan başlık forma taşınır). Ayrı "Ekle" düğmesi kaldırıldı.
+
+**Ölçülen:** Google okuma ve panel → Google eşlemesi sahte Google ile (`tests/integration/google-takvim.test.ts`); İşler, takvim, hızlı kayıt, mobil, rota taraması e2e (34/34). **Ölçülmeyen:** gerçek Google'la panelden etkinlik oluşturma — yayında elle.
+
+## ADR-054 — Sade görünüm
+
+**Durum:** Kabul edildi · 2026-11-17 · **Değiştirir:** 2026-11-01 "Aura" (yalnızca ışık ve gölge)
+
+Sahibi: "Görsel dil iyi ama ağır — mor gradyanlar, parlayan halkalar, büyük gölgeler; diğer ekranlar da İşler'in sadeliğine çekilsin."
+
+- Vurgu düz renk (`--gradient-accent` tek renk), parıltı yok (`--accent-glow: transparent`), sayfa zemin lekeleri neredeyse sıfır, üst gölge kısa.
+- Aura kartları bölüm kimliği olarak kalır: hareketli ışık durdu (`animation: none`), lekeler %45 opaklıkta, dış gölge yok.
+- Seçili sekme, marka işareti, onay düğmesi: düz renk, gölgesiz.
+- Bileşen değişmedi — yalnızca `globals.css` belirteçleri ve `aura.css` sonundaki "SADE GÖRÜNÜM" bloğu; geri almak tek blok.

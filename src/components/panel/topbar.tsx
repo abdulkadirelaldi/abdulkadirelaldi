@@ -2,6 +2,7 @@ import Link from 'next/link';
 import type { ReactNode } from 'react';
 
 import { DahaDugmesi } from '@/components/panel/daha-dugmesi';
+import { HizliEkleDugmesi } from '@/components/panel/hizli-ekle';
 import { KirintiYolu } from '@/components/panel/kirinti-yolu';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 
@@ -50,6 +51,7 @@ export function Topbar({ title, actions }: { title: string; actions?: ReactNode 
             Siteye dön
           </Link>
 
+          <HizliEkleDugmesi />
           <ThemeToggle className="rounded-full border-transparent shadow-[var(--golge-kart)]" />
           <DahaDugmesi />
         </div>

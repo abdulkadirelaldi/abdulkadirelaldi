@@ -93,6 +93,13 @@ export function HizliEkle() {
     window.history.replaceState(window.history.state, '', url);
   }, []);
 
+  // Telefonda düğme üst çubukta (ADR-053): yüzen daire liste satırlarının ✓'sini kapatıyordu.
+  useEffect(() => {
+    const ac = () => setAcik(true);
+    window.addEventListener(HIZLI_EKLE_OLAYI, ac);
+    return () => window.removeEventListener(HIZLI_EKLE_OLAYI, ac);
+  }, []);
+
   const [gizli, setGizli] = useState(false);
   useEffect(() => {
     let onceki = window.scrollY;
@@ -138,12 +145,13 @@ export function HizliEkle() {
         aria-haspopup="dialog"
         data-yazdirmada-gizle
         className={cn(
-          'focus-ring bg-gradient-accent ease-brand fixed right-4 bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-40 flex size-14 items-center justify-center rounded-full text-white shadow-[0_10px_28px_-8px_var(--accent-glow)] transition-[transform,opacity] duration-200 active:scale-90 lg:right-8 lg:bottom-8',
+          // Yalnızca masaüstünde yüzer; telefonda üst çubuktaki `HizliEkleDugmesi` açar.
+          'focus-ring bg-accent ease-brand fixed right-8 bottom-8 z-40 hidden size-12 items-center justify-center rounded-full text-white shadow-md transition-[transform,opacity] duration-200 active:scale-90 lg:flex',
           gizli && 'pointer-events-none translate-y-6 opacity-0',
         )}
         tabIndex={gizli ? -1 : undefined}
       >
-        <Plus className="size-7" aria-hidden="true" />
+        <Plus className="size-6" aria-hidden="true" />
       </button>
 
       {acik && (
@@ -753,5 +761,23 @@ export function SuHizliDugmesi() {
         </span>
       )}
     </div>
+  );
+}
+
+/** Üst çubuktaki "+" (telefon) hızlı kaydı bu olayla açar. */
+export const HIZLI_EKLE_OLAYI = 'ae:hizli-ekle';
+
+/** Telefonda üst çubukta duran hızlı kayıt düğmesi (ADR-053). */
+export function HizliEkleDugmesi() {
+  return (
+    <button
+      type="button"
+      aria-label="Hızlı kayıt"
+      aria-haspopup="dialog"
+      onClick={() => window.dispatchEvent(new Event(HIZLI_EKLE_OLAYI))}
+      className="focus-ring bg-surface text-body hover:text-primary flex size-10 items-center justify-center rounded-full shadow-[var(--golge-kart)] lg:hidden"
+    >
+      <Plus className="size-5" aria-hidden="true" />
+    </button>
   );
 }

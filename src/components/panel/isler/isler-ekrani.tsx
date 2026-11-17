@@ -1,11 +1,10 @@
 'use client';
 
-import { Plus } from 'lucide-react';
+import { CalendarPlus, Plus } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useMemo, useState, useTransition } from 'react';
 
 import { Pencere } from '@/components/panel/takvim/pencere';
-import { Button } from '@/components/ui/button';
 import { FormError } from '@/components/ui/form-error';
 import { ALAN_SIRASI, ALANLAR } from '@/lib/gorev/bicim';
 import { cn } from '@/lib/utils/cn';
@@ -22,7 +21,8 @@ import type { ApiResponse, IsAlani } from '@/types';
 import { bosGorev, GorevFormu, gorevdenForm } from './gorev-formu';
 import { GorevObegi, GorevSatiri } from './gorev-satiri';
 
-type Pencere = { tur: 'kapali' } | { tur: 'yeni' } | { tur: 'duzenle'; g: GorevDto };
+type Pencere =
+  { tur: 'kapali' } | { tur: 'yeni'; baslik: string } | { tur: 'duzenle'; g: GorevDto };
 type Suzgec = IsAlani | 'TUMU';
 
 const ACIK_OBEKLER = [
@@ -158,10 +158,6 @@ export function IslerEkrani({ liste, bugun }: { liste: IsListesi; bugun: AppDay 
                 .filter(Boolean)
                 .join(' · ')}
         </p>
-        <Button size="sm" onClick={() => setPencere({ tur: 'yeni' })}>
-          <Plus className="size-4" aria-hidden="true" />
-          Ekle
-        </Button>
       </div>
 
       <form
@@ -184,6 +180,19 @@ export function IslerEkrani({ liste, bugun }: { liste: IsListesi; bugun: AppDay 
           placeholder={suzgec === 'TUMU' ? 'Hızlı ekle…' : `${ALANLAR[suzgec].ad} için hızlı ekle…`}
           className="text-primary placeholder:text-muted min-h-12 flex-1 bg-transparent text-base outline-none sm:text-sm"
         />
+        {/* Tek giriş (ADR-053): tarih/alan/etiket gerekiyorsa aynı satırdan ayrıntılı form. */}
+        <button
+          type="button"
+          aria-label="Ayrıntılı ekle"
+          title="Tarih, alan ve etiketle ekle"
+          onClick={() => {
+            setPencere({ tur: 'yeni', baslik: hizli.trim() });
+            setHizli('');
+          }}
+          className="focus-ring text-muted hover:text-primary -mr-1 flex size-10 shrink-0 items-center justify-center rounded-full"
+        >
+          <CalendarPlus className="size-5" aria-hidden="true" />
+        </button>
       </form>
 
       <div
@@ -251,7 +260,7 @@ export function IslerEkrani({ liste, bugun }: { liste: IsListesi; bugun: AppDay 
         <Pencere baslik={pencere.tur === 'yeni' ? 'Yeni iş' : 'İşi düzenle'} kapat={kapat}>
           {pencere.tur === 'yeni' ? (
             <GorevFormu
-              ilk={bosGorev(suzgec === 'TUMU' ? 'KISISEL' : suzgec)}
+              ilk={{ ...bosGorev(suzgec === 'TUMU' ? 'KISISEL' : suzgec), baslik: pencere.baslik }}
               etiketOnerileri={etiketOnerileri}
               vazgec={kapat}
               kaydet={async (girdi) => bitir(await gorevOlusturAction(girdi))}

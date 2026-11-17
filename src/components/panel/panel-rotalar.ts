@@ -50,6 +50,8 @@ export type PanelRotasi = {
 export const PANEL_GRUPLARI: ReadonlyArray<{
   title: string;
   items: readonly PanelRotasi[];
+  /** Ayda bir kullanılan grup (ADR-053): menüde kapalı durur, içindeki sayfadayken açık. */
+  katlanir?: boolean;
 }> = [
   {
     title: 'Kişisel',
@@ -77,6 +79,7 @@ export const PANEL_GRUPLARI: ReadonlyArray<{
   },
   {
     title: 'Site',
+    katlanir: true,
     items: [
       { href: '/panel/mesajlar', label: 'Mesajlar', icon: Mail, hazir: true },
       { href: '/panel/icerik/profil', label: 'Profil', icon: UserRound, hazir: true },

@@ -24,7 +24,9 @@ export default async function TakvimPage({ searchParams }: SayfaProps) {
   const bugun = appToday();
   const tarih = gecerliGun(parametreler.tarih) ?? bugun;
   const { bas, son } = gorunumAraligi(gorunum, tarih);
-  const { etkinlikler, olusumlar } = await fetchTakvim(bas, son);
+  const { etkinlikler, olusumlar, google } = await fetchTakvim(bas, son, undefined, {
+    google: true,
+  });
 
   return (
     <>
@@ -36,6 +38,7 @@ export default async function TakvimPage({ searchParams }: SayfaProps) {
           bugun={bugun}
           etkinlikler={etkinlikler}
           olusumlar={olusumlar}
+          google={google}
         />
       </main>
     </>

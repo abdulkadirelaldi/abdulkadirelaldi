@@ -230,6 +230,16 @@ const ESLESMELER: Eslesme[] = [
     not: 'Dersin günü `@db.Date`: yazma `appDayToDate(appToday())`, okuma `dateToAppDay`; seri İstanbul gününe göre.',
   },
   {
+    servis: 'src/server/services/google-takvim.ts',
+    model: 'GoogleBaglantisi',
+    alan: 'sonEsitleme',
+    beklenen: 'anlik',
+    not:
+      'ADR-051/053. Görevin `teslimGun`ü `dateToAppDay` ile güne çevrilip Google etkinliğine ' +
+      'yazılır; Google tüm gün tarihleri `appDayStartInstant` ile İstanbul 00:00 anına, panel ' +
+      'formundaki gün/saat `appWallClockInstant` ile gerçek ana çevrilir.',
+  },
+  {
     servis: 'src/server/services/gorev.ts',
     model: 'Gorev',
     alan: 'teslimGun',
