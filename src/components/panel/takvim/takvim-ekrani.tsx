@@ -60,12 +60,15 @@ export function TakvimEkrani({
   bugun,
   etkinlikler,
   olusumlar,
+  google = { bagli: false, hata: null },
 }: {
   gorunum: TakvimGorunumu;
   tarih: AppDay;
   bugun: AppDay;
   etkinlikler: readonly TakvimEtkinligiVerisi[];
   olusumlar: readonly TakvimOlusumu[];
+  /** ADR-053 — Google Takvim okunuyor mu; okunamadıysa ekran söyler (boş takvim gibi durmaz). */
+  google?: { bagli: boolean; hata: string | null };
 }) {
   const router = useRouter();
   const [durum, setDurum] = useState<Durum>({ tur: 'kapali' });
@@ -75,6 +78,11 @@ export function TakvimEkrani({
   const yeni = (gun: AppDay, dk: number | null) =>
     setDurum({ tur: 'yeni', form: yeniForm(gun, dk) });
   const ac = (olusum: TakvimOlusumu) => {
+    // Google etkinliği panelde düzenlenmez: Google Takvim'de açılır (tek yer).
+    if (olusum.baglanti) {
+      window.open(olusum.baglanti, '_blank', 'noopener');
+      return;
+    }
     const etkinlik = etkinlikler.find((e) => e.id === olusum.etkinlikId);
     if (etkinlik) setDurum({ tur: 'detay', olusum, etkinlik });
   };
@@ -90,6 +98,19 @@ export function TakvimEkrani({
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-3">
+      {google.hata ? (
+        <p role="status" className="text-danger text-sm">
+          Google Takvim okunamadı: {google.hata} Panel etkinlikleri gösteriliyor.
+        </p>
+      ) : !google.bagli ? (
+        <p className="text-muted text-sm">
+          Google Takvim bağlı değil —{' '}
+          <Link href="/panel/ayarlar/google" className="text-accent underline">
+            bağla
+          </Link>
+          ; asıl takvim orası.
+        </p>
+      ) : null}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="flex items-center gap-2">
           <Link

@@ -1,6 +1,6 @@
 'use client';
 
-import { X } from 'lucide-react';
+import { ChevronDown, X } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useRef } from 'react';
@@ -21,10 +21,8 @@ function MenuIcerigi({ pathname, secildi }: { pathname: string; secildi?: () => 
 
   return (
     <nav aria-label="Panel menüsü" className="flex flex-col gap-6">
-      {PANEL_GRUPLARI.map((grup) => (
-        <div key={grup.title} className="flex flex-col gap-1">
-          <p className="ust-etiket px-3 pb-1">{grup.title}</p>
-
+      {PANEL_GRUPLARI.map((grup) => {
+        const liste = (
           <ul className="flex flex-col gap-0.5">
             {grup.items.map((item) => {
               const Icon = item.icon;
@@ -66,8 +64,29 @@ function MenuIcerigi({ pathname, secildi }: { pathname: string; secildi?: () => 
               );
             })}
           </ul>
-        </div>
-      ))}
+        );
+        if (grup.katlanir) {
+          const icindeMi = grup.items.some((i) => aktifMi(i.href));
+          return (
+            <details key={grup.title} open={icindeMi} className="group flex flex-col gap-1">
+              <summary className="ust-etiket focus-ring flex cursor-pointer list-none items-center gap-1 rounded px-3 pb-1 [&::-webkit-details-marker]:hidden">
+                {grup.title}
+                <ChevronDown
+                  className="size-3.5 transition-transform group-open:rotate-180"
+                  aria-hidden="true"
+                />
+              </summary>
+              {liste}
+            </details>
+          );
+        }
+        return (
+          <div key={grup.title} className="flex flex-col gap-1">
+            <p className="ust-etiket px-3 pb-1">{grup.title}</p>
+            {liste}
+          </div>
+        );
+      })}
     </nav>
   );
 }

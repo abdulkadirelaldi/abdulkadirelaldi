@@ -42,7 +42,7 @@ test('işler: hızlı ekle, formla ekle, süz, tikle, bitenler ve Bugün kartı'
     await expect(page.getByLabel('Hızlı ekle')).toHaveValue('');
 
     // Formla: bugün, Kıyı Medya, etiket.
-    await page.getByRole('button', { name: 'Ekle', exact: true }).click();
+    await page.getByRole('button', { name: 'Ayrıntılı ekle' }).click();
     const pencere = page.getByRole('dialog', { name: 'Yeni iş' });
     await pencere.getByLabel('Ne yapılacak?').fill(kurgu);
     await pencere.getByRole('radio', { name: 'Kıyı Medya' }).click();

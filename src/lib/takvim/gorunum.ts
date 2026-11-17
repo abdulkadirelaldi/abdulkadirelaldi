@@ -116,6 +116,8 @@ export interface TakvimOlusumu {
   /** Değdiği SON gün (dahil). */
   sonGun: AppDay;
   tekrarli: boolean;
+  /** ADR-053 — Google Takvim etkinliği: dokununca Google'da açılır, panelde düzenlenmez. */
+  baglanti?: string | null;
 }
 
 /** Düzenleme formu için serinin tamamı. */

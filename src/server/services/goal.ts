@@ -379,11 +379,3 @@ export async function hedefiTasi(
     data: { periodKey: donemAnahtari(hedef.period as GoalPeriod, today) },
   });
 }
-
-/** Dönemi geçmiş hedef Bugün'de görünmez; uzun vadeli her zaman günceldir. SAF. */
-export function guncelHedefMi(
-  hedef: Pick<GoalDto, 'period' | 'periodKey'>,
-  bugun: AppDay,
-): boolean {
-  return !hedef.period || hedef.periodKey === donemAnahtari(hedef.period, bugun);
-}
