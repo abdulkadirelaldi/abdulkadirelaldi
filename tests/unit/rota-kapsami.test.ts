@@ -571,6 +571,11 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     kanit: ["sayfa: 'hizmetler', siklik"],
     not: 'T-117: logo şeridi YALNIZCA `showOnSite` işaretli müşterilerin ad+logosuyla ve en az 3 logoyla çiziliyor; altında bölüm yok ve sayfa SIFIR istemci bileşenli kalıyor (LogoLoop tembel). Lighthouse/E2E tohum verisinde şerit çizilmiyor (vitrin müşterisi yok) — şeritli hâlin performansı ÖLÇÜLMEDİ. YALNIZCA 200.',
   },
+  '/gizlilik': {
+    kapilar: ['e2e'],
+    kanit: ["page.goto('/gizlilik')"],
+    not: '2026-11-16 ADR-051 — gizlilik politikası (yalnızca TR, sitemap dışı: `seo.test.ts` → BILDIRILMEYECEK). Google OAuth izin ekranının istediği adres; Google Takvim kullanımını ve Limited Use beyanını taşır. Smoke e2e açılış ve içerik.',
+  },
   '/iletisim': {
     kapilar: ['sitemap-taramasi', 'e2e'],
     kanit: ["sayfa: 'iletisim', siklik", "page.goto('/iletisim')"],

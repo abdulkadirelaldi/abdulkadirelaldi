@@ -57,4 +57,12 @@ test.describe('duman testi', () => {
     expect(focusedTag).not.toBeNull();
     expect(focusedTag).not.toBe('BODY');
   });
+
+  /** ADR-051 — Google OAuth izin ekranının gösterdiği gizlilik adresi açılmalı. */
+  test('gizlilik sayfası açılır ve Google Takvim kullanımını anlatır', async ({ page }) => {
+    const yanit = await page.goto('/gizlilik');
+    expect(yanit?.status()).toBe(200);
+    await expect(page.getByRole('heading', { name: 'Gizlilik', level: 1 })).toBeVisible();
+    await expect(page.getByText('calendar.events')).toBeVisible();
+  });
 });
