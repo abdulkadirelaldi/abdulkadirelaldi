@@ -602,6 +602,14 @@ değişiklik önce Orkestra Şefi'ne bildirilir; onay bir ADR veya görev kartı
 > listesinden çıkarıldı: Tailwind v4 ile bu dosya hiç oluşturulmuyor, token'lar `globals.css`
 > içinde `@theme` bloğunda yaşıyor ve dosyanın sahibi Frontend'dir (ADR-002).
 
+### 10.1b Kod Yorumu Kuralı (2026-11-17)
+
+Gerekçe ADR'de yaşar, kodda değil. Yeni ya da değiştirilen kodda:
+
+- Yorum en çok **3 satır**: ne yaptığı belli olmayan şeyin NEDENİ + gerekiyorsa `ADR-0XX` / `T-XXX` işareti.
+- Ölçüm hikâyesi, alternatiflerin tartışması, "önce şöyleydi" anlatısı → ilgili ADR'nin "Ek" bölümüne.
+- Var olan uzun yorumlar toplu kısaltılmaz (gerekçe kaybı riski); dosyaya dokunulduğunda o blok kısaltılıp ayrıntı ADR'ye taşınabilir.
+
 ### 10.2 Görev Akışı
 
 ```

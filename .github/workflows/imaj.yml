@@ -12,6 +12,11 @@ name: Yayın imajı
 
 on:
   workflow_dispatch:
+  # 2026-11-17 — main'e gelen her commit CI ile AYNI ANDA derlenir; gonder.sh "bu commit zaten
+  # derlendiyse yeniden derleme" der ve CI yeşil olunca beklemeden gönderir (~4 dk kazanç).
+  # Yayın kapısı değişmedi: gönderim yine yalnızca CI'ı yeşil commit'te.
+  push:
+    branches: [main]
 
 permissions:
   contents: read
