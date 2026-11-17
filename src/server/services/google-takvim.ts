@@ -319,7 +319,23 @@ export function gorevEsitle(id: string, client = db): Promise<void> {
   return sirayla(() => gorevYaz(id, client));
 }
 
-async function gorevYaz(id: string, client = db): Promise<void> {
+/**
+ * İKİNCİ KAT: görev başına Postgres kilidi (`pg_advisory_xact_lock`). Bellek içi sıra tek süreçte
+ * yeter; ikinci bir uygulama kopyası açılırsa (ya da araç konteyneri aynı işi yaparsa) aynı görevi
+ * iki süreç birden POST edemesin. Kilit kısa işlemin ömrü kadar tutulur; yazımlar `client` ile
+ * ayrı bağlantıdan yapılır, kilit yalnızca sırayı korur.
+ */
+function gorevYaz(id: string, client = db): Promise<void> {
+  return client.$transaction(
+    async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`google-gorev:${id}`}))`;
+      await gorevYazKilitli(id, client);
+    },
+    { maxWait: 30_000, timeout: 60_000 },
+  );
+}
+
+async function gorevYazKilitli(id: string, client = db): Promise<void> {
   const g = await client.gorev.findUnique({ where: { id } });
   if (!g) return;
   if (!(await baglanti(client))) return;

@@ -14,8 +14,36 @@ GUNLUK="$HOME/Library/Logs/ae-yayin.log"
 BURASI="$(cd "$(dirname "$0")" && pwd)/$(basename "$0")"
 
 if [ "${AE_ARKADA:-}" != 1 ]; then
-  AE_ARKADA=1 nohup caffeinate -i bash "$BURASI" "$n" >>"$GUNLUK" 2>&1 </dev/null &
-  echo "Arka planda başladı. Günlük: $GUNLUK"
+  # launchd işi (2026-11-17): `nohup … &` başlatan oturumun süreç grubunda kalıyordu; oturum
+  # kapanınca SIGTERM aldı ve #119 imaj yüklendikten sonra `up`tan önce yarıda kaldı. launchd
+  # altında iş hiçbir terminale/oturuma bağlı değil. Tek seferlik (KeepAlive yok); aynı PR için
+  # eski iş varsa önce kaldırılır. Betik yeniden çalıştırılabilir olduğu için güvenli.
+  ETIKET="com.aelaldi.yayin.$n"
+  PLIST="$HOME/Library/LaunchAgents/$ETIKET.plist"
+  mkdir -p "$HOME/Library/LaunchAgents" "$(dirname "$GUNLUK")"
+  cat >"$PLIST" <<PLIST
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>$ETIKET</string>
+  <key>ProgramArguments</key><array>
+    <string>/usr/bin/caffeinate</string><string>-i</string>
+    <string>/bin/bash</string><string>$BURASI</string><string>$n</string>
+  </array>
+  <key>EnvironmentVariables</key><dict>
+    <key>AE_ARKADA</key><string>1</string>
+    <key>PATH</key><string>$PATH</string>
+    <key>HOME</key><string>$HOME</string>
+  </dict>
+  <key>WorkingDirectory</key><string>$(pwd)</string>
+  <key>StandardOutPath</key><string>$GUNLUK</string>
+  <key>StandardErrorPath</key><string>$GUNLUK</string>
+  <key>RunAtLoad</key><true/>
+</dict></plist>
+PLIST
+  launchctl bootout "gui/$(id -u)/$ETIKET" 2>/dev/null || true
+  launchctl bootstrap "gui/$(id -u)" "$PLIST"
+  echo "Arka planda başladı (launchd: $ETIKET). Günlük: $GUNLUK"
   exit 0
 fi
 
@@ -66,4 +94,6 @@ else
 fi
 rc=$?
 echo "--- #$n bitti, çıkış=$rc $(date)"
+# launchd kaydı bir sonraki çalıştırmada `bootout` ile kalkar; plist dosyası şimdi silinir.
+rm -f "$HOME/Library/LaunchAgents/com.aelaldi.yayin.$n.plist"
 exit "$rc"
