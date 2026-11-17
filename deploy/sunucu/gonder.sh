@@ -127,6 +127,16 @@ ssh "${SSH_SECENEK[@]}" "$SUNUCU" "umask 077; cd /opt/aelaldi && mkdir -p yedek 
 # Eski sürümler: güncel + bir önceki (geri dönüş için) kalır, gerisi silinir.
 # Her sürüm ~2,6 GB; disk müşteri siteleri ve mailcow ile paylaşılıyor.
 # `up` başarısızsa (göç düştüyse) yayın başarısızdır; temizlik hatası değildir.
+# Sunucu dosyaları repodan (2026-11-17): compose ve bakım sayfası her yayında eşitlenir. Önce
+# elle kopyalanıyordu ve sunucudaki compose repodan koptu (Masa'dan kalan değişkenler bulundu).
+# Yeni compose sunucuda DOĞRULANIR (`config -q`, gerçek .env ile); geçersizse eski dosya yerinde
+# kalır ve yayın durur. Eski dosyanın yedeği `docker-compose.yml.onceki`.
+ssh "${SSH_SECENEK[@]}" "$SUNUCU" 'cat > /opt/aelaldi/docker-compose.yml.yeni' < deploy/sunucu/docker-compose.yml
+ssh "${SSH_SECENEK[@]}" "$SUNUCU" "cd /opt/aelaldi && docker compose -f docker-compose.yml.yeni config -q && \
+  cp docker-compose.yml docker-compose.yml.onceki && mv docker-compose.yml.yeni docker-compose.yml && mkdir -p bakim" \
+  || { echo "[gonder] sunucuda compose doğrulanamadı — yayın durdu, canlı değişmedi." >&2; exit 1; }
+ssh "${SSH_SECENEK[@]}" "$SUNUCU" 'cat > /opt/aelaldi/bakim/guncelleniyor.html' < deploy/sunucu/bakim/guncelleniyor.html
+
 IMAJ_ONCE=$(ssh "${SSH_SECENEK[@]}" "$SUNUCU" "docker inspect -f '{{.Image}}' aelaldi-uygulama-1 2>/dev/null || true")
 ssh "${SSH_SECENEK[@]}" "$SUNUCU" "cd /opt/aelaldi && docker compose up -d --remove-orphans"
 IMAJ_SONRA=$(ssh "${SSH_SECENEK[@]}" "$SUNUCU" "docker inspect -f '{{.Image}}' aelaldi-uygulama-1")

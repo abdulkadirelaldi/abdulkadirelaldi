@@ -2745,3 +2745,17 @@ Google Cloud → proje → Google Calendar API etkin → OAuth izin ekranı (Har
 - **Ölçülen hata (yayında):** bağlanınca başlayan ilk eşitleme (`after`) ile "Şimdi eşitle" aynı anda koştu; ikisi de etkinlik kimliği henüz yazılmamış aynı görevleri okuyup POST etti → 35 görevden 2'si takvimde iki kez. Kopyalar elle silindi (veritabanındaki kimlikler esas alındı).
 - **Düzeltme:** bütün Google yazımları bellek içi tek sıradan geçer (`sirayla`); uygulama tek Node süreci olduğu için yeterli. Toplu tur sıranın içinde görev yazımını doğrudan çağırır.
 - **Regresyon testi:** üç eşitleme aynı anda → tek POST (`tests/integration/google-takvim.test.ts`); düzeltmesiz kırmızı olduğu ölçüldü.
+
+## ADR-052 — Altyapı düzeltmeleri (2026-11-17 incelemesi)
+
+**Durum:** Kabul edildi · 2026-11-17 · **Kapsar:** `deploy/sunucu/*`, Google eşitleme kilidi
+
+Sahibinin isteğiyle yapılan inceleme sunucuda şunları ölçtü: 1 vCPU, CPU'nun %65'i "steal", 3 GB swap, uygulamada 7 zombi süreç; yayında uygulama ~20 sn kalkıyor ve o arada nginx çıplak 502 veriyor; sunucudaki compose repodan kopmuş; #119'un yayını başlatan oturum kapanınca yarıda kaldı.
+
+1. **`init: true`** (uygulama, araçlar): PID 1 tini, biten alt süreçleri toplar.
+2. **"Güncelleniyor" sayfası:** nginx'in kendi 502/504'ü yerine 503 + kendini 5 sn'de yenileyen statik sayfa (`deploy/sunucu/bakim`). Uygulamanın yanıtlarına dokunulmaz. **Neden mavi-yeşil değil:** geçiş sırasında ikinci bir uygulama süreci (~300 MB) belleği dolu sunucuda müşteri sitelerini swap'a iterdi.
+3. **Compose ve bakım sayfası her yayında eşitlenir;** compose sunucuda `config -q` ile doğrulanmadan yerine konmaz, önceki `docker-compose.yml.onceki`.
+4. **`pr-yayinla.sh` launchd ile:** iş oturuma/terminale bağlı değil. **Neden GitHub Actions'a taşınmadı:** gonder.sh'in bilinçli kararı "GitHub'ın sunucuya hiçbir erişimi yok"; Actions'tan yayın sunucu SSH anahtarını GitHub'a vermek demek — sahibinin ayrı kararına bırakıldı.
+5. **Google eşitlemesine görev başına `pg_advisory_xact_lock`:** bellek içi sıranın ikinci katı; çok süreçte de aynı görev iki kez POST edilmez.
+
+**Sahibine bırakılan:** sunucu planının yükseltilmesi (maliyet), `sahinsamet-uygulama`daki 114 zombi (ayrı site).
