@@ -2783,3 +2783,16 @@ Sahibi: "Görsel dil iyi ama ağır — mor gradyanlar, parlayan halkalar, büy�
 - Aura kartları bölüm kimliği olarak kalır: hareketli ışık durdu (`animation: none`), lekeler %45 opaklıkta, dış gölge yok.
 - Seçili sekme, marka işareti, onay düğmesi: düz renk, gölgesiz.
 - Bileşen değişmedi — yalnızca `globals.css` belirteçleri ve `aura.css` sonundaki "SADE GÖRÜNÜM" bloğu; geri almak tek blok.
+
+## ADR-055 — Yayın GitHub Actions'tan, sunucuda sınırlı kapıyla
+
+**Durum:** Kabul edildi · 2026-11-18 · **Değiştirir:** ADR-052 §4 ("GitHub'ın sunucuya hiçbir erişimi yok") — sahibinin açık kararıyla
+
+Sahibi, yayının Mac'e bağlı olmamasını istedi; GitHub'a sunucu erişimi vermenin riski (aynı sunucuda 20+ müşteri sitesi) önceden anlatıldı.
+
+1. **`yayin.yml`:** main'de `Yayın imajı` başarıyla bitince tetiklenir; commit hâlâ main'in ucuysa ve CI (Kapı) yeşilse imajı gönderir, göç öncesi yedek alır, başlatır, sağlık kontrolünü bekler. `uretim` ortamı: sırlara yalnızca `main` erişir.
+2. **Sunucuda kapı (`/usr/local/bin/ae-yayin-kapisi`):** anahtar `restrict,command=` ile yalnızca bu betiği koşturabilir. Dört fiil: `yukle` (gzip'li arşiv; `manifest.json`, `index.json` ve `repositories` içindeki BÜTÜN etiketler `aelaldi-` ile başlamazsa yüklenmez), `compose-ozeti`, `yedek <sürüm>`, `baslat <sürüm>` (sürüm `^[0-9a-f]{9}$`). Ölçüldü: keyfi komut ve `;` enjeksiyonu reddediliyor; sahte arşivlerle yabancı etiket (manifest ve index) reddediliyor.
+3. **Bilerek yok — compose yazma:** compose ile konteynere `/` ya da docker.sock bağlanabilir; kapı o hâlde köke açılırdı. Actions compose özetini karşılaştırır, farklıysa durur; compose değişikliği Mac'ten `YEREL=1 pr-yayinla.sh` / `gonder.sh` ile.
+4. **`pr-yayinla.sh`** varsayılan olarak yalnızca birleştirir (iki yerden aynı anda yayın olmasın).
+
+**Kalan risk:** GitHub hesabı/Actions ele geçirilirse kötü niyetli bir `aelaldi-uygulama` imajı çalıştırılabilir — uygulamanın ortam sırları (DB, AUTH) açığa çıkar; diğer sitelere ve sunucu köküne kapı izin vermez. Anahtar iptali: `authorized_keys`'teki `github-actions-aelaldi-kapi` satırını silmek.
