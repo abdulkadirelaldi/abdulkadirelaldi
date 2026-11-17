@@ -511,3 +511,26 @@
   z-index: 70;
   animation: ing-konfeti var(--d) cubic-bezier(0.2, 0.6, 0.4, 1) forwards;
 }
+
+/* --------------------------------------------------------------------------
+   SADE GÖRÜNÜM — ADR-054 (2026-11-17). Sahibi: "gözü yormayan, net, estetik".
+   Aura kartları kalır (bölümün kimliği) ama ışık sakinleşir: hareket yok, renk
+   lekeleri soluk, dış gölge yok. Seçili sekme ve onay düz renk, parıltısız.
+   -------------------------------------------------------------------------- */
+.aura {
+  box-shadow: none;
+}
+.aura::before {
+  animation: none;
+  opacity: 0.45;
+  will-change: auto;
+}
+.sekme[aria-current='page'],
+.panel-modern :is(a, button).bg-gradient-accent,
+.marka-isaret {
+  box-shadow: none;
+}
+.isaret-tam[aria-pressed='true'] {
+  background: #059669;
+  box-shadow: none;
+}

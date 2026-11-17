@@ -684,13 +684,14 @@ a {
   --accent-hover: #5f3cf2;
   --accent-soft: #a897ff;
   --accent-blue: #8b3dff;
-  --accent-glow: rgba(124, 74, 255, 0.5);
-  --gradient-accent: linear-gradient(120deg, #5f46ff 0%, #8b3dff 58%, #b5359f 100%);
+  /* ADR-054 — sade görünüm: parıltı yok, vurgu düz renk. */
+  --accent-glow: transparent;
+  --gradient-accent: linear-gradient(var(--accent), var(--accent));
   --uzeri-durum: #0a0a0f;
   --golge-kart: 0 0 0 1px rgb(255 255 255 / 0.07);
-  --golge-kart-ust: 0 0 0 1px rgb(255 255 255 / 0.1), 0 18px 36px -20px rgb(0 0 0 / 0.8);
-  --aura-zemin-1: rgb(109 74 255 / 0.2);
-  --aura-zemin-2: rgb(236 72 153 / 0.09);
+  --golge-kart-ust: 0 0 0 1px rgb(255 255 255 / 0.1), 0 8px 18px -12px rgb(0 0 0 / 0.5);
+  --aura-zemin-1: rgb(109 74 255 / 0.06);
+  --aura-zemin-2: transparent;
   --yaricap-kart: 1.375rem;
   --yaricap-dugme: 0.875rem;
   --yaricap-girdi: 0.75rem;
@@ -711,10 +712,10 @@ a {
   --golge-kart:
     0 0 0 1px rgb(16 16 40 / 0.035), 0 1px 2px rgb(16 16 40 / 0.04),
     0 10px 26px -16px rgb(16 16 40 / 0.16);
-  --golge-kart-ust: 0 0 0 1px rgb(16 16 40 / 0.05), 0 22px 40px -22px rgb(16 16 40 / 0.3);
+  --golge-kart-ust: 0 0 0 1px rgb(16 16 40 / 0.05), 0 8px 18px -12px rgb(16 16 40 / 0.18);
   --uzeri-durum: #ffffff;
-  --aura-zemin-1: rgb(109 74 255 / 0.13);
-  --aura-zemin-2: rgb(236 72 153 / 0.07);
+  --aura-zemin-1: rgb(109 74 255 / 0.04);
+  --aura-zemin-2: transparent;
 }
 
 @media (prefers-color-scheme: light) {
