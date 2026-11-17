@@ -2772,3 +2772,14 @@ Sahibi incelemeden sonra istedi: "Bugün ekranında yalnızca bugünün işleri,
 5. **İşler:** tek giriş — hızlı ekleme satırı; ayrıntılı form aynı satırdaki takvim simgesiyle (yazılan başlık forma taşınır). Ayrı "Ekle" düğmesi kaldırıldı.
 
 **Ölçülen:** Google okuma ve panel → Google eşlemesi sahte Google ile (`tests/integration/google-takvim.test.ts`); İşler, takvim, hızlı kayıt, mobil, rota taraması e2e (34/34). **Ölçülmeyen:** gerçek Google'la panelden etkinlik oluşturma — yayında elle.
+
+## ADR-054 — Sade görünüm
+
+**Durum:** Kabul edildi · 2026-11-17 · **Değiştirir:** 2026-11-01 "Aura" (yalnızca ışık ve gölge)
+
+Sahibi: "Görsel dil iyi ama ağır — mor gradyanlar, parlayan halkalar, büyük gölgeler; diğer ekranlar da İşler'in sadeliğine çekilsin."
+
+- Vurgu düz renk (`--gradient-accent` tek renk), parıltı yok (`--accent-glow: transparent`), sayfa zemin lekeleri neredeyse sıfır, üst gölge kısa.
+- Aura kartları bölüm kimliği olarak kalır: hareketli ışık durdu (`animation: none`), lekeler %45 opaklıkta, dış gölge yok.
+- Seçili sekme, marka işareti, onay düğmesi: düz renk, gölgesiz.
+- Bileşen değişmedi — yalnızca `globals.css` belirteçleri ve `aura.css` sonundaki "SADE GÖRÜNÜM" bloğu; geri almak tek blok.
