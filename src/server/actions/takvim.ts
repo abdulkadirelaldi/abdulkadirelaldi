@@ -19,6 +19,11 @@ import {
   takvimEtkinligiSil,
   TakvimHatasi,
 } from '@/server/services/takvim';
+import {
+  GoogleHatasi,
+  googleBagliMi,
+  googleEtkinlikOlustur,
+} from '@/server/services/google-takvim';
 import type { AuditAction } from '@/types';
 
 import { currentActorId, toFailure, unauthorized } from './_shared';
@@ -47,6 +52,7 @@ async function kaydet(
     return ok(sonuc);
   } catch (error) {
     if (error instanceof TakvimHatasi) return fail('VALIDATION_ERROR', error.message);
+    if (error instanceof GoogleHatasi) return fail('INTERNAL_ERROR', error.message);
     return toFailure(etiket, error);
   }
 }
@@ -57,11 +63,18 @@ export async function takvimEtkinligiOlusturAction(raw: unknown) {
   const parsed = parseOrFail(takvimEtkinligiSchema, raw);
   if (!parsed.ok) return parsed.failure;
   const v = parsed.data;
+  // ADR-053 — asıl takvim Google: bağlıysa yeni etkinlik Google'a yazılır (tek yer).
+  const google = await googleBagliMi();
   return kaydet(
     actorId,
     'CREATE',
-    { tekrar: v.tekrar.tur, tumGun: v.tumGun, hatirlatma: v.hatirlatmalar.length },
-    () => takvimEtkinligiOlustur(v),
+    {
+      tekrar: v.tekrar.tur,
+      tumGun: v.tumGun,
+      hatirlatma: v.hatirlatmalar.length,
+      ...(google ? { hedef: 'google' } : {}),
+    },
+    () => (google ? googleEtkinlikOlustur(v) : takvimEtkinligiOlustur(v)),
     'takvim:olustur',
   );
 }

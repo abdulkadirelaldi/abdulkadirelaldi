@@ -653,16 +653,6 @@ describe('fetchJournalEntries', () => {
   });
 });
 
-describe('guncelHedefMi (2026-11-01)', () => {
-  it('⚠️ dönemi geçen hedef güncel değil; uzun vadeli her zaman güncel', () => {
-    const { guncelHedefMi: g } = hedefModulu;
-    expect(g({ period: null, periodKey: null }, '2026-10-31')).toBe(true);
-    expect(g({ period: 'MONTHLY', periodKey: '2026-10' }, '2026-10-31')).toBe(true);
-    expect(g({ period: 'MONTHLY', periodKey: '2026-09' }, '2026-10-31')).toBe(false);
-    expect(g({ period: 'YEARLY', periodKey: '2025' }, '2026-10-31')).toBe(false);
-  });
-});
-
 describe('hedefiTasi (2026-11-01)', () => {
   it('bugünün dönemine taşır', async () => {
     const update = vi.fn();

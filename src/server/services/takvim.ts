@@ -16,6 +16,7 @@ import {
 } from '@/lib/takvim/tekrar';
 import { saatDakika } from '@/lib/takvim/bicim';
 import { db } from '@/server/db';
+import { fetchGoogleEtkinlikleri } from '@/server/services/google-takvim';
 import type { TakvimEtkinligi } from '@/server/generated/prisma/client';
 
 import {
@@ -119,7 +120,12 @@ export async function fetchTakvim(
   bas: AppDay,
   son: AppDay,
   client = db,
-): Promise<{ etkinlikler: TakvimEtkinligiVerisi[]; olusumlar: TakvimOlusumu[] }> {
+  secenek: { google?: boolean } = {},
+): Promise<{
+  etkinlikler: TakvimEtkinligiVerisi[];
+  olusumlar: TakvimOlusumu[];
+  google: { bagli: boolean; hata: string | null };
+}> {
   const basAn = appDayStartInstant(bas);
   const sonAn = appDayStartInstant(addAppDays(son, 1));
   const satirlar = await client.takvimEtkinligi.findMany({
@@ -160,8 +166,32 @@ export async function fetchTakvim(
       });
     }
   }
+  // ADR-053 — asıl takvim Google: panelin kendi etkinliklerinin yanına Google'dakiler eklenir.
+  let google = { bagli: false, hata: null as string | null };
+  if (secenek.google) {
+    const g = await fetchGoogleEtkinlikleri(basAn, sonAn, client);
+    google = { bagli: g.bagli, hata: g.hata };
+    for (const e of g.liste) {
+      const baslangic = new Date(e.baslangic);
+      const gun = toAppDay(baslangic);
+      liste.push({
+        anahtar: `google:${e.id}`,
+        etkinlikId: `google:${e.id}`,
+        baslik: e.baslik,
+        konum: e.konum,
+        kategori: e.gorevId ? 'HATIRLATICI' : 'KISISEL',
+        tumGun: e.tumGun,
+        baslangic: e.baslangic,
+        bitis: e.bitis,
+        gun,
+        sonGun: sonGunu(e.tumGun, baslangic, new Date(e.bitis), gun),
+        tekrarli: false,
+        baglanti: e.baglanti,
+      });
+    }
+  }
   liste.sort((a, b) => a.baslangic.localeCompare(b.baslangic));
-  return { etkinlikler, olusumlar: liste };
+  return { etkinlikler, olusumlar: liste, google };
 }
 
 /** Bugün panosu: bugünün henüz bitmemiş oluşumları (tüm gün olanlar gün boyu). */
@@ -170,8 +200,13 @@ export async function fetchBugunTakvim(
   simdi: Date = new Date(),
   client = db,
 ): Promise<TakvimOlusumu[]> {
-  const { olusumlar: liste } = await fetchTakvim(bugun, bugun, client);
-  return liste.filter((o) => o.tumGun || Date.parse(o.bitis) > simdi.getTime());
+  // İşler'den gelen Google etkinlikleri Bugün'de iş olarak zaten görünüyor — burada tekrar etmez.
+  const { olusumlar: liste } = await fetchTakvim(bugun, bugun, client, { google: true });
+  const isEtkinligi = (o: TakvimOlusumu) =>
+    o.etkinlikId.startsWith('google:') && o.kategori === 'HATIRLATICI';
+  return liste.filter(
+    (o) => !isEtkinligi(o) && (o.tumGun || Date.parse(o.bitis) > simdi.getTime()),
+  );
 }
 
 /** Zamanlayıcı için: hatırlatması olan ve şu andan itibaren hatırlatma üretebilecek etkinlikler. */

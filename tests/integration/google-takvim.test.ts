@@ -3,6 +3,7 @@ import { randomBytes } from 'node:crypto';
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { gorevSchema } from '@/lib/schemas/gorev';
+import { takvimEtkinligiSchema } from '@/lib/schemas/takvim';
 import { db } from '@/server/db';
 import { gorevBitti, gorevGuncelle, gorevOlustur } from '@/server/services/gorev';
 import {
@@ -10,6 +11,8 @@ import {
   baglantiKur,
   bekleyenleriEsitle,
   etkinlikGovdesi,
+  fetchGoogleEtkinlikleri,
+  panelEtkinligiGovdesi,
   fetchGoogleDurumu,
   gorevEsitle,
 } from '@/server/services/google-takvim';
@@ -227,5 +230,102 @@ describe('google takvim eşitlemesi', () => {
     const s = await db.gorev.findUniqueOrThrow({ where: { id: g.id } });
     expect(s.googleEtkinlikId).toMatch(/^etk/);
     expect(s.googleBekliyor).toBe(false);
+  });
+
+  it('panel takvimi Google etkinliklerini okur; bağlı değilken boş ve "bağlı değil" der (ADR-053)', async () => {
+    const bas = new Date('2026-11-18T00:00:00Z');
+    const son = new Date('2026-11-19T00:00:00Z');
+    expect(await fetchGoogleEtkinlikleri(bas, son)).toEqual({
+      bagli: false,
+      liste: [],
+      hata: null,
+    });
+
+    await baglantiKur(KULLANICI, 'kod');
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (a: string, i?: RequestInit) => {
+        if (a.includes('/calendar/v3/') && (i?.method ?? 'GET') === 'GET') {
+          return new Response(
+            JSON.stringify({
+              items: [
+                {
+                  id: 'ders',
+                  summary: 'Veri Tabanı',
+                  htmlLink: 'https://calendar.google.com/e/ders',
+                  start: { dateTime: '2026-11-18T13:30:00+03:00' },
+                  end: { dateTime: '2026-11-18T16:30:00+03:00' },
+                },
+                {
+                  id: 'is',
+                  summary: 'Garage — 4 reels',
+                  start: { date: '2026-11-18' },
+                  end: { date: '2026-11-19' },
+                  extendedProperties: { private: { aeGorevId: 'g1' } },
+                },
+                { id: 'iptal', status: 'cancelled' },
+              ],
+            }),
+            { status: 200 },
+          );
+        }
+        return sahteGoogle(a, i);
+      }),
+    );
+    const g = await fetchGoogleEtkinlikleri(bas, son);
+    expect(g.bagli).toBe(true);
+    expect(g.hata).toBeNull();
+    expect(g.liste).toEqual([
+      expect.objectContaining({
+        id: 'ders',
+        tumGun: false,
+        baslangic: '2026-11-18T10:30:00.000Z',
+        baglanti: 'https://calendar.google.com/e/ders',
+        gorevId: null,
+      }),
+      expect.objectContaining({
+        id: 'is',
+        tumGun: true,
+        baslangic: '2026-11-17T21:00:00.000Z',
+        bitis: '2026-11-18T21:00:00.000Z',
+        gorevId: 'g1',
+      }),
+    ]);
+  });
+
+  it('panel formu → Google: özel, tekrar kuralı, gün boyu hatırlatma kaydırması (ADR-053)', () => {
+    const girdi = takvimEtkinligiSchema.parse({
+      baslik: 'Proje toplantısı',
+      aciklama: null,
+      konum: null,
+      kategori: 'TOPLANTI',
+      tumGun: false,
+      baslangicGun: '2026-11-20',
+      baslangicSaat: '17:00',
+      bitisGun: '2026-11-20',
+      bitisSaat: '18:00',
+      tekrar: { tur: 'HAFTALIK', aralik: 1, gunler: [1, 5], bitisGun: '2026-12-31', sayi: null },
+      hatirlatmalar: [30],
+    });
+    const e = panelEtkinligiGovdesi(girdi);
+    expect(e.visibility).toBe('private');
+    expect(e.start).toEqual({ dateTime: '2026-11-20T14:00:00.000Z', timeZone: 'Europe/Istanbul' });
+    expect(e.recurrence).toEqual([
+      'RRULE:FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,FR;UNTIL=20261231T205959Z',
+    ]);
+    expect(e.reminders.overrides).toEqual([{ method: 'popup', minutes: 30 }]);
+
+    const tumGun = panelEtkinligiGovdesi({
+      ...girdi,
+      tumGun: true,
+      bitisGun: '2026-11-21',
+      tekrar: { ...girdi.tekrar, tur: 'YOK' },
+      hatirlatmalar: [0, 600],
+    });
+    expect(tumGun.start).toEqual({ date: '2026-11-20' });
+    expect(tumGun.end).toEqual({ date: '2026-11-22' });
+    expect(tumGun.recurrence).toBeUndefined();
+    // Panel: 09:00'dan önce dakika; Google: 00:00'dan önce — 600 → 60, 0 (09:00) → 00:00'a yuvarlanır.
+    expect(tumGun.reminders.overrides.map((r) => r.minutes)).toEqual([0, 60]);
   });
 });

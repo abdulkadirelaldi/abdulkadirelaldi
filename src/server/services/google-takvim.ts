@@ -5,7 +5,16 @@ import { db } from '@/server/db';
 import { decryptSecret, encryptSecret } from '@/server/auth/totp';
 import type { IsAlani } from '@/types';
 
-import { addAppDays, appWallClockInstant, dateToAppDay, type AppDay } from './_shared';
+import type { TakvimEtkinligiGirdisi } from '@/lib/schemas';
+import { saatDakika } from '@/lib/takvim/bicim';
+
+import {
+  addAppDays,
+  appDayStartInstant,
+  appWallClockInstant,
+  dateToAppDay,
+  type AppDay,
+} from './_shared';
 
 /**
  * GOOGLE TAKVİM (ADR-051) — İşler'in tarihli görevleri sahibinin Google Takvim'ine (birincil
@@ -263,7 +272,7 @@ export function etkinlikGovdesi(g: EtkinlikKaynagi) {
 }
 
 async function takvimIstegi(
-  yontem: 'POST' | 'PUT' | 'DELETE',
+  yontem: 'GET' | 'POST' | 'PUT' | 'DELETE',
   yol: string,
   govde: unknown,
   client = db,
@@ -279,6 +288,7 @@ async function takvimIstegi(
     signal: AbortSignal.timeout(ZAMAN_ASIMI_MS),
   });
   if (yanit.status === 401) onbellek = null;
+  if (yontem !== 'GET') okumaOnbellegi.clear();
   const veri = (await yanit.json().catch(() => ({}))) as { id?: string };
   return { durum: yanit.status, veri };
 }
@@ -410,4 +420,170 @@ async function bekleyenleriYaz(
     data: hata ? { sonHata: hata } : { sonHata: null, sonEsitleme: simdi },
   });
   return { yazilan, hata };
+}
+
+/* ===========================================================================
+ * OKUMA VE PANELDEN YENİ ETKİNLİK (ADR-053)
+ * ======================================================================== */
+
+/** Panel takviminde gösterilen Google etkinliği. Düzenleme Google'da (`baglanti`). */
+export interface GoogleEtkinligi {
+  id: string;
+  baslik: string;
+  konum: string | null;
+  tumGun: boolean;
+  /** Gerçek anlar (ISO). Tüm günde ilk günün İstanbul 00:00'ı ve son günün ERTESİ 00:00'ı. */
+  baslangic: string;
+  bitis: string;
+  baglanti: string | null;
+  /** İşler'den gelen etkinlik (görev kimliği) — Bugün'de iş olarak zaten gösteriliyor. */
+  gorevId: string | null;
+}
+
+type GoogleOge = {
+  id: string;
+  status?: string;
+  summary?: string;
+  location?: string;
+  htmlLink?: string;
+  start?: { date?: string; dateTime?: string };
+  end?: { date?: string; dateTime?: string };
+  extendedProperties?: { private?: { aeGorevId?: string } };
+};
+
+/** Aynı aralık 60 sn içinde yeniden okunmaz; her yazım önbelleği boşaltır. */
+const OKUMA_OMRU_MS = 60_000;
+const okumaOnbellegi = new Map<string, { bitis: number; liste: GoogleEtkinligi[] }>();
+
+function etkinligeCevir(o: GoogleOge): GoogleEtkinligi | null {
+  if (o.status === 'cancelled' || !o.start || !o.end) return null;
+  const tumGun = Boolean(o.start.date);
+  const baslangic = tumGun
+    ? appDayStartInstant(o.start.date as AppDay)
+    : new Date(o.start.dateTime ?? '');
+  const bitis = tumGun ? appDayStartInstant(o.end.date as AppDay) : new Date(o.end.dateTime ?? '');
+  if (Number.isNaN(baslangic.getTime()) || Number.isNaN(bitis.getTime())) return null;
+  return {
+    id: o.id,
+    baslik: o.summary?.trim() || '(başlıksız)',
+    konum: o.location ?? null,
+    tumGun,
+    baslangic: baslangic.toISOString(),
+    bitis: bitis.toISOString(),
+    baglanti: o.htmlLink ?? null,
+    gorevId: o.extendedProperties?.private?.aeGorevId ?? null,
+  };
+}
+
+/**
+ * `[basAn, sonAn)` aralığına değen etkinlikler (tekrarlayanlar açılmış hâlde). Bağlı değilse boş
+ * liste ve `bagli: false`; Google'a ulaşılamazsa `hata` dolu — ekran "boş" demez, söyler.
+ */
+export async function fetchGoogleEtkinlikleri(
+  basAn: Date,
+  sonAn: Date,
+  client = db,
+): Promise<{ bagli: boolean; liste: GoogleEtkinligi[]; hata: string | null }> {
+  if (!googleAyarli() || !(await baglanti(client))) return { bagli: false, liste: [], hata: null };
+  const anahtar = `${basAn.toISOString()}|${sonAn.toISOString()}`;
+  const onceki = okumaOnbellegi.get(anahtar);
+  if (onceki && onceki.bitis > Date.now()) return { bagli: true, liste: onceki.liste, hata: null };
+  try {
+    const liste: GoogleEtkinligi[] = [];
+    let sayfa: string | undefined;
+    for (let i = 0; i < 4; i++) {
+      const q = new URLSearchParams({
+        timeMin: basAn.toISOString(),
+        timeMax: sonAn.toISOString(),
+        singleEvents: 'true',
+        orderBy: 'startTime',
+        maxResults: '250',
+        ...(sayfa ? { pageToken: sayfa } : {}),
+      });
+      const { durum, veri } = await takvimIstegi('GET', `?${q}`, null, client);
+      if (durum >= 300) throw new GoogleHatasi(`Google takvimi okunamadı (${durum}).`);
+      const v = veri as { items?: GoogleOge[]; nextPageToken?: string };
+      for (const o of v.items ?? []) {
+        const e = etkinligeCevir(o);
+        if (e) liste.push(e);
+      }
+      sayfa = v.nextPageToken;
+      if (!sayfa) break;
+    }
+    okumaOnbellegi.set(anahtar, { bitis: Date.now() + OKUMA_OMRU_MS, liste });
+    return { bagli: true, liste, hata: null };
+  } catch (e) {
+    return { bagli: true, liste: [], hata: e instanceof Error ? e.message : String(e) };
+  }
+}
+
+export async function googleBagliMi(client = db): Promise<boolean> {
+  return googleAyarli() && (await baglanti(client)) !== null;
+}
+
+const RRULE_SIKLIK = { GUNLUK: 'DAILY', HAFTALIK: 'WEEKLY', AYLIK: 'MONTHLY', YILLIK: 'YEARLY' };
+const RRULE_GUN = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU'];
+
+/**
+ * Panel formu → Google etkinliği (saf). Hatırlatma: panelde gün boyu etkinliğin hatırlatması
+ * o günün 09:00'ından önce sayılır; Google'da gün başından (00:00) önce — 540 dk kaydırılır,
+ * 09:00'dan SONRAsı Google'da anlatılamaz ve 00:00'a yuvarlanır. Etkinlik ÖZEL (`private`).
+ */
+export function panelEtkinligiGovdesi(g: TakvimEtkinligiGirdisi) {
+  const zaman = g.tumGun
+    ? { start: { date: g.baslangicGun }, end: { date: addAppDays(g.bitisGun, 1) } }
+    : {
+        start: {
+          dateTime: appWallClockInstant(g.baslangicGun, saatDakika(g.baslangicSaat)).toISOString(),
+          timeZone: 'Europe/Istanbul',
+        },
+        end: {
+          dateTime: appWallClockInstant(g.bitisGun, saatDakika(g.bitisSaat)).toISOString(),
+          timeZone: 'Europe/Istanbul',
+        },
+      };
+  const alarmlar = [
+    ...new Set(g.hatirlatmalar.map((dk) => (g.tumGun ? Math.max(0, dk - 540) : dk))),
+  ].map((minutes) => ({ method: 'popup', minutes }));
+
+  const t = g.tekrar;
+  let recurrence: string[] | undefined;
+  if (t.tur !== 'YOK') {
+    const parca = [`FREQ=${RRULE_SIKLIK[t.tur]}`, `INTERVAL=${t.aralik}`];
+    if (t.tur === 'HAFTALIK' && t.gunler.length > 0) {
+      parca.push(`BYDAY=${t.gunler.map((n) => RRULE_GUN[n - 1]).join(',')}`);
+    }
+    if (t.bitisGun) {
+      const son = new Date(appDayStartInstant(addAppDays(t.bitisGun, 1)).getTime() - 1000);
+      parca.push(
+        `UNTIL=${son
+          .toISOString()
+          .replace(/[-:]/g, '')
+          .replace(/\.\d{3}/, '')}`,
+      );
+    } else if (t.sayi) parca.push(`COUNT=${t.sayi}`);
+    recurrence = [`RRULE:${parca.join(';')}`];
+  }
+
+  return {
+    summary: g.baslik,
+    ...(g.aciklama ? { description: g.aciklama } : {}),
+    ...(g.konum ? { location: g.konum } : {}),
+    visibility: 'private',
+    reminders: { useDefault: false, overrides: alarmlar },
+    ...(recurrence ? { recurrence } : {}),
+    ...zaman,
+  };
+}
+
+/** Panelden yeni etkinlik — Google'a yazılır (tek yer: Google Takvim). */
+export function googleEtkinlikOlustur(
+  g: TakvimEtkinligiGirdisi,
+  client = db,
+): Promise<{ id: string }> {
+  return sirayla(async () => {
+    const { durum, veri } = await takvimIstegi('POST', '', panelEtkinligiGovdesi(g), client);
+    if (durum >= 300 || !veri.id) throw new GoogleHatasi(`Google etkinliği açılamadı (${durum}).`);
+    return { id: veri.id };
+  });
 }

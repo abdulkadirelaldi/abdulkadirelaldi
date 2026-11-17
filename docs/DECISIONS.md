@@ -2745,3 +2745,17 @@ Google Cloud → proje → Google Calendar API etkin → OAuth izin ekranı (Har
 - **Ölçülen hata (yayında):** bağlanınca başlayan ilk eşitleme (`after`) ile "Şimdi eşitle" aynı anda koştu; ikisi de etkinlik kimliği henüz yazılmamış aynı görevleri okuyup POST etti → 35 görevden 2'si takvimde iki kez. Kopyalar elle silindi (veritabanındaki kimlikler esas alındı).
 - **Düzeltme:** bütün Google yazımları bellek içi tek sıradan geçer (`sirayla`); uygulama tek Node süreci olduğu için yeterli. Toplu tur sıranın içinde görev yazımını doğrudan çağırır.
 - **Regresyon testi:** üç eşitleme aynı anda → tek POST (`tests/integration/google-takvim.test.ts`); düzeltmesiz kırmızı olduğu ölçüldü.
+
+## ADR-053 — Sade Bugün, asıl takvim Google, her şeyin tek yeri
+
+**Durum:** Kabul edildi · 2026-11-17 · **Kapsar:** Bugün (`/panel`), Takvim, hızlı kayıt, menü, İşler · **Değiştirir:** 2026-10-30 Bugün panosu
+
+Sahibi incelemeden sonra istedi: "Bugün ekranında yalnızca bugünün işleri, bugünün takvimi ve bugünün rutinleri kalsın; para, sağlık, spor kendi sekmelerine; boş kart hiç gösterilmesin; panel takvimi Google'ı okusun; her şeyin tek bir yeri olsun."
+
+1. **Bugün:** üç bölüm — İşler (bugün + gecikmiş), Takvim (bugün, İşler'den gelen Google etkinlikleri hariç — onlar zaten iş), Rutinler (kalan alışkanlıklar). Boş bölüm çizilmez; üstte tek satır özet. Halkalar, cüzdan, kilo, net varlık, haftalık grafik, vücut/uyku, hedefler, son harcamalar kaldırıldı (kendi sekmelerinde duruyorlar). Sayfa 853 → ~150 satır.
+2. **Takvim = Google:** `fetchTakvim(…, { google: true })` panel etkinliklerine Google'dakileri (tekrarlar açılmış, `singleEvents`) ekler; 60 sn bellek önbelleği, her yazımda boşalır. Google etkinliğine dokununca Google Takvim'de açılır (düzenleme orada). Okunamazsa ekran söyler. **"Yeni" etkinlik bağlıyken Google'a yazılır** (özel, tekrar kuralı RRULE'a, gün boyu hatırlatma 09:00 → 00:00 kaydırması). Canlıda panel etkinliği yoktu (0 satır) — taşınacak veri yok.
+3. **Hızlı kayıt (+):** telefonda üst çubukta; yüzen daire liste satırlarının ✓'sini kapatıyordu. Masaüstünde sağ altta, daha küçük ve sade.
+4. **Menü:** "Site" grubu (Mesajlar, Profil, Projeler, Blog…) katlanır; içindeki sayfadayken açık.
+5. **İşler:** tek giriş — hızlı ekleme satırı; ayrıntılı form aynı satırdaki takvim simgesiyle (yazılan başlık forma taşınır). Ayrı "Ekle" düğmesi kaldırıldı.
+
+**Ölçülen:** Google okuma ve panel → Google eşlemesi sahte Google ile (`tests/integration/google-takvim.test.ts`); İşler, takvim, hızlı kayıt, mobil, rota taraması e2e (34/34). **Ölçülmeyen:** gerçek Google'la panelden etkinlik oluşturma — yayında elle.
