@@ -2799,3 +2799,16 @@ Sahibi, yayının Mac'e bağlı olmamasını istedi; GitHub'a sunucu erişimi ve
 4. **`pr-yayinla.sh`** varsayılan olarak yalnızca birleştirir (iki yerden aynı anda yayın olmasın).
 
 **Kalan risk:** GitHub hesabı/Actions ele geçirilirse kötü niyetli bir `aelaldi-uygulama` imajı çalıştırılabilir — uygulamanın ortam sırları (DB, AUTH) açığa çıkar; diğer sitelere ve sunucu köküne kapı izin vermez. Anahtar iptali: `authorized_keys`'teki `github-actions-aelaldi-kapi` satırını silmek.
+
+## ADR-056 — Claude bağlayıcısı (MCP sunucusu + OAuth 2.1)
+
+**Durum:** Kabul edildi · 2026-11-18 · **Kapsar:** `/api/v1/mcp`, `/api/v1/oauth/*`, `/.well-known/oauth-*`, `/panel/oauth/yetki`, `/panel/ayarlar/claude` · **Bağlam:** ADR-050 "Aşama 3"
+
+Sahibi, bilgisayarı kapalıyken telefondaki Claude uygulamasından iş verip tik attırmak istiyor. Claude uygulamaları uzak MCP sunucularını "özel bağlayıcı" olarak ekleyebiliyor.
+
+1. **MCP (Streamable HTTP, durumsuz):** her POST tek JSON-RPC yanıtı; SSE yok (GET/DELETE 405). `initialize` · `ping` · `tools/list` · `tools/call`; protokol 2025-11-25 / 06-18 / 03-26. Bağımlılık eklenmedi.
+2. **Araçlar (yalnızca İşler):** `bugun_ozeti`, `isleri_listele`, `is_ekle`, `is_bitti` (`ara` birden çok açık işe uyarsa DOKUNMAZ, adayları sayar), `is_geri_al`, `is_guncelle`, `is_sil` (`destructiveHint`). Girdiler panel formuyla aynı şemalardan; her yazım `AuditLog`a `context: 'mcp'`; Google eşitlemesi yanıttan sonra. Cüzdan/sağlık yok.
+3. **OAuth 2.1 (panel kendi yetkilendirme sunucusu):** RFC 9728/8414 keşfi, DCR (RFC 7591) — **yalnızca** `https://claude.ai/api/mcp/auth_callback` ve yerel `/callback` (port bağımsız) kaydedilebilir, saatte en çok 20 kayıt; açık istemci + PKCE S256 zorunlu; `resource` (RFC 8707) yalnızca kendi MCP adresi. Kod 10 dk ve tek kullanımlık (ikinci kullanımda o koddan verilen jetonlar iptal); erişim 1 saat; yenileme 30 gün ve her kullanımda döner, eskisi gelirse bütün aile iptal. Yalnız SHA-256 özetleri saklanır.
+4. **İzin:** `/panel/oauth/yetki` panel yolu — ara katman oturum + 2FA ister. İstemci adı ve dönüş host'u yazılır. Gezinme istemcide (`form-action 'self'` dış yönlendirmeyi engeller). Ayarlar → Claude bağlayıcısı'ndan bağlantı kaldırılır (bütün jetonlar iptal).
+
+**Ölçülen:** `tests/integration/oauth-mcp.test.ts` (13): kayıt kısıtı, istek doğrulaması, takas, PKCE, kod tekrarı, yenileme dönüşü ve aile iptali, kaldırma, araçlar ve denetim. Test, iptalin işlem içinde yazılıp hata fırlatılınca GERİ ALINDIĞI bir hatayı yakaladı — iptal artık işlem dışında. e2e: jetonsuz/sahte jetonla 401 + `WWW-Authenticate`, keşif belgeleri, yabancı adresle kayıt 400, bilinmeyen kod `invalid_grant`. **Ölçülmeyen:** gerçek Claude istemcisiyle uçtan uca (sahibi bağlayınca).

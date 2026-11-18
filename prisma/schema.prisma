@@ -1316,3 +1316,68 @@ model GoogleBaglantisi {
 
   @@map("google_baglantisi")
 }
+
+/**
+ * ═══════════════════════════════════════════════════════════════════════════
+ * CLAUDE BAĞLAYICISI (ADR-056, 2026-11-18) — panelin MCP sunucusu için OAuth 2.1 yetkilendirme
+ * sunucusu. Tek kullanıcı. Kod ve jetonların yalnızca SHA-256 özeti saklanır; düz değer bir kez
+ * istemciye verilir. İstemci kaydı (DCR) yalnızca izinli yönlendirme adreslerine açık.
+ * ═══════════════════════════════════════════════════════════════════════════
+ */
+
+model OAuthIstemci {
+  /// `client_id` — rastgele, düz (gizli değil; istemci herkese açık, PKCE ile korunur).
+  id            String        @id
+  ad            String
+  yonlendirmeler String[]
+  createdAt     DateTime      @default(now())
+  sonKullanim   DateTime?
+  kodlar        OAuthKod[]
+  jetonlar      OAuthJeton[]
+
+  @@map("oauth_istemci")
+}
+
+model OAuthKod {
+  /// Kodun SHA-256 özeti. Tek kullanımlık, 10 dk.
+  ozet          String       @id
+  istemciId     String
+  istemci       OAuthIstemci @relation(fields: [istemciId], references: [id], onDelete: Cascade)
+  userId        String
+  yonlendirme   String
+  kodSinami     String
+  kaynak        String
+  kapsam        String
+  bitis         DateTime
+  kullanildi    DateTime?
+  createdAt     DateTime     @default(now())
+
+  @@index([istemciId])
+  @@map("oauth_kod")
+}
+
+enum OAuthJetonTuru {
+  ERISIM
+  YENILEME
+}
+
+model OAuthJeton {
+  /// Jetonun SHA-256 özeti.
+  ozet          String         @id
+  tur           OAuthJetonTuru
+  istemciId     String
+  istemci       OAuthIstemci   @relation(fields: [istemciId], references: [id], onDelete: Cascade)
+  userId        String
+  kaynak        String
+  kapsam        String
+  /// Aynı yetkiden türeyen bütün jetonlar — eski yenileme jetonu yeniden kullanılırsa aile iptal edilir.
+  aile          String
+  bitis         DateTime
+  iptal         DateTime?
+  createdAt     DateTime       @default(now())
+
+  @@index([istemciId])
+  @@index([aile])
+  @@index([bitis])
+  @@map("oauth_jeton")
+}

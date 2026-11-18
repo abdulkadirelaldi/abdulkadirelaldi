@@ -213,6 +213,41 @@ const KAPSAM: Record<string, KapsamBeyani> = {
     kanit: ["'/api/v1/saglik/olcum'"],
     not: 'ANAHTARLA yazma ucu (oturum değil): yalnızca adım, uyku, nabız, kilo; okuma yok. Birim: `tests/unit/api/saglik-olcum.test.ts` (401, 400, 413, virgüllü sayı, kısmi yazma). ÖLÇÜLMEYEN: gerçek Kısayol; IP tavanı süreç başına ve bellek içi.',
   },
+  '/api/v1/mcp': {
+    kapilar: ['e2e'],
+    kanit: ["'/api/v1/mcp'"],
+    not: "2026-11-18 ADR-056 — Claude bağlayıcısı MCP sunucusu (Streamable HTTP, durumsuz, JSON yanıt). Jetonsuz ve sahte jetonla 401 + `WWW-Authenticate resource_metadata` e2e'de; araçlar (ekle/aramayla tik/çoklu eşleşmede dokunmama/geri al/güncelle/sil, denetim kaydı) ve jeton doğrulaması gerçek PostgreSQL'de `tests/integration/oauth-mcp.test.ts`. ÖLÇÜLMEYEN: gerçek Claude istemcisiyle uçtan uca — yayında sahibi bağlayacak.",
+  },
+  '/api/v1/oauth/kesif/kaynak': {
+    kapilar: ['e2e'],
+    kanit: ["'/.well-known/oauth-protected-resource'"],
+    not: "2026-11-18 ADR-056 — RFC 9728 korunan kaynak metadata'sı; `/.well-known/oauth-protected-resource` yeniden yazımıyla e2e'de 200 ve `resource` doğrulanıyor.",
+  },
+  '/api/v1/oauth/kesif/sunucu': {
+    kapilar: ['e2e'],
+    kanit: ["'/.well-known/oauth-authorization-server'"],
+    not: "2026-11-18 ADR-056 — RFC 8414 yetkilendirme sunucusu metadata'sı; S256 ve `none` e2e'de.",
+  },
+  '/api/v1/oauth/register': {
+    kapilar: ['e2e'],
+    kanit: ["'/api/v1/oauth/register'"],
+    not: "2026-11-18 ADR-056 — DCR; yalnızca Claude geri dönüşleri (yabancı adres 400 e2e'de), gizli istemci yöntemi reddi ve saatlik 20 sınırı; kurallar entegrasyonda.",
+  },
+  '/api/v1/oauth/token': {
+    kapilar: ['e2e'],
+    kanit: ["'/api/v1/oauth/token'"],
+    not: "2026-11-18 ADR-056 — kod takası ve yenileme (form gövdesi). Bilinmeyen kod e2e'de reddediliyor; PKCE, tek kullanımlık kod (ikincide jetonlar iptal), yenileme dönüşü ve aile iptali entegrasyonda.",
+  },
+  '/panel/ayarlar/claude': {
+    kapilar: ['e2e'],
+    kanit: ["'/panel/ayarlar/claude',"],
+    not: "2026-11-18 ADR-056 — kurulum adımları, MCP adresi, bağlı istemciler ve kaldır. Rota taraması e2e'de; kaldırmanın jetonları iptal ettiği entegrasyonda.",
+  },
+  '/panel/oauth/yetki': {
+    kapilar: ['e2e'],
+    kanit: ["'/panel/oauth/yetki',"],
+    not: '2026-11-18 ADR-056 — OAuth izin ekranı (panel yolu: oturum + 2FA ara katmanda). Parametresiz açılış rota taramasında (hata kartı); istek doğrulaması entegrasyonda. ÖLÇÜLMEYEN: gerçek claude.ai yönlendirmesiyle izin.',
+  },
   '/api/v1/panel/google/bagla': {
     kapilar: ['e2e'],
     kanit: ["'/api/v1/panel/google/bagla'"],

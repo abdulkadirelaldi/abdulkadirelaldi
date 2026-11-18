@@ -1,4 +1,5 @@
 import {
+  Bot,
   CalendarCheck2,
   Bell,
   Bug,
@@ -70,6 +71,13 @@ export default function AyarlarPage() {
               baslik="Bildirimler"
               aciklama="Ödeme günleri, kalan alışkanlıklar ve su hatırlatmaları telefonuna gelsin."
               href="/panel/ayarlar/bildirimler"
+            />
+
+            <SettingsSection
+              icon={Bot}
+              baslik="Claude bağlayıcısı"
+              aciklama="Telefondaki Claude uygulamasından işlerini gör, ekle, tik at."
+              href="/panel/ayarlar/claude"
             />
 
             <SettingsSection

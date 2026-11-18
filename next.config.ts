@@ -74,6 +74,27 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+
+  /**
+   * ADR-056 — Claude bağlayıcısı OAuth keşfi. RFC 9728/8414 adresleri `/.well-known/` altında;
+   * uygulama yönlendiricisinde nokta ile başlayan klasör yerine route handler'a yeniden yazılır.
+   */
+  async rewrites() {
+    return [
+      {
+        source: '/.well-known/oauth-protected-resource',
+        destination: '/api/v1/oauth/kesif/kaynak',
+      },
+      {
+        source: '/.well-known/oauth-protected-resource/api/v1/mcp',
+        destination: '/api/v1/oauth/kesif/kaynak',
+      },
+      {
+        source: '/.well-known/oauth-authorization-server',
+        destination: '/api/v1/oauth/kesif/sunucu',
+      },
+    ];
+  },
 };
 
 export default nextConfig;
