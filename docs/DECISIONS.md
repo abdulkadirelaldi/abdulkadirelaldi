@@ -2784,6 +2784,9 @@ Sahibi: "Görsel dil iyi ama ağır — mor gradyanlar, parlayan halkalar, büy�
 - Seçili sekme, marka işareti, onay düğmesi: düz renk, gölgesiz.
 - Bileşen değişmedi — yalnızca `globals.css` belirteçleri ve `aura.css` sonundaki "SADE GÖRÜNÜM" bloğu; geri almak tek blok.
 
+### ADR-052 eki (2026-11-17) — veritabanı bağlantıları sıcak kalır
+
+Şahin Samet panelindeki "kasma" incelenirken ölçüldü: sunucuda aynı anda 10 YENİ Postgres bağlantısı 1,3–11 sn sürüyor (tek bağlantı <1 sn). Bugün ekranı ~11 sorguyu paralel atıyordu ve havuz boşta 30 sn'de kapandığı için her seyrek ziyarette sıfırdan kuruluyordu. Havuz: `max` 10→5, `idleTimeoutMillis` 0, `allowExitOnIdle` (betikler `closeDatabase()`e ulaşamasa da kapanır — BULGU-007'nin ikinci savunması), `keepAlive`, bağlantı bekleme 5→10 sn. Aynı düzeltme sahinsamet #4.
 ## ADR-055 — Yayın GitHub Actions'tan, sunucuda sınırlı kapıyla
 
 **Durum:** Kabul edildi · 2026-11-18 · **Değiştirir:** ADR-052 §4 ("GitHub'ın sunucuya hiçbir erişimi yok") — sahibinin açık kararıyla
