@@ -122,6 +122,9 @@ const EK_ETIKETLER: Record<string, string> = {
   '/panel/ayarlar/hatalar': 'Hatalar',
   '/panel/ayarlar/saglik-baglantisi': 'iPhone sağlık verisi',
   '/panel/ayarlar/google': 'Google Takvim',
+  '/panel/ayarlar/claude': 'Claude bağlayıcısı',
+  '/panel/oauth': 'Bağlantı',
+  '/panel/oauth/yetki': 'İzin',
   '/panel/ayarlar/sifre': 'Şifre',
   '/panel/ayarlar/denetim': 'Denetim kaydı',
   '/panel/spor/egzersizler': 'Egzersizler',
@@ -152,6 +155,8 @@ const EK_ETIKETLER: Record<string, string> = {
 /** `EK_ETIKETLER` içinden GERÇEKTEN sayfası olanlar — `/panel/icerik` hariç. */
 const HAZIR_EK_YOLLAR: ReadonlySet<string> = new Set([
   '/panel/ayarlar/guvenlik',
+  '/panel/ayarlar/google',
+  '/panel/ayarlar/claude',
   '/panel/ayarlar/bildirimler',
   '/panel/ayarlar/hatalar',
   '/panel/ayarlar/saglik-baglantisi',

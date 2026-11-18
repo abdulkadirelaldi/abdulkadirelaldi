@@ -27,6 +27,8 @@ test('her panel rotası hatasız açılır ve yatay taşmaz', async ({ page, bas
     '/panel/ayarlar/saglik-baglantisi',
     '/panel/ayarlar/sifre',
     '/panel/ayarlar/google',
+    '/panel/ayarlar/claude',
+    '/panel/oauth/yetki',
     `/panel/saglik/${k.saglik}`,
     `/panel/spor/oturum/${k.oturum}`,
     '/panel/cuzdan/ara',
@@ -108,6 +110,38 @@ test('API uçları oturumsuz ve anahtarsız reddeder', async ({ request }) => {
     maxRedirects: 0,
   });
   expect(googleDonus.status()).toBe(401);
+  // ADR-056 — Claude bağlayıcısı: jetonsuz MCP 401 + keşif işaretçisi; keşif belgeleri; kayıt
+  // yalnızca Claude geri dönüşüne; bozuk jeton isteği 400.
+  const mcp = await request.post('/api/v1/mcp', {
+    data: { jsonrpc: '2.0', id: 1, method: 'tools/list' },
+  });
+  expect(mcp.status()).toBe(401);
+  expect(mcp.headers()['www-authenticate']).toContain('resource_metadata="');
+  expect(mcp.headers()['www-authenticate']).toContain('/.well-known/oauth-protected-resource"');
+  const mcpSahte = await request.post('/api/v1/mcp', {
+    headers: { Authorization: 'Bearer sahte' },
+    data: { jsonrpc: '2.0', id: 1, method: 'tools/list' },
+  });
+  expect(mcpSahte.status()).toBe(401);
+  const kaynak = await request.get('/.well-known/oauth-protected-resource');
+  expect(kaynak.status()).toBe(200);
+  expect((await kaynak.json()).resource).toMatch(/\/api\/v1\/mcp$/);
+  const sunucu = await request.get('/.well-known/oauth-authorization-server');
+  expect(sunucu.status()).toBe(200);
+  expect(await sunucu.json()).toMatchObject({
+    code_challenge_methods_supported: ['S256'],
+    token_endpoint_auth_methods_supported: ['none'],
+  });
+  const kotuKayit = await request.post('/api/v1/oauth/register', {
+    data: { client_name: 'kötü', redirect_uris: ['https://kotu.example/callback'] },
+  });
+  expect(kotuKayit.status()).toBe(400);
+  expect((await kotuKayit.json()).error).toBe('invalid_redirect_uri');
+  const kotuJeton = await request.post('/api/v1/oauth/token', {
+    form: { grant_type: 'authorization_code', code: 'yok', client_id: 'yok', code_verifier: 'x' },
+  });
+  expect(kotuJeton.status()).toBe(400);
+  expect((await kotuJeton.json()).error).toBe('invalid_grant');
   const dosya = await request.get('/api/v1/dosya/ckyokboylebirdosya000000001');
   expect(dosya.status()).toBe(404);
 });

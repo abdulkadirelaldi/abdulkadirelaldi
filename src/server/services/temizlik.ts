@@ -1,6 +1,7 @@
 import { db } from '@/server/db';
 
 import { purgeLoginAttemptsBefore } from '../auth/login-attempt';
+import { eskiOAuthKayitlariniSil } from './oauth';
 
 const GUN_MS = 24 * 60 * 60_000;
 /** ADR-013: giriş denemeleri (IP dahil) 90 gün saklanır. */
@@ -14,4 +15,6 @@ export async function gunlukTemizlik(simdi: Date = new Date()): Promise<void> {
   await db.islemAnahtari.deleteMany({
     where: { createdAt: { lt: new Date(simdi.getTime() - ISLEM_ANAHTARI_GUN * GUN_MS) } },
   });
+  // ADR-056 — süresi 7 günden önce dolmuş OAuth kod/jeton satırları.
+  await eskiOAuthKayitlariniSil(simdi);
 }
