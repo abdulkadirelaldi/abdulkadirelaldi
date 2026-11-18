@@ -93,12 +93,20 @@ function tablo(anahtar: string) {
   };
 }
 
-function sahteDb() {
-  const c = {
+type Tablo = ReturnType<typeof tablo>;
+interface SahteDb {
+  oAuthIstemci: Tablo;
+  oAuthKod: Tablo;
+  oAuthJeton: Tablo;
+  $transaction<T>(fn: (tx: SahteDb) => Promise<T>): Promise<T>;
+}
+
+function sahteDb(): SahteDb {
+  const c: SahteDb = {
     oAuthIstemci: tablo('id'),
     oAuthKod: tablo('ozet'),
     oAuthJeton: tablo('ozet'),
-    async $transaction<T>(fn: (tx: typeof c) => Promise<T>) {
+    async $transaction<T>(fn: (tx: SahteDb) => Promise<T>) {
       return fn(c);
     },
   };
@@ -109,7 +117,7 @@ const DOGRULAYICI = 'a'.repeat(43);
 const SINAMA = createHash('sha256').update(DOGRULAYICI).digest('base64url');
 const SIMDI = new Date('2026-11-18T09:00:00Z');
 
-let c: ReturnType<typeof sahteDb>;
+let c: SahteDb;
 const db = () => c as never;
 
 beforeEach(() => {
