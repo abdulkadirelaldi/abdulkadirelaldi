@@ -1,0 +1,108 @@
+name: Yayın
+
+# ADR-055 — main'de imaj derlenip CI (Kapı) yeşil olunca canlıya gönderir. Mac'e bağlı değil.
+# Sunucuda yalnızca `ae-yayin-kapisi` çalışabilir (deploy/sunucu/yayin-kapisi.sh): imaj yükle
+# (yalnız `aelaldi-` etiketleri), compose özeti, göç öncesi yedek, başlat. Compose DEĞİŞTİREMEZ —
+# compose değiştiyse bu iş durur ve Mac'ten `gonder.sh` ister.
+on:
+  workflow_run:
+    workflows: ['Yayın imajı']
+    types: [completed]
+    branches: [main]
+
+permissions:
+  contents: read
+  actions: read
+  checks: read
+
+concurrency:
+  group: yayin-uretim
+  cancel-in-progress: false
+
+jobs:
+  yayin:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: uretim
+    env:
+      SITE_URL: https://abdulkadirelaldi.com
+      SHA: ${{ github.event.workflow_run.head_sha }}
+      KOSU: ${{ github.event.workflow_run.id }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Hâlâ main'in ucu mu
+        id: uc
+        run: |
+          UC=$(gh api "repos/${{ github.repository }}/commits/main" -q .sha)
+          if [ "$UC" != "$SHA" ]; then
+            echo "Bu commit artık main'in ucu değil ($UC) — daha yeni commit kendi yayınını yapar."
+            echo "atla=1" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: CI (Kapı) yeşil mi — en çok 40 dk bekle
+        if: steps.uc.outputs.atla != '1'
+        run: |
+          for _ in $(seq 80); do
+            KAPI=$(gh api "repos/${{ github.repository }}/commits/$SHA/check-runs?per_page=100&filter=all" \
+              -q '[.check_runs[] | select((.name | startswith("Kapı")) and .conclusion != "skipped")][0] | "\(.status) \(.conclusion)"' || true)
+            case "$KAPI" in
+              "completed success") echo "Kapı yeşil."; exit 0 ;;
+              "completed "*) echo "CI kırmızı ($KAPI) — yayın yok."; exit 1 ;;
+            esac
+            echo "CI bekleniyor: ${KAPI:-başlamadı}"
+            sleep 30
+          done
+          echo "CI 40 dakikada bitmedi."; exit 1
+
+      - name: SSH
+        if: steps.uc.outputs.atla != '1'
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${{ secrets.SUNUCU_SSH_ANAHTARI }}" > ~/.ssh/kapi
+          printf '%s\n' "${{ secrets.SUNUCU_KNOWN_HOSTS }}" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/kapi ~/.ssh/known_hosts
+          echo "KAPI=ssh -i $HOME/.ssh/kapi -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 -o ServerAliveCountMax=4 ${{ secrets.SUNUCU_ADRES }}" >> "$GITHUB_ENV"
+
+      - name: Compose sunucudakiyle aynı mı
+        if: steps.uc.outputs.atla != '1'
+        run: |
+          BURADA=$(sha256sum deploy/sunucu/docker-compose.yml | cut -d' ' -f1)
+          ORADA=$($KAPI compose-ozeti)
+          if [ "$BURADA" != "$ORADA" ]; then
+            echo "::error::docker-compose.yml değişti — bu yayını Mac'ten deploy/sunucu/gonder.sh ile yapın (kapı compose yazamaz)."
+            exit 1
+          fi
+
+      - name: İmajı gönder
+        if: steps.uc.outputs.atla != '1'
+        run: |
+          SURUM=${SHA:0:9}
+          gh run download "$KOSU" -n "imajlar-$SURUM" -D imaj
+          $KAPI yukle < imaj/imajlar.tar.gz
+          echo "SURUM=$SURUM" >> "$GITHUB_ENV"
+
+      - name: Göç öncesi yedek
+        if: steps.uc.outputs.atla != '1'
+        run: $KAPI "yedek $SURUM"
+
+      - name: Başlat ve doğrula
+        if: steps.uc.outputs.atla != '1'
+        run: |
+          $KAPI "baslat $SURUM"
+          for _ in $(seq 40); do
+            SAGLIK=$(curl -fsS --max-time 8 "$SITE_URL/api/v1/health" || true)
+            if python3 -c "import json,sys; d=json.loads(sys.argv[1])['data']; sys.exit(0 if d['db']=='up' and d['uptime'] < 300 else 1)" "$SAGLIK" 2>/dev/null; then
+              echo "$SURUM yayında: $SAGLIK"; exit 0
+            fi
+            sleep 6
+          done
+          echo "::error::Yeni süreç 4 dakikada sağlıklı kalkmadı."; exit 1
+
+      - name: Temizlik
+        if: always()
+        run: rm -f ~/.ssh/kapi

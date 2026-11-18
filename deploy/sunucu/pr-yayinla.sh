@@ -32,6 +32,7 @@ if [ "${AE_ARKADA:-}" != 1 ]; then
   </array>
   <key>EnvironmentVariables</key><dict>
     <key>AE_ARKADA</key><string>1</string>
+    <key>YEREL</key><string>${YEREL:-}</string>
     <key>PATH</key><string>$PATH</string>
     <key>HOME</key><string>$HOME</string>
   </dict>
@@ -79,6 +80,17 @@ if [ "$(gh pr view "$n" --json state -q .state)" != MERGED ]; then
   gh pr merge "$n" --merge 2>&1 | tail -1
   sleep 10
   [ "$(gh pr view "$n" --json state -q .state)" = MERGED ] || { echo "#$n birleşmedi"; exit 1; }
+fi
+
+# ADR-055 (2026-11-18): yayını GitHub Actions yapar (.github/workflows/yayin.yml) — birleşen
+# commit'in imajı derlenip CI yeşil olunca. Burada yalnızca birleştirme; Mac'ten gönderim
+# yalnızca `YEREL=1` ile (ör. compose değiştiyse — kapı compose yazamaz). İkisi aynı anda
+# yayın yapmasın diye varsayılan kapalı.
+if [ "${YEREL:-}" != 1 ]; then
+  echo "#$n birleşti — yayın GitHub Actions'ta: gh run list --workflow yayin.yml"
+  echo "--- #$n bitti, çıkış=0 $(date)"
+  rm -f "$HOME/Library/LaunchAgents/com.aelaldi.yayin.$n.plist"
+  exit 0
 fi
 
 git fetch -q origin main
