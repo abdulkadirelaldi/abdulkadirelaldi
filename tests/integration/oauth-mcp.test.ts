@@ -66,11 +66,21 @@ async function tamAkis(simdi = SIMDI) {
 beforeAll(async () => {
   process.env.NEXT_PUBLIC_SITE_URL = 'https://ornek.test';
   // Denetim kaydı `User`a bağlı (FK, hata yutulur) — gerçek (seed) kullanıcı kullanılır.
-  KULLANICI = (await db.user.findFirstOrThrow({ select: { id: true } })).id;
+  // CI'nin entegrasyon aşamasında seed yok: testin kendi kullanıcısı (sonunda silinir).
+  KULLANICI = (
+    await db.user.upsert({
+      where: { email: 'zzit-mcp@ornek.test' },
+      create: { email: 'zzit-mcp@ornek.test', passwordHash: 'x', name: 'zzit mcp' },
+      update: {},
+      select: { id: true },
+    })
+  ).id;
 });
 beforeEach(temizle);
 afterAll(async () => {
   await temizle();
+  await db.auditLog.deleteMany({ where: { actorId: KULLANICI } });
+  await db.user.deleteMany({ where: { email: 'zzit-mcp@ornek.test' } });
   await db.$disconnect();
 });
 
