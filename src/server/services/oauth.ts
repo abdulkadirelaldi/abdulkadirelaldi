@@ -19,6 +19,13 @@ import { db } from '@/server/db';
 
 export const KOD_OMRU_MS = 10 * 60_000;
 export const ERISIM_OMRU_S = 60 * 60;
+/**
+ * Etkileşimli işlem süresi. Prisma varsayılanı 5 sn; 2026-11-19'da sıkışık sunucuda (yük ~15)
+ * yenileme 7,5 sn sürdü, işlem iptal oldu ve uç 500 döndü — Claude bağlantıyı kaybetti. Claude
+ * yenilemeye 30 sn, ilk takasa 10 sn tanıyor; 20 sn ikisinin içinde kalan güvenli üst sınır.
+ */
+const ISLEM_SURESI = { maxWait: 10_000, timeout: 20_000 } as const;
+
 export const YENILEME_OMRU_MS = 30 * 24 * 60 * 60_000;
 
 /** RFC 6749 hata kodlarıyla fırlatılır; uçlar `{ error, error_description }` döner. */
@@ -228,7 +235,7 @@ export async function kodTakasEt(
       simdi,
       tx,
     );
-  });
+  }, ISLEM_SURESI);
 }
 
 export async function jetonYenile(
@@ -273,7 +280,7 @@ export async function jetonYenile(
       simdi,
       tx,
     );
-  });
+  }, ISLEM_SURESI);
 }
 
 /* ===========================================================================

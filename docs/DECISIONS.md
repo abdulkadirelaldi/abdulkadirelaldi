@@ -2812,3 +2812,7 @@ Sahibi, bilgisayarı kapalıyken telefondaki Claude uygulamasından iş verip ti
 4. **İzin:** `/panel/oauth/yetki` panel yolu — ara katman oturum + 2FA ister. İstemci adı ve dönüş host'u yazılır. Gezinme istemcide (`form-action 'self'` dış yönlendirmeyi engeller). Ayarlar → Claude bağlayıcısı'ndan bağlantı kaldırılır (bütün jetonlar iptal).
 
 **Ölçülen:** `tests/integration/oauth-mcp.test.ts` (13): kayıt kısıtı, istek doğrulaması, takas, PKCE, kod tekrarı, yenileme dönüşü ve aile iptali, kaldırma, araçlar ve denetim. Test, iptalin işlem içinde yazılıp hata fırlatılınca GERİ ALINDIĞI bir hatayı yakaladı — iptal artık işlem dışında. e2e: jetonsuz/sahte jetonla 401 + `WWW-Authenticate`, keşif belgeleri, yabancı adresle kayıt 400, bilinmeyen kod `invalid_grant`. **Ölçülmeyen:** gerçek Claude istemcisiyle uçtan uca (sahibi bağlayınca).
+
+### ADR-056 eki (2026-11-19) — OAuth işlem süresi
+
+Canlıda ölçüldü: Claude bağlantısı bir gün çalıştı (yenilemeler 200), 09:57'de jeton yenileme işlemi sıkışık sunucuda (yük ~15) 7,5 sn sürdü; Prisma'nın varsayılan 5 sn etkileşimli işlem süresi aşıldı (P2028), uç 500 döndü ve Claude bağlantıyı kaybetti. İşlem geri alındığı için jeton kaybı yok (yenileme jetonu geçerli kaldı). Takas ve yenileme işlemleri artık `maxWait: 10s, timeout: 20s` (Claude yenilemeye 30 sn, ilk takasa 10 sn tanıyor).
