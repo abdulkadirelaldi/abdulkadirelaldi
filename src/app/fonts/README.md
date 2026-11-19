@@ -4,11 +4,11 @@
 derleme anında ağa gittiği ve CI'ı iki kez düşürdüğü için (koşu 31909914487)
 `next/font/local`'a geçildi.
 
-| Dosya                  | Aile                                                  | Ağırlık ekseni | Boyut   |
-| ---------------------- | ----------------------------------------------------- | -------------- | ------- |
-| `space-grotesk.woff2`  | Space Grotesk                                         | 600–700        | 35.2 kB |
-| `inter.woff2`          | Inter (opsz 14'e sabit)                               | 400–600        | 94.4 kB |
-| `jetbrains-mono.woff2` | JetBrains Mono                                        | 400–500        | 33.8 kB |
+| Dosya                  | Aile                    | Ağırlık ekseni | Boyut   |
+| ---------------------- | ----------------------- | -------------- | ------- |
+| `space-grotesk.woff2`  | Space Grotesk           | 600–700        | 35.2 kB |
+| `inter.woff2`          | Inter (opsz 14'e sabit) | 400–600        | 94.4 kB |
+| `jetbrains-mono.woff2` | JetBrains Mono          | 400–500        | 33.8 kB |
 
 Üçü de **değişken** kaldı: tek dosya bütün ağırlıkları karşılıyor. Sabit
 ağırlıklara ayırmak yedi dosya ve 275 kB ederdi (ölçüldü); Google'ın altkümeli

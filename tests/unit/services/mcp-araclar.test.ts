@@ -17,6 +17,8 @@ const m = vi.hoisted(() => ({
   fetchHabitDay: vi.fn(),
   findUnique: vi.fn(),
   auditCreate: vi.fn(),
+  fetchDukkanKayitlari: vi.fn(),
+  paketSay: vi.fn(),
 }));
 
 vi.mock('@/server/services/gorev', async (orijinal) => ({
@@ -29,6 +31,11 @@ vi.mock('@/server/services/gorev', async (orijinal) => ({
   gorevSil: m.gorevSil,
 }));
 vi.mock('@/server/services/takvim', () => ({ fetchBugunTakvim: m.fetchBugunTakvim }));
+vi.mock('@/server/services/dukkan', async (orijinal) => ({
+  ...(await orijinal<typeof import('@/server/services/dukkan')>()),
+  fetchDukkanKayitlari: m.fetchDukkanKayitlari,
+  paketSay: m.paketSay,
+}));
 vi.mock('@/server/services/habit-gun', () => ({ fetchHabitDay: m.fetchHabitDay }));
 vi.mock('@/server/db', () => ({
   db: { gorev: { findUnique: m.findUnique }, auditLog: { create: m.auditCreate } },
@@ -36,6 +43,7 @@ vi.mock('@/server/db', () => ({
 
 const { aracCalistir } = await import('@/server/services/mcp-araclar');
 const { GorevHatasi } = await import('@/server/services/gorev');
+const { DukkanHatasi } = await import('@/server/services/dukkan');
 
 const g = (p: Record<string, unknown> = {}) => ({
   id: 'g1',
@@ -149,6 +157,61 @@ describe('yazma araçları', () => {
 
     m.findUnique.mockResolvedValueOnce({ ...satir, teslimGun: null, teslimDakika: null });
     expect((await aracCalistir('is_guncelle', { id: 'g1', saat: '10:00' }, b)).isError).toBe(true);
+  });
+});
+
+describe('paket araçları (ADR-058)', () => {
+  const kayit = (n: number) => ({
+    anahtar: 'd:garage',
+    driveUrl: null,
+    not: null,
+    paket: [
+      { tur: 'reels', n, hedef: 4 },
+      { tur: 'post', n: 0, hedef: 8 },
+      { tur: 'story', n: 0, hedef: 8 },
+    ],
+  });
+
+  it('listele: paketsizler atlanır, boşsa söyler', async () => {
+    m.fetchDukkanKayitlari.mockResolvedValueOnce({});
+    expect(yazi(await aracCalistir('paketleri_listele', {}, b))).toContain('Paketi tanımlı');
+    m.fetchDukkanKayitlari.mockResolvedValueOnce({
+      'd:garage': kayit(3),
+      'd:leyla': { anahtar: 'd:leyla', driveUrl: null, not: null, paket: null },
+    });
+    const t = yazi(await aracCalistir('paketleri_listele', {}, b));
+    expect(t).toContain('Garage: Reels 3/4, Gönderi 0/8, Story 0/8');
+    expect(t).not.toContain('Leyla');
+  });
+
+  it('say: adet kadar artırır, geri alır, paketsiz dükkânda hata', async () => {
+    m.paketSay.mockResolvedValue(kayit(2));
+    const r = await aracCalistir('paket_say', { musteri: 'Garage', tur: 'reels', adet: 2 }, b);
+    expect(yazi(r)).toContain('Garage: Reels 2/4');
+    expect(m.paketSay).toHaveBeenCalledTimes(2);
+    expect(m.paketSay).toHaveBeenLastCalledWith(
+      { anahtar: 'd:garage', tur: 'reels', fark: 1 },
+      expect.stringMatching(/^\d{4}-\d{2}$/),
+    );
+    await aracCalistir('paket_say', { musteri: 'Garage', tur: 'reels', geri_al: true }, b);
+    expect(m.paketSay).toHaveBeenLastCalledWith(
+      expect.objectContaining({ fark: -1 }),
+      expect.any(String),
+    );
+    m.paketSay.mockRejectedValueOnce(
+      new DukkanHatasi('NOT_FOUND', 'Bu dükkânın aylık paketi yok.'),
+    );
+    expect((await aracCalistir('paket_say', { musteri: 'Leyla', tur: 'post' }, b)).isError).toBe(
+      true,
+    );
+    expect((await aracCalistir('paket_say', { musteri: ' ', tur: 'post' }, b)).isError).toBe(true);
+  });
+
+  it('ekle ve güncelle acil işaretini geçirir; listede [ACİL]', async () => {
+    m.gorevOlustur.mockResolvedValueOnce(g({ acil: true }));
+    const r = await aracCalistir('is_ekle', { baslik: 'x', acil: true }, b);
+    expect(m.gorevOlustur).toHaveBeenLastCalledWith(expect.objectContaining({ acil: true }));
+    expect(yazi(r)).toContain('[ACİL]');
   });
 });
 

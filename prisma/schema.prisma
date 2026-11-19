@@ -1280,23 +1280,25 @@ enum IsAlani {
 }
 
 model Gorev {
-  id           String    @id @default(cuid())
-  baslik       String
-  not          String?
-  alan         IsAlani   @default(KISISEL)
+  id               String    @id @default(cuid())
+  baslik           String
+  not              String?
+  alan             IsAlani   @default(KISISEL)
   /// Müşteri ya da ders adı — serbest, kısa. Süzgeç değil, satırdaki ikinci bilgi.
-  etiket       String?
+  etiket           String?
   /// Takvim günü + isteğe bağlı İstanbul duvar saati (dakika). Saat yoksa gün boyu.
-  teslimGun    DateTime? @db.Date
-  teslimDakika Int?
-  tamamlandiAt DateTime?
+  teslimGun        DateTime? @db.Date
+  teslimDakika     Int?
+  tamamlandiAt     DateTime?
   /// ADR-051 — Google Takvim'deki karşılığı. Tarihsiz görevin etkinliği yoktur.
   googleEtkinlikId String?
   /// Google'a yazılmayı bekliyor (her değişiklikte `true`; eşitlenince `false`). Bağlantı yoksa
   /// bekler, bağlanınca toplu yazılır; hata olursa zamanlayıcı yeniden dener.
   googleBekliyor   Boolean   @default(false)
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  /// ADR-058 — elle "acil" işareti. Tarihten bağımsız; sokakta dikkat panosuna düşer.
+  acil             Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 
   @@index([tamamlandiAt, teslimGun])
   @@index([alan])
@@ -1327,30 +1329,30 @@ model GoogleBaglantisi {
 
 model OAuthIstemci {
   /// `client_id` — rastgele, düz (gizli değil; istemci herkese açık, PKCE ile korunur).
-  id            String        @id
-  ad            String
+  id             String       @id
+  ad             String
   yonlendirmeler String[]
-  createdAt     DateTime      @default(now())
-  sonKullanim   DateTime?
-  kodlar        OAuthKod[]
-  jetonlar      OAuthJeton[]
+  createdAt      DateTime     @default(now())
+  sonKullanim    DateTime?
+  kodlar         OAuthKod[]
+  jetonlar       OAuthJeton[]
 
   @@map("oauth_istemci")
 }
 
 model OAuthKod {
   /// Kodun SHA-256 özeti. Tek kullanımlık, 10 dk.
-  ozet          String       @id
-  istemciId     String
-  istemci       OAuthIstemci @relation(fields: [istemciId], references: [id], onDelete: Cascade)
-  userId        String
-  yonlendirme   String
-  kodSinami     String
-  kaynak        String
-  kapsam        String
-  bitis         DateTime
-  kullanildi    DateTime?
-  createdAt     DateTime     @default(now())
+  ozet        String       @id
+  istemciId   String
+  istemci     OAuthIstemci @relation(fields: [istemciId], references: [id], onDelete: Cascade)
+  userId      String
+  yonlendirme String
+  kodSinami   String
+  kaynak      String
+  kapsam      String
+  bitis       DateTime
+  kullanildi  DateTime?
+  createdAt   DateTime     @default(now())
 
   @@index([istemciId])
   @@map("oauth_kod")
@@ -1363,21 +1365,53 @@ enum OAuthJetonTuru {
 
 model OAuthJeton {
   /// Jetonun SHA-256 özeti.
-  ozet          String         @id
-  tur           OAuthJetonTuru
-  istemciId     String
-  istemci       OAuthIstemci   @relation(fields: [istemciId], references: [id], onDelete: Cascade)
-  userId        String
-  kaynak        String
-  kapsam        String
+  ozet      String         @id
+  tur       OAuthJetonTuru
+  istemciId String
+  istemci   OAuthIstemci   @relation(fields: [istemciId], references: [id], onDelete: Cascade)
+  userId    String
+  kaynak    String
+  kapsam    String
   /// Aynı yetkiden türeyen bütün jetonlar — eski yenileme jetonu yeniden kullanılırsa aile iptal edilir.
-  aile          String
-  bitis         DateTime
-  iptal         DateTime?
-  createdAt     DateTime       @default(now())
+  aile      String
+  bitis     DateTime
+  iptal     DateTime?
+  createdAt DateTime       @default(now())
 
   @@index([istemciId])
   @@index([aile])
   @@index([bitis])
   @@map("oauth_jeton")
+}
+
+/// ADR-058 — sokaktaki dükkânın (ya da binanın) kaydı: Drive klasörü, not, aylık paket hedefi.
+/// Dükkânın kendisi işlerin etiketinden türer (ADR-057); bu kayıt yalnızca ek bilgidir ve ilk
+/// kaydedişte oluşur. Anahtar sokaktakiyle aynı: "d:<küçük harf etiket>" ya da "b:<ALAN>".
+model Dukkan {
+  anahtar    String       @id
+  driveUrl   String?
+  not        String?
+  /// Aylık paket hedefleri; üçü de boşsa paket yok (ör. tek seferlik çekim).
+  paketReels Int?
+  paketPost  Int?
+  paketStory Int?
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+  sayaclar   PaketSayac[]
+
+  @@map("dukkan")
+}
+
+/// ADR-058 — aylık paket sayacı: o ay teslim edilen reels/post/story. Ay "YYYY-AA" (İstanbul).
+model PaketSayac {
+  dukkanAnahtar String
+  ay            String
+  reels         Int      @default(0)
+  post          Int      @default(0)
+  story         Int      @default(0)
+  updatedAt     DateTime @updatedAt
+  dukkan        Dukkan   @relation(fields: [dukkanAnahtar], references: [anahtar], onDelete: Cascade)
+
+  @@id([dukkanAnahtar, ay])
+  @@map("paket_sayac")
 }

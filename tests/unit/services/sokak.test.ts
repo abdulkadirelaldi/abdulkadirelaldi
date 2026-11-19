@@ -4,6 +4,7 @@ import {
   gorevKapsami,
   kapsamaUyar,
   kapsamAdresi,
+  kapsamAnahtari,
   kapsamCoz,
   kapsamTabelasi,
   sokakKur,
@@ -106,5 +107,28 @@ describe('sokakKur', () => {
     expect(s.pano.gecikmis[0]!.renk).toBe(panayir!.renk);
     expect(s.pano.bugun[0]).toMatchObject({ baslik: 'post', yer: 'Goril' });
     expect(s.pano.yakin.map((p) => p.baslik)).toEqual(['story']);
+  });
+});
+
+describe('acil ve dükkân eki (ADR-058)', () => {
+  it('elle acil işaretli iş tarihsiz de olsa acil sütununa düşer; rozet "acil"; ek taşınır', () => {
+    const acil = { ...g('KIYI_MEDYA', 'Goril', null, 'kampanya'), acil: true };
+    const gec = { ...g('KIYI_MEDYA', 'Goril', '2026-11-01', 'eski'), acil: true };
+    const paket = [{ tur: 'reels' as const, n: 1, hedef: 4 }];
+    const s = sokakKur([acil, gec], [], BUGUN, {
+      'd:goril': { driveUrl: 'https://drive.google.com/x', paket },
+    });
+    expect(s.pano.yakin.map((p) => p.baslik)).toEqual(['kampanya']);
+    expect(s.pano.yakin[0]).toMatchObject({ acil: true, teslimGun: null });
+    expect(s.pano.gecikmis.map((p) => p.baslik)).toEqual(['eski']);
+    const goril = s.cadde[0]!;
+    expect(goril).toMatchObject({ acilVar: true, durum: 'gecikmis', paket });
+    expect(goril.driveUrl).toBe('https://drive.google.com/x');
+    expect(s.arka[0]!.paket).toBeNull();
+  });
+
+  it('kapsam anahtarı sokaktakiyle aynı', () => {
+    expect(kapsamAnahtari({ tur: 'dukkan', etiket: ' Panayır ' })).toBe('d:panayır');
+    expect(kapsamAnahtari({ tur: 'bina', alan: 'OKUL' })).toBe('b:OKUL');
   });
 });

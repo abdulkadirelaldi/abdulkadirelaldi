@@ -25,13 +25,22 @@ type SokakGorevi = {
   etiket: string | null;
   teslimGun: AppDay | null;
   teslimDakika: number | null;
+  /** ADR-058 — elle "acil" işareti. */
+  acil?: boolean;
 };
+
+/** ADR-058 — dükkân kaydından sokağa taşınan ek: Drive klasörü ve bu ayın paketi. */
+export interface DukkanEki {
+  driveUrl: string | null;
+  paket: { tur: 'reels' | 'post' | 'story'; n: number; hedef: number }[] | null;
+}
 
 export interface PanoIsi {
   id: string;
   anahtar: string;
   baslik: string;
-  teslimGun: AppDay;
+  teslimGun: AppDay | null;
+  acil: boolean;
   teslimDakika: number | null;
   yer: string;
   renk: string;
@@ -52,6 +61,10 @@ export interface Dukkan {
   vitrin: SokakGorevi[];
   /** Son günlerde biten iş sayısı. */
   biten: number;
+  /** Elle acil işaretli açık iş var mı (rozet "acil" der). */
+  acilVar: boolean;
+  driveUrl: string | null;
+  paket: DukkanEki['paket'];
 }
 
 export interface Sokak {
@@ -109,6 +122,11 @@ export function kapsamaUyar(g: Pick<SokakGorevi, 'alan' | 'etiket'>, k: Kapsam):
   return gk.tur === 'dukkan' && bicimle(gk.etiket) === bicimle(k.etiket);
 }
 
+/** Sokaktaki ve dükkân kaydındaki (ADR-058) anahtar: "d:<küçük harf etiket>" ya da "b:<ALAN>". */
+export function kapsamAnahtari(k: Kapsam): string {
+  return k.tur === 'dukkan' ? `d:${bicimle(k.etiket)}` : `b:${k.alan}`;
+}
+
 export function kapsamAdresi(k: Kapsam): string {
   return k.tur === 'dukkan'
     ? `/panel/isler?dukkan=${encodeURIComponent(k.etiket)}`
@@ -139,11 +157,12 @@ export function kapsamTabelasi(k: Kapsam): { ad: string; tur: string; renk: stri
   return { ad: b.ad, tur: b.tur, renk: b.renk };
 }
 
+/** Gecikmiş ve bugün tarihten; "acil" sütunu elle işaretlenenler + 2 gün içinde teslim edilecekler. */
 function dikkat(g: SokakGorevi, bugun: AppDay): DikkatDurumu | null {
-  if (g.teslimGun === null) return null;
-  if (g.teslimGun < bugun) return 'gecikmis';
+  if (g.teslimGun !== null && g.teslimGun < bugun) return 'gecikmis';
   if (g.teslimGun === bugun) return 'bugun';
-  return g.teslimGun <= addAppDays(bugun, 2) ? 'yakin' : null;
+  if (g.acil) return 'yakin';
+  return g.teslimGun !== null && g.teslimGun <= addAppDays(bugun, 2) ? 'yakin' : null;
 }
 
 /**
@@ -154,13 +173,14 @@ export function sokakKur(
   acik: readonly SokakGorevi[],
   bitenler: readonly Pick<SokakGorevi, 'alan' | 'etiket'>[],
   bugun: AppDay,
+  ekler: Readonly<Record<string, DukkanEki>> = {},
 ): Sokak {
   const dukkanlar = new Map<string, Dukkan & { isler: SokakGorevi[] }>();
   const pano: Sokak['pano'] = { gecikmis: [], bugun: [], yakin: [] };
 
   const yer = (g: Pick<SokakGorevi, 'alan' | 'etiket'>) => {
     const k = gorevKapsami(g);
-    const anahtar = k.tur === 'dukkan' ? `d:${bicimle(k.etiket)}` : `b:${k.alan}`;
+    const anahtar = kapsamAnahtari(k);
     let d = dukkanlar.get(anahtar);
     if (!d) {
       const t = kapsamTabelasi(k);
@@ -173,6 +193,9 @@ export function sokakKur(
         durum: null,
         vitrin: [],
         biten: 0,
+        acilVar: false,
+        driveUrl: ekler[anahtar]?.driveUrl ?? null,
+        paket: ekler[anahtar]?.paket ?? null,
         isler: [],
       };
       dukkanlar.set(anahtar, d);
@@ -186,14 +209,16 @@ export function sokakKur(
     const d = yer(g);
     d.acik++;
     d.isler.push(g);
+    if (g.acil) d.acilVar = true;
     const durum = dikkat(g, bugun);
-    if (durum && g.teslimGun) {
+    if (durum) {
       d.sayi[durum]++;
       pano[durum].push({
         id: g.id,
         baslik: g.baslik,
         teslimGun: g.teslimGun,
         teslimDakika: g.teslimDakika,
+        acil: !!g.acil,
         anahtar: d.anahtar,
         yer: d.ad,
         renk: d.renk,

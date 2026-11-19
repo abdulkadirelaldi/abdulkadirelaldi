@@ -41,6 +41,8 @@ const gorevNesnesi = z.object({
   not: bosMetin(GOREV_SINIRLARI.not, `Not en çok ${GOREV_SINIRLARI.not} karakter.`),
   teslimGun: gunSchema.nullish().transform((v) => v ?? null),
   teslimSaat: saatSchema.nullish().transform((v) => v ?? null),
+  /** ADR-058 — verilmezse DOKUNULMAZ (güncellemede eski değer kalır, yenide `false`). */
+  acil: z.boolean().optional(),
 });
 
 const saatGunsuzOlmaz = (v: { teslimGun: string | null; teslimSaat: string | null }) =>

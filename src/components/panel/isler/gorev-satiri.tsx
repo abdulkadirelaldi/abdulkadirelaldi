@@ -74,6 +74,12 @@ export function GorevSatiri({
         <span className="text-muted flex w-full min-w-0 items-center gap-1.5 text-xs">
           <span aria-hidden="true" className={cn('size-1.5 shrink-0 rounded-full', alan.nokta)} />
           <span className="truncate">{g.etiket ?? alan.ad}</span>
+          {!bitti && g.acil && (
+            <>
+              <span aria-hidden="true">·</span>
+              <span className="text-warning shrink-0 font-medium">Acil</span>
+            </>
+          )}
           {!bitti && teslim.metin && (
             <>
               <span aria-hidden="true">·</span>
