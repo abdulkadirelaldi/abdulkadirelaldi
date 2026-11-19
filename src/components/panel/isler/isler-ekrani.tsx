@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState, useTransition } from 'react';
 import { Pencere } from '@/components/panel/takvim/pencere';
 import { FormError } from '@/components/ui/form-error';
 import { ALAN_SIRASI, ALANLAR } from '@/lib/gorev/bicim';
+import { kapsamaUyar, kapsamTabelasi, type Kapsam } from '@/lib/gorev/sokak';
 import { cn } from '@/lib/utils/cn';
 import {
   gorevBittiAction,
@@ -41,7 +42,16 @@ const ACIK_OBEKLER = [
  * sürer. Arada satır eski hâliyle kalmasın diye sunucunun döndürdüğü DTO tutulur (`null` = silindi);
  * taze liste gelince yerel hâl sıfırlanır.
  */
-export function IslerEkrani({ liste, bugun }: { liste: IsListesi; bugun: AppDay }) {
+export function IslerEkrani({
+  liste,
+  bugun,
+  kapsam,
+}: {
+  liste: IsListesi;
+  bugun: AppDay;
+  /** Dükkânın içi (ADR-057): yalnızca bu kapsamın işleri; yeni iş bu kapsama eklenir. */
+  kapsam?: Kapsam;
+}) {
   const router = useRouter();
   const [, gecis] = useTransition();
   const [pencere, setPencere] = useState<Pencere>({ tur: 'kapali' });
@@ -59,6 +69,7 @@ export function IslerEkrani({ liste, bugun }: { liste: IsListesi; bugun: AppDay 
       const y = yerel[g.id];
       if (y === null) return [];
       const guncel = y ?? g;
+      if (kapsam) return kapsamaUyar(guncel, kapsam) ? [guncel] : [];
       return suzgec === 'TUMU' || guncel.alan === suzgec ? [guncel] : [];
     });
 
@@ -84,6 +95,17 @@ export function IslerEkrani({ liste, bugun }: { liste: IsListesi; bugun: AppDay 
       ].sort((a, b) => a.localeCompare(b, 'tr')),
     [tumAcik, liste.bitenler],
   );
+
+  // Yeni işin varsayılanı: dükkânda o müşteri (Kıyı + etiket), binada o alan, değilse süzgeç.
+  const yeniAlan: IsAlani = kapsam
+    ? kapsam.tur === 'dukkan'
+      ? 'KIYI_MEDYA'
+      : kapsam.alan
+    : suzgec === 'TUMU'
+      ? 'KISISEL'
+      : suzgec;
+  const yeniEtiket = kapsam?.tur === 'dukkan' ? kapsam.etiket : '';
+  const yerAdi = kapsam ? kapsamTabelasi(kapsam).ad : suzgec === 'TUMU' ? null : ALANLAR[suzgec].ad;
 
   const tikle = (g: GorevDto) => {
     const bitti = g.tamamlandiAt === null;
@@ -119,7 +141,8 @@ export function IslerEkrani({ liste, bugun }: { liste: IsListesi; bugun: AppDay 
       setHata(null);
       const sonuc = await gorevOlusturAction({
         baslik,
-        alan: suzgec === 'TUMU' ? 'KISISEL' : suzgec,
+        alan: yeniAlan,
+        ...(yeniEtiket ? { etiket: yeniEtiket } : {}),
       });
       if (sonuc.ok) {
         setHizli('');
@@ -177,7 +200,7 @@ export function IslerEkrani({ liste, bugun }: { liste: IsListesi; bugun: AppDay 
           onChange={(e) => setHizli(e.target.value)}
           maxLength={160}
           enterKeyHint="done"
-          placeholder={suzgec === 'TUMU' ? 'Hızlı ekle…' : `${ALANLAR[suzgec].ad} için hızlı ekle…`}
+          placeholder={yerAdi ? `${yerAdi} için hızlı ekle…` : 'Hızlı ekle…'}
           className="text-primary placeholder:text-muted min-h-12 flex-1 bg-transparent text-base outline-none sm:text-sm"
         />
         {/* Tek giriş (ADR-053): tarih/alan/etiket gerekiyorsa aynı satırdan ayrıntılı form. */}
@@ -195,33 +218,38 @@ export function IslerEkrani({ liste, bugun }: { liste: IsListesi; bugun: AppDay 
         </button>
       </form>
 
-      <div
-        role="tablist"
-        aria-label="Alan"
-        className="-mx-4 flex [scrollbar-width:none] gap-2 overflow-x-auto px-4 lg:mx-0 lg:px-0"
-      >
-        {(['TUMU', ...ALAN_SIRASI] as const).map((a) => (
-          <button
-            key={a}
-            type="button"
-            role="tab"
-            aria-selected={suzgec === a}
-            onClick={() => setSuzgec(a)}
-            className={cn(
-              'focus-ring flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm transition-colors',
-              suzgec === a
-                ? 'border-primary bg-primary text-surface font-medium'
-                : 'border-line text-body',
-            )}
-          >
-            {a !== 'TUMU' && (
-              <span aria-hidden="true" className={cn('size-1.5 rounded-full', ALANLAR[a].nokta)} />
-            )}
-            {a === 'TUMU' ? 'Tümü' : ALANLAR[a].ad}
-            {sayilar[a] > 0 && <span className="opacity-60">{sayilar[a]}</span>}
-          </button>
-        ))}
-      </div>
+      {!kapsam && (
+        <div
+          role="tablist"
+          aria-label="Alan"
+          className="-mx-4 flex [scrollbar-width:none] gap-2 overflow-x-auto px-4 lg:mx-0 lg:px-0"
+        >
+          {(['TUMU', ...ALAN_SIRASI] as const).map((a) => (
+            <button
+              key={a}
+              type="button"
+              role="tab"
+              aria-selected={suzgec === a}
+              onClick={() => setSuzgec(a)}
+              className={cn(
+                'focus-ring flex min-h-9 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-sm transition-colors',
+                suzgec === a
+                  ? 'border-primary bg-primary text-surface font-medium'
+                  : 'border-line text-body',
+              )}
+            >
+              {a !== 'TUMU' && (
+                <span
+                  aria-hidden="true"
+                  className={cn('size-1.5 rounded-full', ALANLAR[a].nokta)}
+                />
+              )}
+              {a === 'TUMU' ? 'Tümü' : ALANLAR[a].ad}
+              {sayilar[a] > 0 && <span className="opacity-60">{sayilar[a]}</span>}
+            </button>
+          ))}
+        </div>
+      )}
 
       {hata && <FormError>{hata}</FormError>}
 
@@ -239,9 +267,7 @@ export function IslerEkrani({ liste, bugun }: { liste: IsListesi; bugun: AppDay 
         ))}
         {acikSayi === 0 && (
           <p className="rounded-card border-line-hover text-muted border border-dashed p-6 text-center text-sm">
-            {suzgec === 'TUMU'
-              ? 'Liste boş. Yukarıdan yazıp Enter’a bas.'
-              : `${ALANLAR[suzgec].ad} için açık iş yok.`}
+            {yerAdi ? `${yerAdi} için açık iş yok.` : 'Liste boş. Yukarıdan yazıp Enter’a bas.'}
           </p>
         )}
         {bitenler.length > 0 && (
@@ -260,7 +286,7 @@ export function IslerEkrani({ liste, bugun }: { liste: IsListesi; bugun: AppDay 
         <Pencere baslik={pencere.tur === 'yeni' ? 'Yeni iş' : 'İşi düzenle'} kapat={kapat}>
           {pencere.tur === 'yeni' ? (
             <GorevFormu
-              ilk={{ ...bosGorev(suzgec === 'TUMU' ? 'KISISEL' : suzgec), baslik: pencere.baslik }}
+              ilk={{ ...bosGorev(yeniAlan), etiket: yeniEtiket, baslik: pencere.baslik }}
               etiketOnerileri={etiketOnerileri}
               vazgec={kapat}
               kaydet={async (girdi) => bitir(await gorevOlusturAction(girdi))}
