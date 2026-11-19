@@ -15,6 +15,14 @@ import {
   GorevHatasi,
   type GorevDto,
 } from '@/server/services/gorev';
+import { kapsamAnahtari, kapsamCoz, kapsamTabelasi } from '@/lib/gorev/sokak';
+import { PAKET_TURLERI } from '@/lib/schemas/dukkan';
+import {
+  DukkanHatasi,
+  fetchDukkanKayitlari,
+  paketSay,
+  type DukkanKaydiDto,
+} from '@/server/services/dukkan';
 import { fetchHabitDay } from '@/server/services/habit-gun';
 import { fetchBugunTakvim } from '@/server/services/takvim';
 import { IsAlani } from '@/types';
@@ -55,6 +63,7 @@ function satir(g: GorevDto, bugun: AppDay): string {
     `[${g.id}]`,
     g.tamamlandiAt ? '✓' : '○',
     g.baslik,
+    ...(g.acil && !g.tamamlandiAt ? ['[ACİL]'] : []),
     `(${ALANLAR[g.alan].ad}${g.etiket ? ` · ${g.etiket}` : ''}${t ? ` · ${t}` : ''})`,
   ];
   return parca.join(' ');
@@ -180,6 +189,7 @@ const ARACLAR = {
         gun: gunAlani.optional(),
         saat: saatAlani.optional(),
         not: z.string().max(4000).optional(),
+        acil: z.boolean().optional().describe('Kullanıcı "acil" derse true'),
       })
       .strict(),
     salt: false,
@@ -191,6 +201,7 @@ const ARACLAR = {
         gun?: string;
         saat?: string;
         not?: string;
+        acil?: boolean;
       },
       b: AracBaglami,
     ) {
@@ -201,6 +212,7 @@ const ARACLAR = {
         not: g.not,
         teslimGun: g.gun,
         teslimSaat: g.saat,
+        acil: g.acil,
       });
       if (!v.success)
         return metin(`Eklenemedi: ${v.error.issues.map((i) => i.message).join('; ')}`, true);
@@ -259,7 +271,7 @@ const ARACLAR = {
   is_guncelle: {
     title: 'İşi düzenle',
     description:
-      'Bir işin başlığını, alanını, etiketini, tarihini, saatini ya da notunu değiştirir. Verilmeyen alan aynı kalır; tarihi kaldırmak için `gun: null`.',
+      'Bir işin başlığını, alanını, etiketini, tarihini, saatini, notunu ya da acil işaretini değiştirir. Verilmeyen alan aynı kalır; tarihi kaldırmak için `gun: null`.',
     girdi: z
       .object({
         id: z.string().max(64),
@@ -269,6 +281,7 @@ const ARACLAR = {
         gun: gunAlani.nullable().optional(),
         saat: saatAlani.nullable().optional(),
         not: z.string().max(4000).nullable().optional(),
+        acil: z.boolean().optional(),
       })
       .strict(),
     salt: false,
@@ -281,6 +294,7 @@ const ARACLAR = {
         gun?: string | null;
         saat?: string | null;
         not?: string | null;
+        acil?: boolean;
       },
       b: AracBaglami,
     ) {
@@ -294,6 +308,7 @@ const ARACLAR = {
         alan: g.alan ?? eski.alan,
         etiket: g.etiket === undefined ? eski.etiket : g.etiket,
         not: g.not === undefined ? eski.not : g.not,
+        acil: g.acil,
         teslimGun: gun,
         teslimSaat:
           g.saat === undefined
@@ -325,7 +340,69 @@ const ARACLAR = {
       return metin('Silindi.');
     },
   },
+
+  paketleri_listele: {
+    title: 'Bu ayın paketleri',
+    description:
+      'Kıyı Medya müşterilerinin bu ayki paket ilerlemesi (reels/gönderi/story, yapılan/hedef). "Paketler ne durumda" sorulunca çağır.',
+    girdi: z.object({}).strict(),
+    salt: true,
+    async calistir() {
+      const ay = appToday().slice(0, 7);
+      const kayitlar = Object.values(await fetchDukkanKayitlari(ay)).filter((k) => k.paket);
+      if (kayitlar.length === 0) return metin('Paketi tanımlı dükkân yok.');
+      return metin(`${ay} paketleri:\n${kayitlar.map((k) => `- ${paketSatiri(k)}`).join('\n')}`);
+    },
+  },
+
+  paket_say: {
+    title: 'Paket teslimini say',
+    description:
+      'Bir müşterinin bu ayki paket sayacını artırır (teslim edildi) ya da `geri_al` ile azaltır. Ör. "Garage için 2 reels teslim ettim" → musteri "Garage", tur "reels", adet 2.',
+    girdi: z
+      .object({
+        musteri: z.string().min(1).max(40).describe('İşlerdeki etiketle aynı müşteri adı'),
+        tur: z.enum(PAKET_TURLERI),
+        adet: z.number().int().min(1).max(10).optional().describe('Varsayılan 1'),
+        geri_al: z.boolean().optional(),
+      })
+      .strict(),
+    salt: false,
+    async calistir(
+      g: { musteri: string; tur: (typeof PAKET_TURLERI)[number]; adet?: number; geri_al?: boolean },
+      b: AracBaglami,
+    ) {
+      const kapsam = kapsamCoz({ dukkan: g.musteri });
+      if (!kapsam) return metin('Müşteri adı anlaşılamadı.', true);
+      const anahtar = kapsamAnahtari(kapsam);
+      const ay = appToday().slice(0, 7);
+      const fark = g.geri_al ? -1 : 1;
+      let son: DukkanKaydiDto | null = null;
+      for (let i = 0; i < (g.adet ?? 1); i++)
+        son = await paketSay({ anahtar, tur: g.tur, fark }, ay);
+      await writeAuditLog(
+        {
+          actorId: b.userId,
+          action: 'UPDATE',
+          entity: 'Dukkan',
+          entityId: anahtar,
+          diff: { context: 'mcp', paket: g.tur, fark: fark * (g.adet ?? 1) },
+        },
+        db,
+      );
+      return metin(`Sayıldı. ${paketSatiri(son!, kapsamTabelasi(kapsam).ad)}`);
+    },
+  },
 } as const;
+
+const TUR_ADI = { reels: 'Reels', post: 'Gönderi', story: 'Story' } as const;
+
+function paketSatiri(k: DukkanKaydiDto, ad?: string): string {
+  const yalin = k.anahtar.replace(/^[db]:/, '');
+  const isim = ad ?? yalin.charAt(0).toLocaleUpperCase('tr') + yalin.slice(1);
+  const parca = (k.paket ?? []).map((p) => `${TUR_ADI[p.tur]} ${p.n}/${p.hedef}`);
+  return `${isim}: ${parca.join(', ')}`;
+}
 
 type AracAdi = keyof typeof ARACLAR;
 
@@ -358,7 +435,7 @@ export async function aracCalistir(
     // Her aracın girdisi kendi şemasından geçti; çalıştırıcı tipleri şemayla aynı.
     return await (a.calistir as (g: unknown, b: AracBaglami) => Promise<AracSonucu>)(v.data, b);
   } catch (e) {
-    if (e instanceof GorevHatasi) return metin(e.message, true);
+    if (e instanceof GorevHatasi || e instanceof DukkanHatasi) return metin(e.message, true);
     throw e;
   }
 }

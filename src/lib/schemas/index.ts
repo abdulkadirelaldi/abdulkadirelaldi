@@ -48,3 +48,4 @@ export * from './journal-entry';
 // Takvim
 export * from './takvim';
 export * from './gorev';
+export * from './dukkan';

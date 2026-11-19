@@ -25,10 +25,12 @@ export interface GorevFormDurumu {
   not: string;
   teslimGun: string;
   teslimSaat: string;
+  /** ADR-058 */
+  acil: boolean;
 }
 
 export function bosGorev(alan: IsAlani = 'KISISEL'): GorevFormDurumu {
-  return { baslik: '', alan, etiket: '', not: '', teslimGun: '', teslimSaat: '' };
+  return { baslik: '', alan, etiket: '', not: '', teslimGun: '', teslimSaat: '', acil: false };
 }
 
 export function gorevdenForm(g: GorevDto): GorevFormDurumu {
@@ -39,6 +41,7 @@ export function gorevdenForm(g: GorevDto): GorevFormDurumu {
     not: g.not ?? '',
     teslimGun: g.teslimGun ?? '',
     teslimSaat: g.teslimDakika !== null ? saatMetni(g.teslimDakika) : '',
+    acil: g.acil,
   };
 }
 
@@ -51,6 +54,7 @@ export function gorevGirdisi(f: GorevFormDurumu) {
     not: f.not || null,
     teslimGun: f.teslimGun || null,
     teslimSaat: f.teslimGun && f.teslimSaat ? f.teslimSaat : null,
+    acil: f.acil,
   };
 }
 
@@ -185,6 +189,21 @@ export function GorevFormu({
           </>
         )}
       </Alan>
+
+      <label
+        htmlFor="gorev-acil"
+        className="border-line bg-elevated flex min-h-11 cursor-pointer items-center gap-3 rounded-lg border px-3 text-sm"
+      >
+        <input
+          id="gorev-acil"
+          type="checkbox"
+          checked={f.acil}
+          onChange={(e) => guncelle({ acil: e.target.checked })}
+          className="accent-warning size-4"
+        />
+        <span className="text-primary">Acil</span>
+        <span className="text-muted text-xs">sokakta dikkat panosuna düşer</span>
+      </label>
 
       <Alan id="gorev-not" etiket="Not" hata={hata?.alanlar.not}>
         {(b) => (

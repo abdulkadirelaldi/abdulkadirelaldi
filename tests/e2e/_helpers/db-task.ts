@@ -322,15 +322,16 @@ const komutlar: Record<string, (arg?: string) => Promise<unknown>> = {
      * Egzersiz ve alışkanlık arayüzden SİLİNEMİYOR (yalnızca arşiv), yani
      * test izi ancak `kisiselSondaSil` ile gider.
      */
-    const [egzersiz, aliskanlik, takvim, gorev] = await Promise.all([
+    const [egzersiz, aliskanlik, takvim, gorev, dukkan] = await Promise.all([
       db.exercise.count({ where: { name: { startsWith: 'e2e', mode: 'insensitive' } } }),
       db.habit.count({ where: { name: { startsWith: 'e2e', mode: 'insensitive' } } }),
       // Takvim (2026-11-10): `takvimSondaSil` başlık önekiyle siler; çökerse burada görünür.
       db.takvimEtkinligi.count({ where: { baslik: { startsWith: 'e2e', mode: 'insensitive' } } }),
       // İşler (ADR-050): `islerSondaSil` başlık önekiyle siler.
       db.gorev.count({ where: { baslik: { startsWith: 'e2e', mode: 'insensitive' } } }),
+      db.dukkan.count({ where: { anahtar: { startsWith: 'd:e2e' } } }),
     ]);
-    const kisisel = egzersiz + aliskanlik + takvim + gorev;
+    const kisisel = egzersiz + aliskanlik + takvim + gorev + dukkan;
 
     return {
       proje,
@@ -347,6 +348,10 @@ const komutlar: Record<string, (arg?: string) => Promise<unknown>> = {
     if (!onek || !onek.startsWith('e2e-'))
       throw new Error('islerSondaSil: `e2e-` ile başlayan önek zorunlu.');
     const silinen = await db.gorev.deleteMany({ where: { baslik: { startsWith: onek } } });
+    // ADR-058 — e2e dükkânın etiketi önekin kendisi; kaydı (ve sayaçları) da gider.
+    await db.dukkan.deleteMany({
+      where: { anahtar: { startsWith: `d:${onek.toLocaleLowerCase('tr')}` } },
+    });
     return { silinen: silinen.count };
   },
 

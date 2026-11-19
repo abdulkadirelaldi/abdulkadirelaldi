@@ -2827,3 +2827,14 @@ Sahibi: "her şey sıralı listeli olmasın … bir sokak olsun, çalıştığı
 2. **Tek adres, üç görünüm:** `/panel/isler` sokak; `?dukkan=Garage` / `?bina=OKUL` dükkânın içi — ADR-050 listesinin aynısı, yalnız o kapsamın işleri, yeni iş o kapsama eklenir; `?gorunum=liste` bütün işler. Yeni rota açılmadı.
 3. **Dışarıdan görünen dikkat:** üstte pano (gecikmiş · bugün · 2 gün içinde), dükkânda rozet; gecikmiş işi olan dükkânın çerçevesi ve kapısı kırmızıya döner. "Yalnızca dikkat isteyenler" sakinleri soldurur, yerlerini değiştirmez (dükkânlar ada göre sıralı — sokak hep aynı görünür). Renk tek başına taşımaz, her durumda yazı var.
 4. **Sonraki adımlar (ayrı PR):** dükkân kaydı (renk, Drive klasörü, not), elle "acil" işareti, aylık paket sayacı (reels/post/story).
+
+## ADR-058 — Dükkân kaydı: Drive, not, aylık paket sayacı; elle "acil"
+
+**Durum:** Kabul edildi · 2026-11-19 · **Kapsar:** `/panel/isler?dukkan=…`, `dukkan` + `paket_sayac` tabloları, `gorev.acil`, MCP `paket_say` / `paketleri_listele` · **Bağlam:** ADR-057 §4
+
+1. **Dükkân kaydı ayrı ve isteğe bağlı:** anahtar sokaktakiyle aynı (`d:<küçük harf etiket>` / `b:<ALAN>`); ilk kaydedişte oluşur. Dükkânın varlığı hâlâ etiketten (ADR-057) — kayıt yalnızca ek bilgi. Drive adresi yalnızca `https://drive.google.com` / `docs.google.com` (panelden başka siteye bağlantı açılmasın). Denetime adres ve not yazılmaz.
+2. **Paket sayacı aylık** (`YYYY-AA`, İstanbul): +1 / −1, sıfırın altına inmez; paketi olmayan dükkân sayılmaz. Hedef boşsa paket yok (ör. tek seferlik çekim). Sayaç işlerden bağımsız: teslim, iş tikinden ayrı bir olay (bir reels birkaç işten çıkabiliyor).
+3. **Acil:** `gorev.acil`; şemada isteğe bağlı — verilmeyen güncellemede DOKUNULMAZ (MCP `is_guncelle` ve eski istemciler sıfırlamasın). Sokakta "Acil · 2 gün içinde" sütununa tarihsiz de olsa düşer; dükkân rozeti "acil".
+4. **Claude:** `paket_say` ("Garage için 2 reels teslim ettim"), `paketleri_listele`; `is_ekle` / `is_guncelle` `acil` alır.
+
+**Ölçülen:** `tests/integration/dukkan.test.ts` (kaydet, ay ayrımı, sıfır sınırı, paketsiz red, acil korunur), şema ve MCP birim testleri, e2e (Drive + paket + sayaç yenilemeden sonra kalıcı + acil).

@@ -36,6 +36,8 @@ export interface GorevDto {
   /** İstanbul duvar saati, dakika. */
   teslimDakika: number | null;
   tamamlandiAt: string | null;
+  /** ADR-058 — elle "acil" işareti. */
+  acil: boolean;
 }
 
 type GorevSatiri = {
@@ -47,6 +49,7 @@ type GorevSatiri = {
   teslimGun: Date | null;
   teslimDakika: number | null;
   tamamlandiAt: Date | null;
+  acil: boolean;
 };
 
 function gorevDto(s: GorevSatiri): GorevDto {
@@ -59,6 +62,7 @@ function gorevDto(s: GorevSatiri): GorevDto {
     teslimGun: s.teslimGun ? dateToAppDay(s.teslimGun) : null,
     teslimDakika: s.teslimDakika,
     tamamlandiAt: s.tamamlandiAt?.toISOString() ?? null,
+    acil: s.acil,
   };
 }
 
@@ -130,6 +134,7 @@ function gorevAlanlari(g: GorevGirdisi) {
     etiket: g.etiket,
     teslimGun: g.teslimGun ? appDayToDate(g.teslimGun) : null,
     teslimDakika: g.teslimGun && g.teslimSaat ? saatDakika(g.teslimSaat) : null,
+    ...(g.acil === undefined ? {} : { acil: g.acil }),
     // ADR-051 — her yazım Google kuyruğuna girer (bağlantı yoksa bekler).
     googleBekliyor: true,
   };

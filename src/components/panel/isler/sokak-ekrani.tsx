@@ -2,7 +2,7 @@
 
 import { List } from 'lucide-react';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 
 import { teslimMetni } from '@/lib/gorev/bicim';
 import type { DikkatDurumu, Dukkan, Sokak } from '@/lib/gorev/sokak';
@@ -24,13 +24,14 @@ const DIKKAT: Record<DikkatDurumu, { ad: string; metin: string; nokta: string; z
     zemin: 'bg-accent-soft/14 text-accent-soft',
   },
   yakin: {
-    ad: 'Yakında · 2 gün',
+    ad: 'Acil · 2 gün içinde',
     metin: 'text-warning',
     nokta: 'bg-warning',
     zemin: 'bg-warning/14 text-warning',
   },
 };
 const DIKKAT_SIRASI: readonly DikkatDurumu[] = ['gecikmis', 'bugun', 'yakin'];
+const PAKET_KISA = { reels: 'Reels', post: 'Post', story: 'Story' } as const;
 
 /** Tente: dükkânın renginde çizgili şerit — tek süs, kimliği o taşır. */
 const tente = (renk: string, adim = 16) => ({
@@ -40,7 +41,7 @@ const tente = (renk: string, adim = 16) => ({
 function rozetMetni(d: Dukkan): string {
   if (d.durum === 'gecikmis') return `${d.sayi.gecikmis} gecikmiş`;
   if (d.durum === 'bugun') return `bugün ${d.sayi.bugun}`;
-  return 'yakında';
+  return d.acilVar ? 'acil' : 'yakında';
 }
 
 /**
@@ -86,7 +87,28 @@ export function SokakEkrani({ sokak, bugun }: { sokak: Sokak; bugun: AppDay }) {
               )}
             </span>
             <span className="border-line bg-canvas flex min-h-16 flex-col justify-center gap-1.5 rounded-lg border px-3 py-2.5">
-              {d.vitrin.length === 0 ? (
+              {d.paket ? (
+                d.paket.map((p) => (
+                  <span
+                    key={p.tur}
+                    className="grid grid-cols-[3rem_1fr_2.25rem] items-center gap-2 text-xs"
+                  >
+                    <span className="text-body">{PAKET_KISA[p.tur]}</span>
+                    <span className="bg-elevated block h-1.5 overflow-hidden rounded-full">
+                      <span
+                        className="block h-full rounded-full"
+                        style={{
+                          width: `${p.hedef ? Math.min(100, (p.n / p.hedef) * 100) : 0}%`,
+                          background: d.renk,
+                        }}
+                      />
+                    </span>
+                    <span className="text-muted text-right tabular-nums">
+                      {p.n}/{p.hedef}
+                    </span>
+                  </span>
+                ))
+              ) : d.vitrin.length === 0 ? (
                 <span className="text-muted text-xs">Vitrin boş</span>
               ) : (
                 d.vitrin.map((g) => {
@@ -223,7 +245,9 @@ export function SokakEkrani({ sokak, bugun }: { sokak: Sokak; bugun: AppDay }) {
                         <span className="flex min-w-0 flex-col">
                           <span className="text-primary truncate text-sm">{g.baslik}</span>
                           <span className="text-muted text-xs">
-                            {g.yer} · {teslimMetni(g, bugun).metin}
+                            {[g.yer, teslimMetni(g, bugun).metin, g.acil ? 'acil' : null]
+                              .filter(Boolean)
+                              .join(' · ')}
                           </span>
                         </span>
                       </Link>
@@ -238,29 +262,6 @@ export function SokakEkrani({ sokak, bugun }: { sokak: Sokak; bugun: AppDay }) {
 
       {sokakBolumu('sokak-cadde', 'Kıyı Caddesi', 'Müşteri dükkânları', sokak.cadde)}
       {sokakBolumu('sokak-arka', 'Arka sokak', 'Ajans, okul, takım, ev', sokak.arka)}
-    </div>
-  );
-}
-
-/** Dükkânın içindeyken başlık: geri dönüş, tente, ad. */
-export function DukkanBasligi({ ad, tur, renk }: { ad: string; tur: string; renk: string }) {
-  // Aşağı kaydırılmış sokaktan girilince içerisi baştan görünsün (Next aynı rotada kaydırmıyor).
-  useEffect(() => window.scrollTo(0, 0), [ad]);
-  return (
-    <div className="mx-auto flex w-full max-w-2xl flex-col gap-3 pt-1">
-      <Link
-        href="/panel/isler"
-        className="focus-ring text-body hover:text-primary -ml-1 flex min-h-11 w-fit items-center gap-1.5 rounded-lg px-1 text-sm"
-      >
-        <span aria-hidden="true">←</span> Sokağa dön
-      </Link>
-      <div className="border-line bg-surface overflow-hidden rounded-xl border">
-        <div aria-hidden="true" className="h-3.5 opacity-80" style={tente(renk, 22)} />
-        <div className="flex items-baseline justify-between gap-3 px-5 py-4">
-          <h2 className="text-primary text-xl font-semibold">{ad}</h2>
-          <span className="text-muted text-sm">{tur}</span>
-        </div>
-      </div>
     </div>
   );
 }

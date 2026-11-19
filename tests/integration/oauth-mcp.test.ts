@@ -231,6 +231,8 @@ describe('MCP araçları', () => {
       'is_geri_al',
       'is_guncelle',
       'is_sil',
+      'paketleri_listele',
+      'paket_say',
     ]);
     expect(l.find((a) => a.name === 'is_sil')!.annotations.destructiveHint).toBe(true);
     expect(l.find((a) => a.name === 'is_ekle')!.inputSchema).toMatchObject({ type: 'object' });

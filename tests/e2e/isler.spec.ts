@@ -48,14 +48,15 @@ test('işler: hızlı ekle, formla ekle, süz, tikle, bitenler ve Bugün kartı'
     await pencere.getByRole('radio', { name: 'Kıyı Medya' }).click();
     await pencere.getByLabel('Gün').fill(istanbulBugun());
     await pencere.getByLabel('Saat').fill('21:00');
-    await pencere.getByLabel('Etiket').fill('Kozmos');
+    // Etiket = önek: dükkân testin kendisine ait olur, temizlikte kaydıyla gider (ADR-058).
+    await pencere.getByLabel('Etiket').fill(onek);
     await page.screenshot({ path: `test-results/isler-form-${info.project.name}.png` });
     await pencere.getByRole('button', { name: 'Kaydet', exact: true }).click();
     await expect(pencere).toBeHidden();
 
     const bugun = page.getByRole('region', { name: /^Bugün/ });
     const satir = bugun.getByRole('listitem').filter({ hasText: kurgu });
-    await expect(satir).toContainText('Kozmos');
+    await expect(satir).toContainText(onek);
     await expect(satir).toContainText('Bugün 21:00');
     await page.screenshot({
       path: `test-results/isler-liste-${info.project.name}.png`,
@@ -75,7 +76,7 @@ test('işler: hızlı ekle, formla ekle, süz, tikle, bitenler ve Bugün kartı'
     const kart = page.getByRole('region', { name: 'Bugünün işleri' });
     await expect(kart.getByText(kurgu)).toBeVisible();
 
-    // Sokak (ADR-057): iş dikkat panosunda; Kozmos dükkânına girilir, tik orada atılır.
+    // Sokak (ADR-057): iş dikkat panosunda; testin dükkânına girilir, tik orada atılır.
     await page.goto('/panel/isler');
     const pano = page.getByRole('region', { name: 'Dikkat panosu' });
     await expect(pano.getByText(kurgu)).toBeVisible();
@@ -83,10 +84,30 @@ test('işler: hızlı ekle, formla ekle, süz, tikle, bitenler ve Bugün kartı'
       path: `test-results/isler-sokak-${info.project.name}.png`,
       fullPage: true,
     });
-    await page.getByRole('link', { name: /^Kozmos — / }).click();
-    await expect(page).toHaveURL(/dukkan=Kozmos/);
-    await expect(page.getByRole('heading', { name: 'Kozmos', level: 2 })).toBeVisible();
+    await page.getByRole('link', { name: new RegExp(`^${onek} — `) }).click();
+    await expect(page).toHaveURL(/dukkan=/);
+    await expect(page.getByRole('heading', { name: onek, level: 2 })).toBeVisible();
     await expect(page.getByText(hizli)).toBeHidden();
+
+    // Dükkân kaydı (ADR-058): Drive + paket → sayaç +1.
+    await page.getByRole('button', { name: `${onek} dükkânını düzenle` }).click();
+    const dk = page.getByRole('dialog', { name: `${onek} — dükkân` });
+    await dk.getByLabel('Drive klasörü').fill('https://drive.google.com/drive/folders/e2e');
+    await dk.getByLabel('Aylık paket var').check();
+    await dk.getByRole('button', { name: 'Kaydet', exact: true }).click();
+    await expect(dk).toBeHidden();
+    await expect(page.getByRole('link', { name: 'Drive' })).toHaveAttribute(
+      'href',
+      'https://drive.google.com/drive/folders/e2e',
+    );
+    await expect(page.getByText('0/4')).toBeVisible();
+    // Sayaç önce ekranda işlenir; yenilemeden önce sunucu eyleminin yanıtı beklenir.
+    const kayit = page.waitForResponse((r) => r.request().method() === 'POST' && r.ok());
+    await page.getByRole('button', { name: 'Reels teslim edildi, bir artır' }).click();
+    await expect(page.getByText('1/4')).toBeVisible();
+    await kayit;
+    await page.reload();
+    await expect(page.getByText('1/4')).toBeVisible();
 
     // Tik → Bitenler; geri al → yeniden Bugün.
     await page.getByRole('checkbox', { name: `${kurgu} — bitti olarak işaretle` }).click();
@@ -100,6 +121,16 @@ test('işler: hızlı ekle, formla ekle, süz, tikle, bitenler ve Bugün kartı'
     });
     await geriAl.click();
     await expect(page.getByRole('region', { name: /^Bugün/ }).getByText(kurgu)).toBeVisible();
+
+    // Acil işareti (ADR-058): formdan → satırda "Acil".
+    await page.getByRole('button', { name: new RegExp(kurgu) }).click();
+    const acilForm = page.getByRole('dialog', { name: 'İşi düzenle' });
+    await acilForm.getByLabel('Acil').check();
+    await acilForm.getByRole('button', { name: 'Kaydet', exact: true }).click();
+    await expect(acilForm).toBeHidden();
+    await expect(
+      page.getByRole('listitem').filter({ hasText: kurgu }).getByText('Acil', { exact: true }),
+    ).toBeVisible();
 
     // Düzenle → sil.
     await page.getByRole('button', { name: new RegExp(kurgu) }).click();
