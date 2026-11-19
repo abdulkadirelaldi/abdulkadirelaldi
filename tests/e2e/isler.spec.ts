@@ -4,8 +4,8 @@ import { adminCredentials, findAdminUser, islerSondaSil } from './_helpers/db';
 import { applySessionCookie } from './_helpers/session';
 
 /**
- * İŞLER BAŞTAN SONA (ADR-050): hızlı ekle (Enter) → formla bugünkü Kıyı Medya işi (etiketli) →
- * alan süzgeci → tik → "Bitenler" → geri al → Bugün panosunda kart. İzler `e2e-isler-` önekiyle.
+ * İŞLER BAŞTAN SONA (ADR-050/057): hızlı ekle (Enter) → formla bugünkü Kıyı Medya işi (etiketli) →
+ * alan süzgeci → sokakta pano + dükkâna giriş → tik → "Bitenler" → geri al → Bugün panosunda kart. İzler `e2e-isler-` önekiyle.
  */
 const istanbulBugun = () =>
   new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Istanbul' }).format(new Date());
@@ -31,7 +31,7 @@ test('işler: hızlı ekle, formla ekle, süz, tikle, bitenler ve Bugün kartı'
   await oturumAc(page, baseURL);
 
   try {
-    await page.goto('/panel/isler');
+    await page.goto('/panel/isler?gorunum=liste');
     await expect(page.getByRole('heading', { name: 'İşler', level: 1 })).toBeVisible();
 
     // Hızlı ekle: yaz + Enter → Tarihsiz öbeğinde, Kişisel.
@@ -75,8 +75,20 @@ test('işler: hızlı ekle, formla ekle, süz, tikle, bitenler ve Bugün kartı'
     const kart = page.getByRole('region', { name: 'Bugünün işleri' });
     await expect(kart.getByText(kurgu)).toBeVisible();
 
-    // Tik → Bitenler; geri al → yeniden Bugün.
+    // Sokak (ADR-057): iş dikkat panosunda; Kozmos dükkânına girilir, tik orada atılır.
     await page.goto('/panel/isler');
+    const pano = page.getByRole('region', { name: 'Dikkat panosu' });
+    await expect(pano.getByText(kurgu)).toBeVisible();
+    await page.screenshot({
+      path: `test-results/isler-sokak-${info.project.name}.png`,
+      fullPage: true,
+    });
+    await page.getByRole('link', { name: /^Kozmos — / }).click();
+    await expect(page).toHaveURL(/dukkan=Kozmos/);
+    await expect(page.getByRole('heading', { name: 'Kozmos', level: 2 })).toBeVisible();
+    await expect(page.getByText(hizli)).toBeHidden();
+
+    // Tik → Bitenler; geri al → yeniden Bugün.
     await page.getByRole('checkbox', { name: `${kurgu} — bitti olarak işaretle` }).click();
     await expect(page.getByRole('region', { name: /^Bugün/ }).getByText(kurgu)).toBeHidden();
     await page.getByText(/Bitenler · son 7 gün/).click();

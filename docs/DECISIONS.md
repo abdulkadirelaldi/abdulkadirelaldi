@@ -2816,3 +2816,14 @@ Sahibi, bilgisayarı kapalıyken telefondaki Claude uygulamasından iş verip ti
 ### ADR-056 eki (2026-11-19) — OAuth işlem süresi
 
 Canlıda ölçüldü: Claude bağlantısı bir gün çalıştı (yenilemeler 200), 09:57'de jeton yenileme işlemi sıkışık sunucuda (yük ~15) 7,5 sn sürdü; Prisma'nın varsayılan 5 sn etkileşimli işlem süresi aşıldı (P2028), uç 500 döndü ve Claude bağlantıyı kaybetti. İşlem geri alındığı için jeton kaybı yok (yenileme jetonu geçerli kaldı). Takas ve yenileme işlemleri artık `maxWait: 10s, timeout: 20s` (Claude yenilemeye 30 sn, ilk takasa 10 sn tanıyor).
+
+## ADR-057 — İşlerin sokağı: her müşteri bir dükkân
+
+**Durum:** Kabul edildi · 2026-11-19 · **Kapsar:** `/panel/isler` · **Bağlam:** ADR-050, ADR-054
+
+Sahibi: "her şey sıralı listeli olmasın … bir sokak olsun, çalıştığım her işletme orada bir dükkân olsun, tıklayınca içine gireyim." Tıklanabilir taslak gösterildi, onaylandı; ardından "acil, gecikmiş işleri dükkânın dışından da göreyim" eklendi.
+
+1. **Dükkân ayrı kayıt değil:** Kıyı Medya işinin etiketi (müşteri adı) dükkânı açar (`src/lib/gorev/sokak.ts`, saf). Etiketsiz ya da "Kıyı Medya" etiketli Kıyı işleri ofis binasına; Okul, Spectraloop, Kişisel kendi binasına (arka sokak). Eşleşme büyük/küçük harf duyarsız. Böylece form, Claude'un `is_ekle` aracı ve Google eşitlemesi değişmedi.
+2. **Tek adres, üç görünüm:** `/panel/isler` sokak; `?dukkan=Garage` / `?bina=OKUL` dükkânın içi — ADR-050 listesinin aynısı, yalnız o kapsamın işleri, yeni iş o kapsama eklenir; `?gorunum=liste` bütün işler. Yeni rota açılmadı.
+3. **Dışarıdan görünen dikkat:** üstte pano (gecikmiş · bugün · 2 gün içinde), dükkânda rozet; gecikmiş işi olan dükkânın çerçevesi ve kapısı kırmızıya döner. "Yalnızca dikkat isteyenler" sakinleri soldurur, yerlerini değiştirmez (dükkânlar ada göre sıralı — sokak hep aynı görünür). Renk tek başına taşımaz, her durumda yazı var.
+4. **Sonraki adımlar (ayrı PR):** dükkân kaydı (renk, Drive klasörü, not), elle "acil" işareti, aylık paket sayacı (reels/post/story).
